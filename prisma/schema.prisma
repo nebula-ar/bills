@@ -53,24 +53,27 @@ model Branch {
 }
 
 model User {
-  id          String    @id @default(cuid())
-  businessId  String
-  branchId    String?
-  name        String
-  role        UserRole
-  active      Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  createdById String?
-  updatedAt   DateTime  @updatedAt
-  updatedById String?
-  deleted     Boolean   @default(false)
-  deletedAt   DateTime?
-  deletedById String?
+  id           String    @id @default(cuid())
+  businessId   String
+  branchId     String?
+  name         String
+  email        String?
+  passwordHash String?
+  role         UserRole
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  createdById  String?
+  updatedAt    DateTime  @updatedAt
+  updatedById  String?
+  deleted      Boolean   @default(false)
+  deletedAt    DateTime?
+  deletedById  String?
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   branch   Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
   sales    Sale[]   @relation("BarberSales")
 
+  @@unique([businessId, email])
   @@index([businessId])
   @@index([branchId])
   @@index([deletedAt])
