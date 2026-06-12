@@ -4,6 +4,15 @@ import { UserRole } from "../src/generated/prisma/client";
 import { prisma } from "../src/lib/prisma";
 
 async function main() {
+  await prisma.salePayment.deleteMany();
+  await prisma.saleItem.deleteMany();
+  await prisma.sale.deleteMany();
+  await prisma.branchServicePrice.deleteMany();
+  await prisma.service.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.branch.deleteMany();
+  await prisma.business.deleteMany();
+
   const business = await prisma.business.create({
     data: {
       name: "Barbería El Rulo",
