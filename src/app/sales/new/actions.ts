@@ -1,6 +1,7 @@
 "use server";
 
 import { PaymentMethod } from "@/generated/prisma/client";
+import { requireAdminSession } from "@/lib/auth";
 import { createSimpleSale } from "@/modules/sales/create-simple-sale.use-case";
 import { SaleError } from "@/modules/sales/sale.errors";
 import { redirect } from "next/navigation";
@@ -10,6 +11,8 @@ import { getSaleErrorMessage } from "./sale-error-messages";
 const genericErrorMessage = "No pudimos registrar la venta. Intentá de nuevo.";
 
 export async function registerSale(formData: FormData) {
+  await requireAdminSession();
+
   const branchId = parseRequiredString(formData, "branchId");
   const barberId = parseRequiredString(formData, "barberId");
   const servicePriceId = parseRequiredString(formData, "servicePriceId");

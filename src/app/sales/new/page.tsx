@@ -1,5 +1,7 @@
 import { PaymentMethod } from "@/generated/prisma/client";
+import { requireAdminSession } from "@/lib/auth";
 import { getSaleEntryOptions } from "@/modules/sales/get-sale-entry-options.use-case";
+import { LogoutButton } from "@/components/logout-button";
 import Link from "next/link";
 
 import { registerSale } from "./actions";
@@ -29,6 +31,8 @@ function formatMoney(value: number) {
 }
 
 export default async function NewSalePage({ searchParams }: NewSalePageProps) {
+  await requireAdminSession();
+
   const params = await searchParams;
   const status = getSingleParam(params.status);
   const message = getSingleParam(params.message);
@@ -48,9 +52,12 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
               {branch ? `${branch.business.name} · ${branch.name}` : "No hay una sucursal disponible."}
             </p>
           </div>
-          <Link className="text-sm font-medium text-amber-400 hover:text-amber-300" href="/">
-            Volver al inicio
-          </Link>
+          <div className="flex gap-4 text-sm font-medium">
+            <Link className="text-amber-400 hover:text-amber-300" href="/">
+              Volver al inicio
+            </Link>
+            <LogoutButton />
+          </div>
         </div>
 
         {message && isSupportedStatus(status) ? (

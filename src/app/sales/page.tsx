@@ -1,5 +1,7 @@
 import { PaymentMethod } from "@/generated/prisma/client";
+import { requireAdminSession } from "@/lib/auth";
 import { getRecentSales } from "@/modules/sales/get-recent-sales.use-case";
+import { LogoutButton } from "@/components/logout-button";
 import Link from "next/link";
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
@@ -23,6 +25,8 @@ const dateFormatter = new Intl.DateTimeFormat("es-AR", {
 });
 
 export default async function SalesPage() {
+  await requireAdminSession();
+
   const sales = await getRecentSales();
 
   return (
@@ -45,6 +49,7 @@ export default async function SalesPage() {
             <Link className="text-amber-400 hover:text-amber-300" href="/sales/new">
               Registrar venta
             </Link>
+            <LogoutButton />
           </div>
         </div>
 
