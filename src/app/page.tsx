@@ -64,12 +64,20 @@ export default async function Home() {
           <p className="mt-2 text-zinc-400">
             {branch?.name ?? "Ejecutá el seed para cargar datos iniciales."}
           </p>
-          <Link
-            className="mt-5 inline-flex rounded-lg bg-amber-400 px-4 py-2 font-semibold text-zinc-950 hover:bg-amber-300"
-            href="/sales/new"
-          >
-            Registrar venta
-          </Link>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              className="inline-flex rounded-lg bg-amber-400 px-4 py-2 font-semibold text-zinc-950 hover:bg-amber-300"
+              href="/sales/new"
+            >
+              Registrar venta
+            </Link>
+            <Link
+              className="inline-flex rounded-lg border border-zinc-700 px-4 py-2 font-semibold text-zinc-100 hover:border-zinc-500"
+              href="/sales"
+            >
+              Ver ventas recientes
+            </Link>
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

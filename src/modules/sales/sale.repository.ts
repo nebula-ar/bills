@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { UserRole } from "@/generated/prisma/client";
+import { SaleStatus, UserRole } from "@/generated/prisma/client";
 
 import type { CreateSalePaymentDto } from "./create-sale.dto";
 
@@ -146,6 +146,67 @@ export function findBranchServicePriceById(branchId: string, servicePriceId: str
     select: {
       price: true,
       serviceId: true,
+    },
+  });
+}
+
+export function findRecentSales(limit = 10) {
+  return prisma.sale.findMany({
+    where: {
+      deleted: false,
+      status: SaleStatus.COMPLETED,
+      branch: {
+        deleted: false,
+      },
+      barber: {
+        deleted: false,
+      },
+    },
+    take: limit,
+    orderBy: {
+      soldAt: "desc",
+    },
+    select: {
+      id: true,
+      soldAt: true,
+      total: true,
+      branch: {
+        select: {
+          name: true,
+        },
+      },
+      barber: {
+        select: {
+          name: true,
+        },
+      },
+      items: {
+        where: {
+          deleted: false,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+        select: {
+          id: true,
+          description: true,
+          quantity: true,
+          total: true,
+        },
+      },
+      payments: {
+        where: {
+          deleted: false,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+        select: {
+          id: true,
+          method: true,
+          amount: true,
+        },
+      },
     },
   });
 }
