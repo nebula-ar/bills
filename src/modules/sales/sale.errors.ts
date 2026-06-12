@@ -1,0 +1,21 @@
+export const SaleErrorCode = {
+  BRANCH_NOT_FOUND: "BRANCH_NOT_FOUND",
+  BARBER_NOT_AVAILABLE: "BARBER_NOT_AVAILABLE",
+  BARBER_INVALID_ROLE: "BARBER_INVALID_ROLE",
+  BARBER_WRONG_BRANCH: "BARBER_WRONG_BRANCH",
+  EMPTY_ITEMS: "EMPTY_ITEMS",
+  EMPTY_PAYMENTS: "EMPTY_PAYMENTS",
+  INVALID_ITEM_QUANTITY: "INVALID_ITEM_QUANTITY",
+  INVALID_PAYMENT_AMOUNT: "INVALID_PAYMENT_AMOUNT",
+  SERVICE_NOT_AVAILABLE: "SERVICE_NOT_AVAILABLE",
+  PAYMENTS_TOTAL_MISMATCH: "PAYMENTS_TOTAL_MISMATCH",
+} as const;
+
+export type SaleErrorCode = (typeof SaleErrorCode)[keyof typeof SaleErrorCode];
+
+export class SaleError extends Error {
+  constructor(public readonly code: SaleErrorCode) {
+    super(code);
+    this.name = "SaleError";
+  }
+}

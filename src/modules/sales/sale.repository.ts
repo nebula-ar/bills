@@ -1,0 +1,184 @@
+import { prisma } from "@/lib/prisma";
+import { UserRole } from "@/generated/prisma/client";
+
+import type { CreateSalePaymentDto } from "./create-sale.dto";
+
+export type CreateSaleRepositoryItem = {
+  serviceId: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+};
+
+export type CreateSaleRepositoryInput = {
+  branchId: string;
+  barberId: string;
+  total: number;
+  items: CreateSaleRepositoryItem[];
+  payments: CreateSalePaymentDto[];
+  notes?: string;
+  soldAt?: Date;
+};
+
+export function findSaleBranch(branchId: string) {
+  return prisma.branch.findUnique({
+    where: {
+      id: branchId,
+    },
+  });
+}
+
+export function findSaleBarber(barberId: string) {
+  return prisma.user.findUnique({
+    where: {
+      id: barberId,
+    },
+  });
+}
+
+export function findBranchServicePrices(branchId: string, serviceIds: string[]) {
+  return prisma.branchServicePrice.findMany({
+    where: {
+      branchId,
+      serviceId: {
+        in: serviceIds,
+      },
+      active: true,
+      deleted: false,
+      service: {
+        active: true,
+        deleted: false,
+      },
+    },
+    include: {
+      service: true,
+    },
+  });
+}
+
+export function findSaleEntryOptionsBranch() {
+  return prisma.branch.findFirst({
+    where: {
+      deleted: false,
+      business: {
+        deleted: false,
+      },
+      users: {
+        some: {
+          deleted: false,
+          active: true,
+          role: UserRole.BARBER,
+        },
+      },
+      servicePrices: {
+        some: {
+          deleted: false,
+          active: true,
+          service: {
+            deleted: false,
+            active: true,
+          },
+        },
+      },
+    },
+    include: {
+      business: {
+        select: {
+          name: true,
+        },
+      },
+      users: {
+        where: {
+          deleted: false,
+          active: true,
+          role: UserRole.BARBER,
+        },
+        orderBy: {
+          name: "asc",
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      servicePrices: {
+        where: {
+          deleted: false,
+          active: true,
+          service: {
+            deleted: false,
+            active: true,
+          },
+        },
+        include: {
+          service: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        orderBy: {
+          service: {
+            name: "asc",
+          },
+        },
+      },
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+}
+
+export function findBranchServicePriceById(branchId: string, servicePriceId: string) {
+  return prisma.branchServicePrice.findFirst({
+    where: {
+      id: servicePriceId,
+      branchId,
+      active: true,
+      deleted: false,
+      service: {
+        active: true,
+        deleted: false,
+      },
+    },
+    select: {
+      price: true,
+      serviceId: true,
+    },
+  });
+}
+
+export function createSaleTransaction(input: CreateSaleRepositoryInput) {
+  return prisma.$transaction((tx) =>
+    tx.sale.create({
+      data: {
+        branchId: input.branchId,
+        barberId: input.barberId,
+        total: input.total,
+        notes: input.notes,
+        soldAt: input.soldAt,
+        items: {
+          create: input.items.map((item) => ({
+            serviceId: item.serviceId,
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            total: item.total,
+          })),
+        },
+        payments: {
+          create: input.payments.map((payment) => ({
+            method: payment.method,
+            amount: payment.amount,
+          })),
+        },
+      },
+      include: {
+        items: true,
+        payments: true,
+      },
+    }),
+  );
+}

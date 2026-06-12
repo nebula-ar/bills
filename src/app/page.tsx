@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat("es-AR", {
@@ -63,6 +64,12 @@ export default async function Home() {
           <p className="mt-2 text-zinc-400">
             {branch?.name ?? "Ejecutá el seed para cargar datos iniciales."}
           </p>
+          <Link
+            className="mt-5 inline-flex rounded-lg bg-amber-400 px-4 py-2 font-semibold text-zinc-950 hover:bg-amber-300"
+            href="/sales/new"
+          >
+            Registrar venta
+          </Link>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
