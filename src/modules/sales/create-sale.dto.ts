@@ -1,8 +1,10 @@
 import type { PaymentMethod } from "@/generated/prisma/client";
 
 export type CreateSaleItemDto = {
-  serviceId: string;
+  serviceId?: string | null;
+  description?: string;
   quantity: number;
+  unitPrice?: number;
 };
 
 export type CreateSalePaymentDto = {

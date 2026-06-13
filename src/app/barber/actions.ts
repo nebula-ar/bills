@@ -1,8 +1,8 @@
 "use server";
 
-import { PaymentMethod } from "@/generated/prisma/client";
 import { getBarberErrorMessage } from "@/lib/barber-error-messages";
 import { getSaleErrorMessage } from "@/lib/sale-error-messages";
+import { parsePaymentMethod, parseRequiredString, parseSaleItemsFromFormData } from "@/lib/sale-form-parser";
 import { BarberError } from "@/modules/barbers/barber.errors";
 import { validateBarberPin } from "@/modules/barbers/validate-barber-pin.use-case";
 import { createSimpleSale } from "@/modules/sales/create-simple-sale.use-case";
@@ -15,11 +15,14 @@ export async function registerBarberSale(formData: FormData) {
   const branchId = parseRequiredString(formData, "branchId");
   const barberId = parseRequiredString(formData, "barberId");
   const pin = parseRequiredString(formData, "pin");
-  const servicePriceId = parseRequiredString(formData, "servicePriceId");
-  const quantity = parseQuantity(formData.get("quantity"));
+  const parsedItems = parseSaleItemsFromFormData(formData);
   const paymentMethod = parsePaymentMethod(formData.get("paymentMethod"));
 
-  if (!branchId || !barberId || !pin || !servicePriceId || !quantity || !paymentMethod) {
+  if (parsedItems.error) {
+    redirectWithMessage("error", parsedItems.error);
+  }
+
+  if (!branchId || !barberId || !pin || !paymentMethod) {
     redirectWithMessage("error", "Completá todos los campos para registrar la venta.");
   }
 
@@ -33,8 +36,7 @@ export async function registerBarberSale(formData: FormData) {
     await createSimpleSale({
       branchId,
       barberId,
-      servicePriceId,
-      quantity,
+      items: parsedItems.items,
       paymentMethod,
     });
   } catch (error) {
@@ -51,35 +53,6 @@ export async function registerBarberSale(formData: FormData) {
   }
 
   redirectWithMessage("success", "Venta registrada correctamente.");
-}
-
-function parseRequiredString(formData: FormData, key: string) {
-  const value = formData.get(key);
-
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const trimmedValue = value.trim();
-  return trimmedValue.length > 0 ? trimmedValue : null;
-}
-
-function parseQuantity(value: FormDataEntryValue | null) {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const quantity = Number(value);
-  return Number.isInteger(quantity) && quantity > 0 ? quantity : null;
-}
-
-function parsePaymentMethod(value: FormDataEntryValue | null) {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const methods = Object.values(PaymentMethod);
-  return methods.includes(value as PaymentMethod) ? (value as PaymentMethod) : null;
 }
 
 function redirectWithMessage(status: "error" | "success", message: string): never {

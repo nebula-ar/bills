@@ -4,7 +4,7 @@ import { SaleStatus, UserRole } from "@/generated/prisma/client";
 import type { CreateSalePaymentDto } from "./create-sale.dto";
 
 export type CreateSaleRepositoryItem = {
-  serviceId: string;
+  serviceId: string | null;
   description: string;
   quantity: number;
   unitPrice: number;
@@ -135,25 +135,6 @@ export function findSaleEntryOptionsBranch() {
     },
     orderBy: {
       name: "asc",
-    },
-  });
-}
-
-export function findBranchServicePriceById(branchId: string, servicePriceId: string) {
-  return prisma.branchServicePrice.findFirst({
-    where: {
-      id: servicePriceId,
-      branchId,
-      active: true,
-      deleted: false,
-      service: {
-        active: true,
-        deleted: false,
-      },
-    },
-    select: {
-      price: true,
-      serviceId: true,
     },
   });
 }

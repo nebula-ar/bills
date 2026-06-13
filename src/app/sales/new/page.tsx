@@ -1,4 +1,5 @@
 import { PaymentMethod } from "@/generated/prisma/client";
+import { SaleItemsFieldset } from "@/components/sale-items-fieldset";
 import { requireAdminSession } from "@/lib/auth";
 import { getSaleEntryOptions } from "@/modules/sales/get-sale-entry-options.use-case";
 import { LogoutButton } from "@/components/logout-button";
@@ -38,6 +39,10 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
   const message = getSingleParam(params.message);
 
   const branch = await getSaleEntryOptions();
+  const serviceOptions = branch?.servicePrices.map((servicePrice) => ({
+    serviceId: servicePrice.serviceId,
+    label: `${servicePrice.service.name} · ${formatMoney(servicePrice.price)}`,
+  }));
 
   return (
     <main className="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-50">
@@ -101,33 +106,11 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
                 </select>
               </label>
 
-              <label className="grid gap-2 text-sm font-medium text-zinc-200">
-                Servicio
-                <select
-                  className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
-                  name="servicePriceId"
-                  required
-                >
-                  {branch.servicePrices.map((servicePrice) => (
-                    <option key={servicePrice.id} value={servicePrice.id}>
-                      {servicePrice.service.name} · {formatMoney(servicePrice.price)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="grid gap-2 text-sm font-medium text-zinc-200">
-                Cantidad
-                <input
-                  className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
-                  defaultValue={1}
-                  min={1}
-                  name="quantity"
-                  required
-                  step={1}
-                  type="number"
-                />
-              </label>
+              <SaleItemsFieldset
+                quantityInputClassName="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                selectClassName="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                serviceOptions={serviceOptions ?? []}
+              />
 
               <label className="grid gap-2 text-sm font-medium text-zinc-200">
                 Método de pago

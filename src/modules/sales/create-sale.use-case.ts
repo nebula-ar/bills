@@ -40,6 +40,28 @@ export async function createSale(input: CreateSaleDto) {
   );
 
   const saleItems: CreateSaleRepositoryItem[] = input.items.map((item) => {
+    if (!item.serviceId) {
+      const description = item.description?.trim();
+
+      if (!description) {
+        throw new SaleError(SaleErrorCode.INVALID_MANUAL_EXTRA_DESCRIPTION);
+      }
+
+      if (!Number.isInteger(item.unitPrice) || !item.unitPrice || item.unitPrice <= 0) {
+        throw new SaleError(SaleErrorCode.INVALID_MANUAL_EXTRA_PRICE);
+      }
+
+      const total = item.unitPrice * item.quantity;
+
+      return {
+        serviceId: null,
+        description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total,
+      };
+    }
+
     const servicePrice = servicePriceByServiceId.get(item.serviceId);
 
     if (!servicePrice) {
@@ -98,7 +120,7 @@ function validateSaleInputShape(input: CreateSaleDto) {
 }
 
 function uniqueServiceIds(items: CreateSaleDto["items"]) {
-  return [...new Set(items.map((item) => item.serviceId))];
+  return [...new Set(items.flatMap((item) => (item.serviceId ? [item.serviceId] : [])))];
 }
 
 function sum(values: number[]) {

@@ -9,6 +9,8 @@ const saleErrorMessages: Record<SaleErrorCodeType, string> = {
   [SaleErrorCode.EMPTY_PAYMENTS]: "Seleccioná un método de pago.",
   [SaleErrorCode.INVALID_ITEM_QUANTITY]: "La cantidad debe ser mayor a cero.",
   [SaleErrorCode.INVALID_PAYMENT_AMOUNT]: "El importe del pago debe ser mayor a cero.",
+  [SaleErrorCode.INVALID_MANUAL_EXTRA_DESCRIPTION]: "Ingresá una descripción para el extra o producto.",
+  [SaleErrorCode.INVALID_MANUAL_EXTRA_PRICE]: "Ingresá un precio válido para el extra o producto.",
   [SaleErrorCode.SERVICE_NOT_AVAILABLE]: "El servicio seleccionado no está disponible en esta sucursal.",
   [SaleErrorCode.PAYMENTS_TOTAL_MISMATCH]: "El importe del pago no coincide con el total de la venta.",
   [SaleErrorCode.SALE_NOT_FOUND]: "No encontramos la venta o ya no está disponible.",
