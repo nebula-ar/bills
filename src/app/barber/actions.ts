@@ -1,7 +1,6 @@
 "use server";
 
 import { PaymentMethod } from "@/generated/prisma/client";
-import { requireAdminSession } from "@/lib/auth";
 import { getSaleErrorMessage } from "@/lib/sale-error-messages";
 import { createSimpleSale } from "@/modules/sales/create-simple-sale.use-case";
 import { SaleError } from "@/modules/sales/sale.errors";
@@ -9,9 +8,7 @@ import { redirect } from "next/navigation";
 
 const genericErrorMessage = "No pudimos registrar la venta. Intentá de nuevo.";
 
-export async function registerSale(formData: FormData) {
-  await requireAdminSession();
-
+export async function registerBarberSale(formData: FormData) {
   const branchId = parseRequiredString(formData, "branchId");
   const barberId = parseRequiredString(formData, "barberId");
   const servicePriceId = parseRequiredString(formData, "servicePriceId");
@@ -73,5 +70,5 @@ function parsePaymentMethod(value: FormDataEntryValue | null) {
 
 function redirectWithMessage(status: "error" | "success", message: string): never {
   const params = new URLSearchParams({ status, message });
-  redirect(`/sales/new?${params.toString()}`);
+  redirect(`/barber?${params.toString()}`);
 }

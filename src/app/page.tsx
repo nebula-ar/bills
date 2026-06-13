@@ -69,10 +69,16 @@ export default async function Home() {
             {branch?.name ?? "Ejecutá el seed para cargar datos iniciales."}
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              className="inline-flex rounded-lg bg-amber-400 px-4 py-2 font-semibold text-zinc-950 hover:bg-amber-300"
+              href="/barber"
+            >
+              Terminal de barberos
+            </Link>
             {canManageSales ? (
               <>
                 <Link
-                  className="inline-flex rounded-lg bg-amber-400 px-4 py-2 font-semibold text-zinc-950 hover:bg-amber-300"
+                  className="inline-flex rounded-lg border border-zinc-700 px-4 py-2 font-semibold text-zinc-100 hover:border-zinc-500"
                   href="/sales/new"
                 >
                   Registrar venta
