@@ -89,6 +89,12 @@ export default async function Home() {
                 >
                   Ver ventas recientes
                 </Link>
+                <Link
+                  className="inline-flex rounded-lg border border-zinc-700 px-4 py-2 font-semibold text-zinc-100 hover:border-zinc-500"
+                  href="/reports"
+                >
+                  Ver reportes
+                </Link>
               </>
             ) : (
               <Link

@@ -49,6 +49,9 @@ export default async function SalesPage() {
             <Link className="text-amber-400 hover:text-amber-300" href="/sales/new">
               Registrar venta
             </Link>
+            <Link className="text-zinc-300 hover:text-zinc-50" href="/reports">
+              Reportes
+            </Link>
             <LogoutButton />
           </div>
         </div>
