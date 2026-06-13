@@ -12,6 +12,7 @@ export function findActiveBarberForPinValidation(barberId: string, branchId?: st
       branch: branchId
         ? {
             id: branchId,
+            active: true,
             deleted: false,
           }
         : undefined,
@@ -64,6 +65,7 @@ export function findBranchesForBarberManagement() {
   return prisma.branch.findMany({
     where: {
       deleted: false,
+      active: true,
       business: {
         deleted: false,
       },
@@ -87,6 +89,7 @@ export function findBarberManagementBranchById(branchId: string) {
     where: {
       id: branchId,
       deleted: false,
+      active: true,
       business: {
         deleted: false,
       },

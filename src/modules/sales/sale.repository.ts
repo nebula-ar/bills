@@ -22,9 +22,11 @@ export type CreateSaleRepositoryInput = {
 };
 
 export function findSaleBranch(branchId: string) {
-  return prisma.branch.findUnique({
+  return prisma.branch.findFirst({
     where: {
       id: branchId,
+      active: true,
+      deleted: false,
     },
   });
 }
@@ -61,6 +63,7 @@ export function findSaleEntryOptionsBranch() {
   return prisma.branch.findFirst({
     where: {
       deleted: false,
+      active: true,
       business: {
         deleted: false,
       },
@@ -157,6 +160,7 @@ export function findRecentSales(limit = 10) {
       status: SaleStatus.COMPLETED,
       branch: {
         deleted: false,
+        active: true,
       },
       barber: {
         deleted: false,

@@ -95,7 +95,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
               <input name="branchId" type="hidden" value={selectedBranch.id} />
               <h2 className="text-xl font-semibold">Catálogo de servicios</h2>
               <p className="mt-2 text-sm text-zinc-400">
-                Estos servicios pertenecen al negocio. Después configurás en qué sucursales están disponibles y a qué precio.
+                Agregá servicios al catálogo del negocio y configurá su precio por sucursal.
               </p>
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <label className="grid gap-2 text-sm font-medium text-zinc-200">
@@ -130,7 +130,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
               <div>
                 <h2 className="text-xl font-semibold">Configuración por sucursal</h2>
                 <p className="mt-2 text-sm text-zinc-400">
-                  Sucursal seleccionada: {selectedBranch.name}. Marcá disponibilidad y guardá el precio en pesos argentinos.
+                  Sucursal seleccionada: {selectedBranch.name}. Cada servicio necesita precio propio en esta sucursal para poder venderse.
                 </p>
               </div>
 
@@ -139,60 +139,84 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                   Todavía no hay servicios en el catálogo.
                 </div>
               ) : (
-                services.map((service) => (
-                  <form
-                    action={saveBranchServiceConfig}
-                    className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"
-                    key={service.id}
-                  >
-                    <input name="branchId" type="hidden" value={selectedBranch.id} />
-                    <input name="serviceId" type="hidden" value={service.id} />
+                services.map((service) => {
+                  const configured = service.configured;
+                  const branchPrice = service.branchPrice;
+                  const priceDefaultValue = branchPrice?.price ?? service.suggestedPrice ?? "";
 
-                    <div className="grid gap-4 md:grid-cols-[1fr_10rem_8rem_auto] md:items-end">
-                      <div>
-                        <h3 className="text-lg font-semibold">{service.name}</h3>
-                        <p className="mt-1 text-sm text-zinc-400">
-                          {service.description ?? "Sin descripción"}
-                        </p>
-                        <p className={`mt-2 text-sm font-medium ${service.branchPrice?.active ? "text-emerald-300" : "text-zinc-500"}`}>
-                          {service.branchPrice
-                            ? `${formatMoney(service.branchPrice.price)} · ${service.branchPrice.active ? "Disponible" : "No disponible"}`
-                            : "Sin precio configurado para esta sucursal"}
-                        </p>
+                  return (
+                    <form
+                      action={saveBranchServiceConfig}
+                      className={`rounded-2xl border bg-zinc-900 p-5 ${
+                        configured ? "border-zinc-800" : "border-amber-700/70"
+                      }`}
+                      key={service.id}
+                    >
+                      <input name="branchId" type="hidden" value={selectedBranch.id} />
+                      <input name="serviceId" type="hidden" value={service.id} />
+
+                      <div className="grid gap-4 md:grid-cols-[1fr_10rem_8rem_auto] md:items-end">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-lg font-semibold">{service.name}</h3>
+                            {!configured ? (
+                              <span className="rounded-full border border-amber-600/70 bg-amber-950/60 px-2 py-1 text-xs font-semibold text-amber-200">
+                                Configurar en esta sucursal
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-sm text-zinc-400">
+                            {service.description ?? "Sin descripción"}
+                          </p>
+                          <p
+                            className={`mt-2 text-sm font-medium ${
+                              branchPrice?.active ? "text-emerald-300" : configured ? "text-zinc-500" : "text-amber-200"
+                            }`}
+                          >
+                            {branchPrice
+                              ? `${formatMoney(branchPrice.price)} · ${branchPrice.active ? "Disponible" : "No disponible"}`
+                              : getUnconfiguredServiceCopy(service.suggestedPrice)}
+                          </p>
+                        </div>
+
+                        <label className="grid gap-2 text-sm font-medium text-zinc-200">
+                          {configured ? "Precio" : "Precio para habilitar"}
+                          <input
+                            className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                            defaultValue={priceDefaultValue}
+                            min={1}
+                            name="price"
+                            placeholder="Ej: 5000"
+                            required
+                            step={1}
+                            type="number"
+                          />
+                        </label>
+
+                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-200 md:pb-3">
+                          <input
+                            className="h-4 w-4 accent-amber-400"
+                            defaultChecked={branchPrice?.active ?? true}
+                            name="active"
+                            type="checkbox"
+                          />
+                          Disponible
+                        </label>
+
+                        <button
+                          className={`rounded-lg px-4 py-3 font-semibold ${
+                            configured
+                              ? "border border-zinc-700 text-zinc-100 hover:border-zinc-500"
+                              : "bg-amber-400 text-zinc-950 hover:bg-amber-300"
+                          }`}
+                          type="submit"
+                        >
+                          {configured ? "Guardar configuración" : "Habilitar en esta sucursal"}
+                        </button>
                       </div>
-
-                      <label className="grid gap-2 text-sm font-medium text-zinc-200">
-                        Precio
-                        <input
-                          className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
-                          defaultValue={service.branchPrice?.price ?? ""}
-                          min={1}
-                          name="price"
-                          required
-                          step={1}
-                          type="number"
-                        />
-                      </label>
-
-                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-200 md:pb-3">
-                        <input
-                          className="h-4 w-4 accent-amber-400"
-                          defaultChecked={service.branchPrice?.active ?? true}
-                          name="active"
-                          type="checkbox"
-                        />
-                        Disponible
-                      </label>
-
-                      <button
-                        className="rounded-lg border border-zinc-700 px-4 py-3 font-semibold text-zinc-100 hover:border-zinc-500"
-                        type="submit"
-                      >
-                        Guardar configuración
-                      </button>
-                    </div>
-                  </form>
-                ))
+                    </form>
+                  );
+                })
               )}
             </section>
           </>
@@ -208,6 +232,10 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
 
 function formatMoney(value: number) {
   return moneyFormatter.format(value);
+}
+
+function getUnconfiguredServiceCopy(suggestedPrice: number | null) {
+  return suggestedPrice ? `Precio sugerido: ${formatMoney(suggestedPrice)}` : "Cargá un precio para habilitarlo.";
 }
 
 function getSingleParam(value: string | string[] | undefined) {

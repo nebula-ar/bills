@@ -33,6 +33,7 @@ export async function findServiceManagementData(selectedBranchId?: string) {
   const branches = await prisma.branch.findMany({
     where: {
       deleted: false,
+      active: true,
       business: {
         deleted: false,
       },
@@ -77,15 +78,22 @@ export async function findServiceManagementData(selectedBranchId?: string) {
       active: true,
       branchPrices: {
         where: {
-          branchId: selectedBranch.id,
           deleted: false,
+          branch: {
+            deleted: false,
+          },
         },
         select: {
           id: true,
+          branchId: true,
           price: true,
           active: true,
         },
-        take: 1,
+        orderBy: [
+          { active: "desc" },
+          { createdAt: "asc" },
+          { id: "asc" },
+        ],
       },
     },
     orderBy: {
@@ -97,14 +105,23 @@ export async function findServiceManagementData(selectedBranchId?: string) {
     branches,
     selectedBranch,
     services: services.map((service) => {
-      const branchPrice = service.branchPrices[0] ?? null;
+      const branchPrice = service.branchPrices.find((price) => price.branchId === selectedBranch.id) ?? null;
+      const suggestedPrice = service.branchPrices.find((price) => price.branchId !== selectedBranch.id)?.price ?? null;
 
       return {
         id: service.id,
         name: service.name,
         description: service.description,
         active: service.active,
-        branchPrice,
+        configured: branchPrice !== null,
+        suggestedPrice,
+        branchPrice: branchPrice
+          ? {
+              id: branchPrice.id,
+              price: branchPrice.price,
+              active: branchPrice.active,
+            }
+          : null,
       };
     }),
   };
@@ -115,6 +132,7 @@ export function findServiceManagementBranchById(branchId: string) {
     where: {
       id: branchId,
       deleted: false,
+      active: true,
       business: {
         deleted: false,
       },
@@ -164,6 +182,7 @@ export function findBranchServicePriceForUpdate(branchId: string, servicePriceId
       },
       branch: {
         deleted: false,
+        active: true,
         business: {
           deleted: false,
         },
