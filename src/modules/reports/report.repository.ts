@@ -1,17 +1,31 @@
-import { PaymentMethod, SaleStatus } from "@/generated/prisma/client";
+import { PaymentMethod, SaleStatus, UserRole } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
-export type TodaySalesReportSale = Awaited<ReturnType<typeof findTodayReportSales>>[number];
+export type SalesReportFilters = {
+  from?: Date;
+  to?: Date;
+  barberId?: string;
+  paymentMethod?: PaymentMethod;
+};
 
-export function findTodayReportSales(startOfDay: Date, startOfNextDay: Date) {
+export type TodaySalesReportSale = Awaited<ReturnType<typeof findReportSales>>[number];
+export type ReportBarberOption = Awaited<ReturnType<typeof findReportBarbers>>[number];
+
+export function findReportSales(filters: SalesReportFilters) {
   return prisma.sale.findMany({
     where: {
       deleted: false,
       status: SaleStatus.COMPLETED,
-      soldAt: {
-        gte: startOfDay,
-        lt: startOfNextDay,
-      },
+      soldAt: buildSoldAtFilter(filters),
+      barberId: filters.barberId,
+      payments: filters.paymentMethod
+        ? {
+            some: {
+              deleted: false,
+              method: filters.paymentMethod,
+            },
+          }
+        : undefined,
       branch: {
         deleted: false,
       },
@@ -54,6 +68,7 @@ export function findTodayReportSales(startOfDay: Date, startOfNextDay: Date) {
       payments: {
         where: {
           deleted: false,
+          method: filters.paymentMethod,
         },
         orderBy: {
           createdAt: "asc",
@@ -68,4 +83,32 @@ export function findTodayReportSales(startOfDay: Date, startOfNextDay: Date) {
   });
 }
 
+export function findReportBarbers() {
+  return prisma.user.findMany({
+    where: {
+      deleted: false,
+      active: true,
+      role: UserRole.BARBER,
+    },
+    orderBy: {
+      name: "asc",
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+}
+
 export const paymentMethods = Object.values(PaymentMethod);
+
+function buildSoldAtFilter(filters: SalesReportFilters) {
+  if (!filters.from && !filters.to) {
+    return undefined;
+  }
+
+  return {
+    gte: filters.from,
+    lte: filters.to,
+  };
+}

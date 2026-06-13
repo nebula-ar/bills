@@ -28,10 +28,29 @@ const dayFormatter = new Intl.DateTimeFormat("es-AR", {
   dateStyle: "full",
 });
 
-export default async function ReportsPage() {
+type ReportsPageProps = {
+  searchParams: Promise<{
+    from?: string | string[];
+    to?: string | string[];
+    barberId?: string | string[];
+    paymentMethod?: string | string[];
+  }>;
+};
+
+export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   await requireAdminSession();
 
-  const report = await getTodaySalesReport();
+  const params = await searchParams;
+  const selectedFrom = getDateInputParam(params.from);
+  const selectedTo = getDateInputParam(params.to);
+  const selectedPaymentMethod = getPaymentMethodParam(params.paymentMethod);
+
+  const report = await getTodaySalesReport({
+    from: selectedFrom ? getStartOfLocalDay(selectedFrom) : undefined,
+    to: selectedTo ? getEndOfLocalDay(selectedTo) : undefined,
+    barberId: getSingleParam(params.barberId),
+    paymentMethod: selectedPaymentMethod,
+  });
 
   return (
     <main className="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-50">
@@ -43,7 +62,7 @@ export default async function ReportsPage() {
             </p>
             <h1 className="mt-3 text-4xl font-bold tracking-tight">Reportes</h1>
             <p className="mt-2 text-zinc-400">
-              Resumen de ventas de hoy, {dayFormatter.format(report.startOfDay)}.
+              {getReportPeriodLabel(report.from, report.to)}
             </p>
           </div>
           <div className="flex gap-4 text-sm font-medium">
@@ -57,16 +76,87 @@ export default async function ReportsPage() {
           </div>
         </div>
 
+        <form className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5" method="get">
+          <div className="grid gap-4 md:grid-cols-4">
+            <label className="grid gap-2 text-sm font-medium text-zinc-200">
+              Desde
+              <input
+                className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                defaultValue={selectedFrom ?? ""}
+                name="from"
+                type="date"
+              />
+            </label>
+
+            <label className="grid gap-2 text-sm font-medium text-zinc-200">
+              Hasta
+              <input
+                className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                defaultValue={selectedTo ?? ""}
+                name="to"
+                type="date"
+              />
+            </label>
+
+            <label className="grid gap-2 text-sm font-medium text-zinc-200">
+              Barbero
+              <select
+                className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                defaultValue={report.filters.barberId ?? ""}
+                name="barberId"
+              >
+                <option value="">Todos</option>
+                {report.options.barbers.map((barber) => (
+                  <option key={barber.id} value={barber.id}>
+                    {barber.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="grid gap-2 text-sm font-medium text-zinc-200">
+              Método de pago
+              <select
+                className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                defaultValue={report.filters.paymentMethod ?? ""}
+                name="paymentMethod"
+              >
+                <option value="">Todos</option>
+                {report.options.paymentMethods.map((method) => (
+                  <option key={method} value={method}>
+                    {paymentMethodLabels[method]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              className="rounded-lg bg-amber-400 px-4 py-3 font-semibold text-zinc-950 hover:bg-amber-300"
+              type="submit"
+            >
+              Aplicar filtros
+            </button>
+            <Link
+              className="rounded-lg border border-zinc-700 px-4 py-3 text-center font-semibold text-zinc-200 hover:border-zinc-500 hover:text-zinc-50"
+              href="/reports"
+            >
+              Limpiar
+            </Link>
+          </div>
+        </form>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <article className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
-              Total vendido hoy
+              Total vendido
             </p>
             <p className="mt-3 text-4xl font-bold text-amber-400">{formatMoney(report.totalSold)}</p>
           </article>
           <article className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
-              Ventas de hoy
+              Ventas
             </p>
             <p className="mt-3 text-4xl font-bold text-amber-400">{report.saleCount}</p>
           </article>
@@ -75,7 +165,7 @@ export default async function ReportsPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <ReportCard title="Totales por barbero">
             {report.totalsByBarber.length === 0 ? (
-              <EmptyMessage>No hay ventas de barberos para hoy.</EmptyMessage>
+              <EmptyMessage>No hay ventas de barberos para los filtros aplicados.</EmptyMessage>
             ) : (
               <ul className="space-y-3">
                 {report.totalsByBarber.map((barberTotal) => (
@@ -103,9 +193,9 @@ export default async function ReportsPage() {
           </ReportCard>
         </div>
 
-        <ReportCard title="Últimas ventas de hoy">
+        <ReportCard title="Últimas ventas">
           {report.latestSales.length === 0 ? (
-            <EmptyMessage>Todavía no hay ventas registradas hoy.</EmptyMessage>
+            <EmptyMessage>No hay ventas registradas para los filtros aplicados.</EmptyMessage>
           ) : (
             <div className="space-y-4">
               {report.latestSales.map((sale) => (
@@ -175,4 +265,63 @@ function EmptyMessage({ children }: { children: React.ReactNode }) {
 
 function formatMoney(value: number) {
   return moneyFormatter.format(value);
+}
+
+function getSingleParam(value: string | string[] | undefined) {
+  const singleValue = Array.isArray(value) ? value[0] : value;
+  return singleValue === "" ? undefined : singleValue;
+}
+
+function getDateInputParam(value: string | string[] | undefined) {
+  const singleValue = getSingleParam(value);
+
+  return singleValue && /^\d{4}-\d{2}-\d{2}$/.test(singleValue) ? singleValue : undefined;
+}
+
+function getPaymentMethodParam(value: string | string[] | undefined): PaymentMethod | undefined {
+  const singleValue = getSingleParam(value);
+
+  return isPaymentMethod(singleValue) ? singleValue : undefined;
+}
+
+function isPaymentMethod(value: string | undefined): value is PaymentMethod {
+  return Object.values(PaymentMethod).includes(value as PaymentMethod);
+}
+
+function getStartOfLocalDay(dateInput: string) {
+  const [year, month, day] = dateInput.split("-").map(Number);
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+}
+
+function getEndOfLocalDay(dateInput: string) {
+  const [year, month, day] = dateInput.split("-").map(Number);
+  return new Date(year, month - 1, day, 23, 59, 59, 999);
+}
+
+function getReportPeriodLabel(from: Date | undefined, to: Date | undefined) {
+  if (from && to && isSameLocalDay(from, to)) {
+    return `Resumen de ventas del ${dayFormatter.format(from)}.`;
+  }
+
+  if (from && to) {
+    return `Resumen de ventas desde ${dayFormatter.format(from)} hasta ${dayFormatter.format(to)}.`;
+  }
+
+  if (from) {
+    return `Resumen de ventas desde ${dayFormatter.format(from)}.`;
+  }
+
+  if (to) {
+    return `Resumen de ventas hasta ${dayFormatter.format(to)}.`;
+  }
+
+  return "Resumen de ventas.";
+}
+
+function isSameLocalDay(first: Date, second: Date) {
+  return (
+    first.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate()
+  );
 }
