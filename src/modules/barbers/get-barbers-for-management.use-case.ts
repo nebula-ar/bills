@@ -1,5 +1,7 @@
-import { findActiveBarbersForManagement } from "./barber.repository";
+import { findActiveBarbersForManagement, findBranchesForBarberManagement } from "./barber.repository";
 
 export async function getBarbersForManagement() {
-  return findActiveBarbersForManagement();
+  const [barbers, branches] = await Promise.all([findActiveBarbersForManagement(), findBranchesForBarberManagement()]);
+
+  return { barbers, branches };
 }

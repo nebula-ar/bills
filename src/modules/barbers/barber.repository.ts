@@ -29,7 +29,6 @@ export function findActiveBarberForPinValidation(barberId: string, branchId?: st
 export function findActiveBarbersForManagement() {
   return prisma.user.findMany({
     where: {
-      active: true,
       deleted: false,
       role: UserRole.BARBER,
       business: {
@@ -43,9 +42,12 @@ export function findActiveBarbersForManagement() {
     select: {
       id: true,
       name: true,
+      active: true,
+      branchId: true,
       pinHash: true,
       branch: {
         select: {
+          id: true,
           name: true,
           business: {
             select: {
@@ -54,6 +56,88 @@ export function findActiveBarbersForManagement() {
           },
         },
       },
+    },
+  });
+}
+
+export function findBranchesForBarberManagement() {
+  return prisma.branch.findMany({
+    where: {
+      deleted: false,
+      business: {
+        deleted: false,
+      },
+    },
+    orderBy: [{ business: { name: "asc" } }, { name: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      businessId: true,
+      business: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+}
+
+export function findBarberManagementBranchById(branchId: string) {
+  return prisma.branch.findFirst({
+    where: {
+      id: branchId,
+      deleted: false,
+      business: {
+        deleted: false,
+      },
+    },
+    select: {
+      id: true,
+      businessId: true,
+    },
+  });
+}
+
+export type CreateBarberRepositoryInput = {
+  name: string;
+  branchId: string;
+  businessId: string;
+  pinHash: string;
+};
+
+export function createBarber(input: CreateBarberRepositoryInput) {
+  return prisma.user.create({
+    data: {
+      name: input.name,
+      branchId: input.branchId,
+      businessId: input.businessId,
+      pinHash: input.pinHash,
+      role: UserRole.BARBER,
+      active: true,
+    },
+  });
+}
+
+export type UpdateBarberRepositoryInput = {
+  barberId: string;
+  branchId: string;
+  businessId: string;
+  active: boolean;
+  pinHash?: string;
+};
+
+export function updateBarber(input: UpdateBarberRepositoryInput) {
+  return prisma.user.updateMany({
+    where: {
+      id: input.barberId,
+      deleted: false,
+      role: UserRole.BARBER,
+    },
+    data: {
+      branchId: input.branchId,
+      businessId: input.businessId,
+      active: input.active,
+      ...(input.pinHash ? { pinHash: input.pinHash } : {}),
     },
   });
 }
