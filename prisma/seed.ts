@@ -37,18 +37,23 @@ async function main() {
     },
   });
 
+  const nicoPinHash = await bcrypt.hash("1111", 12);
+  const fedePinHash = await bcrypt.hash("2222", 12);
+
   await prisma.user.createMany({
     data: [
       {
         businessId: business.id,
         branchId: branch.id,
         name: "Nico Fernández",
+        pinHash: nicoPinHash,
         role: UserRole.BARBER,
       },
       {
         businessId: business.id,
         branchId: branch.id,
         name: "Fede González",
+        pinHash: fedePinHash,
         role: UserRole.BARBER,
       },
     ],
@@ -98,6 +103,7 @@ async function main() {
 
 main()
   .then(async () => {
+    console.log("Demo barber PINs: Nico Fernández 1111, Fede González 2222");
     await prisma.$disconnect();
   })
   .catch(async (error) => {

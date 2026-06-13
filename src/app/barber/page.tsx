@@ -89,6 +89,21 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
               </label>
 
               <label className="grid gap-2 text-sm font-medium text-zinc-200">
+                PIN del barbero
+                <input
+                  autoComplete="off"
+                  className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-3 text-base text-zinc-50"
+                  inputMode="numeric"
+                  maxLength={8}
+                  minLength={4}
+                  name="pin"
+                  pattern="[0-9]*"
+                  required
+                  type="password"
+                />
+              </label>
+
+              <label className="grid gap-2 text-sm font-medium text-zinc-200">
                 Servicio
                 <select
                   className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-3 text-base text-zinc-50"

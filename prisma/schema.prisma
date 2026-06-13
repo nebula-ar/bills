@@ -59,6 +59,7 @@ model User {
   name         String
   email        String?
   passwordHash String?
+  pinHash      String?
   role         UserRole
   active       Boolean   @default(true)
   createdAt    DateTime  @default(now())
