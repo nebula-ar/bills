@@ -72,6 +72,9 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             <Link className="text-zinc-300 hover:text-zinc-50" href="/sales">
               Ventas
             </Link>
+            <Link className="text-zinc-300 hover:text-zinc-50" href="/services">
+              Servicios
+            </Link>
             <LogoutButton />
           </div>
         </div>
