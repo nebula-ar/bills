@@ -21,6 +21,11 @@ export type CreateSaleRepositoryInput = {
   soldAt?: Date;
 };
 
+export type CancelSaleRepositoryInput = {
+  saleId: string;
+  notes?: string;
+};
+
 export function findSaleBranch(branchId: string) {
   return prisma.branch.findFirst({
     where: {
@@ -157,7 +162,6 @@ export function findRecentSales(limit = 10) {
   return prisma.sale.findMany({
     where: {
       deleted: false,
-      status: SaleStatus.COMPLETED,
       branch: {
         deleted: false,
         active: true,
@@ -174,6 +178,8 @@ export function findRecentSales(limit = 10) {
       id: true,
       soldAt: true,
       total: true,
+      status: true,
+      notes: true,
       branch: {
         select: {
           name: true,
@@ -211,6 +217,32 @@ export function findRecentSales(limit = 10) {
           amount: true,
         },
       },
+    },
+  });
+}
+
+export function findSaleForCancellation(saleId: string) {
+  return prisma.sale.findFirst({
+    where: {
+      id: saleId,
+      deleted: false,
+    },
+    select: {
+      id: true,
+      status: true,
+      notes: true,
+    },
+  });
+}
+
+export function cancelSaleById(input: CancelSaleRepositoryInput) {
+  return prisma.sale.update({
+    where: {
+      id: input.saleId,
+    },
+    data: {
+      status: SaleStatus.CANCELLED,
+      notes: input.notes,
     },
   });
 }

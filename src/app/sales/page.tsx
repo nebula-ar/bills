@@ -1,8 +1,9 @@
-import { PaymentMethod } from "@/generated/prisma/client";
+import { PaymentMethod, SaleStatus } from "@/generated/prisma/client";
 import { requireAdminSession } from "@/lib/auth";
 import { getRecentSales } from "@/modules/sales/get-recent-sales.use-case";
 import { LogoutButton } from "@/components/logout-button";
 import Link from "next/link";
+import { cancelSaleAction } from "./actions";
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   [PaymentMethod.CASH]: "Efectivo",
@@ -11,6 +12,16 @@ const paymentMethodLabels: Record<PaymentMethod, string> = {
   [PaymentMethod.TRANSFER]: "Transferencia",
   [PaymentMethod.QR]: "QR",
   [PaymentMethod.OTHER]: "Otro",
+};
+
+const saleStatusLabels: Record<SaleStatus, string> = {
+  [SaleStatus.COMPLETED]: "Completada",
+  [SaleStatus.CANCELLED]: "Cancelada",
+};
+
+const saleStatusClasses: Record<SaleStatus, string> = {
+  [SaleStatus.COMPLETED]: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+  [SaleStatus.CANCELLED]: "border-red-500/30 bg-red-500/10 text-red-300",
 };
 
 const moneyFormatter = new Intl.NumberFormat("es-AR", {
@@ -24,9 +35,18 @@ const dateFormatter = new Intl.DateTimeFormat("es-AR", {
   timeStyle: "short",
 });
 
-export default async function SalesPage() {
+type SalesPageProps = {
+  searchParams: Promise<{
+    status?: string | string[];
+    message?: string | string[];
+  }>;
+};
+
+export default async function SalesPage({ searchParams }: SalesPageProps) {
   await requireAdminSession();
 
+  const params = await searchParams;
+  const flashMessage = getFlashMessage(params.status, params.message);
   const sales = await getRecentSales();
 
   return (
@@ -59,6 +79,18 @@ export default async function SalesPage() {
           </div>
         </div>
 
+        {flashMessage ? (
+          <div
+            className={`rounded-2xl border p-4 text-sm ${
+              flashMessage.status === "success"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                : "border-red-500/30 bg-red-500/10 text-red-200"
+            }`}
+          >
+            {flashMessage.message}
+          </div>
+        ) : null}
+
         {sales.length === 0 ? (
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 text-zinc-300">
             Todavía no hay ventas registradas. Cargá una venta para verla en este listado.
@@ -73,7 +105,12 @@ export default async function SalesPage() {
                     <h2 className="mt-1 text-xl font-semibold">{sale.branchName}</h2>
                     <p className="text-sm text-zinc-300">Barbero: {sale.barberName}</p>
                   </div>
-                  <p className="text-2xl font-bold text-amber-400">{formatMoney(sale.total)}</p>
+                  <div className="flex flex-col items-start gap-2 sm:items-end">
+                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${saleStatusClasses[sale.status]}`}>
+                      {saleStatusLabels[sale.status]}
+                    </span>
+                    <p className="text-2xl font-bold text-amber-400">{formatMoney(sale.total)}</p>
+                  </div>
                 </div>
 
                 <div className="mt-5 grid gap-5 sm:grid-cols-2">
@@ -107,6 +144,27 @@ export default async function SalesPage() {
                     </ul>
                   </div>
                 </div>
+
+                {sale.status === SaleStatus.COMPLETED ? (
+                  <form action={cancelSaleAction} className="mt-5 rounded-xl border border-zinc-800 bg-zinc-950 p-4">
+                    <input name="saleId" type="hidden" value={sale.id} />
+                    <label className="grid gap-2 text-sm font-medium text-zinc-200">
+                      Motivo de cancelación (opcional)
+                      <textarea
+                        className="min-h-20 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-50 placeholder:text-zinc-500"
+                        maxLength={500}
+                        name="reason"
+                        placeholder="Ej.: carga duplicada, importe incorrecto"
+                      />
+                    </label>
+                    <button
+                      className="mt-3 rounded-lg border border-red-500/40 px-4 py-2 text-sm font-semibold text-red-200 hover:border-red-400 hover:text-red-100"
+                      type="submit"
+                    >
+                      Cancelar venta
+                    </button>
+                  </form>
+                ) : null}
               </article>
             ))}
           </div>
@@ -118,4 +176,23 @@ export default async function SalesPage() {
 
 function formatMoney(value: number) {
   return moneyFormatter.format(value);
+}
+
+function getFlashMessage(status: string | string[] | undefined, message: string | string[] | undefined) {
+  const singleStatus = getSingleParam(status);
+  const singleMessage = getSingleParam(message);
+
+  if ((singleStatus === "success" || singleStatus === "error") && singleMessage) {
+    return {
+      status: singleStatus,
+      message: singleMessage,
+    };
+  }
+
+  return null;
+}
+
+function getSingleParam(value: string | string[] | undefined) {
+  const singleValue = Array.isArray(value) ? value[0] : value;
+  return singleValue === "" ? undefined : singleValue;
 }

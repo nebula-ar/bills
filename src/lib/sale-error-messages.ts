@@ -11,6 +11,8 @@ const saleErrorMessages: Record<SaleErrorCodeType, string> = {
   [SaleErrorCode.INVALID_PAYMENT_AMOUNT]: "El importe del pago debe ser mayor a cero.",
   [SaleErrorCode.SERVICE_NOT_AVAILABLE]: "El servicio seleccionado no está disponible en esta sucursal.",
   [SaleErrorCode.PAYMENTS_TOTAL_MISMATCH]: "El importe del pago no coincide con el total de la venta.",
+  [SaleErrorCode.SALE_NOT_FOUND]: "No encontramos la venta o ya no está disponible.",
+  [SaleErrorCode.SALE_ALREADY_CANCELLED]: "La venta ya estaba cancelada.",
 };
 
 export function getSaleErrorMessage(code: SaleErrorCodeType) {

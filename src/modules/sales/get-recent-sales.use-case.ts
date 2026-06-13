@@ -1,4 +1,4 @@
-import type { PaymentMethod } from "@/generated/prisma/client";
+import type { PaymentMethod, SaleStatus } from "@/generated/prisma/client";
 
 import { findRecentSales } from "./sale.repository";
 
@@ -6,6 +6,7 @@ export type RecentSale = {
   id: string;
   soldAt: Date;
   total: number;
+  status: SaleStatus;
   branchName: string;
   barberName: string;
   items: {
@@ -29,6 +30,7 @@ export async function getRecentSales(limit = 10): Promise<RecentSale[]> {
     id: sale.id,
     soldAt: sale.soldAt,
     total: sale.total,
+    status: sale.status,
     branchName: sale.branch.name,
     barberName: sale.barber.name,
     items: sale.items,
