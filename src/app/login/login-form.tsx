@@ -3,6 +3,7 @@
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Lock, Mail } from "lucide-react";
 
 type LoginFormProps = {
   callbackUrl: string;
@@ -35,38 +36,50 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
   }
 
   return (
-    <form action={handleSubmit} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-      <div className="grid gap-5">
-        <label className="grid gap-2 text-sm font-medium text-zinc-200">
+    <form action={handleSubmit} className="grid gap-5">
+      <div className="grid gap-4">
+        <label className="grid gap-2 text-sm font-black text-slate-700">
           Email
-          <input
-            autoComplete="email"
-            className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
-            name="email"
-            required
-            type="email"
-          />
+          <span className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
+            <Mail aria-hidden="true" className="shrink-0 text-slate-400" size={20} />
+            <input
+              autoComplete="email"
+              className="min-w-0 flex-1 bg-transparent text-base font-semibold text-slate-950 outline-none placeholder:text-slate-400"
+              name="email"
+              placeholder="admin@barberia.com"
+              required
+              type="email"
+            />
+          </span>
         </label>
 
-        <label className="grid gap-2 text-sm font-medium text-zinc-200">
+        <label className="grid gap-2 text-sm font-black text-slate-700">
           Contraseña
-          <input
-            autoComplete="current-password"
-            className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
-            name="password"
-            required
-            type="password"
-          />
+          <span className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
+            <Lock aria-hidden="true" className="shrink-0 text-slate-400" size={20} />
+            <input
+              autoComplete="current-password"
+              className="min-w-0 flex-1 bg-transparent text-base font-semibold text-slate-950 outline-none placeholder:text-slate-400"
+              name="password"
+              placeholder="••••••••"
+              required
+              type="password"
+            />
+          </span>
         </label>
+
+        <button className="justify-self-end text-sm font-black text-blue-600 hover:text-blue-700" type="button">
+          ¿Olvidaste tu contraseña?
+        </button>
 
         {error ? (
-          <p className="rounded-xl border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-200">
+          <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
             {error}
           </p>
         ) : null}
 
         <button
-          className="rounded-lg bg-amber-400 px-4 py-3 font-semibold text-zinc-950 hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-70"
+          className="rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-[0_16px_34px_rgba(37,99,235,0.28)] hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
           disabled={isPending}
           type="submit"
         >

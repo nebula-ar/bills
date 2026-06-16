@@ -1,3 +1,4 @@
+import { AppShell, Card, PageHeader } from "@/components/app-shell";
 import { LogoutButton } from "@/components/logout-button";
 import { requireAdminSession } from "@/lib/auth";
 import { getBranchServiceConfiguration } from "@/modules/services/get-branch-service-configuration.use-case";
@@ -30,37 +31,30 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
   const { branches, selectedBranch, services } = serviceManagement;
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-50">
-      <section className="mx-auto flex max-w-4xl flex-col gap-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-amber-400">
-              Barber Bills
-            </p>
-            <h1 className="mt-3 text-4xl font-bold tracking-tight">Servicios</h1>
-            <p className="mt-2 text-zinc-400">
-              {selectedBranch
-                ? `${selectedBranch.business.name} · catálogo global y configuración por sucursal`
-                : "No hay una sucursal disponible."}
-            </p>
-          </div>
-          <div className="flex gap-4 text-sm font-medium">
-            <Link className="text-zinc-300 hover:text-zinc-50" href="/">
-              Inicio
-            </Link>
-            <Link className="text-zinc-300 hover:text-zinc-50" href="/sales/new">
+    <AppShell maxWidth="lg">
+        <PageHeader
+          title="Servicios"
+          description={
+            selectedBranch
+              ? `${selectedBranch.business.name} · catálogo global y configuración por sucursal`
+              : "No hay una sucursal disponible."
+          }
+          actions={
+            <>
+            <Link className="rounded-2xl bg-blue-600 px-4 py-3 text-white hover:bg-blue-700" href="/sales/new">
               Registrar venta
             </Link>
             <LogoutButton />
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {message && isSupportedStatus(status) ? (
           <p
-            className={`rounded-xl border px-4 py-3 text-sm ${
+            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
               status === "success"
-                ? "border-emerald-800 bg-emerald-950 text-emerald-200"
-                : "border-red-800 bg-red-950 text-red-200"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-red-200 bg-red-50 text-red-700"
             }`}
           >
             {message}
@@ -69,9 +63,9 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
 
         {selectedBranch ? (
           <>
-            <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-              <h2 className="text-xl font-semibold">Sucursal a configurar</h2>
-              <p className="mt-2 text-sm text-zinc-400">
+            <Card>
+              <h2 className="text-xl font-black text-slate-950">Sucursal a configurar</h2>
+              <p className="mt-2 text-sm text-slate-500">
                 Elegí la sucursal para ver disponibilidad y precios de cada servicio.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -79,8 +73,8 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                   <Link
                     className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
                       branch.id === selectedBranch.id
-                        ? "border-amber-400 bg-amber-400 text-zinc-950"
-                        : "border-zinc-700 text-zinc-100 hover:border-zinc-500"
+                        ? "border-blue-600 bg-blue-600 text-white"
+                        : "border-slate-200 text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                     }`}
                     href={`/services?branchId=${branch.id}`}
                     key={branch.id}
@@ -89,29 +83,29 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                   </Link>
                 ))}
               </div>
-            </section>
+            </Card>
 
-            <form action={createService} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
+            <form action={createService} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               <input name="branchId" type="hidden" value={selectedBranch.id} />
-              <h2 className="text-xl font-semibold">Catálogo de servicios</h2>
-              <p className="mt-2 text-sm text-zinc-400">
+              <h2 className="text-xl font-black text-slate-950">Catálogo de servicios</h2>
+              <p className="mt-2 text-sm text-slate-500">
                 Agregá servicios al catálogo del negocio y configurá su precio por sucursal.
               </p>
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <label className="grid gap-2 text-sm font-medium text-zinc-200">
+                <label className="grid gap-2 text-sm font-semibold text-slate-700">
                   Nombre
                   <input
-                    className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                    className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-950 focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-100"
                     name="name"
                     required
                     type="text"
                   />
                 </label>
 
-                <label className="grid gap-2 text-sm font-medium text-zinc-200">
+                <label className="grid gap-2 text-sm font-semibold text-slate-700">
                   Descripción
                   <input
-                    className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                    className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-950 focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-100"
                     name="description"
                     type="text"
                   />
@@ -119,7 +113,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
 
               </div>
               <button
-                className="mt-5 rounded-lg bg-amber-400 px-4 py-3 font-semibold text-zinc-950 hover:bg-amber-300"
+                className="mt-5 rounded-2xl bg-blue-600 px-4 py-3 font-bold text-white hover:bg-blue-700"
                 type="submit"
               >
                 Agregar al catálogo
@@ -128,16 +122,16 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
 
             <section className="space-y-4">
               <div>
-                <h2 className="text-xl font-semibold">Configuración por sucursal</h2>
-                <p className="mt-2 text-sm text-zinc-400">
+                <h2 className="text-xl font-black text-slate-950">Configuración por sucursal</h2>
+                <p className="mt-2 text-sm text-slate-500">
                   Sucursal seleccionada: {selectedBranch.name}. Cada servicio necesita precio propio en esta sucursal para poder venderse.
                 </p>
               </div>
 
               {services.length === 0 ? (
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 text-zinc-300">
+                <Card className="text-slate-600">
                   Todavía no hay servicios en el catálogo.
-                </div>
+                </Card>
               ) : (
                 services.map((service) => {
                   const configured = service.configured;
@@ -147,8 +141,8 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                   return (
                     <form
                       action={saveBranchServiceConfig}
-                      className={`rounded-2xl border bg-zinc-900 p-5 ${
-                        configured ? "border-zinc-800" : "border-amber-700/70"
+                      className={`rounded-3xl border bg-white p-5 shadow-sm ${
+                        configured ? "border-slate-200" : "border-blue-200 ring-4 ring-blue-50"
                       }`}
                       key={service.id}
                     >
@@ -158,19 +152,19 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                       <div className="grid gap-4 md:grid-cols-[1fr_10rem_8rem_auto] md:items-end">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-lg font-semibold">{service.name}</h3>
+                            <h3 className="text-lg font-black text-slate-950">{service.name}</h3>
                             {!configured ? (
-                              <span className="rounded-full border border-amber-600/70 bg-amber-950/60 px-2 py-1 text-xs font-semibold text-amber-200">
+                              <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
                                 Configurar en esta sucursal
                               </span>
                             ) : null}
                           </div>
-                          <p className="mt-1 text-sm text-zinc-400">
+                          <p className="mt-1 text-sm text-slate-500">
                             {service.description ?? "Sin descripción"}
                           </p>
                           <p
                             className={`mt-2 text-sm font-medium ${
-                              branchPrice?.active ? "text-emerald-300" : configured ? "text-zinc-500" : "text-amber-200"
+                              branchPrice?.active ? "text-emerald-700" : configured ? "text-slate-400" : "text-blue-700"
                             }`}
                           >
                             {branchPrice
@@ -179,10 +173,10 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                           </p>
                         </div>
 
-                        <label className="grid gap-2 text-sm font-medium text-zinc-200">
+                        <label className="grid gap-2 text-sm font-semibold text-slate-700">
                           {configured ? "Precio" : "Precio para habilitar"}
                           <input
-                            className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                            className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-950 focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-100"
                             defaultValue={priceDefaultValue}
                             min={1}
                             name="price"
@@ -193,9 +187,9 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                           />
                         </label>
 
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-200 md:pb-3">
+                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 md:pb-3">
                           <input
-                            className="h-4 w-4 accent-amber-400"
+                            className="h-4 w-4 accent-blue-600"
                             defaultChecked={branchPrice?.active ?? true}
                             name="active"
                             type="checkbox"
@@ -206,8 +200,8 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                         <button
                           className={`rounded-lg px-4 py-3 font-semibold ${
                             configured
-                              ? "border border-zinc-700 text-zinc-100 hover:border-zinc-500"
-                              : "bg-amber-400 text-zinc-950 hover:bg-amber-300"
+                              ? "border border-slate-200 text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                              : "bg-blue-600 text-white hover:bg-blue-700"
                           }`}
                           type="submit"
                         >
@@ -221,12 +215,11 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
             </section>
           </>
         ) : (
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 text-zinc-300">
+          <Card className="text-slate-600">
             Ejecutá el seed o cargá una sucursal para administrar servicios.
-          </div>
+          </Card>
         )}
-      </section>
-    </main>
+    </AppShell>
   );
 }
 

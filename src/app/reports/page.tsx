@@ -1,3 +1,4 @@
+import { AppShell, Card, PageHeader } from "@/components/app-shell";
 import { PaymentMethod } from "@/generated/prisma/client";
 import { requireAdminSession } from "@/lib/auth";
 import { getTodaySalesReport } from "@/modules/reports/get-today-sales-report.use-case";
@@ -53,58 +54,49 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   });
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-50">
-      <section className="mx-auto flex max-w-5xl flex-col gap-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-amber-400">
-              Barber Bills
-            </p>
-            <h1 className="mt-3 text-4xl font-bold tracking-tight">Reportes</h1>
-            <p className="mt-2 text-zinc-400">
-              {getReportPeriodLabel(report.from, report.to)}
-            </p>
-          </div>
-          <div className="flex gap-4 text-sm font-medium">
-            <Link className="text-zinc-300 hover:text-zinc-50" href="/">
-              Inicio
-            </Link>
-            <Link className="text-zinc-300 hover:text-zinc-50" href="/sales">
+    <AppShell maxWidth="lg">
+        <PageHeader
+          title="Reportes"
+          description={getReportPeriodLabel(report.from, report.to)}
+          actions={
+            <>
+            <Link className="text-slate-600 hover:text-blue-700" href="/sales">
               Ventas
             </Link>
-            <Link className="text-zinc-300 hover:text-zinc-50" href="/services">
+            <Link className="text-slate-600 hover:text-blue-700" href="/services">
               Servicios
             </Link>
             <LogoutButton />
-          </div>
-        </div>
+            </>
+          }
+        />
 
-        <form className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5" method="get">
+        <form className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm" method="get">
           <div className="grid gap-4 md:grid-cols-4">
-            <label className="grid gap-2 text-sm font-medium text-zinc-200">
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
               Desde
               <input
-                className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-950 focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-100"
                 defaultValue={selectedFrom ?? ""}
                 name="from"
                 type="date"
               />
             </label>
 
-            <label className="grid gap-2 text-sm font-medium text-zinc-200">
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
               Hasta
               <input
-                className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-950 focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-100"
                 defaultValue={selectedTo ?? ""}
                 name="to"
                 type="date"
               />
             </label>
 
-            <label className="grid gap-2 text-sm font-medium text-zinc-200">
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
               Barbero
               <select
-                className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-950 focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-100"
                 defaultValue={report.filters.barberId ?? ""}
                 name="barberId"
               >
@@ -117,10 +109,10 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               </select>
             </label>
 
-            <label className="grid gap-2 text-sm font-medium text-zinc-200">
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
               Método de pago
               <select
-                className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-950 focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-100"
                 defaultValue={report.filters.paymentMethod ?? ""}
                 name="paymentMethod"
               >
@@ -136,13 +128,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
-              className="rounded-lg bg-amber-400 px-4 py-3 font-semibold text-zinc-950 hover:bg-amber-300"
+              className="rounded-2xl bg-blue-600 px-4 py-3 font-bold text-white hover:bg-blue-700"
               type="submit"
             >
               Aplicar filtros
             </button>
             <Link
-              className="rounded-lg border border-zinc-700 px-4 py-3 text-center font-semibold text-zinc-200 hover:border-zinc-500 hover:text-zinc-50"
+              className="rounded-2xl border border-slate-200 px-4 py-3 text-center font-bold text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
               href="/reports"
             >
               Limpiar
@@ -151,18 +143,18 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         </form>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <article className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
+          <Card>
+            <p className="text-sm font-bold uppercase tracking-[0.16em] text-slate-400">
               Total vendido
             </p>
-            <p className="mt-3 text-4xl font-bold text-amber-400">{formatMoney(report.totalSold)}</p>
-          </article>
-          <article className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
+            <p className="mt-3 text-4xl font-black text-blue-700">{formatMoney(report.totalSold)}</p>
+          </Card>
+          <Card>
+            <p className="text-sm font-bold uppercase tracking-[0.16em] text-slate-400">
               Ventas
             </p>
-            <p className="mt-3 text-4xl font-bold text-amber-400">{report.saleCount}</p>
-          </article>
+            <p className="mt-3 text-4xl font-black text-blue-700">{report.saleCount}</p>
+          </Card>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -175,9 +167,9 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                   <li className="flex items-center justify-between gap-4" key={barberTotal.barberId}>
                     <span>
                       {barberTotal.barberName}
-                      <span className="ml-2 text-sm text-zinc-500">({barberTotal.saleCount})</span>
+                      <span className="ml-2 text-sm text-slate-400">({barberTotal.saleCount})</span>
                     </span>
-                    <span className="font-semibold text-zinc-100">{formatMoney(barberTotal.total)}</span>
+                    <span className="font-bold text-slate-950">{formatMoney(barberTotal.total)}</span>
                   </li>
                 ))}
               </ul>
@@ -189,7 +181,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               {report.totalsByPaymentMethod.map((paymentTotal) => (
                 <li className="flex items-center justify-between gap-4" key={paymentTotal.method}>
                   <span>{paymentMethodLabels[paymentTotal.method]}</span>
-                  <span className="font-semibold text-zinc-100">{formatMoney(paymentTotal.total)}</span>
+                  <span className="font-bold text-slate-950">{formatMoney(paymentTotal.total)}</span>
                 </li>
               ))}
             </ul>
@@ -202,42 +194,42 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           ) : (
             <div className="space-y-4">
               {report.latestSales.map((sale) => (
-                <article className="rounded-xl border border-zinc-800 bg-zinc-950 p-4" key={sale.id}>
+                <article className="rounded-3xl border border-slate-200 bg-slate-50 p-4" key={sale.id}>
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <p className="text-sm text-zinc-400">{dateFormatter.format(sale.soldAt)}</p>
-                      <h3 className="mt-1 text-lg font-semibold">{sale.branchName}</h3>
-                      <p className="text-sm text-zinc-300">Barbero: {sale.barberName}</p>
+                      <p className="text-sm text-slate-500">{dateFormatter.format(sale.soldAt)}</p>
+                      <h3 className="mt-1 text-lg font-black text-slate-950">{sale.branchName}</h3>
+                      <p className="text-sm text-slate-500">Barbero: {sale.barberName}</p>
                     </div>
-                    <p className="text-2xl font-bold text-amber-400">{formatMoney(sale.total)}</p>
+                    <p className="text-2xl font-black text-blue-700">{formatMoney(sale.total)}</p>
                   </div>
 
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>
-                      <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                      <h4 className="text-sm font-bold uppercase tracking-[0.16em] text-slate-400">
                         Ítems
                       </h4>
-                      <ul className="mt-2 space-y-2 text-sm text-zinc-300">
+                      <ul className="mt-2 space-y-2 text-sm text-slate-600">
                         {sale.items.map((item) => (
                           <li className="flex justify-between gap-4" key={item.id}>
                             <span>
                               {item.description} x{item.quantity}
                             </span>
-                            <span className="font-medium text-zinc-100">{formatMoney(item.total)}</span>
+                            <span className="font-semibold text-slate-950">{formatMoney(item.total)}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
 
                     <div>
-                      <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                      <h4 className="text-sm font-bold uppercase tracking-[0.16em] text-slate-400">
                         Pagos
                       </h4>
-                      <ul className="mt-2 space-y-2 text-sm text-zinc-300">
+                      <ul className="mt-2 space-y-2 text-sm text-slate-600">
                         {sale.payments.map((payment) => (
                           <li className="flex justify-between gap-4" key={payment.id}>
                             <span>{paymentMethodLabels[payment.method]}</span>
-                            <span className="font-medium text-zinc-100">{formatMoney(payment.amount)}</span>
+                          <span className="font-semibold text-slate-950">{formatMoney(payment.amount)}</span>
                           </li>
                         ))}
                       </ul>
@@ -248,22 +240,21 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             </div>
           )}
         </ReportCard>
-      </section>
-    </main>
+    </AppShell>
   );
 }
 
 function ReportCard({ children, title }: { children: React.ReactNode; title: string }) {
   return (
-    <article className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <div className="mt-4 text-zinc-300">{children}</div>
+    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="text-lg font-black text-slate-950">{title}</h2>
+      <div className="mt-4 text-slate-600">{children}</div>
     </article>
   );
 }
 
 function EmptyMessage({ children }: { children: React.ReactNode }) {
-  return <p className="text-zinc-400">{children}</p>;
+  return <p className="text-slate-500">{children}</p>;
 }
 
 function formatMoney(value: number) {

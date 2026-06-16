@@ -13,23 +13,34 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const hasError = Boolean(getSingleParam(params.error));
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-50">
-      <section className="mx-auto flex max-w-md flex-col gap-8">
-        <div>
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-amber-400">
-            Barber Bills
-          </p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight">Ingresar</h1>
-          <p className="mt-2 text-zinc-400">Acceso para administración del negocio.</p>
+    <main className="min-h-screen bg-slate-100 px-4 py-6 text-slate-950 sm:px-6 sm:py-10">
+      <section className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-md flex-col justify-between overflow-hidden rounded-[2.5rem] bg-white px-6 py-8 shadow-[0_24px_80px_rgba(15,23,42,0.16)] ring-1 ring-slate-200 sm:min-h-[760px]">
+        <div className="grid gap-8">
+          <div className="grid justify-items-center gap-4 text-center">
+            <div className="grid size-20 place-items-center rounded-[1.8rem] bg-blue-600 text-white shadow-[0_18px_40px_rgba(37,99,235,0.35)]">
+              <span className="text-3xl font-black tracking-tight">BB</span>
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.24em] text-blue-600">BarberPro</p>
+              <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Bienvenido</h1>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                Acceso para dueños y administradores de Barber Bills.
+              </p>
+            </div>
+          </div>
+
+          {hasError ? (
+            <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              No pudimos iniciar sesión. Revisá tus datos e intentá de nuevo.
+            </p>
+          ) : null}
+
+          <LoginForm callbackUrl={callbackUrl} />
         </div>
 
-        {hasError ? (
-          <p className="rounded-xl border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-200">
-            No pudimos iniciar sesión. Revisá tus datos e intentá de nuevo.
-          </p>
-        ) : null}
-
-        <LoginForm callbackUrl={callbackUrl} />
+        <p className="pt-8 text-center text-xs font-medium leading-5 text-slate-400">
+          Al ingresar aceptás los términos de uso y la política de privacidad.
+        </p>
       </section>
     </main>
   );
@@ -41,11 +52,11 @@ function getSingleParam(value: string | string[] | undefined) {
 
 function getSafeCallbackUrl(value: string | undefined) {
   if (!value || !value.startsWith("/")) {
-    return "/sales";
+    return "/";
   }
 
   if (value.startsWith("//")) {
-    return "/sales";
+    return "/";
   }
 
   return value;

@@ -23,14 +23,6 @@ type NewSalePageProps = {
   }>;
 };
 
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 export default async function NewSalePage({ searchParams }: NewSalePageProps) {
   await requireAdminSession();
 
@@ -41,24 +33,29 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
   const branch = await getSaleEntryOptions();
   const serviceOptions = branch?.servicePrices.map((servicePrice) => ({
     serviceId: servicePrice.serviceId,
-    label: `${servicePrice.service.name} · ${formatMoney(servicePrice.price)}`,
+    name: servicePrice.service.name,
+    price: servicePrice.price,
+  }));
+  const paymentOptions = Object.values(PaymentMethod).map((method) => ({
+    label: paymentMethodLabels[method],
+    value: method,
   }));
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-50">
-      <section className="mx-auto flex max-w-2xl flex-col gap-8">
+    <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-5 text-slate-950 sm:px-6 sm:py-10">
+      <section className="mx-auto flex max-w-6xl flex-col gap-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-amber-400">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-600">
               Barber Bills
             </p>
-            <h1 className="mt-3 text-4xl font-bold tracking-tight">Registrar venta</h1>
-            <p className="mt-2 text-zinc-400">
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Nueva venta</h1>
+            <p className="mt-2 text-sm leading-6 text-slate-500 sm:text-base">
               {branch ? `${branch.business.name} · ${branch.name}` : "No hay una sucursal disponible."}
             </p>
           </div>
-          <div className="flex gap-4 text-sm font-medium">
-            <Link className="text-amber-400 hover:text-amber-300" href="/">
+          <div className="flex gap-4 text-sm font-semibold text-slate-600">
+            <Link className="hover:text-blue-700" href="/">
               Volver al inicio
             </Link>
             <LogoutButton />
@@ -67,10 +64,10 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
 
         {message && isSupportedStatus(status) ? (
           <p
-            className={`rounded-xl border px-4 py-3 text-sm ${
+            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
               status === "success"
-                ? "border-emerald-800 bg-emerald-950 text-emerald-200"
-                : "border-red-800 bg-red-950 text-red-200"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-red-200 bg-red-50 text-red-700"
             }`}
           >
             {message}
@@ -78,23 +75,19 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
         ) : null}
 
         {branch ? (
-          <form action={registerSale} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
+          <form action={registerSale} className="grid gap-4">
             <input name="branchId" type="hidden" value={branch.id} />
 
-            <div className="grid gap-5">
-              <label className="grid gap-2 text-sm font-medium text-zinc-200">
-                Sucursal
-                <input
-                  className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-zinc-300"
-                  disabled
-                  value={branch.name}
-                />
-              </label>
+            <section className="grid gap-3 rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 sm:p-5">
+              <div className="rounded-3xl bg-slate-50 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Sucursal</p>
+                <p className="mt-1 text-lg font-black text-slate-950">{branch.name}</p>
+              </div>
 
-              <label className="grid gap-2 text-sm font-medium text-zinc-200">
+              <label className="grid gap-2 text-sm font-bold text-slate-700">
                 Barbero
                 <select
-                  className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-950 shadow-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                   name="barberId"
                   required
                 >
@@ -105,38 +98,16 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
                   ))}
                 </select>
               </label>
+            </section>
 
-              <SaleItemsFieldset
-                quantityInputClassName="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
-                selectClassName="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
-                serviceOptions={serviceOptions ?? []}
-              />
-
-              <label className="grid gap-2 text-sm font-medium text-zinc-200">
-                Método de pago
-                <select
-                  className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-50"
-                  name="paymentMethod"
-                  required
-                >
-                  {Object.values(PaymentMethod).map((method) => (
-                    <option key={method} value={method}>
-                      {paymentMethodLabels[method]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <button
-                className="rounded-lg bg-amber-400 px-4 py-3 font-semibold text-zinc-950 hover:bg-amber-300"
-                type="submit"
-              >
-                Registrar venta
-              </button>
-            </div>
+            <SaleItemsFieldset
+              paymentOptions={paymentOptions}
+              serviceOptions={serviceOptions ?? []}
+              submitLabel="Confirmar venta"
+            />
           </form>
         ) : (
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 text-zinc-300">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 text-slate-600 shadow-sm">
             Ejecutá el seed o cargá una sucursal con barberos y servicios activos para registrar ventas.
           </div>
         )}

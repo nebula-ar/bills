@@ -1,9 +1,11 @@
 import { PaymentMethod } from "@/generated/prisma/client";
 import { SaleItemsFieldset } from "@/components/sale-items-fieldset";
 import { getSaleEntryOptions } from "@/modules/sales/get-sale-entry-options.use-case";
+import { Home, Menu, ReceiptText, Scissors } from "lucide-react";
 import Link from "next/link";
 
 import { registerBarberSale } from "./actions";
+import { BarberAccessPanel } from "./barber-access-panel";
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   [PaymentMethod.CASH]: "Efectivo",
@@ -21,14 +23,6 @@ type BarberPageProps = {
   }>;
 };
 
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 export default async function BarberPage({ searchParams }: BarberPageProps) {
   const params = await searchParams;
   const status = getSingleParam(params.status);
@@ -36,28 +30,40 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
   const branch = await getSaleEntryOptions();
   const serviceOptions = branch?.servicePrices.map((servicePrice) => ({
     serviceId: servicePrice.serviceId,
-    label: `${servicePrice.service.name} · ${formatMoney(servicePrice.price)}`,
+    name: servicePrice.service.name,
+    price: servicePrice.price,
+  }));
+  const paymentOptions = Object.values(PaymentMethod).map((method) => ({
+    label: paymentMethodLabels[method],
+    value: method,
   }));
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-4 py-6 text-zinc-50 sm:px-6 sm:py-10">
-      <section className="mx-auto flex max-w-xl flex-col gap-6">
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-amber-400">Barber Bills</p>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Terminal de barberos</h1>
-            <p className="mt-2 text-zinc-400">
-              {branch ? `${branch.business.name} · ${branch.name}` : "No hay una sucursal disponible."}
-            </p>
+    <main className="min-h-screen bg-slate-100 px-3 py-4 text-slate-950 sm:px-6 sm:py-8">
+      <section className="mx-auto min-h-[calc(100vh-2rem)] max-w-md overflow-hidden rounded-[2.5rem] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.16)] ring-1 ring-slate-200 sm:min-h-[calc(100vh-4rem)]">
+        <div className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur">
+          <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-2">
+            <button
+              aria-label="Abrir menú"
+              className="grid size-10 place-items-center rounded-2xl bg-slate-100 text-slate-700"
+              type="button"
+            >
+              <Menu aria-hidden="true" size={20} />
+            </button>
+            <h1 className="text-center text-xl font-black tracking-tight text-slate-950">Nueva venta</h1>
+            <span className="rounded-full bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 ring-1 ring-amber-100">
+              PIN requerido
+            </span>
           </div>
         </div>
 
+        <div className="grid gap-5 px-5 pb-32 pt-5">
         {message && isSupportedStatus(status) ? (
           <p
-            className={`rounded-xl border px-4 py-3 text-sm ${
+            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
               status === "success"
-                ? "border-emerald-800 bg-emerald-950 text-emerald-200"
-                : "border-red-800 bg-red-950 text-red-200"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-red-200 bg-red-50 text-red-700"
             }`}
           >
             {message}
@@ -65,92 +71,45 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
         ) : null}
 
         {branch ? (
-          <form action={registerBarberSale} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-5">
-            <input name="branchId" type="hidden" value={branch.id} />
+          <form action={registerBarberSale} className="grid gap-4">
+            <BarberAccessPanel branch={branch} />
 
-            <div className="grid gap-5">
-              <label className="grid gap-2 text-sm font-medium text-zinc-200">
-                Sucursal
-                <input
-                  className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-3 text-zinc-300"
-                  disabled
-                  value={branch.name}
-                />
-              </label>
-
-              <label className="grid gap-2 text-sm font-medium text-zinc-200">
-                Barbero
-                <select
-                  className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-3 text-base text-zinc-50"
-                  name="barberId"
-                  required
-                >
-                  {branch.users.map((barber) => (
-                    <option key={barber.id} value={barber.id}>
-                      {barber.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="grid gap-2 text-sm font-medium text-zinc-200">
-                PIN del barbero
-                <input
-                  autoComplete="off"
-                  className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-3 text-base text-zinc-50"
-                  inputMode="numeric"
-                  maxLength={8}
-                  minLength={4}
-                  name="pin"
-                  pattern="[0-9]*"
-                  required
-                  type="password"
-                />
-              </label>
-
-              <SaleItemsFieldset
-                quantityInputClassName="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-3 text-base text-zinc-50"
-                selectClassName="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-3 text-base text-zinc-50"
-                serviceOptions={serviceOptions ?? []}
-              />
-
-              <label className="grid gap-2 text-sm font-medium text-zinc-200">
-                Método de pago
-                <select
-                  className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-3 text-base text-zinc-50"
-                  name="paymentMethod"
-                  required
-                >
-                  {Object.values(PaymentMethod).map((method) => (
-                    <option key={method} value={method}>
-                      {paymentMethodLabels[method]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <button
-                className="rounded-lg bg-amber-400 px-4 py-4 text-base font-semibold text-zinc-950 hover:bg-amber-300"
-                type="submit"
-              >
-                Registrar venta
-              </button>
-            </div>
+            <SaleItemsFieldset
+              paymentOptions={paymentOptions}
+              serviceOptions={serviceOptions ?? []}
+              submitLabel="Confirmar venta"
+              variant="barberMobile"
+            />
           </form>
         ) : (
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 text-zinc-300">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 text-slate-600 shadow-sm">
             Ejecutá el seed o cargá una sucursal con barberos y servicios activos para registrar ventas.
           </div>
         )}
 
-        <div className="flex flex-wrap gap-4 text-sm text-zinc-500">
-          <Link className="hover:text-zinc-300" href="/login">
+        <div className="flex flex-wrap gap-4 px-1 text-sm font-semibold text-slate-500">
+          <Link className="hover:text-blue-700" href="/login">
             Administración
           </Link>
-          <Link className="hover:text-zinc-300" href="/sales">
-            Ver ventas
-          </Link>
         </div>
+        </div>
+
+        <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md border-t border-slate-200 bg-white/95 px-5 py-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur sm:bottom-8 sm:rounded-b-[2.5rem]">
+          <div className="grid grid-cols-3 gap-2">
+            <Link className="grid place-items-center gap-1 rounded-2xl px-2 py-2 text-xs font-black text-slate-500 hover:bg-blue-50 hover:text-blue-700" href="/">
+              <Home aria-hidden="true" size={18} />
+              Inicio
+            </Link>
+            <Link className="grid place-items-center gap-1 rounded-2xl bg-blue-50 px-2 py-2 text-xs font-black text-blue-700" href="/barber">
+              <Scissors aria-hidden="true" size={18} />
+              Nueva venta
+            </Link>
+            <Link className="grid place-items-center gap-1 rounded-2xl px-2 py-2 text-xs font-black text-slate-500 hover:bg-blue-50 hover:text-blue-700" href="/sales">
+              <ReceiptText aria-hidden="true" size={18} />
+              Historial
+            </Link>
+          </div>
+        </nav>
       </section>
     </main>
   );
