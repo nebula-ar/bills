@@ -13,8 +13,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const hasError = Boolean(getSingleParam(params.error));
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-6 text-slate-950 sm:px-6 sm:py-10">
-      <section className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-md flex-col justify-between overflow-hidden rounded-[2.5rem] bg-white px-6 py-8 shadow-[0_24px_80px_rgba(15,23,42,0.16)] ring-1 ring-slate-200 sm:min-h-[760px]">
+    <main className="flex min-h-[100dvh] items-center bg-slate-100 px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-slate-950 sm:px-6 sm:py-10">
+      <section className="mx-auto flex w-full max-w-md flex-col justify-between gap-8 overflow-hidden rounded-[2.5rem] bg-white px-6 py-8 shadow-[0_24px_80px_rgba(15,23,42,0.16)] ring-1 ring-slate-200 sm:min-h-[720px] sm:py-10">
         <div className="grid gap-8">
           <div className="grid justify-items-center gap-4 text-center">
             <div className="grid size-20 place-items-center rounded-[1.8rem] bg-blue-600 text-white shadow-[0_18px_40px_rgba(37,99,235,0.35)]">

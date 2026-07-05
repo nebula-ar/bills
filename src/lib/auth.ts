@@ -1,5 +1,7 @@
 import { UserRole } from "@/generated/prisma/client";
 import { validateAdminCredentials } from "@/modules/auth/validate-admin-credentials.use-case";
+import { LoginErrorCode } from "@/lib/auth-errors";
+import { checkLoginRateLimit, clearLoginAttempts, registerFailedLogin } from "@/lib/login-rate-limit";
 import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -31,11 +33,22 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        const rateLimitKey = email.trim().toLowerCase();
+        const rateLimit = checkLoginRateLimit(rateLimitKey);
+
+        if (!rateLimit.allowed) {
+          // NextAuth propaga este mensaje como `error` a la UI (redirect: false).
+          throw new Error(LoginErrorCode.RateLimited);
+        }
+
         const user = await validateAdminCredentials(email, password);
 
         if (!user) {
+          registerFailedLogin(rateLimitKey);
           return null;
         }
+
+        clearLoginAttempts(rateLimitKey);
 
         return user;
       },
