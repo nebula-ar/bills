@@ -30,6 +30,21 @@ function resolveAllowedDevOrigins(): string[] {
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: resolveAllowedDevOrigins(),
+  // En desarrollo forzamos no-store para que iOS Safari (que cachea fuerte por HTTP
+  // en LAN) no sirva un bundle viejo al probar desde el celular. En producción se
+  // deja el comportamiento por defecto.
+  async headers() {
+    if (process.env.NODE_ENV !== "development") {
+      return [];
+    }
+
+    return [
+      {
+        source: "/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

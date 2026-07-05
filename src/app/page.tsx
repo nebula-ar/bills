@@ -1,5 +1,6 @@
 import { PaymentMethod } from "@/generated/prisma/client";
 import { getCurrentSession, isAdminRole } from "@/lib/auth";
+import { DashboardRange, parseDashboardRange } from "@/lib/dashboard-range";
 import { getAdminDashboard } from "@/modules/dashboard/get-admin-dashboard.use-case";
 import { PaymentBreakdownChart, SalesByBranchChart } from "@/components/admin-dashboard-charts";
 import { AnimatedMoney } from "@/components/animated-number";
@@ -58,6 +59,41 @@ const timeFormatter = new Intl.DateTimeFormat("es-AR", {
   minute: "2-digit",
 });
 
+const shortDateFormatter = new Intl.DateTimeFormat("es-AR", {
+  day: "numeric",
+  month: "short",
+});
+
+// yyyy-mm-dd en hora local, para el value de los <input type="date">.
+function toISODateLocal(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+// Parsea un yyyy-mm-dd como fecha local (evita el corrimiento de zona de new Date(str)).
+function parseISODateLocal(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (!raw) return undefined;
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (!match) return undefined;
+
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
+function formatRangeDateLabel(from: Date, to: Date) {
+  const sameDay = from.getFullYear() === to.getFullYear() && from.getMonth() === to.getMonth() && from.getDate() === to.getDate();
+
+  if (sameDay) {
+    return dayFormatter.format(from);
+  }
+
+  return `${shortDateFormatter.format(from)} – ${shortDateFormatter.format(to)}`;
+}
+
 const kpiAccentClasses: Record<string, string> = {
   today: "bg-blue-50 text-blue-700 ring-blue-100",
   week: "bg-indigo-50 text-indigo-700 ring-indigo-100",
@@ -74,15 +110,22 @@ type PaymentChartDatum = DashboardViewModel["paymentBreakdown"][number] & {
 function buildMobileData(dashboard: DashboardViewModel, userName: string): MobileDashboardData {
   const kpiByKey = Object.fromEntries(dashboard.kpis.map((kpi) => [kpi.key, kpi]));
   const emptyKpi = { total: 0, saleCount: 0 };
+  const { selectedRange } = dashboard;
 
   return {
     userName,
-    dayLabel: dayFormatter.format(dashboard.generatedAt),
-    kpis: {
-      today: kpiByKey.today ?? emptyKpi,
-      week: kpiByKey.week ?? emptyKpi,
-      month: kpiByKey.month ?? emptyKpi,
+    range: {
+      key: selectedRange.key,
+      label: selectedRange.label,
+      total: selectedRange.total,
+      saleCount: selectedRange.saleCount,
+      dateLabel: formatRangeDateLabel(selectedRange.from, selectedRange.to),
+      fromValue: toISODateLocal(selectedRange.from),
+      toValue: toISODateLocal(selectedRange.to),
+      isToday: selectedRange.key === DashboardRange.Today,
     },
+    week: kpiByKey.week ?? emptyKpi,
+    month: kpiByKey.month ?? emptyKpi,
     cancelledSalesToday: dashboard.cancelledSalesToday,
     transactions: dashboard.recentSales.map((sale) => ({
       id: sale.id,
@@ -107,14 +150,28 @@ function buildMobileData(dashboard: DashboardViewModel, userName: string): Mobil
   };
 }
 
-export default async function Home() {
+type HomeProps = {
+  searchParams: Promise<{
+    range?: string | string[];
+    from?: string | string[];
+    to?: string | string[];
+  }>;
+};
+
+export default async function Home({ searchParams }: HomeProps) {
   const session = await getCurrentSession();
 
   if (!isAdminRole(session?.user.role)) {
     return <AccessPage />;
   }
 
-  const dashboard = await getAdminDashboard();
+  const params = await searchParams;
+  const range = parseDashboardRange(params.range);
+  const dashboard = await getAdminDashboard(new Date(), {
+    range,
+    from: parseISODateLocal(params.from),
+    to: parseISODateLocal(params.to),
+  });
   const userName = session.user.name ?? "admin";
   const todayKpi = dashboard.kpis.find((kpi) => kpi.key === "today");
   const paymentTotal = dashboard.paymentBreakdown.reduce((total, payment) => total + payment.total, 0);
