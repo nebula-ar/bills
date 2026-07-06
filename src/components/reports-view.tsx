@@ -18,6 +18,7 @@ import {
   TrendingDown,
   TrendingUp,
   Users,
+  Wallet,
   X,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -41,6 +42,9 @@ export type ReportsData = {
   saleCount: number;
   averageTicket: number;
   itemsSold: number;
+  expensesTotal: number;
+  net: number;
+  expensesByCategory: { key: string; label: string; total: number; percentage: number }[];
   comparison: { previousTotal: number; deltaPct: number | null } | null;
   salesTrend: { label: string; total: number }[];
   salesByWeekday: { label: string; total: number }[];
@@ -123,6 +127,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
   const maxBarberTotal = Math.max(...data.totalsByBarber.map((b) => b.total), 0);
   const maxBranchTotal = Math.max(...data.salesByBranch.map((b) => b.total), 0);
   const maxServiceTotal = Math.max(...data.topServices.map((s) => s.total), 0);
+  const maxExpenseCategory = Math.max(...data.expensesByCategory.map((c) => c.total), 0);
   const heroLabel = data.range.isToday ? "Ventas de hoy" : data.range.label;
   const activeFilterCount = (data.activeFilters.barberId ? 1 : 0) + (data.activeFilters.paymentMethod ? 1 : 0);
 
@@ -293,6 +298,35 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           </p>
         </div>
 
+        {/* Gastos y neto */}
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <Link
+            className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.98] duration-500 animate-in fade-in slide-in-from-bottom-2"
+            href="/expenses"
+            style={{ animationDelay: "100ms", animationFillMode: "backwards" }}
+          >
+            <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
+              <Wallet className="size-3.5 text-rose-500" />
+              Gastos
+            </span>
+            <AnimatedMoney className="mt-2 block text-xl font-black tracking-tight text-rose-600" delayMs={100} value={data.expensesTotal} />
+          </Link>
+          <div
+            className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-2"
+            style={{ animationDelay: "120ms", animationFillMode: "backwards" }}
+          >
+            <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
+              {data.net >= 0 ? <TrendingUp className="size-3.5 text-emerald-500" /> : <TrendingDown className="size-3.5 text-rose-500" />}
+              Neto
+            </span>
+            <AnimatedMoney
+              className={`mt-2 block text-xl font-black tracking-tight ${data.net >= 0 ? "text-emerald-600" : "text-rose-600"}`}
+              delayMs={120}
+              value={data.net}
+            />
+          </div>
+        </div>
+
         {/* KPIs secundarios */}
         <div className="mt-3 grid grid-cols-2 gap-3">
           <StatCard icon={Ticket} label="Ticket promedio" delay={140}>
@@ -365,6 +399,45 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                   </div>
                 ))}
               </div>
+            </>
+          )}
+        </Panel>
+
+        {/* Gastos por categoría */}
+        <Panel delay={420} title="Gastos por categoría" icon={Wallet}>
+          {data.expensesByCategory.length === 0 ? (
+            <Empty>
+              No hay gastos en este período.{" "}
+              <Link className="font-black text-blue-600" href="/expenses">
+                Registrar gasto
+              </Link>
+            </Empty>
+          ) : (
+            <>
+              <div className="space-y-3.5">
+                {data.expensesByCategory.map((category) => (
+                  <div className="space-y-1.5" key={category.key}>
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="truncate font-bold text-slate-700">{category.label}</span>
+                      <span className="shrink-0 font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
+                        {category.percentage}% · {formatMoney(category.total)}
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-rose-500 to-rose-600 transition-[width] duration-1000 ease-out"
+                        style={{ width: `${maxExpenseCategory > 0 ? Math.max((category.total / maxExpenseCategory) * 100, 6) : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Link
+                className="mt-4 flex items-center justify-center gap-1 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-black text-slate-700 transition active:scale-[0.99]"
+                href="/expenses"
+              >
+                Ver todos los gastos
+              </Link>
             </>
           )}
         </Panel>

@@ -1,6 +1,8 @@
 import { PaymentMethod } from "@/generated/prisma/client";
 import { getCurrentSession, isAdminRole } from "@/lib/auth";
 import { DASHBOARD_RANGE_LABELS, DashboardRange, parseDashboardRange, resolveDashboardRange } from "@/lib/dashboard-range";
+import { EXPENSE_CATEGORY_LABELS } from "@/lib/expense-labels";
+import { getExpensesSummary } from "@/modules/expenses/expense.use-cases";
 import { getTodaySalesReport } from "@/modules/reports/get-today-sales-report.use-case";
 import { ReportsView, type ReportsData } from "@/components/reports-view";
 import { Badge } from "@/components/ui/badge";
@@ -52,12 +54,15 @@ export default async function Home({ searchParams }: HomeProps) {
   const barberId = getSingleParam(params.barberId);
   const paymentMethod = getPaymentMethodParam(params.paymentMethod);
 
-  const report = await getTodaySalesReport({
-    from: resolved.from,
-    to: resolved.to,
-    barberId,
-    paymentMethod,
-  });
+  const [report, expensesSummary] = await Promise.all([
+    getTodaySalesReport({
+      from: resolved.from,
+      to: resolved.to,
+      barberId,
+      paymentMethod,
+    }),
+    getExpensesSummary({ from: resolved.from, to: resolved.to }),
+  ]);
 
   const paymentTotalSum = report.totalsByPaymentMethod.reduce((sum, payment) => sum + payment.total, 0);
   const selectedBarber = report.options.barbers.find((barber) => barber.id === report.filters.barberId);
@@ -75,6 +80,14 @@ export default async function Home({ searchParams }: HomeProps) {
     saleCount: report.saleCount,
     averageTicket: report.averageTicket,
     itemsSold: report.itemsSold,
+    expensesTotal: expensesSummary.total,
+    net: report.totalSold - expensesSummary.total,
+    expensesByCategory: expensesSummary.byCategory.map((category) => ({
+      key: category.category,
+      label: EXPENSE_CATEGORY_LABELS[category.category],
+      total: category.total,
+      percentage: expensesSummary.total > 0 ? Math.round((category.total / expensesSummary.total) * 100) : 0,
+    })),
     comparison: report.comparison,
     salesTrend: report.salesByDay.map((day) => ({
       label: trendFormatter.format(parseISODateLocal(day.date) ?? new Date()),

@@ -26,6 +26,7 @@ model Business {
   branches Branch[]
   users    User[]
   services Service[]
+  expenses Expense[]
 
   @@index([deletedAt])
 }
@@ -49,6 +50,7 @@ model Branch {
   servicePrices BranchServicePrice[]
   sales         Sale[]
   terminals     Terminal[]
+  expenses      Expense[]
 
   @@index([businessId])
   @@index([deletedAt])
@@ -217,6 +219,41 @@ model SalePayment {
   @@index([saleId])
   @@index([method])
   @@index([deletedAt])
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  businessId  String
+  branchId    String?
+  category    ExpenseCategory
+  amount      Int
+  note        String?
+  spentAt     DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+  createdById String?
+  updatedAt   DateTime        @updatedAt
+  updatedById String?
+  deleted     Boolean         @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, spentAt])
+  @@index([branchId])
+  @@index([deletedAt])
+}
+
+enum ExpenseCategory {
+  RENT
+  SALARIES
+  SUPPLIES
+  UTILITIES
+  MARKETING
+  MAINTENANCE
+  TAXES
+  OTHER
 }
 
 enum UserRole {
