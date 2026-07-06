@@ -20,6 +20,7 @@ type BarberPageProps = {
   searchParams: Promise<{
     status?: string | string[];
     message?: string | string[];
+    branch?: string | string[];
   }>;
 };
 
@@ -27,7 +28,9 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
   const params = await searchParams;
   const status = getSingleParam(params.status);
   const message = getSingleParam(params.message);
-  const branch = await getSaleEntryOptions();
+  const branchParam = getSingleParam(params.branch);
+  const branch = await getSaleEntryOptions(branchParam);
+  const selfHref = branch ? `/barber?branch=${branch.id}` : "/barber";
   const serviceOptions = branch?.servicePrices.map((servicePrice) => ({
     serviceId: servicePrice.serviceId,
     name: servicePrice.service.name,
@@ -83,7 +86,9 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
           </form>
         ) : (
           <div className="rounded-3xl border border-slate-200 bg-white p-5 text-slate-600 shadow-sm">
-            Ejecutá el seed o cargá una sucursal con barberos y servicios activos para registrar ventas.
+            {branchParam
+              ? "Este punto de venta no está disponible. Puede que la sucursal esté inactiva o sin barberos/servicios activos. Pedile el link al administrador."
+              : "Cargá una sucursal con barberos y servicios activos para registrar ventas."}
           </div>
         )}
 
@@ -100,7 +105,7 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
               <Home aria-hidden="true" size={18} />
               Inicio
             </Link>
-            <Link className="grid place-items-center gap-1 rounded-2xl bg-blue-50 px-2 py-2 text-xs font-black text-blue-700" href="/barber">
+            <Link className="grid place-items-center gap-1 rounded-2xl bg-blue-50 px-2 py-2 text-xs font-black text-blue-700" href={selfHref}>
               <Scissors aria-hidden="true" size={18} />
               Nueva venta
             </Link>

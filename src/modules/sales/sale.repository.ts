@@ -64,9 +64,10 @@ export function findBranchServicePrices(branchId: string, serviceIds: string[]) 
   });
 }
 
-export function findSaleEntryOptionsBranch() {
+export function findSaleEntryOptionsBranch(branchId?: string) {
   return prisma.branch.findFirst({
     where: {
+      ...(branchId ? { id: branchId } : {}),
       deleted: false,
       active: true,
       business: {

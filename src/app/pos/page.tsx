@@ -1,3 +1,4 @@
+import { CopyPosLink } from "@/components/copy-pos-link";
 import { requireAdminSession } from "@/lib/auth";
 import { getSaleEntryBranches } from "@/modules/sales/get-sale-entry-options.use-case";
 import { ArrowRight, MapPin, Scissors, ShoppingBag, Store } from "lucide-react";
@@ -14,7 +15,7 @@ export default async function PosLauncherPage() {
       <header className="duration-500 animate-in fade-in slide-in-from-top-2">
         <p className="truncate text-sm font-medium text-slate-500">{businessName}</p>
         <h1 className="mt-0.5 text-2xl font-black tracking-tight text-slate-950">Puntos de venta</h1>
-        <p className="mt-1 text-sm text-slate-500">Elegí una caja para empezar a vender.</p>
+        <p className="mt-1 text-sm text-slate-500">Tocá una caja para vender, o copiá su link para que los barberos carguen ventas con su PIN.</p>
       </header>
 
       {branches.length === 0 ? (
@@ -28,14 +29,11 @@ export default async function PosLauncherPage() {
         <ul className="mt-5 space-y-3">
           {branches.map((branch, index) => (
             <li
-              className="duration-500 animate-in fade-in slide-in-from-bottom-3"
+              className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3"
               key={branch.id}
               style={{ animationDelay: `${Math.min(index * 60, 360)}ms`, animationFillMode: "backwards" }}
             >
-              <Link
-                className="flex items-center gap-4 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.99]"
-                href={`/sales/new?branchId=${branch.id}`}
-              >
+              <Link className="flex items-center gap-4 transition active:scale-[0.99]" href={`/sales/new?branchId=${branch.id}`}>
                 <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm shadow-blue-600/25">
                   <Store className="size-7" />
                 </span>
@@ -62,6 +60,7 @@ export default async function PosLauncherPage() {
                   <ArrowRight className="size-5" />
                 </span>
               </Link>
+              <CopyPosLink branchId={branch.id} />
             </li>
           ))}
         </ul>

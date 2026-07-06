@@ -19,11 +19,11 @@ export async function registerBarberSale(formData: FormData) {
   const paymentMethod = parsePaymentMethod(formData.get("paymentMethod"));
 
   if (parsedItems.error) {
-    redirectWithMessage("error", parsedItems.error);
+    redirectWithMessage("error", parsedItems.error, branchId);
   }
 
   if (!branchId || !barberId || !pin || !paymentMethod) {
-    redirectWithMessage("error", "Completá todos los campos para registrar la venta.");
+    redirectWithMessage("error", "Completá todos los campos para registrar la venta.", branchId);
   }
 
   try {
@@ -41,21 +41,26 @@ export async function registerBarberSale(formData: FormData) {
     });
   } catch (error) {
     if (error instanceof BarberError) {
-      redirectWithMessage("error", getBarberErrorMessage(error.code));
+      redirectWithMessage("error", getBarberErrorMessage(error.code), branchId);
     }
 
     if (error instanceof SaleError) {
-      redirectWithMessage("error", getSaleErrorMessage(error.code));
+      redirectWithMessage("error", getSaleErrorMessage(error.code), branchId);
     }
 
     console.error(error);
-    redirectWithMessage("error", genericErrorMessage);
+    redirectWithMessage("error", genericErrorMessage, branchId);
   }
 
-  redirectWithMessage("success", "Venta registrada correctamente.");
+  redirectWithMessage("success", "Venta registrada correctamente.", branchId);
 }
 
-function redirectWithMessage(status: "error" | "success", message: string): never {
+function redirectWithMessage(status: "error" | "success", message: string, branchId?: string | null): never {
   const params = new URLSearchParams({ status, message });
+
+  if (branchId) {
+    params.set("branch", branchId);
+  }
+
   redirect(`/barber?${params.toString()}`);
 }
