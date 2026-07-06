@@ -238,9 +238,7 @@ export function ServicesManager({ data }: { data: ServicesData }) {
               <label className="flex cursor-pointer items-center justify-between rounded-2xl bg-slate-50 px-4 py-3.5">
                 <span className="text-sm font-black text-slate-950">Disponible para vender</span>
                 <input className="peer sr-only" defaultChecked={editing.available || !editing.configured} name="active" type="checkbox" />
-                <span className="relative h-7 w-12 rounded-full bg-slate-300 transition-colors peer-checked:bg-emerald-500">
-                  <span className="absolute left-1 top-1 size-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
-                </span>
+                <span className="relative h-7 w-12 shrink-0 rounded-full bg-slate-300 transition-colors duration-200 after:absolute after:left-1 after:top-1 after:size-5 after:rounded-full after:bg-white after:shadow after:transition-transform after:duration-200 after:content-[''] peer-checked:bg-emerald-500 peer-checked:after:translate-x-5" />
               </label>
             </div>
             <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
