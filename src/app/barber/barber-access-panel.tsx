@@ -29,30 +29,32 @@ export function BarberAccessPanel({ branch, lockedBarberId }: BarberAccessPanelP
     <section className="grid gap-4">
       <input name="branchId" type="hidden" value={branch.id} />
 
-      {/* Contexto compacto: dónde está esta terminal */}
-      <div className="flex items-center gap-1.5 text-sm font-bold text-slate-500">
-        <MapPin aria-hidden="true" className="text-blue-600" size={15} />
-        <span className="truncate">
-          {branch.business.name} · {branch.name}
-        </span>
-      </div>
-
       {lockedBarber ? (
         <>
           <input name="barberId" type="hidden" value={lockedBarber.id} />
           <input name="terminalLocked" type="hidden" value="1" />
-          <div className="flex items-center gap-3 rounded-2xl border-2 border-blue-600 bg-blue-50 p-3.5 shadow-sm">
-            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-blue-600 text-white">
-              <Scissors aria-hidden="true" size={20} />
+          <div className="flex items-center gap-3 rounded-2xl bg-blue-50 p-3 ring-1 ring-blue-100">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-600 text-white">
+              <Scissors aria-hidden="true" size={19} />
             </span>
             <div className="min-w-0">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-blue-700">Terminal de</p>
-              <p className="text-lg font-black text-slate-950">{lockedBarber.name ?? "Barbero"}</p>
+              <p className="truncate text-base font-black leading-tight text-slate-950">{lockedBarber.name ?? "Barbero"}</p>
+              <p className="mt-0.5 flex items-center gap-1 truncate text-xs font-bold text-slate-500">
+                <MapPin aria-hidden="true" size={13} />
+                {branch.business.name} · {branch.name}
+              </p>
             </div>
           </div>
         </>
       ) : (
-        <fieldset className="grid gap-2.5">
+        <>
+          <div className="flex items-center gap-1.5 text-sm font-bold text-slate-500">
+            <MapPin aria-hidden="true" className="text-blue-600" size={15} />
+            <span className="truncate">
+              {branch.business.name} · {branch.name}
+            </span>
+          </div>
+          <fieldset className="grid gap-2.5">
           <legend className="mb-1 text-base font-black tracking-tight text-slate-950">¿Quién registra?</legend>
           <div className="grid gap-2.5">
             {branch.users.map((barber) => {
@@ -85,7 +87,8 @@ export function BarberAccessPanel({ branch, lockedBarberId }: BarberAccessPanelP
               );
             })}
           </div>
-        </fieldset>
+          </fieldset>
+        </>
       )}
 
       {/* PIN: usa el teclado numérico del teléfono, sin teclado en pantalla */}
