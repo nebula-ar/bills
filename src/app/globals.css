@@ -141,4 +141,9 @@ textarea {
   html {
     @apply font-sans;
   }
+  /* App tipo POS: sin doble-tap zoom (mantiene scroll y taps rápidos). */
+  html,
+  body {
+    touch-action: manipulation;
+  }
 }
