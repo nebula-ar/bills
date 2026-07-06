@@ -2,11 +2,12 @@ import { PaymentMethod } from "@/generated/prisma/client";
 import { SaleItemsFieldset } from "@/components/sale-items-fieldset";
 import { getBarberSession } from "@/lib/barber-session";
 import { getSaleEntryOptions } from "@/modules/sales/get-sale-entry-options.use-case";
-import { Home, LogOut, ReceiptText, Scissors } from "lucide-react";
+import { LogOut, Scissors } from "lucide-react";
 import Link from "next/link";
 
 import { lockBarberTerminal, registerBarberSale, unlockBarberTerminal } from "./actions";
 import { BarberAccessPanel } from "./barber-access-panel";
+import { BarberTerminalNav } from "./barber-terminal-nav";
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   [PaymentMethod.CASH]: "Efectivo",
@@ -139,22 +140,7 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
           </div>
         </div>
 
-        <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md border-t border-slate-200 bg-white/95 px-5 py-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur sm:bottom-8 sm:rounded-b-[2.5rem]">
-          <div className="grid grid-cols-3 gap-2">
-            <Link className="grid place-items-center gap-1 rounded-2xl px-2 py-2 text-xs font-black text-slate-500 hover:bg-blue-50 hover:text-blue-700" href="/">
-              <Home aria-hidden="true" size={18} />
-              Inicio
-            </Link>
-            <Link className="grid place-items-center gap-1 rounded-2xl bg-blue-50 px-2 py-2 text-xs font-black text-blue-700" href={selfHref}>
-              <Scissors aria-hidden="true" size={18} />
-              Nueva venta
-            </Link>
-            <Link className="grid place-items-center gap-1 rounded-2xl px-2 py-2 text-xs font-black text-slate-500 hover:bg-blue-50 hover:text-blue-700" href="/sales">
-              <ReceiptText aria-hidden="true" size={18} />
-              Historial
-            </Link>
-          </div>
-        </nav>
+        <BarberTerminalNav active="sell" saleHref={selfHref} />
       </section>
     </main>
   );

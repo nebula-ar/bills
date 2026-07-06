@@ -279,6 +279,51 @@ export function findRecentSales(limit = 10) {
   });
 }
 
+export function findBarberSalesInRange(input: { branchId: string; barberId: string; start: Date; end: Date }) {
+  return prisma.sale.findMany({
+    where: {
+      deleted: false,
+      branchId: input.branchId,
+      barberId: input.barberId,
+      soldAt: {
+        gte: input.start,
+        lt: input.end,
+      },
+    },
+    orderBy: {
+      soldAt: "desc",
+    },
+    select: {
+      id: true,
+      soldAt: true,
+      total: true,
+      status: true,
+      items: {
+        where: {
+          deleted: false,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+        select: {
+          id: true,
+          description: true,
+          quantity: true,
+        },
+      },
+      payments: {
+        where: {
+          deleted: false,
+        },
+        select: {
+          id: true,
+          method: true,
+        },
+      },
+    },
+  });
+}
+
 export function findSaleForCancellation(saleId: string) {
   return prisma.sale.findFirst({
     where: {
