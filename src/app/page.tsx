@@ -102,10 +102,6 @@ const kpiAccentClasses: Record<string, string> = {
 };
 
 type DashboardViewModel = Awaited<ReturnType<typeof getAdminDashboard>>;
-type PaymentChartDatum = DashboardViewModel["paymentBreakdown"][number] & {
-  label: string;
-  percentage: number;
-};
 
 function buildMobileData(dashboard: DashboardViewModel, userName: string): MobileDashboardData {
   const kpiByKey = Object.fromEntries(dashboard.kpis.map((kpi) => [kpi.key, kpi]));

@@ -199,15 +199,13 @@ async function createQuarterSales(input: {
   servicePriceByBranchAndService: Map<string, { id: string; price: number }>;
 }) {
   const now = new Date();
-  const quarterStart = getQuarterStart(now);
-  const daysInRange = Math.max(1, differenceInCalendarDays(now, quarterStart) + 1);
   const saleCount = 180;
 
   for (let index = 0; index < saleCount; index += 1) {
     const branch = input.branches[index % input.branches.length];
     const branchBarbers = input.barbers.filter((barber) => barber.branchId === branch.id);
     const barber = branchBarbers[index % branchBarbers.length];
-    const soldAt = buildSaleDate(quarterStart, index, daysInRange);
+    const soldAt = buildSaleDate(now, index);
     const selectedServices = pickServices(input.services, index);
     const status = index % 29 === 0 ? SaleStatus.CANCELLED : SaleStatus.COMPLETED;
 
@@ -300,25 +298,15 @@ function buildPayments(total: number, index: number) {
   ];
 }
 
-function buildSaleDate(quarterStart: Date, index: number, daysInRange: number) {
-  const date = new Date(quarterStart);
-  date.setDate(quarterStart.getDate() + ((index * 5) % daysInRange));
+function buildSaleDate(now: Date, index: number) {
+  // Reparte las ventas en los últimos 30 días (incluye hoy) para poblar las
+  // tendencias diarias. *7 con 30 es coprimo, así visita todos los días.
+  const daysBack = (index * 7) % 30;
+  const date = new Date(now);
+  date.setDate(now.getDate() - daysBack);
   date.setHours(9 + (index % 12), (index * 13) % 60, 0, 0);
 
   return date;
-}
-
-function getQuarterStart(date: Date) {
-  const quarterFirstMonth = Math.floor(date.getMonth() / 3) * 3;
-  return new Date(date.getFullYear(), quarterFirstMonth, 1, 0, 0, 0, 0);
-}
-
-function differenceInCalendarDays(end: Date, start: Date) {
-  const millisecondsPerDay = 24 * 60 * 60 * 1000;
-  const startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
-  const endUtc = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
-
-  return Math.floor((endUtc - startUtc) / millisecondsPerDay);
 }
 
 function roundToNearestHundred(value: number) {

@@ -14,6 +14,12 @@ export type TodaySalesReport = {
   to?: Date;
   totalSold: number;
   saleCount: number;
+  averageTicket: number;
+  salesByDay: {
+    date: string;
+    total: number;
+    saleCount: number;
+  }[];
   filters: {
     barberId?: string;
     paymentMethod?: PaymentMethod;
@@ -68,6 +74,7 @@ export async function getTodaySalesReport(input: SalesReportInput = {}): Promise
   ]);
   const barberTotals = new Map<string, { barberName: string; total: number; saleCount: number }>();
   const paymentTotals = new Map<PaymentMethod, number>(paymentMethods.map((method) => [method, 0]));
+  const dayTotals = new Map<string, { total: number; saleCount: number }>();
 
   for (const sale of sales) {
     const saleTotal = input.paymentMethod
@@ -83,19 +90,31 @@ export async function getTodaySalesReport(input: SalesReportInput = {}): Promise
     currentBarberTotal.saleCount += 1;
     barberTotals.set(sale.barber.id, currentBarberTotal);
 
+    const dayKey = toLocalDayKey(sale.soldAt);
+    const currentDayTotal = dayTotals.get(dayKey) ?? { total: 0, saleCount: 0 };
+    currentDayTotal.total += saleTotal;
+    currentDayTotal.saleCount += 1;
+    dayTotals.set(dayKey, currentDayTotal);
+
     for (const payment of sale.payments) {
       paymentTotals.set(payment.method, (paymentTotals.get(payment.method) ?? 0) + payment.amount);
     }
   }
 
+  const totalSold = sales.reduce(
+    (total, sale) => total + (input.paymentMethod ? sale.payments.reduce((sum, payment) => sum + payment.amount, 0) : sale.total),
+    0,
+  );
+
   return {
     from: dateRange.from,
     to: dateRange.to,
-    totalSold: sales.reduce(
-      (total, sale) => total + (input.paymentMethod ? sale.payments.reduce((sum, payment) => sum + payment.amount, 0) : sale.total),
-      0,
-    ),
+    totalSold,
     saleCount: sales.length,
+    averageTicket: sales.length > 0 ? Math.round(totalSold / sales.length) : 0,
+    salesByDay: Array.from(dayTotals.entries())
+      .map(([date, totals]) => ({ date, total: totals.total, saleCount: totals.saleCount }))
+      .sort((a, b) => a.date.localeCompare(b.date)),
     filters: {
       barberId: input.barberId,
       paymentMethod: input.paymentMethod,
@@ -123,6 +142,14 @@ export async function getTodaySalesReport(input: SalesReportInput = {}): Promise
       payments: sale.payments,
     })),
   };
+}
+
+function toLocalDayKey(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function resolveDateRange(input: SalesReportInput) {

@@ -38,3 +38,72 @@ export function parseDashboardRange(value: string | string[] | undefined | null)
 
   return DashboardRange.Today;
 }
+
+export type DashboardRangeInput = {
+  range?: DashboardRangeKey;
+  from?: Date;
+  to?: Date;
+};
+
+export type ResolvedDashboardRange = {
+  key: DashboardRangeKey;
+  from: Date;
+  to: Date;
+};
+
+// Resuelve un rango (preset o personalizado) a fechas concretas [from, to].
+// Fuente única compartida por el dashboard y los reportes.
+export function resolveDashboardRange(now: Date, input?: DashboardRangeInput): ResolvedDashboardRange {
+  const key = input?.range ?? DashboardRange.Today;
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  switch (key) {
+    case DashboardRange.Custom: {
+      const from = startOfDay(input?.from ?? now);
+      const requestedTo = input?.to ? endOfDay(input.to) : now;
+      const to = requestedTo < from ? endOfDay(from) : requestedTo;
+
+      return { key, from, to };
+    }
+
+    case DashboardRange.Last7Days:
+      return { key, from: startOfDay(addDays(now, -6)), to: now };
+
+    case DashboardRange.Last14Days:
+      return { key, from: startOfDay(addDays(now, -13)), to: now };
+
+    case DashboardRange.ThisMonth:
+      return { key, from: new Date(year, month, 1), to: now };
+
+    case DashboardRange.LastMonth:
+      return { key, from: new Date(year, month - 1, 1), to: endOfDay(new Date(year, month, 0)) };
+
+    case DashboardRange.ThisQuarter:
+      return { key, from: new Date(year, Math.floor(month / 3) * 3, 1), to: now };
+
+    case DashboardRange.ThisSemester:
+      return { key, from: new Date(year, month < 6 ? 0 : 6, 1), to: now };
+
+    case DashboardRange.ThisYear:
+      return { key, from: new Date(year, 0, 1), to: now };
+
+    default:
+      return { key: DashboardRange.Today, from: startOfDay(now), to: now };
+  }
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function endOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+}
+
+function addDays(date: Date, days: number) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+
+  return result;
+}

@@ -1,5 +1,9 @@
 import type { PaymentMethod } from "@/generated/prisma/client";
-import { DASHBOARD_RANGE_LABELS, DashboardRange, type DashboardRangeKey } from "@/lib/dashboard-range";
+import {
+  DASHBOARD_RANGE_LABELS,
+  resolveDashboardRange,
+  type DashboardRangeInput,
+} from "@/lib/dashboard-range";
 
 import {
   countDashboardCancelledSales,
@@ -18,18 +22,6 @@ type DashboardPeriod = {
   key: DashboardPeriodKey;
   label: string;
   from: Date;
-};
-
-export type DashboardRangeInput = {
-  range?: DashboardRangeKey;
-  from?: Date;
-  to?: Date;
-};
-
-type ResolvedRange = {
-  key: DashboardRangeKey;
-  from: Date;
-  to: Date;
 };
 
 export async function getAdminDashboard(now = new Date(), rangeInput?: DashboardRangeInput) {
@@ -124,48 +116,6 @@ function toServicePricesByBranch(servicePrices: Awaited<ReturnType<typeof findDa
   }));
 }
 
-function resolveDashboardRange(now: Date, input?: DashboardRangeInput): ResolvedRange {
-  const key = input?.range ?? DashboardRange.Today;
-  const year = now.getFullYear();
-  const month = now.getMonth();
-
-  switch (key) {
-    case DashboardRange.Custom: {
-      const from = getStartOfDay(input?.from ?? now);
-      const requestedTo = input?.to ? getEndOfDay(input.to) : now;
-      // Nunca dejamos un rango invertido (to < from).
-      const to = requestedTo < from ? getEndOfDay(from) : requestedTo;
-
-      return { key, from, to };
-    }
-
-    case DashboardRange.Last7Days:
-      return { key, from: getStartOfDay(addDays(now, -6)), to: now };
-
-    case DashboardRange.Last14Days:
-      return { key, from: getStartOfDay(addDays(now, -13)), to: now };
-
-    case DashboardRange.ThisMonth:
-      return { key, from: new Date(year, month, 1), to: now };
-
-    case DashboardRange.LastMonth:
-      // day 0 del mes actual = último día del mes anterior.
-      return { key, from: new Date(year, month - 1, 1), to: getEndOfDay(new Date(year, month, 0)) };
-
-    case DashboardRange.ThisQuarter:
-      return { key, from: new Date(year, Math.floor(month / 3) * 3, 1), to: now };
-
-    case DashboardRange.ThisSemester:
-      return { key, from: new Date(year, month < 6 ? 0 : 6, 1), to: now };
-
-    case DashboardRange.ThisYear:
-      return { key, from: new Date(year, 0, 1), to: now };
-
-    default:
-      return { key: DashboardRange.Today, from: getStartOfDay(now), to: now };
-  }
-}
-
 function buildDashboardPeriods(now: Date): DashboardPeriod[] {
   return [
     { key: "today", label: "Hoy", from: getStartOfDay(now) },
@@ -236,17 +186,6 @@ function sumSales(sales: Awaited<ReturnType<typeof findDashboardSales>>) {
 
 function getStartOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function getEndOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
-}
-
-function addDays(date: Date, days: number) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-
-  return result;
 }
 
 function getStartOfWeek(date: Date) {

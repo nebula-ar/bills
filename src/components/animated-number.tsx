@@ -23,15 +23,12 @@ function useCountUp(value: number, durationMs: number, delayMs: number) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      setDisplay(value);
-      return;
-    }
-
+    // Sin animación (reduced-motion o duración nula): saltar al valor final en el
+    // próximo frame (setState dentro del callback de rAF, no sincrónico en el efecto).
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReduced || durationMs <= 0) {
-      setDisplay(value);
-      return;
+      frameRef.current = requestAnimationFrame(() => setDisplay(value));
+      return () => cancelAnimationFrame(frameRef.current);
     }
 
     let startTime: number | null = null;
