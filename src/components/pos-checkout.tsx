@@ -38,6 +38,7 @@ export type PosPaymentOption = { value: string; label: string };
 type PosCheckoutProps = {
   branches: PosBranch[];
   paymentOptions: PosPaymentOption[];
+  initialBranchId?: string;
 };
 
 type SplitRow = { id: number; method: string; amount: string };
@@ -63,8 +64,10 @@ function initials(name: string) {
     .join("");
 }
 
-export function PosCheckout({ branches, paymentOptions }: PosCheckoutProps) {
-  const [branchId, setBranchId] = useState(branches[0]?.id ?? "");
+export function PosCheckout({ branches, paymentOptions, initialBranchId }: PosCheckoutProps) {
+  const [branchId, setBranchId] = useState(
+    initialBranchId && branches.some((item) => item.id === initialBranchId) ? initialBranchId : branches[0]?.id ?? "",
+  );
   const branch = branches.find((item) => item.id === branchId) ?? branches[0];
   const [barberId, setBarberId] = useState(branch?.barbers[0]?.id ?? "");
   const [cart, setCart] = useState<Record<string, number>>({});

@@ -1,12 +1,13 @@
 "use client";
 
-import { HomeIcon, ReceiptText, Scissors, Store, Users } from "lucide-react";
+import { HomeIcon, ReceiptText, Scissors, ShoppingBag, Store, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/", label: "Inicio", icon: HomeIcon },
-  { href: "/sales", label: "Ventas", icon: ReceiptText },
+  { href: "/pos", label: "Vender", icon: ShoppingBag },
+  { href: "/sales", label: "Historial", icon: ReceiptText },
   { href: "/services", label: "Servicios", icon: Scissors },
   { href: "/barbers", label: "Barberos", icon: Users },
   { href: "/branches", label: "Sucursales", icon: Store },
@@ -32,19 +33,19 @@ export function MobileNav() {
   }
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto grid max-w-[460px] grid-cols-5 border-t border-slate-200 bg-white/90 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-lg md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto grid max-w-[520px] grid-cols-6 border-t border-slate-200 bg-white/90 px-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-lg md:hidden">
       {NAV_ITEMS.map((item) => {
         const active = isActive(pathname, item.href);
         return (
           <Link
-            className={`flex flex-col items-center gap-1 rounded-2xl px-1.5 py-2 text-[0.68rem] font-bold transition active:scale-95 ${
+            className={`flex min-w-0 flex-col items-center gap-1 rounded-2xl px-0.5 py-2 text-[0.62rem] font-bold transition active:scale-95 ${
               active ? "bg-blue-50 text-blue-700" : "text-slate-500"
             }`}
             href={item.href}
             key={item.href}
           >
-            <item.icon className="size-4" />
-            {item.label}
+            <item.icon className="size-4 shrink-0" />
+            <span className="max-w-full truncate">{item.label}</span>
           </Link>
         );
       })}

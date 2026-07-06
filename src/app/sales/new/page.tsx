@@ -12,8 +12,16 @@ const paymentMethodLabels: Record<PaymentMethod, string> = {
   [PaymentMethod.OTHER]: "Otro",
 };
 
-export default async function NewSalePage() {
+type NewSalePageProps = {
+  searchParams: Promise<{ branchId?: string | string[] }>;
+};
+
+export default async function NewSalePage({ searchParams }: NewSalePageProps) {
   await requireAdminSession();
+
+  const params = await searchParams;
+  const rawBranchId = Array.isArray(params.branchId) ? params.branchId[0] : params.branchId;
+  const initialBranchId = rawBranchId && rawBranchId.length > 0 ? rawBranchId : undefined;
 
   const branches = await getSaleEntryBranches();
   const posBranches: PosBranch[] = branches.map((branch) => ({
@@ -33,5 +41,5 @@ export default async function NewSalePage() {
     label: paymentMethodLabels[method],
   }));
 
-  return <PosCheckout branches={posBranches} paymentOptions={paymentOptions} />;
+  return <PosCheckout branches={posBranches} initialBranchId={initialBranchId} paymentOptions={paymentOptions} />;
 }
