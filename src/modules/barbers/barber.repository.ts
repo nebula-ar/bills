@@ -123,6 +123,7 @@ export function createBarber(input: CreateBarberRepositoryInput) {
 
 export type UpdateBarberRepositoryInput = {
   barberId: string;
+  name: string;
   branchId: string;
   businessId: string;
   active: boolean;
@@ -137,6 +138,7 @@ export function updateBarber(input: UpdateBarberRepositoryInput) {
       role: UserRole.BARBER,
     },
     data: {
+      name: input.name,
       branchId: input.branchId,
       businessId: input.businessId,
       active: input.active,

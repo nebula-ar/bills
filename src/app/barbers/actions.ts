@@ -38,16 +38,17 @@ export async function updateBarber(formData: FormData) {
   await requireAdminSession();
 
   const barberId = parseRequiredString(formData, "barberId");
+  const name = parseRequiredString(formData, "name");
   const branchId = parseRequiredString(formData, "branchId");
   const pin = parseOptionalString(formData, "pin");
   const active = formData.get("active") === "on";
 
-  if (!barberId || !branchId) {
-    redirectWithMessage("error", "Completá la sucursal del barbero.");
+  if (!barberId || !name || !branchId) {
+    redirectWithMessage("error", "Completá nombre y sucursal del barbero.");
   }
 
   try {
-    await updateBarberForManagement({ barberId, branchId, active, pin });
+    await updateBarberForManagement({ barberId, name, branchId, active, pin });
   } catch (error) {
     if (error instanceof BarberError) {
       redirectWithMessage("error", getBarberErrorMessage(error.code));

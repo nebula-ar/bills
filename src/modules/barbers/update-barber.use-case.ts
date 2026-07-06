@@ -5,13 +5,19 @@ import { findBarberManagementBranchById, updateBarber } from "./barber.repositor
 
 export type UpdateBarberInput = {
   barberId: string;
+  name: string;
   branchId: string;
   active: boolean;
   pin?: string;
 };
 
 export async function updateBarberForManagement(input: UpdateBarberInput) {
+  const name = input.name.trim();
   const pin = input.pin?.trim();
+
+  if (!name) {
+    throw new BarberError(BarberErrorCode.NAME_REQUIRED);
+  }
 
   if (pin !== undefined && pin.length > 0 && !isValidPin(pin)) {
     throw new BarberError(BarberErrorCode.INVALID_PIN_FORMAT);
@@ -26,6 +32,7 @@ export async function updateBarberForManagement(input: UpdateBarberInput) {
   const pinHash = pin && pin.length > 0 ? await hash(pin, 12) : undefined;
   const result = await updateBarber({
     barberId: input.barberId,
+    name,
     branchId: branch.id,
     businessId: branch.businessId,
     active: input.active,
