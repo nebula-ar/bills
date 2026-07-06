@@ -9,6 +9,7 @@ import {
   Calendar,
   CalendarDays,
   CreditCard,
+  LogOut,
   ReceiptText,
   Scissors,
   SlidersHorizontal,
@@ -19,6 +20,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ComponentType, type ReactNode } from "react";
@@ -105,10 +107,10 @@ function buildHref(query: FilterQuery) {
   if (query.barberId) params.set("barberId", query.barberId);
   if (query.paymentMethod) params.set("paymentMethod", query.paymentMethod);
 
-  return `/reports?${params.toString()}`;
+  return `/?${params.toString()}`;
 }
 
-export function ReportsView({ data }: { data: ReportsData }) {
+export function ReportsView({ data, userName = "admin" }: { data: ReportsData; userName?: string }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -154,7 +156,7 @@ export function ReportsView({ data }: { data: ReportsData }) {
 
   function clearFilters() {
     setSheetOpen(false);
-    navigate(`/reports?range=${DashboardRange.Today}`);
+    navigate(`/?range=${DashboardRange.Today}`);
   }
 
   const customInvalid = rangeKey === DashboardRange.Custom && (!customFrom || !customTo || customFrom > customTo);
@@ -162,18 +164,28 @@ export function ReportsView({ data }: { data: ReportsData }) {
   return (
     <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950">
       {/* Header */}
-      <header className="flex items-start justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
+      <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-slate-500">Análisis de ventas</p>
-          <h1 className="mt-0.5 text-2xl font-black tracking-tight text-slate-950">Reportes</h1>
+          <p className="text-sm font-medium text-slate-500">Hola, {userName} 👋</p>
+          <h1 className="mt-0.5 text-2xl font-black tracking-tight text-slate-950">Resumen</h1>
         </div>
-        <Link
-          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm ring-1 ring-slate-950/5 transition active:scale-95"
-          href="/sales"
-          aria-label="Ir a ventas"
-        >
-          <ReceiptText className="size-5" />
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            aria-label="Registrar venta"
+            className="flex size-11 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm ring-1 ring-slate-950/5 transition active:scale-95"
+            href="/sales/new"
+          >
+            <ReceiptText className="size-5" />
+          </Link>
+          <button
+            aria-label="Cerrar sesión"
+            className="flex size-11 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-950/5 transition active:scale-95"
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            type="button"
+          >
+            <LogOut className="size-5" />
+          </button>
+        </div>
       </header>
 
       {/* Chips de período + filtros */}

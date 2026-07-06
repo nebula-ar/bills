@@ -1,15 +1,15 @@
 "use client";
 
-import { BarChart3, HomeIcon, MoreHorizontal, ReceiptText, Scissors } from "lucide-react";
+import { HomeIcon, ReceiptText, Scissors, Store, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/", label: "Inicio", icon: HomeIcon },
-  { href: "/reports", label: "Reportes", icon: BarChart3 },
   { href: "/sales", label: "Ventas", icon: ReceiptText },
   { href: "/services", label: "Servicios", icon: Scissors },
-  { href: "/barbers", label: "Más", icon: MoreHorizontal },
+  { href: "/barbers", label: "Barberos", icon: Users },
+  { href: "/branches", label: "Sucursales", icon: Store },
 ];
 
 // Rutas donde NO se muestra la nav admin (login y la terminal de barbero, que tiene la suya).
