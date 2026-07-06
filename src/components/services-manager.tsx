@@ -2,9 +2,16 @@
 
 import { createService, updateService } from "@/app/services/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { Check, CircleSlash, Plus, Scissors, X } from "lucide-react";
+import { Check, ChevronDown, CircleSlash, Plus, Scissors, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+
+export type ServiceBranchConfig = {
+  branchId: string;
+  configured: boolean;
+  available: boolean;
+  priceValue: string;
+};
 
 export type ServiceRow = {
   id: string;
@@ -12,10 +19,10 @@ export type ServiceRow = {
   description: string | null;
   configured: boolean;
   available: boolean;
-  priceValue: string;
   priceLabel: string;
   statusLabel: string;
   statusTone: "available" | "unavailable" | "unconfigured";
+  branchConfigs: ServiceBranchConfig[];
 };
 
 export type ServicesData = {
@@ -31,6 +38,36 @@ const toneClasses: Record<ServiceRow["statusTone"], string> = {
   unavailable: "bg-slate-100 text-slate-500",
   unconfigured: "bg-amber-50 text-amber-700",
 };
+
+function BranchSelect({
+  branches,
+  value,
+  onChange,
+}: {
+  branches: { id: string; name: string }[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+      Sucursal
+      <div className="relative">
+        <select
+          className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-11 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+          onChange={(event) => onChange(event.target.value)}
+          value={value}
+        >
+          {branches.map((branch) => (
+            <option key={branch.id} value={branch.id}>
+              {branch.name}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+      </div>
+    </label>
+  );
+}
 
 function AvailabilityToggle({ defaultOn }: { defaultOn: boolean }) {
   const [on, setOn] = useState(defaultOn);
@@ -62,12 +99,20 @@ export function ServicesManager({ data }: { data: ServicesData }) {
   const [newOpen, setNewOpen] = useState(false);
   const [newBranchId, setNewBranchId] = useState(data.selectedBranchId);
   const [editId, setEditId] = useState<string | null>(null);
+  const [editBranchId, setEditBranchId] = useState(data.selectedBranchId);
   const editing = data.services.find((service) => service.id === editId) ?? null;
   const newBranchName = data.branches.find((branch) => branch.id === newBranchId)?.name ?? "";
+  const editConfig = editing?.branchConfigs.find((config) => config.branchId === editBranchId) ?? null;
+  const editBranchName = data.branches.find((branch) => branch.id === editBranchId)?.name ?? "";
 
   function openNew() {
     setNewBranchId(data.selectedBranchId);
     setNewOpen(true);
+  }
+
+  function openEdit(id: string) {
+    setEditBranchId(data.selectedBranchId);
+    setEditId(id);
   }
 
   function selectBranch(id: string) {
@@ -133,7 +178,7 @@ export function ServicesManager({ data }: { data: ServicesData }) {
               >
                 <button
                   className="flex w-full items-center gap-3 rounded-2xl bg-white p-3.5 text-left shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.99]"
-                  onClick={() => setEditId(service.id)}
+                  onClick={() => openEdit(service.id)}
                   type="button"
                 >
                   <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
@@ -192,23 +237,7 @@ export function ServicesManager({ data }: { data: ServicesData }) {
               />
             </label>
             {data.branches.length > 1 ? (
-              <div className="grid gap-2">
-                <span className="text-xs font-black uppercase tracking-wide text-slate-500">Sucursal</span>
-                <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {data.branches.map((branch) => (
-                    <button
-                      className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition active:scale-95 ${
-                        branch.id === newBranchId ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-slate-100 text-slate-600"
-                      }`}
-                      key={branch.id}
-                      onClick={() => setNewBranchId(branch.id)}
-                      type="button"
-                    >
-                      {branch.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <BranchSelect branches={data.branches} onChange={setNewBranchId} value={newBranchId} />
             ) : null}
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               {newBranchName ? `Precio en ${newBranchName} (opcional)` : "Precio (opcional)"}
@@ -245,9 +274,9 @@ export function ServicesManager({ data }: { data: ServicesData }) {
       <BottomSheet onClose={() => setEditId(null)} open={editing !== null}>
         {editing ? (
           <form action={updateService} className="flex min-h-0 flex-1 flex-col" key={editing.id}>
-            <input name="branchId" type="hidden" value={data.selectedBranchId} />
+            <input name="branchId" type="hidden" value={editBranchId} />
             <input name="serviceId" type="hidden" value={editing.id} />
-            <input name="configured" type="hidden" value={editing.configured ? "true" : "false"} />
+            <input name="configured" type="hidden" value={editConfig?.configured ? "true" : "false"} />
             <div className="flex items-start justify-between gap-3 px-5 pt-6">
               <h3 className="text-xl font-black tracking-tight text-slate-950">Editar servicio</h3>
               <button
@@ -260,12 +289,6 @@ export function ServicesManager({ data }: { data: ServicesData }) {
               </button>
             </div>
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 pt-5">
-              {!editing.configured ? (
-                <p className="flex items-center gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
-                  <CircleSlash className="size-4" />
-                  Sin precio en esta sucursal — cargalo para poder venderlo.
-                </p>
-              ) : null}
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Nombre
                 <input
@@ -285,14 +308,24 @@ export function ServicesManager({ data }: { data: ServicesData }) {
                   type="text"
                 />
               </label>
+              {data.branches.length > 1 ? (
+                <BranchSelect branches={data.branches} onChange={setEditBranchId} value={editBranchId} />
+              ) : null}
+              {!editConfig?.configured ? (
+                <p className="flex items-center gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+                  <CircleSlash className="size-4 shrink-0" />
+                  Sin precio{editBranchName ? ` en ${editBranchName}` : " en esta sucursal"} — cargalo para poder venderlo.
+                </p>
+              ) : null}
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                Precio en esta sucursal
+                {editBranchName ? `Precio en ${editBranchName}` : "Precio en esta sucursal"}
                 <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
                   <span className="text-lg font-black text-slate-400">$</span>
                   <input
                     className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
-                    defaultValue={editing.priceValue}
+                    defaultValue={editConfig?.priceValue ?? ""}
                     inputMode="numeric"
+                    key={editBranchId}
                     min={1}
                     name="price"
                     placeholder="0"
@@ -301,7 +334,7 @@ export function ServicesManager({ data }: { data: ServicesData }) {
                   />
                 </div>
               </label>
-              <AvailabilityToggle defaultOn={editing.available || !editing.configured} />
+              <AvailabilityToggle defaultOn={editConfig?.available || !editConfig?.configured} key={editBranchId} />
             </div>
             <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
               <button
@@ -309,7 +342,7 @@ export function ServicesManager({ data }: { data: ServicesData }) {
                 type="submit"
               >
                 <Check className="size-5" />
-                {editing.configured ? "Guardar cambios" : "Habilitar en esta sucursal"}
+                {editConfig?.configured ? "Guardar cambios" : "Habilitar en esta sucursal"}
               </button>
             </div>
           </form>

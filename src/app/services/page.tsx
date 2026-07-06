@@ -47,16 +47,28 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
         ? `~ ${money(suggestedPrice)}`
         : "Sin precio";
 
+    const branchConfigs = branches.map((branch) => {
+      const config = service.branchPrices.find((price) => price.branchId === branch.id) ?? null;
+      const suggested = service.branchPrices.find((price) => price.branchId !== branch.id)?.price ?? null;
+
+      return {
+        branchId: branch.id,
+        configured: config !== null,
+        available: config?.active ?? false,
+        priceValue: String(config?.price ?? suggested ?? ""),
+      };
+    });
+
     return {
       id: service.id,
       name: service.name,
       description: service.description,
       configured,
       available,
-      priceValue: String(branchPrice?.price ?? suggestedPrice ?? ""),
       priceLabel,
       statusLabel,
       statusTone,
+      branchConfigs,
     };
   });
 

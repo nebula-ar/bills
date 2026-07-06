@@ -122,6 +122,11 @@ export async function findServiceManagementData(selectedBranchId?: string) {
               active: branchPrice.active,
             }
           : null,
+        branchPrices: service.branchPrices.map((price) => ({
+          branchId: price.branchId,
+          price: price.price,
+          active: price.active,
+        })),
       };
     }),
   };
