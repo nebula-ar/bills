@@ -32,6 +32,30 @@ const toneClasses: Record<ServiceRow["statusTone"], string> = {
   unconfigured: "bg-amber-50 text-amber-700",
 };
 
+function AvailabilityToggle({ defaultOn }: { defaultOn: boolean }) {
+  const [on, setOn] = useState(defaultOn);
+
+  return (
+    <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3.5">
+      <span className="text-sm font-black text-slate-950">Disponible para vender</span>
+      {on ? <input name="active" type="hidden" value="on" /> : null}
+      <button
+        aria-checked={on}
+        aria-label="Disponible para vender"
+        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-emerald-500" : "bg-slate-300"}`}
+        onClick={() => setOn((value) => !value)}
+        role="switch"
+        type="button"
+      >
+        <span
+          className="absolute left-1 top-1 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out"
+          style={{ transform: on ? "translateX(1.25rem)" : "translateX(0)" }}
+        />
+      </button>
+    </div>
+  );
+}
+
 export function ServicesManager({ data }: { data: ServicesData }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -235,11 +259,7 @@ export function ServicesManager({ data }: { data: ServicesData }) {
                   />
                 </div>
               </label>
-              <label className="flex cursor-pointer items-center justify-between rounded-2xl bg-slate-50 px-4 py-3.5">
-                <span className="text-sm font-black text-slate-950">Disponible para vender</span>
-                <input className="peer sr-only" defaultChecked={editing.available || !editing.configured} name="active" type="checkbox" />
-                <span className="relative h-7 w-12 shrink-0 rounded-full bg-slate-300 transition-colors duration-200 after:absolute after:left-1 after:top-1 after:size-5 after:rounded-full after:bg-white after:shadow after:transition-transform after:duration-200 after:content-[''] peer-checked:bg-emerald-500 peer-checked:after:translate-x-5" />
-              </label>
+              <AvailabilityToggle defaultOn={editing.available || !editing.configured} />
             </div>
             <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
               <button
