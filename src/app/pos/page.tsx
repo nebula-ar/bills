@@ -1,4 +1,4 @@
-import { CopyPosLink } from "@/components/copy-pos-link";
+import { PosTerminals } from "@/components/pos-terminals";
 import { requireAdminSession } from "@/lib/auth";
 import { getSaleEntryBranches } from "@/modules/sales/get-sale-entry-options.use-case";
 import { ArrowRight, MapPin, Scissors, ShoppingBag, Store } from "lucide-react";
@@ -60,7 +60,9 @@ export default async function PosLauncherPage() {
                   <ArrowRight className="size-5" />
                 </span>
               </Link>
-              <CopyPosLink branchId={branch.id} />
+              <PosTerminals
+                branch={{ id: branch.id, name: branch.name, barbers: branch.users.map((barber) => ({ id: barber.id, name: barber.name })) }}
+              />
             </li>
           ))}
         </ul>

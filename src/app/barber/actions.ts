@@ -17,13 +17,15 @@ export async function registerBarberSale(formData: FormData) {
   const pin = parseRequiredString(formData, "pin");
   const parsedItems = parseSaleItemsFromFormData(formData);
   const paymentMethod = parsePaymentMethod(formData.get("paymentMethod"));
+  // En una terminal personal (teléfono del barbero) el barbero viene fijado por el link.
+  const lockedBarberId = formData.get("terminalLocked") === "1" ? barberId : null;
 
   if (parsedItems.error) {
-    redirectWithMessage("error", parsedItems.error, branchId);
+    redirectWithMessage("error", parsedItems.error, branchId, lockedBarberId);
   }
 
   if (!branchId || !barberId || !pin || !paymentMethod) {
-    redirectWithMessage("error", "Completá todos los campos para registrar la venta.", branchId);
+    redirectWithMessage("error", "Completá todos los campos para registrar la venta.", branchId, lockedBarberId);
   }
 
   try {
@@ -41,25 +43,34 @@ export async function registerBarberSale(formData: FormData) {
     });
   } catch (error) {
     if (error instanceof BarberError) {
-      redirectWithMessage("error", getBarberErrorMessage(error.code), branchId);
+      redirectWithMessage("error", getBarberErrorMessage(error.code), branchId, lockedBarberId);
     }
 
     if (error instanceof SaleError) {
-      redirectWithMessage("error", getSaleErrorMessage(error.code), branchId);
+      redirectWithMessage("error", getSaleErrorMessage(error.code), branchId, lockedBarberId);
     }
 
     console.error(error);
-    redirectWithMessage("error", genericErrorMessage, branchId);
+    redirectWithMessage("error", genericErrorMessage, branchId, lockedBarberId);
   }
 
-  redirectWithMessage("success", "Venta registrada correctamente.", branchId);
+  redirectWithMessage("success", "Venta registrada correctamente.", branchId, lockedBarberId);
 }
 
-function redirectWithMessage(status: "error" | "success", message: string, branchId?: string | null): never {
+function redirectWithMessage(
+  status: "error" | "success",
+  message: string,
+  branchId?: string | null,
+  barberId?: string | null,
+): never {
   const params = new URLSearchParams({ status, message });
 
   if (branchId) {
     params.set("branch", branchId);
+  }
+
+  if (barberId) {
+    params.set("barber", barberId);
   }
 
   redirect(`/barber?${params.toString()}`);

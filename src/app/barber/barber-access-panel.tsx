@@ -15,14 +15,16 @@ type BarberAccessPanelProps = {
       name: string | null;
     }>;
   };
+  lockedBarberId?: string;
 };
 
 const keypadValues = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "backspace"];
 const maxPinLength = 8;
 
-export function BarberAccessPanel({ branch }: BarberAccessPanelProps) {
+export function BarberAccessPanel({ branch, lockedBarberId }: BarberAccessPanelProps) {
+  const lockedBarber = lockedBarberId ? branch.users.find((barber) => barber.id === lockedBarberId) ?? null : null;
   const [pin, setPin] = useState("");
-  const [selectedBarberId, setSelectedBarberId] = useState(branch.users[0]?.id ?? "");
+  const [selectedBarberId, setSelectedBarberId] = useState(lockedBarber?.id ?? branch.users[0]?.id ?? "");
 
   const selectedBarber = useMemo(
     () => branch.users.find((barber) => barber.id === selectedBarberId),
@@ -41,70 +43,80 @@ export function BarberAccessPanel({ branch }: BarberAccessPanelProps) {
     <section className="grid gap-5">
       <input name="branchId" type="hidden" value={branch.id} />
 
-      <div className="grid gap-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600">Seleccionar negocio</p>
-          <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">Elegí la sucursal</h2>
-        </div>
-
-        <div className="rounded-[1.8rem] border-2 border-blue-600 bg-blue-50 p-4 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-blue-600 text-white">
-              <Building2 aria-hidden="true" size={22} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-lg font-black text-slate-950">{branch.business.name}</p>
-              <p className="mt-1 flex items-center gap-1 text-sm font-bold text-slate-500">
-                <MapPin aria-hidden="true" size={15} />
-                {branch.name}
-              </p>
-            </div>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-blue-700">Activa</span>
+      {/* Ubicación de la terminal (no es una elección) */}
+      <div className="rounded-[1.8rem] border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-blue-600 text-white">
+            <Building2 aria-hidden="true" size={22} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600">Punto de venta</p>
+            <p className="text-lg font-black text-slate-950">{branch.business.name}</p>
+            <p className="mt-0.5 flex items-center gap-1 text-sm font-bold text-slate-500">
+              <MapPin aria-hidden="true" size={15} />
+              {branch.name}
+            </p>
           </div>
         </div>
       </div>
 
-      <fieldset className="grid gap-3">
-        <legend>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600">Seleccionar barbero</p>
-          <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">¿Quién registra?</h2>
-        </legend>
+      {lockedBarber ? (
+        <>
+          <input name="barberId" type="hidden" value={lockedBarber.id} />
+          <input name="terminalLocked" type="hidden" value="1" />
+          <div className="flex items-center gap-3 rounded-[1.8rem] border-2 border-blue-600 bg-blue-50 p-4 shadow-sm">
+            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-blue-600 text-white">
+              <Scissors aria-hidden="true" size={21} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Terminal de</p>
+              <p className="text-lg font-black text-slate-950">{lockedBarber.name ?? "Barbero"}</p>
+            </div>
+          </div>
+        </>
+      ) : (
+        <fieldset className="grid gap-3">
+          <legend>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600">Seleccionar barbero</p>
+            <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">¿Quién registra?</h2>
+          </legend>
 
-        <div className="grid gap-3">
-          {branch.users.map((barber) => {
-            const isSelected = barber.id === selectedBarberId;
+          <div className="grid gap-3">
+            {branch.users.map((barber) => {
+              const isSelected = barber.id === selectedBarberId;
 
-            return (
-              <label
-                className={`flex cursor-pointer items-center gap-3 rounded-[1.6rem] border-2 p-3 shadow-sm transition ${
-                  isSelected ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-200"
-                }`}
-                key={barber.id}
-              >
-                <input
-                  checked={isSelected}
-                  className="sr-only"
-                  name="barberId"
-                  required
-                  type="radio"
-                  value={barber.id}
-                  onChange={() => setSelectedBarberId(barber.id)}
-                />
-                <span className={`grid size-12 place-items-center rounded-2xl ${isSelected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500"}`}>
-                  <Scissors aria-hidden="true" size={21} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-base font-black text-slate-950">{barber.name ?? "Barbero"}</span>
-                  <span className="text-sm font-bold text-slate-500">Tocá para usar este perfil</span>
-                </span>
-                <span className={`grid size-7 place-items-center rounded-full text-sm font-black ${isSelected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-300"}`}>
-                  {isSelected ? "✓" : ""}
-                </span>
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
+              return (
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-[1.6rem] border-2 p-3 shadow-sm transition ${
+                    isSelected ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-200"
+                  }`}
+                  key={barber.id}
+                >
+                  <input
+                    checked={isSelected}
+                    className="sr-only"
+                    name="barberId"
+                    required
+                    type="radio"
+                    value={barber.id}
+                    onChange={() => setSelectedBarberId(barber.id)}
+                  />
+                  <span className={`grid size-12 place-items-center rounded-2xl ${isSelected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500"}`}>
+                    <Scissors aria-hidden="true" size={21} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-base font-black text-slate-950">{barber.name ?? "Barbero"}</span>
+                    <span className="text-sm font-bold text-slate-500">Tocá para usar este perfil</span>
+                  </span>
+                  <span className={`grid size-7 place-items-center rounded-full text-sm font-black ${isSelected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-300"}`}>
+                    {isSelected ? "✓" : ""}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
 
       <div className="rounded-[2rem] border border-blue-100 bg-blue-50 p-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">

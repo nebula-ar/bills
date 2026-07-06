@@ -21,6 +21,7 @@ type BarberPageProps = {
     status?: string | string[];
     message?: string | string[];
     branch?: string | string[];
+    barber?: string | string[];
   }>;
 };
 
@@ -29,8 +30,12 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
   const status = getSingleParam(params.status);
   const message = getSingleParam(params.message);
   const branchParam = getSingleParam(params.branch);
+  const barberParam = getSingleParam(params.barber);
   const branch = await getSaleEntryOptions(branchParam);
-  const selfHref = branch ? `/barber?branch=${branch.id}` : "/barber";
+  const lockedBarberId = branch?.users.find((barber) => barber.id === barberParam)?.id;
+  const selfHref = branch
+    ? `/barber?branch=${branch.id}${lockedBarberId ? `&barber=${lockedBarberId}` : ""}`
+    : "/barber";
   const serviceOptions = branch?.servicePrices.map((servicePrice) => ({
     serviceId: servicePrice.serviceId,
     name: servicePrice.service.name,
@@ -75,7 +80,7 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
 
         {branch ? (
           <form action={registerBarberSale} className="grid gap-4">
-            <BarberAccessPanel branch={branch} />
+            <BarberAccessPanel branch={branch} lockedBarberId={lockedBarberId} />
 
             <SaleItemsFieldset
               paymentOptions={paymentOptions}
