@@ -171,6 +171,16 @@ export function createGlobalService(input: CreateGlobalServiceRepositoryInput) {
   });
 }
 
+export function updateServiceDetails(input: { serviceId: string; name: string; description?: string }) {
+  return prisma.service.update({
+    where: { id: input.serviceId },
+    data: {
+      name: input.name,
+      description: input.description ?? null,
+    },
+  });
+}
+
 export function findBranchServicePriceForUpdate(branchId: string, servicePriceId: string) {
   return prisma.branchServicePrice.findFirst({
     where: {

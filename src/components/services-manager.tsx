@@ -1,6 +1,6 @@
 "use client";
 
-import { createService, saveBranchServiceConfig } from "@/app/services/actions";
+import { createService, updateService } from "@/app/services/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Check, CircleSlash, Plus, Scissors, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -178,14 +178,12 @@ export function ServicesManager({ data }: { data: ServicesData }) {
       {/* Configurar precio/disponibilidad */}
       <BottomSheet onClose={() => setEditId(null)} open={editing !== null}>
         {editing ? (
-          <form action={saveBranchServiceConfig} className="flex min-h-0 flex-1 flex-col">
+          <form action={updateService} className="flex min-h-0 flex-1 flex-col" key={editing.id}>
             <input name="branchId" type="hidden" value={data.selectedBranchId} />
             <input name="serviceId" type="hidden" value={editing.id} />
+            <input name="configured" type="hidden" value={editing.configured ? "true" : "false"} />
             <div className="flex items-start justify-between gap-3 px-5 pt-6">
-              <div className="min-w-0">
-                <h3 className="text-xl font-black tracking-tight text-slate-950">{editing.name}</h3>
-                {editing.description ? <p className="mt-0.5 truncate text-sm text-slate-500">{editing.description}</p> : null}
-              </div>
+              <h3 className="text-xl font-black tracking-tight text-slate-950">Editar servicio</h3>
               <button
                 aria-label="Cerrar"
                 className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
@@ -203,6 +201,25 @@ export function ServicesManager({ data }: { data: ServicesData }) {
                 </p>
               ) : null}
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                Nombre
+                <input
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  defaultValue={editing.name}
+                  name="name"
+                  required
+                  type="text"
+                />
+              </label>
+              <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                Descripción (opcional)
+                <input
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  defaultValue={editing.description ?? ""}
+                  name="description"
+                  type="text"
+                />
+              </label>
+              <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Precio en esta sucursal
                 <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
                   <span className="text-lg font-black text-slate-400">$</span>
@@ -213,7 +230,6 @@ export function ServicesManager({ data }: { data: ServicesData }) {
                     min={1}
                     name="price"
                     placeholder="0"
-                    required
                     step={1}
                     type="number"
                   />
