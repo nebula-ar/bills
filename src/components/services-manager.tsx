@@ -60,8 +60,15 @@ export function ServicesManager({ data }: { data: ServicesData }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [newOpen, setNewOpen] = useState(false);
+  const [newBranchId, setNewBranchId] = useState(data.selectedBranchId);
   const [editId, setEditId] = useState<string | null>(null);
   const editing = data.services.find((service) => service.id === editId) ?? null;
+  const newBranchName = data.branches.find((branch) => branch.id === newBranchId)?.name ?? "";
+
+  function openNew() {
+    setNewBranchId(data.selectedBranchId);
+    setNewOpen(true);
+  }
 
   function selectBranch(id: string) {
     startTransition(() => router.push(`/services?branchId=${id}`, { scroll: false }));
@@ -76,7 +83,7 @@ export function ServicesManager({ data }: { data: ServicesData }) {
         </div>
         <button
           className="flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2.5 text-sm font-black text-white shadow-sm shadow-blue-600/25 transition active:scale-95"
-          onClick={() => setNewOpen(true)}
+          onClick={openNew}
           type="button"
         >
           <Plus className="size-4" />
@@ -151,7 +158,7 @@ export function ServicesManager({ data }: { data: ServicesData }) {
       {/* Nuevo servicio */}
       <BottomSheet onClose={() => setNewOpen(false)} open={newOpen}>
         <form action={createService} className="flex min-h-0 flex-1 flex-col">
-          <input name="branchId" type="hidden" value={data.selectedBranchId} />
+          <input name="branchId" type="hidden" value={newBranchId} />
           <div className="flex items-center justify-between px-5 pt-6">
             <h3 className="text-xl font-black tracking-tight text-slate-950">Nuevo servicio</h3>
             <button
@@ -184,8 +191,43 @@ export function ServicesManager({ data }: { data: ServicesData }) {
                 type="text"
               />
             </label>
+            {data.branches.length > 1 ? (
+              <div className="grid gap-2">
+                <span className="text-xs font-black uppercase tracking-wide text-slate-500">Sucursal</span>
+                <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {data.branches.map((branch) => (
+                    <button
+                      className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition active:scale-95 ${
+                        branch.id === newBranchId ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-slate-100 text-slate-600"
+                      }`}
+                      key={branch.id}
+                      onClick={() => setNewBranchId(branch.id)}
+                      type="button"
+                    >
+                      {branch.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+              {newBranchName ? `Precio en ${newBranchName} (opcional)` : "Precio (opcional)"}
+              <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
+                <span className="text-lg font-black text-slate-400">$</span>
+                <input
+                  className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
+                  inputMode="numeric"
+                  min={1}
+                  name="price"
+                  placeholder="0"
+                  step={1}
+                  type="number"
+                />
+              </div>
+            </label>
             <p className="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-              Se agrega al catálogo del negocio. Después ponele precio en cada sucursal para poder venderlo.
+              Se agrega al catálogo del negocio. Si le ponés precio, queda listo para vender
+              {newBranchName ? ` en ${newBranchName}` : ""}. Si no, cargalo después en cada sucursal.
             </p>
           </div>
           <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
@@ -193,7 +235,7 @@ export function ServicesManager({ data }: { data: ServicesData }) {
               className="w-full rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
               type="submit"
             >
-              Agregar al catálogo
+              Crear servicio
             </button>
           </div>
         </form>

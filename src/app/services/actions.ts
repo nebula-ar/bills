@@ -16,22 +16,37 @@ export async function createService(formData: FormData) {
   const branchId = parseRequiredString(formData, "branchId");
   const name = parseRequiredString(formData, "name");
   const description = parseOptionalString(formData, "description");
+  const priceRaw = formData.get("price");
+  const price = parsePrice(priceRaw);
+  const priceEntered = typeof priceRaw === "string" && priceRaw.trim().length > 0;
 
   if (!branchId || !name) {
     redirectWithMessage("error", "Completá el nombre del servicio.", branchId ?? undefined);
   }
 
+  if (priceEntered && !price) {
+    redirectWithMessage("error", "Poné un precio válido para la sucursal.", branchId);
+  }
+
   try {
-    await createGlobalBusinessService({
+    const service = await createGlobalBusinessService({
       branchId,
       name,
       description,
     });
+
+    if (price) {
+      await upsertBranchServiceConfiguration({ branchId, serviceId: service.id, price, active: true });
+    }
   } catch (error) {
     handleServiceActionError(error, branchId);
   }
 
-  redirectWithMessage("success", "Servicio creado en el catálogo.", branchId);
+  redirectWithMessage(
+    "success",
+    price ? "Servicio creado y habilitado en la sucursal." : "Servicio creado en el catálogo.",
+    branchId,
+  );
 }
 
 export async function saveBranchServiceConfig(formData: FormData) {
