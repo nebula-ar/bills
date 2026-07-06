@@ -1,40 +1,21 @@
-import { AppShell, Card, PageHeader } from "@/components/app-shell";
-import { PaymentMethod, SaleStatus } from "@/generated/prisma/client";
+import { PaymentMethod } from "@/generated/prisma/client";
 import { requireAdminSession } from "@/lib/auth";
 import { getRecentSales } from "@/modules/sales/get-recent-sales.use-case";
-import { LogoutButton } from "@/components/logout-button";
+import { SalesList, type SalesListSale } from "@/components/sales-list";
+import { Plus } from "lucide-react";
 import Link from "next/link";
-import { cancelSaleAction } from "./actions";
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   [PaymentMethod.CASH]: "Efectivo",
-  [PaymentMethod.DEBIT_CARD]: "Tarjeta de débito",
-  [PaymentMethod.CREDIT_CARD]: "Tarjeta de crédito",
+  [PaymentMethod.DEBIT_CARD]: "Débito",
+  [PaymentMethod.CREDIT_CARD]: "Crédito",
   [PaymentMethod.TRANSFER]: "Transferencia",
   [PaymentMethod.QR]: "QR",
   [PaymentMethod.OTHER]: "Otro",
 };
 
-const saleStatusLabels: Record<SaleStatus, string> = {
-  [SaleStatus.COMPLETED]: "Completada",
-  [SaleStatus.CANCELLED]: "Cancelada",
-};
-
-const saleStatusClasses: Record<SaleStatus, string> = {
-  [SaleStatus.COMPLETED]: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  [SaleStatus.CANCELLED]: "border-red-200 bg-red-50 text-red-700",
-};
-
-const moneyFormatter = new Intl.NumberFormat("es-AR", {
-  style: "currency",
-  currency: "ARS",
-  maximumFractionDigits: 0,
-});
-
-const dateFormatter = new Intl.DateTimeFormat("es-AR", {
-  dateStyle: "short",
-  timeStyle: "short",
-});
+const timeFormatter = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit" });
+const dayFormatter = new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 
 type SalesPageProps = {
   searchParams: Promise<{
@@ -47,123 +28,63 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
   await requireAdminSession();
 
   const params = await searchParams;
-  const flashMessage = getFlashMessage(params.status, params.message);
-  const sales = await getRecentSales();
+  const flash = getFlashMessage(params.status, params.message);
+  const sales = await getRecentSales(20);
+
+  const viewSales: SalesListSale[] = sales.map((sale) => ({
+    id: sale.id,
+    timeLabel: timeFormatter.format(sale.soldAt),
+    dateLabel: dayFormatter.format(sale.soldAt),
+    barberName: sale.barberName,
+    branchName: sale.branchName,
+    total: sale.total,
+    status: sale.status,
+    itemSummary: sale.items.map((item) => `${item.description} x${item.quantity}`).join(", "),
+    paymentSummary: summarizePayments(sale.payments),
+    items: sale.items,
+    payments: sale.payments.map((payment) => ({
+      id: payment.id,
+      label: paymentMethodLabels[payment.method],
+      amount: payment.amount,
+    })),
+  }));
 
   return (
-    <AppShell maxWidth="md">
-        <PageHeader
-          title="Ventas recientes"
-          description="Revisá las últimas ventas registradas para validar la carga."
-          actions={
-            <>
-            <Link className="text-slate-600 hover:text-blue-700" href="/reports">
-                Reportes
-              </Link>
-              <Link className="rounded-2xl bg-blue-600 px-4 py-3 text-white hover:bg-blue-700" href="/sales/new">
-                Registrar venta
-              </Link>
-            <LogoutButton />
-            </>
-          }
-        />
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950">
+      <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
+        <div>
+          <p className="text-sm font-medium text-slate-500">Historial</p>
+          <h1 className="mt-0.5 text-2xl font-black tracking-tight text-slate-950">Ventas</h1>
+        </div>
+        <Link
+          className="flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2.5 text-sm font-black text-white shadow-sm shadow-blue-600/25 transition active:scale-95"
+          href="/sales/new"
+        >
+          <Plus className="size-4" />
+          Nueva venta
+        </Link>
+      </header>
 
-        {flashMessage ? (
-          <div
-            className={`rounded-2xl border p-4 text-sm font-semibold ${
-              flashMessage.status === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-red-200 bg-red-50 text-red-700"
-            }`}
-          >
-            {flashMessage.message}
-          </div>
-        ) : null}
+      {flash ? (
+        <div
+          className={`mt-4 rounded-2xl px-4 py-3 text-sm font-semibold duration-300 animate-in fade-in ${
+            flash.status === "success" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+          }`}
+        >
+          {flash.message}
+        </div>
+      ) : null}
 
-        {sales.length === 0 ? (
-          <Card className="text-slate-600">
-            Todavía no hay ventas registradas. Cargá una venta para verla en este listado.
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {sales.map((sale) => (
-              <Card key={sale.id}>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">{dateFormatter.format(sale.soldAt)}</p>
-                    <h2 className="mt-1 text-xl font-black text-slate-950">{sale.branchName}</h2>
-                    <p className="text-sm text-slate-500">Barbero: {sale.barberName}</p>
-                  </div>
-                  <div className="flex flex-col items-start gap-2 sm:items-end">
-                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${saleStatusClasses[sale.status]}`}>
-                      {saleStatusLabels[sale.status]}
-                    </span>
-                    <p className="text-2xl font-black text-blue-700">{formatMoney(sale.total)}</p>
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                  <div>
-                    <h3 className="text-sm font-bold uppercase tracking-[0.16em] text-slate-400">
-                      Ítems
-                    </h3>
-                    <ul className="mt-3 space-y-2 text-sm text-slate-600">
-                      {sale.items.map((item) => (
-                        <li className="flex justify-between gap-4" key={item.id}>
-                          <span>
-                            {item.description} x{item.quantity}
-                          </span>
-                          <span className="font-semibold text-slate-950">{formatMoney(item.total)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-bold uppercase tracking-[0.16em] text-slate-400">
-                      Pagos
-                    </h3>
-                    <ul className="mt-3 space-y-2 text-sm text-slate-600">
-                      {sale.payments.map((payment) => (
-                        <li className="flex justify-between gap-4" key={payment.id}>
-                          <span>{paymentMethodLabels[payment.method]}</span>
-                          <span className="font-semibold text-slate-950">{formatMoney(payment.amount)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                {sale.status === SaleStatus.COMPLETED ? (
-                  <form action={cancelSaleAction} className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                    <input name="saleId" type="hidden" value={sale.id} />
-                    <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                      Motivo de cancelación (opcional)
-                      <textarea
-                        className="min-h-20 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-slate-950 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-100"
-                        maxLength={500}
-                        name="reason"
-                        placeholder="Ej.: carga duplicada, importe incorrecto"
-                      />
-                    </label>
-                    <button
-                      className="mt-3 rounded-2xl border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"
-                      type="submit"
-                    >
-                      Cancelar venta
-                    </button>
-                  </form>
-                ) : null}
-              </Card>
-            ))}
-          </div>
-        )}
-    </AppShell>
+      <SalesList sales={viewSales} />
+    </main>
   );
 }
 
-function formatMoney(value: number) {
-  return moneyFormatter.format(value);
+function summarizePayments(payments: { method: PaymentMethod }[]) {
+  if (payments.length === 0) return "Sin pago";
+  const methods = new Set(payments.map((payment) => payment.method));
+  if (methods.size > 1) return "Mixto";
+  return paymentMethodLabels[payments[0].method];
 }
 
 function getFlashMessage(status: string | string[] | undefined, message: string | string[] | undefined) {
@@ -171,16 +92,13 @@ function getFlashMessage(status: string | string[] | undefined, message: string 
   const singleMessage = getSingleParam(message);
 
   if ((singleStatus === "success" || singleStatus === "error") && singleMessage) {
-    return {
-      status: singleStatus,
-      message: singleMessage,
-    };
+    return { status: singleStatus, message: singleMessage };
   }
 
   return null;
 }
 
 function getSingleParam(value: string | string[] | undefined) {
-  const singleValue = Array.isArray(value) ? value[0] : value;
-  return singleValue === "" ? undefined : singleValue;
+  const single = Array.isArray(value) ? value[0] : value;
+  return single === "" ? undefined : single;
 }

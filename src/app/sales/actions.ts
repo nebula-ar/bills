@@ -31,7 +31,7 @@ export async function cancelSaleAction(formData: FormData) {
   }
 
   revalidatePath("/sales");
-  revalidatePath("/reports");
+  revalidatePath("/");
   redirectWithMessage("success", "Venta cancelada correctamente.");
 }
 

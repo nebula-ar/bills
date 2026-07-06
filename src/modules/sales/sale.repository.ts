@@ -139,6 +139,82 @@ export function findSaleEntryOptionsBranch() {
   });
 }
 
+// Todas las sucursales activas con barberos y servicios, para el checkout del POS.
+export function findSaleEntryBranches() {
+  return prisma.branch.findMany({
+    where: {
+      deleted: false,
+      active: true,
+      business: {
+        deleted: false,
+      },
+      users: {
+        some: {
+          deleted: false,
+          active: true,
+          role: UserRole.BARBER,
+        },
+      },
+      servicePrices: {
+        some: {
+          deleted: false,
+          active: true,
+          service: {
+            deleted: false,
+            active: true,
+          },
+        },
+      },
+    },
+    include: {
+      business: {
+        select: {
+          name: true,
+        },
+      },
+      users: {
+        where: {
+          deleted: false,
+          active: true,
+          role: UserRole.BARBER,
+        },
+        orderBy: {
+          name: "asc",
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      servicePrices: {
+        where: {
+          deleted: false,
+          active: true,
+          service: {
+            deleted: false,
+            active: true,
+          },
+        },
+        include: {
+          service: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        orderBy: {
+          service: {
+            name: "asc",
+          },
+        },
+      },
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+}
+
 export function findRecentSales(limit = 10) {
   return prisma.sale.findMany({
     where: {
