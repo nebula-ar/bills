@@ -1,10 +1,24 @@
 "use client";
 
 import { AnimatedMoney, AnimatedNumber } from "@/components/animated-number";
-import { SalesTrendChart } from "@/components/reports-charts";
+import { PAYMENT_DONUT_COLORS, PaymentDonutChart, SalesTrendChart } from "@/components/reports-charts";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { DASHBOARD_RANGE_LABELS, DashboardRange, type DashboardRangeKey } from "@/lib/dashboard-range";
-import { ArrowUpRight, Calendar, CreditCard, ReceiptText, SlidersHorizontal, Ticket, TrendingUp, Users, X } from "lucide-react";
+import {
+  ArrowUpRight,
+  Calendar,
+  CalendarDays,
+  CreditCard,
+  ReceiptText,
+  Scissors,
+  SlidersHorizontal,
+  Store,
+  Ticket,
+  TrendingDown,
+  TrendingUp,
+  Users,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ComponentType, type ReactNode } from "react";
@@ -24,7 +38,12 @@ export type ReportsData = {
   totalSold: number;
   saleCount: number;
   averageTicket: number;
+  itemsSold: number;
+  comparison: { previousTotal: number; deltaPct: number | null } | null;
   salesTrend: { label: string; total: number }[];
+  salesByWeekday: { label: string; total: number }[];
+  salesByBranch: { branchName: string; total: number; saleCount: number }[];
+  topServices: { name: string; total: number; quantity: number }[];
   totalsByBarber: { barberId: string; barberName: string; total: number; saleCount: number }[];
   totalsByPayment: { key: string; label: string; total: number; percentage: number }[];
   latestSales: {
@@ -100,7 +119,8 @@ export function ReportsView({ data }: { data: ReportsData }) {
   const [paymentMethod, setPaymentMethod] = useState(data.activeFilters.paymentMethod ?? "");
 
   const maxBarberTotal = Math.max(...data.totalsByBarber.map((b) => b.total), 0);
-  const maxPaymentTotal = Math.max(...data.totalsByPayment.map((p) => p.total), 0);
+  const maxBranchTotal = Math.max(...data.salesByBranch.map((b) => b.total), 0);
+  const maxServiceTotal = Math.max(...data.topServices.map((s) => s.total), 0);
   const heroLabel = data.range.isToday ? "Ventas de hoy" : data.range.label;
   const activeFilterCount = (data.activeFilters.barberId ? 1 : 0) + (data.activeFilters.paymentMethod ? 1 : 0);
 
@@ -238,13 +258,27 @@ export function ReportsView({ data }: { data: ReportsData }) {
           <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-white/10 blur-xl" />
           <p className="text-sm font-medium text-blue-100">{heroLabel}</p>
           <AnimatedMoney className="mt-2 block text-[2.4rem] font-black leading-none tracking-tight" value={data.totalSold} />
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-sm font-medium text-blue-100">
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-sm font-medium">
             <span className="flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-white">
               <ReceiptText className="size-3.5" />
               {data.saleCount} ventas
             </span>
-            <span className="truncate text-blue-100">{data.range.dateLabel}</span>
+            {data.comparison && data.comparison.deltaPct !== null ? (
+              <span
+                className={`flex items-center gap-1 rounded-full px-2.5 py-1 font-bold text-white ${
+                  data.comparison.deltaPct >= 0 ? "bg-emerald-500/35" : "bg-rose-500/35"
+                }`}
+              >
+                {data.comparison.deltaPct >= 0 ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
+                {data.comparison.deltaPct >= 0 ? "+" : ""}
+                {data.comparison.deltaPct}%
+              </span>
+            ) : null}
           </div>
+          <p className="mt-2 text-xs font-medium text-blue-200">
+            {data.range.dateLabel}
+            {data.comparison && data.comparison.deltaPct !== null ? " · vs período anterior" : ""}
+          </p>
         </div>
 
         {/* KPIs secundarios */}
@@ -252,8 +286,8 @@ export function ReportsView({ data }: { data: ReportsData }) {
           <StatCard icon={Ticket} label="Ticket promedio" delay={140}>
             <AnimatedMoney className="mt-2 block text-xl font-black tracking-tight text-slate-950" delayMs={140} value={data.averageTicket} />
           </StatCard>
-          <StatCard icon={ReceiptText} label="Ventas" delay={200}>
-            <AnimatedNumber className="mt-2 block text-xl font-black tracking-tight text-slate-950" delayMs={200} value={data.saleCount} />
+          <StatCard icon={Scissors} label="Servicios vendidos" delay={200}>
+            <AnimatedNumber className="mt-2 block text-xl font-black tracking-tight text-slate-950" delayMs={200} value={data.itemsSold} />
           </StatCard>
         </div>
 
@@ -296,34 +330,96 @@ export function ReportsView({ data }: { data: ReportsData }) {
           )}
         </Panel>
 
-        {/* Métodos de pago */}
+        {/* Métodos de pago (donut) */}
         <Panel delay={380} title="Métodos de pago" icon={CreditCard}>
           {data.totalsByPayment.length === 0 ? (
             <Empty>No hay pagos registrados para estos filtros.</Empty>
           ) : (
-            <div className="space-y-3.5">
-              {data.totalsByPayment.map((payment) => (
-                <div className="space-y-1.5" key={payment.key}>
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="truncate font-bold text-slate-700">{payment.label}</span>
+            <>
+              <PaymentDonutChart data={data.totalsByPayment} />
+              <div className="mt-4 grid gap-2.5">
+                {data.totalsByPayment.map((payment, index) => (
+                  <div className="flex items-center justify-between gap-3 text-sm" key={payment.key}>
+                    <span className="flex min-w-0 items-center gap-2 font-bold text-slate-700">
+                      <span
+                        className="size-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: PAYMENT_DONUT_COLORS[index % PAYMENT_DONUT_COLORS.length] }}
+                      />
+                      <span className="truncate">{payment.label}</span>
+                    </span>
                     <span className="shrink-0 font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
                       {payment.percentage}% · {formatMoney(payment.total)}
                     </span>
                   </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Panel>
+
+        {/* Ventas por sucursal */}
+        {data.salesByBranch.length > 0 ? (
+          <Panel delay={440} title="Por sucursal" icon={Store}>
+            <div className="space-y-3.5">
+              {data.salesByBranch.map((branch) => (
+                <div className="space-y-1.5" key={branch.branchName}>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="truncate font-bold text-slate-700">{branch.branchName}</span>
+                    <span className="shrink-0 font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
+                      {formatMoney(branch.total)}
+                    </span>
+                  </div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-[width] duration-1000 ease-out"
-                      style={{ width: `${maxPaymentTotal > 0 ? Math.max((payment.total / maxPaymentTotal) * 100, 6) : 0}%` }}
+                      className="h-full rounded-full bg-gradient-to-r from-violet-500 to-blue-500 transition-[width] duration-1000 ease-out"
+                      style={{ width: `${maxBranchTotal > 0 ? Math.max((branch.total / maxBranchTotal) * 100, 6) : 0}%` }}
                     />
                   </div>
                 </div>
               ))}
             </div>
-          )}
-        </Panel>
+          </Panel>
+        ) : null}
+
+        {/* Top servicios */}
+        {data.topServices.length > 0 ? (
+          <Panel delay={500} title="Servicios más vendidos" icon={Scissors}>
+            <div className="space-y-3.5">
+              {data.topServices.map((service, index) => (
+                <div className="space-y-1.5" key={service.name}>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-black text-blue-700">
+                        {index + 1}
+                      </span>
+                      <span className="truncate font-bold text-slate-700">{service.name}</span>
+                      <span className="shrink-0 text-xs text-slate-400">×{service.quantity}</span>
+                    </span>
+                    <span className="shrink-0 font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
+                      {formatMoney(service.total)}
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 transition-[width] duration-1000 ease-out"
+                      style={{ width: `${maxServiceTotal > 0 ? Math.max((service.total / maxServiceTotal) * 100, 6) : 0}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        ) : null}
+
+        {/* Ventas por día de la semana */}
+        {data.salesByWeekday.some((day) => day.total > 0) ? (
+          <Panel delay={560} title="Por día de la semana" icon={CalendarDays}>
+            <SalesTrendChart data={data.salesByWeekday} />
+          </Panel>
+        ) : null}
 
         {/* Últimas ventas */}
-        <div className="mt-5 duration-500 animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: "440ms", animationFillMode: "backwards" }}>
+        <div className="mt-5 duration-500 animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: "620ms", animationFillMode: "backwards" }}>
           <div className="flex items-center justify-between px-1">
             <h2 className="text-base font-black text-slate-950">Últimas ventas</h2>
             <Link className="flex items-center gap-0.5 text-xs font-bold text-blue-600" href="/sales">

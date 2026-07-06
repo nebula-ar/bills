@@ -13,6 +13,10 @@ const paymentMethodLabels: Record<PaymentMethod, string> = {
   [PaymentMethod.OTHER]: "Otro",
 };
 
+const WEEKDAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+// Orden de lunes a domingo para el gráfico.
+const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+
 const timeFormatter = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit" });
 const dayFormatter = new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "numeric", month: "long" });
 const shortDateFormatter = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" });
@@ -63,10 +67,18 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     totalSold: report.totalSold,
     saleCount: report.saleCount,
     averageTicket: report.averageTicket,
+    itemsSold: report.itemsSold,
+    comparison: report.comparison,
     salesTrend: report.salesByDay.map((day) => ({
       label: trendFormatter.format(parseISODateLocal(day.date) ?? new Date()),
       total: day.total,
     })),
+    salesByWeekday: WEEKDAY_ORDER.map((weekday) => ({
+      label: WEEKDAY_LABELS[weekday],
+      total: report.salesByWeekday[weekday]?.total ?? 0,
+    })),
+    salesByBranch: report.salesByBranch,
+    topServices: report.topServices,
     totalsByBarber: report.totalsByBarber,
     totalsByPayment: report.totalsByPaymentMethod
       .filter((payment) => payment.total > 0)
