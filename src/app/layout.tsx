@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
+import { MobileNav } from "@/components/mobile-nav";
+import { getCurrentSession, isAdminRole } from "@/lib/auth";
 import "./globals.css";
 
 const inter = Inter({
@@ -17,17 +19,23 @@ export const metadata: Metadata = {
   description: "Administración de ventas para barberías",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getCurrentSession();
+  const showNav = isAdminRole(session?.user.role);
+
   return (
     <html
       lang="es-AR"
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        {showNav ? <MobileNav /> : null}
+      </body>
     </html>
   );
 }

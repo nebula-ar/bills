@@ -8,18 +8,14 @@ import {
   ArrowLeft,
   ArrowLeftRight,
   ArrowUpRight,
-  BarChart3,
   Banknote,
   Bell,
   Calendar,
   Check,
   ChevronRight,
   CreditCard,
-  HomeIcon,
-  MoreHorizontal,
   QrCode,
   ReceiptText,
-  Scissors,
   SlidersHorizontal,
   TriangleAlert,
   Wallet,
@@ -112,14 +108,6 @@ const rangePresets: DashboardRangeKey[] = [
 ];
 
 const chipKeys = new Set<DashboardRangeKey>(rangeChips.map((chip) => chip.key));
-
-const mobileNavigationItems = [
-  { href: "/", label: "Inicio", icon: HomeIcon },
-  { href: "/reports", label: "Reportes", icon: BarChart3 },
-  { href: "/sales", label: "Ventas", icon: ReceiptText },
-  { href: "/services", label: "Servicios", icon: Scissors },
-  { href: "/barbers", label: "Más", icon: MoreHorizontal },
-];
 
 export function MobileDashboard({ data }: { data: MobileDashboardData }) {
   const router = useRouter();
@@ -549,22 +537,6 @@ export function MobileDashboard({ data }: { data: MobileDashboardData }) {
           </div>
         ) : null}
       </div>
-
-      {/* Bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto grid max-w-[460px] grid-cols-5 border-t border-slate-200 bg-white/90 px-2 py-2 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-lg md:hidden">
-        {mobileNavigationItems.map((item) => (
-          <Link
-            className={`flex flex-col items-center gap-1 rounded-2xl px-1.5 py-2 text-[0.68rem] font-bold transition active:scale-95 ${
-              item.href === "/" ? "bg-blue-50 text-blue-700" : "text-slate-500"
-            }`}
-            href={item.href}
-            key={item.href}
-          >
-            <item.icon className="size-4" />
-            {item.label}
-          </Link>
-        ))}
-      </nav>
     </section>
   );
 }

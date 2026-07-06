@@ -1,10 +1,8 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 type AppShellProps = {
   children: ReactNode;
   maxWidth?: "sm" | "md" | "lg" | "xl";
-  showBottomNav?: boolean;
 };
 
 const shellMaxWidth: Record<NonNullable<AppShellProps["maxWidth"]>, string> = {
@@ -14,13 +12,14 @@ const shellMaxWidth: Record<NonNullable<AppShellProps["maxWidth"]>, string> = {
   xl: "max-w-6xl",
 };
 
-export function AppShell({ children, maxWidth = "md", showBottomNav = true }: AppShellProps) {
+// La barra de navegación inferior es global (se monta en el layout raíz); acá solo
+// dejamos el padding inferior (pb-28) para que el contenido no quede tapado.
+export function AppShell({ children, maxWidth = "md" }: AppShellProps) {
   return (
     <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-5 text-slate-950 sm:px-6 sm:py-10">
       <section className={`mx-auto flex w-full ${shellMaxWidth[maxWidth]} flex-col gap-6`}>
         {children}
       </section>
-      {showBottomNav ? <BottomNav /> : null}
     </main>
   );
 }
@@ -47,30 +46,4 @@ export function PageHeader({ actions, description, eyebrow = "Barber Bills", tit
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <article className={`rounded-3xl border border-slate-200 bg-white p-5 shadow-sm ${className}`}>{children}</article>;
-}
-
-export function BottomNav() {
-  const items = [
-    { href: "/", label: "Inicio" },
-    { href: "/barber", label: "Terminal" },
-    { href: "/sales", label: "Ventas" },
-    { href: "/reports", label: "Reportes" },
-    { href: "/services", label: "Servicios" },
-  ];
-
-  return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 px-2 py-2 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur sm:hidden">
-      <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
-        {items.map((item) => (
-          <Link
-            className="rounded-2xl px-2 py-2 text-center text-[0.7rem] font-bold text-slate-500 hover:bg-blue-50 hover:text-blue-700"
-            href={item.href}
-            key={item.href}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </div>
-    </nav>
-  );
 }
