@@ -14,6 +14,7 @@ export type CreateSaleRepositoryItem = {
 export type CreateSaleRepositoryInput = {
   branchId: string;
   barberId: string;
+  terminalId?: string | null;
   total: number;
   items: CreateSaleRepositoryItem[];
   payments: CreateSalePaymentDto[];
@@ -356,6 +357,7 @@ export function createSaleTransaction(input: CreateSaleRepositoryInput) {
       data: {
         branchId: input.branchId,
         barberId: input.barberId,
+        terminalId: input.terminalId ?? null,
         total: input.total,
         notes: input.notes,
         soldAt: input.soldAt,

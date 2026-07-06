@@ -2,6 +2,7 @@ import { PaymentMethod } from "@/generated/prisma/client";
 import { SaleItemsFieldset } from "@/components/sale-items-fieldset";
 import { getBarberSession } from "@/lib/barber-session";
 import { getSaleEntryOptions } from "@/modules/sales/get-sale-entry-options.use-case";
+import { getActiveTerminal } from "@/modules/terminals/terminal.use-cases";
 import { LogOut, Scissors } from "lucide-react";
 import Link from "next/link";
 
@@ -24,6 +25,7 @@ type BarberPageProps = {
     message?: string | string[];
     branch?: string | string[];
     barber?: string | string[];
+    terminal?: string | string[];
   }>;
 };
 
@@ -33,11 +35,20 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
   const message = getSingleParam(params.message);
   const branchParam = getSingleParam(params.branch);
   const barberParam = getSingleParam(params.barber);
-  const branch = await getSaleEntryOptions(branchParam);
-  const lockedBarberId = branch?.users.find((barber) => barber.id === barberParam)?.id;
-  const selfHref = branch
-    ? `/barber?branch=${branch.id}${lockedBarberId ? `&barber=${lockedBarberId}` : ""}`
-    : "/barber";
+  const terminalParam = getSingleParam(params.terminal);
+
+  // Terminal personalizada: el link trae ?terminal=<id> y de ahí sale la sucursal.
+  const terminal = terminalParam ? await getActiveTerminal(terminalParam) : null;
+  const terminalMissing = Boolean(terminalParam) && !terminal;
+  const branch = terminalMissing ? null : await getSaleEntryOptions(terminal?.branchId ?? branchParam);
+  // Una terminal personalizada es tipo mostrador (sin barbero fijo). El "barber" del link solo aplica a los teléfonos.
+  const lockedBarberId = terminal ? undefined : branch?.users.find((barber) => barber.id === barberParam)?.id;
+  const terminalId = terminal?.id;
+  const selfHref = terminal
+    ? `/barber?terminal=${terminal.id}`
+    : branch
+      ? `/barber?branch=${branch.id}${lockedBarberId ? `&barber=${lockedBarberId}` : ""}`
+      : "/barber";
 
   // Turno abierto: el barbero ya se identificó con PIN y hay sesión firmada vigente.
   const session = await getBarberSession();
@@ -66,6 +77,7 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
               <form action={lockBarberTerminal}>
                 <input name="branchId" type="hidden" value={branch.id} />
                 {lockedBarberId ? <input name="terminalBarber" type="hidden" value={lockedBarberId} /> : null}
+                {terminalId ? <input name="terminal" type="hidden" value={terminalId} /> : null}
                 <button
                   className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-600 transition active:scale-95"
                   type="submit"
@@ -97,8 +109,8 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
 
           {!branch ? (
             <div className="rounded-3xl border border-slate-200 bg-white p-5 text-slate-600 shadow-sm">
-              {branchParam
-                ? "Este punto de venta no está disponible. Puede que la sucursal esté inactiva o sin barberos/servicios activos. Pedile el link al administrador."
+              {branchParam || terminalParam
+                ? "Este punto de venta no está disponible. Puede que la sucursal o la terminal estén inactivas, o sin barberos/servicios activos. Pedile el link al administrador."
                 : "Cargá una sucursal con barberos y servicios activos para registrar ventas."}
             </div>
           ) : sessionBarber ? (
@@ -107,12 +119,14 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
                 <Scissors aria-hidden="true" className="text-blue-600" size={15} />
                 <span className="truncate">
                   {sessionBarber.name ?? "Barbero"} · {branch.name}
+                  {terminal ? ` · ${terminal.name}` : ""}
                 </span>
               </div>
 
               <form action={registerBarberSale} className="grid gap-4">
                 <input name="branchId" type="hidden" value={branch.id} />
                 {lockedBarberId ? <input name="terminalBarber" type="hidden" value={lockedBarberId} /> : null}
+                {terminalId ? <input name="terminal" type="hidden" value={terminalId} /> : null}
                 <SaleItemsFieldset
                   paymentOptions={paymentOptions}
                   serviceOptions={serviceOptions ?? []}
@@ -124,6 +138,7 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
           ) : (
             <form action={unlockBarberTerminal} className="grid gap-5">
               <BarberAccessPanel branch={branch} lockedBarberId={lockedBarberId} />
+              {terminalId ? <input name="terminal" type="hidden" value={terminalId} /> : null}
               <button
                 className="rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
                 type="submit"

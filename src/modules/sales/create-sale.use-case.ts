@@ -89,6 +89,7 @@ export async function createSale(input: CreateSaleDto) {
   return createSaleTransaction({
     branchId: input.branchId,
     barberId: input.barberId,
+    terminalId: input.terminalId ?? null,
     total: saleTotal,
     items: saleItems,
     payments: input.payments,

@@ -8,6 +8,7 @@ const MAX_AGE_SECONDS = 8 * 60 * 60;
 export type BarberSession = {
   branchId: string;
   barberId: string;
+  terminalId?: string;
   exp: number;
 };
 
@@ -23,12 +24,15 @@ function nowSeconds() {
   return Math.floor(Date.now() / 1000);
 }
 
-export function createBarberSessionToken(input: { branchId: string; barberId: string }) {
+export function createBarberSessionToken(input: { branchId: string; barberId: string; terminalId?: string | null }) {
   const data: BarberSession = {
     branchId: input.branchId,
     barberId: input.barberId,
     exp: nowSeconds() + MAX_AGE_SECONDS,
   };
+  if (input.terminalId) {
+    data.terminalId = input.terminalId;
+  }
   const payload = Buffer.from(JSON.stringify(data)).toString("base64url");
   return `${payload}.${sign(payload)}`;
 }
@@ -74,7 +78,7 @@ export async function getBarberSession(): Promise<BarberSession | null> {
   return verifyBarberSessionToken(store.get(COOKIE_NAME)?.value);
 }
 
-export async function setBarberSessionCookie(input: { branchId: string; barberId: string }) {
+export async function setBarberSessionCookie(input: { branchId: string; barberId: string; terminalId?: string | null }) {
   const store = await cookies();
   store.set(COOKIE_NAME, createBarberSessionToken(input), {
     httpOnly: true,

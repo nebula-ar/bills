@@ -48,8 +48,29 @@ model Branch {
   users         User[]
   servicePrices BranchServicePrice[]
   sales         Sale[]
+  terminals     Terminal[]
 
   @@index([businessId])
+  @@index([deletedAt])
+}
+
+model Terminal {
+  id          String    @id @default(cuid())
+  branchId    String
+  name        String
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  createdById String?
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  sales  Sale[]
+
+  @@index([branchId])
   @@index([deletedAt])
 }
 
@@ -129,6 +150,7 @@ model Sale {
   id          String     @id @default(cuid())
   branchId    String
   barberId    String
+  terminalId  String?
   total       Int
   notes       String?
   status      SaleStatus @default(COMPLETED)
@@ -143,11 +165,13 @@ model Sale {
 
   branch   Branch        @relation(fields: [branchId], references: [id], onDelete: Restrict)
   barber   User          @relation("BarberSales", fields: [barberId], references: [id], onDelete: Restrict)
+  terminal Terminal?     @relation(fields: [terminalId], references: [id], onDelete: SetNull)
   items    SaleItem[]
   payments SalePayment[]
 
   @@index([branchId, soldAt])
   @@index([barberId, soldAt])
+  @@index([terminalId])
   @@index([deletedAt])
 }
 

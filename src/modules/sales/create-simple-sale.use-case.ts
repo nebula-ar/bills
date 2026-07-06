@@ -12,6 +12,7 @@ export type CreateSimpleSaleItemInput = {
 export type CreateSimpleSaleInput = {
   branchId: string;
   barberId: string;
+  terminalId?: string | null;
   items: CreateSimpleSaleItemInput[];
   paymentMethod: PaymentMethod;
 };
@@ -50,6 +51,7 @@ export async function createSimpleSale(input: CreateSimpleSaleInput) {
   return createSale({
     branchId: input.branchId,
     barberId: input.barberId,
+    terminalId: input.terminalId ?? null,
     items: input.items,
     payments: [
       {

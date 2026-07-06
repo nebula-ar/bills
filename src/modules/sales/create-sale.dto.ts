@@ -15,6 +15,7 @@ export type CreateSalePaymentDto = {
 export type CreateSaleDto = {
   branchId: string;
   barberId: string;
+  terminalId?: string | null;
   items: CreateSaleItemDto[];
   payments: CreateSalePaymentDto[];
   notes?: string;
