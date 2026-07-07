@@ -85,6 +85,7 @@ model User {
   branchId     String?
   name         String
   email        String?
+  username     String?   @unique
   passwordHash String?
   pinHash      String?
   role         UserRole

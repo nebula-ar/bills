@@ -9,6 +9,7 @@ export type RegisterBusinessInput = {
   businessName: string;
   ownerName: string;
   email: string;
+  username?: string;
   password: string;
   branches: RegisterBranchInput[];
 };
@@ -17,16 +18,21 @@ export type RegisterResult = { ok: true } | { ok: false; error: string };
 
 const PIN_RE = /^\d{4,8}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_RE = /^[a-z0-9._-]{3,20}$/;
 
 export async function registerBusiness(input: RegisterBusinessInput): Promise<RegisterResult> {
   const businessName = input.businessName.trim();
   const ownerName = input.ownerName.trim();
   const email = input.email.trim().toLowerCase();
+  const username = (input.username ?? "").trim().toLowerCase();
   const password = input.password ?? "";
 
   if (!businessName) return { ok: false, error: "Poné el nombre de la barbería." };
   if (!ownerName) return { ok: false, error: "Poné tu nombre." };
   if (!EMAIL_RE.test(email)) return { ok: false, error: "El email no es válido." };
+  if (username && !USERNAME_RE.test(username)) {
+    return { ok: false, error: "El usuario tiene que tener 3 a 20 caracteres (letras, números, . _ -)." };
+  }
   if (password.length < 6) return { ok: false, error: "La contraseña debe tener al menos 6 caracteres." };
 
   const branches = input.branches
@@ -51,9 +57,16 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
     }
   }
 
-  const existing = await prisma.user.findFirst({ where: { email, deleted: false } });
-  if (existing) {
+  const existingEmail = await prisma.user.findFirst({ where: { email, deleted: false } });
+  if (existingEmail) {
     return { ok: false, error: "Ya hay una cuenta con ese email." };
+  }
+
+  if (username) {
+    const existingUsername = await prisma.user.findFirst({ where: { username } });
+    if (existingUsername) {
+      return { ok: false, error: "Ese nombre de usuario ya está en uso." };
+    }
   }
 
   const passwordHash = await hash(password, 12);
@@ -78,6 +91,7 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
         businessId: business.id,
         name: ownerName,
         email,
+        username: username || null,
         passwordHash,
         role: UserRole.OWNER,
         active: true,

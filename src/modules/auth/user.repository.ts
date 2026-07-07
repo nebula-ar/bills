@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 const adminRoles: UserRole[] = [UserRole.OWNER, UserRole.ADMIN];
 
-export function findActiveAdminUserByEmail(email: string) {
+export function findActiveAdminUserByIdentifier(identifier: string) {
   return prisma.user.findFirst({
     where: {
-      email,
+      OR: [{ email: identifier }, { username: identifier }],
       active: true,
       deleted: false,
       role: {

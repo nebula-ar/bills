@@ -12,7 +12,7 @@ type LoginFormProps = {
 
 const errorMessages: Record<string, string> = {
   [LoginErrorCode.RateLimited]: "Demasiados intentos fallidos. Esperá unos minutos antes de volver a probar.",
-  [LoginErrorCode.InvalidCredentials]: "Email o contraseña incorrectos. Revisá tus datos e intentá de nuevo.",
+  [LoginErrorCode.InvalidCredentials]: "Email/usuario o contraseña incorrectos. Revisá tus datos e intentá de nuevo.",
   [LoginErrorCode.Network]: "No pudimos conectar con el servidor. Revisá tu conexión e intentá de nuevo.",
 };
 
@@ -61,26 +61,25 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
     <form className="grid gap-5" noValidate onSubmit={handleSubmit}>
       <div className="grid gap-4">
         <label className="grid gap-2 text-sm font-black text-slate-700" htmlFor="email">
-          Email
+          Email o usuario
           <span className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm transition focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
             <Mail aria-hidden="true" className="shrink-0 text-slate-400" size={20} />
             <input
               aria-describedby={error ? "login-error" : undefined}
               aria-invalid={error ? true : undefined}
               autoCapitalize="none"
-              autoComplete="email"
+              autoComplete="username"
               autoCorrect="off"
               autoFocus
               className="min-w-0 flex-1 bg-transparent text-base font-semibold text-slate-950 outline-none placeholder:text-slate-400"
               disabled={isPending}
               enterKeyHint="next"
               id="email"
-              inputMode="email"
               name="email"
-              placeholder="admin@barberia.com"
+              placeholder="Tu email o usuario"
               required
               spellCheck={false}
-              type="email"
+              type="text"
             />
           </span>
         </label>

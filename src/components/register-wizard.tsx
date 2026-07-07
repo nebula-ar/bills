@@ -8,6 +8,7 @@ import { useState, useTransition } from "react";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PIN_RE = /^\d{4,8}$/;
+const USERNAME_RE = /^[a-z0-9._-]{3,20}$/;
 
 type BarberDraft = { name: string; pin: string };
 type BranchDraft = { name: string; address: string; barbers: BarberDraft[] };
@@ -33,6 +34,7 @@ export function RegisterWizard() {
   const [businessName, setBusinessName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isBarber, setIsBarber] = useState(false);
   const [ownerPin, setOwnerPin] = useState("");
@@ -71,7 +73,14 @@ export function RegisterWizard() {
 
   function stepValid() {
     if (step === 0) return businessName.trim().length > 0;
-    if (step === 1) return ownerName.trim().length > 0 && EMAIL_RE.test(email.trim()) && password.length >= 6;
+    if (step === 1) {
+      return (
+        ownerName.trim().length > 0 &&
+        EMAIL_RE.test(email.trim()) &&
+        (username.trim() === "" || USERNAME_RE.test(username.trim())) &&
+        password.length >= 6
+      );
+    }
     if (step === 2) return !isBarber || ownerPin.trim() === "" || PIN_RE.test(ownerPin.trim());
     if (step === 3) {
       return (
@@ -109,6 +118,7 @@ export function RegisterWizard() {
         businessName,
         ownerName,
         email,
+        username,
         password,
         branches: finalBranches,
       });
@@ -196,6 +206,19 @@ export function RegisterWizard() {
                     placeholder="tucorreo@ejemplo.com"
                     type="email"
                     value={email}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-xs font-black uppercase tracking-wide text-slate-500" htmlFor="username">
+                    Usuario (opcional)
+                  </label>
+                  <input
+                    autoCapitalize="none"
+                    className={inputClass}
+                    id="username"
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))}
+                    placeholder="Ej: matias (para entrar sin el email)"
+                    value={username}
                   />
                 </div>
                 <div className="grid gap-2">
