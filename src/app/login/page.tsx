@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { LoginForm } from "./login-form";
 
 type LoginPageProps = {
@@ -36,6 +38,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           ) : null}
 
           <LoginForm callbackUrl={callbackUrl} />
+
+          <p className="text-center text-sm font-semibold text-slate-500">
+            ¿No tenés cuenta?{" "}
+            <Link className="font-black text-blue-600" href="/register">
+              Registrá tu barbería
+            </Link>
+          </p>
         </div>
 
         <p className="pt-8 text-center text-xs font-medium leading-5 text-slate-400">
