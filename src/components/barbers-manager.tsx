@@ -209,7 +209,6 @@ export function BarbersManager({ data }: { data: BarbersData }) {
                 <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                   Nombre
                   <input
-                    autoFocus
                     className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
                     name="name"
                     placeholder="Ej: Juan Pérez"
