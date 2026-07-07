@@ -1,6 +1,7 @@
 import {
   createTerminal,
   findActiveTerminal,
+  findBranchesForTerminals,
   findManageableBranch,
   findManageableTerminal,
   findTerminalsByBranch,
@@ -12,6 +13,10 @@ const MAX_NAME_LENGTH = 40;
 
 export function getBranchTerminals(branchId: string) {
   return findTerminalsByBranch(branchId);
+}
+
+export function getTerminalsManagementData() {
+  return findBranchesForTerminals();
 }
 
 export function getActiveTerminal(terminalId: string) {

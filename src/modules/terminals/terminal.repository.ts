@@ -1,4 +1,31 @@
+import { UserRole } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+
+export function findBranchesForTerminals() {
+  return prisma.branch.findMany({
+    where: {
+      deleted: false,
+      active: true,
+      business: { deleted: false },
+    },
+    orderBy: [{ business: { name: "asc" } }, { name: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      business: { select: { name: true } },
+      users: {
+        where: { deleted: false, active: true, role: UserRole.BARBER },
+        orderBy: { name: "asc" },
+        select: { id: true, name: true },
+      },
+      terminals: {
+        where: { deleted: false },
+        orderBy: { name: "asc" },
+        select: { id: true, name: true },
+      },
+    },
+  });
+}
 
 export function findTerminalsByBranch(branchId: string) {
   return prisma.terminal.findMany({

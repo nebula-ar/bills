@@ -1,7 +1,18 @@
 "use client";
 
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { HomeIcon, MoreHorizontal, ReceiptText, Scissors, ShoppingBag, Store, Users, Wallet, type LucideIcon } from "lucide-react";
+import {
+  HomeIcon,
+  MonitorSmartphone,
+  MoreHorizontal,
+  ReceiptText,
+  Scissors,
+  ShoppingBag,
+  Store,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -17,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
 
 // Los ABM (configuración) viven detrás de "Más" para no saturar la barra.
 const MORE_ITEMS: (NavItem & { hint: string })[] = [
+  { href: "/terminals", label: "Terminales", icon: MonitorSmartphone, hint: "Mostrador, teléfonos y propias" },
   { href: "/services", label: "Servicios", icon: Scissors, hint: "Catálogo y precios por sucursal" },
   { href: "/barbers", label: "Barberos", icon: Users, hint: "Alta, sucursal y PIN" },
   { href: "/branches", label: "Sucursales", icon: Store, hint: "Nombre, dirección y estado" },
