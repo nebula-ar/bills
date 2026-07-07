@@ -1,12 +1,12 @@
 import { PaymentMethod } from "@/generated/prisma/client";
-import { SaleItemsFieldset } from "@/components/sale-items-fieldset";
+import { BarberSaleTerminal } from "@/components/barber-sale-terminal";
 import { getBarberSession } from "@/lib/barber-session";
 import { getSaleEntryOptions } from "@/modules/sales/get-sale-entry-options.use-case";
 import { getActiveTerminal } from "@/modules/terminals/terminal.use-cases";
 import { LogOut, Scissors } from "lucide-react";
 import Link from "next/link";
 
-import { lockBarberTerminal, registerBarberSale, unlockBarberTerminal } from "./actions";
+import { lockBarberTerminal, unlockBarberTerminal } from "./actions";
 import { BarberAccessPanel } from "./barber-access-panel";
 import { BarberTerminalNav } from "./barber-terminal-nav";
 
@@ -126,17 +126,7 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
                 </span>
               </div>
 
-              <form action={registerBarberSale} className="grid gap-4">
-                <input name="branchId" type="hidden" value={branch.id} />
-                {lockedBarberId ? <input name="terminalBarber" type="hidden" value={lockedBarberId} /> : null}
-                {terminalId ? <input name="terminal" type="hidden" value={terminalId} /> : null}
-                <SaleItemsFieldset
-                  paymentOptions={paymentOptions}
-                  serviceOptions={serviceOptions ?? []}
-                  submitLabel="Confirmar venta"
-                  variant="barberMobile"
-                />
-              </form>
+              <BarberSaleTerminal paymentOptions={paymentOptions} services={serviceOptions ?? []} />
             </div>
           ) : (
             <form action={unlockBarberTerminal} className="grid gap-5">

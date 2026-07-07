@@ -3,14 +3,12 @@
 import { clearBarberSessionCookie, getBarberSession, setBarberSessionCookie } from "@/lib/barber-session";
 import { getBarberErrorMessage } from "@/lib/barber-error-messages";
 import { getSaleErrorMessage } from "@/lib/sale-error-messages";
-import { parsePaymentMethod, parseRequiredString, parseSaleItemsFromFormData } from "@/lib/sale-form-parser";
+import { parsePaymentMethod, parseRequiredString } from "@/lib/sale-form-parser";
 import { BarberError } from "@/modules/barbers/barber.errors";
 import { validateBarberPin } from "@/modules/barbers/validate-barber-pin.use-case";
 import { createSimpleSale } from "@/modules/sales/create-simple-sale.use-case";
 import { SaleError } from "@/modules/sales/sale.errors";
 import { redirect } from "next/navigation";
-
-const genericErrorMessage = "No pudimos registrar la venta. Intentá de nuevo.";
 
 type RedirectContext = { branchId?: string | null; barberId?: string | null; terminalId?: string | null };
 
@@ -51,33 +49,30 @@ export async function lockBarberTerminal(formData: FormData) {
   redirectWithMessage("success", "Cerraste el turno.", { branchId, barberId: terminalBarberId, terminalId });
 }
 
-export async function registerBarberSale(formData: FormData) {
+export type BarberSaleItem = { serviceId: string; quantity: number };
+export type BarberSaleResult = { ok: true } | { ok: false; error: string };
+
+// Venta rápida desde la terminal (kiosco): recibe items + método de pago del
+// cliente, usa el barbero de la sesión firmada y devuelve un resultado sin recargar.
+export async function submitBarberSale(input: {
+  items: BarberSaleItem[];
+  paymentMethod: string;
+}): Promise<BarberSaleResult> {
   const session = await getBarberSession();
-  const branchId = parseRequiredString(formData, "branchId");
-  const terminalBarberId = parseRequiredString(formData, "terminalBarber");
-  const terminalId = parseRequiredString(formData, "terminal");
-  const fallbackCtx: RedirectContext = { branchId, barberId: terminalBarberId, terminalId };
-
-  // La identidad viene de la sesión firmada, no del formulario.
   if (!session) {
-    redirectWithMessage("error", "Se cerró tu turno. Ingresá tu PIN de nuevo.", fallbackCtx);
+    return { ok: false, error: "Se cerró tu turno. Ingresá tu PIN de nuevo." };
   }
 
-  const ctx: RedirectContext = {
-    branchId: session.branchId,
-    barberId: terminalBarberId,
-    terminalId: session.terminalId ?? terminalId,
-  };
-
-  const parsedItems = parseSaleItemsFromFormData(formData);
-  const paymentMethod = parsePaymentMethod(formData.get("paymentMethod"));
-
-  if (parsedItems.error) {
-    redirectWithMessage("error", parsedItems.error, ctx);
-  }
-
+  const paymentMethod = parsePaymentMethod(input.paymentMethod);
   if (!paymentMethod) {
-    redirectWithMessage("error", "Elegí un método de pago.", ctx);
+    return { ok: false, error: "Elegí un método de pago." };
+  }
+
+  const items = (input.items ?? []).filter(
+    (item) => typeof item.serviceId === "string" && Number.isInteger(item.quantity) && item.quantity > 0,
+  );
+  if (items.length === 0) {
+    return { ok: false, error: "Agregá al menos un servicio." };
   }
 
   try {
@@ -85,19 +80,17 @@ export async function registerBarberSale(formData: FormData) {
       branchId: session.branchId,
       barberId: session.barberId,
       terminalId: session.terminalId ?? null,
-      items: parsedItems.items,
+      items,
       paymentMethod,
     });
+    return { ok: true };
   } catch (error) {
     if (error instanceof SaleError) {
-      redirectWithMessage("error", getSaleErrorMessage(error.code), ctx);
+      return { ok: false, error: getSaleErrorMessage(error.code) };
     }
-
     console.error(error);
-    redirectWithMessage("error", genericErrorMessage, ctx);
+    return { ok: false, error: "No pudimos registrar la venta. Intentá de nuevo." };
   }
-
-  redirectWithMessage("success", "Venta registrada correctamente.", ctx);
 }
 
 function redirectWithMessage(status: "error" | "success", message: string, ctx: RedirectContext): never {
