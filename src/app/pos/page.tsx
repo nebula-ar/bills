@@ -6,9 +6,9 @@ import { ArrowRight, MapPin, Scissors, ShoppingBag, Store } from "lucide-react";
 import Link from "next/link";
 
 export default async function PosLauncherPage() {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
-  const branches = await getSaleEntryBranches();
+  const branches = await getSaleEntryBranches(session.user.businessId);
   const terminalsByBranch = await Promise.all(branches.map((branch) => getBranchTerminals(branch.id)));
   const businessName = branches[0]?.business.name ?? "Barber Bills";
 

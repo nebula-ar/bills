@@ -142,9 +142,10 @@ export function findSaleEntryOptionsBranch(branchId?: string) {
 }
 
 // Todas las sucursales activas con barberos y servicios, para el checkout del POS.
-export function findSaleEntryBranches() {
+export function findSaleEntryBranches(businessId: string) {
   return prisma.branch.findMany({
     where: {
+      businessId,
       deleted: false,
       active: true,
       business: {
@@ -217,11 +218,12 @@ export function findSaleEntryBranches() {
   });
 }
 
-export function findRecentSales(limit = 10) {
+export function findRecentSales(businessId: string, limit = 10) {
   return prisma.sale.findMany({
     where: {
       deleted: false,
       branch: {
+        businessId,
         deleted: false,
         active: true,
       },

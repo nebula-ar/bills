@@ -19,6 +19,7 @@ export function findActiveAdminUserByEmail(email: string) {
       email: true,
       passwordHash: true,
       role: true,
+      businessId: true,
     },
   });
 }

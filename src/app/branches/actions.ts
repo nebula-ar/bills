@@ -10,7 +10,7 @@ import { redirect } from "next/navigation";
 const genericErrorMessage = "No pudimos guardar la sucursal. Intentá de nuevo.";
 
 export async function createBranch(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const name = parseRequiredString(formData, "name");
   const address = parseOptionalString(formData, "address");
@@ -20,7 +20,7 @@ export async function createBranch(formData: FormData) {
   }
 
   try {
-    await createBranchForManagement({ name, address });
+    await createBranchForManagement({ businessId: session.user.businessId, name, address });
   } catch (error) {
     handleBranchActionError(error);
   }
@@ -29,7 +29,7 @@ export async function createBranch(formData: FormData) {
 }
 
 export async function updateBranch(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const branchId = parseRequiredString(formData, "branchId");
   const name = parseRequiredString(formData, "name");
@@ -41,7 +41,7 @@ export async function updateBranch(formData: FormData) {
   }
 
   try {
-    await updateBranchForManagement({ branchId, name, address, active });
+    await updateBranchForManagement({ branchId, businessId: session.user.businessId, name, address, active });
   } catch (error) {
     handleBranchActionError(error);
   }

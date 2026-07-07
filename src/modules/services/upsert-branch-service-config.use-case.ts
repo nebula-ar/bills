@@ -6,6 +6,7 @@ import {
 } from "./service.repository";
 
 export type UpsertBranchServiceConfigInput = {
+  businessId: string;
   branchId: string;
   serviceId: string;
   price: number;
@@ -18,8 +19,8 @@ export async function upsertBranchServiceConfiguration(input: UpsertBranchServic
   }
 
   const [branch, service] = await Promise.all([
-    findServiceManagementBranchById(input.branchId),
-    findServiceManagementServiceById(input.serviceId),
+    findServiceManagementBranchById(input.branchId, input.businessId),
+    findServiceManagementServiceById(input.serviceId, input.businessId),
   ]);
 
   if (!branch) {

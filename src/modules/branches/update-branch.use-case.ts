@@ -3,6 +3,7 @@ import { updateBranch } from "./branch.repository";
 
 export type UpdateBranchInput = {
   branchId: string;
+  businessId: string;
   name: string;
   address?: string;
   active: boolean;
@@ -18,6 +19,7 @@ export async function updateBranchForManagement(input: UpdateBranchInput) {
 
   const result = await updateBranch({
     branchId: input.branchId,
+    businessId: input.businessId,
     name,
     address,
     active: input.active,

@@ -8,14 +8,16 @@ export type CreateBranchRepositoryInput = {
 
 export type UpdateBranchRepositoryInput = {
   branchId: string;
+  businessId: string;
   name: string;
   address?: string;
   active: boolean;
 };
 
-export function findBranchesForManagement() {
+export function findBranchesForManagement(businessId: string) {
   return prisma.branch.findMany({
     where: {
+      businessId,
       deleted: false,
       business: {
         deleted: false,
@@ -65,6 +67,7 @@ export function updateBranch(input: UpdateBranchRepositoryInput) {
   return prisma.branch.updateMany({
     where: {
       id: input.branchId,
+      businessId: input.businessId,
       deleted: false,
       business: {
         deleted: false,

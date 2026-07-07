@@ -10,11 +10,11 @@ type BranchesPageProps = {
 };
 
 export default async function BranchesPage({ searchParams }: BranchesPageProps) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const params = await searchParams;
   const flash = getFlash(params.status, params.message);
-  const branches = await getBranchesForManagement();
+  const branches = await getBranchesForManagement(session.user.businessId);
 
   const rows: BranchRow[] = branches.map((branch) => ({
     id: branch.id,

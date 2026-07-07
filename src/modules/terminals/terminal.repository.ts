@@ -1,9 +1,10 @@
 import { UserRole } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
-export function findBranchesForTerminals() {
+export function findBranchesForTerminals(businessId: string) {
   return prisma.branch.findMany({
     where: {
+      businessId,
       deleted: false,
       active: true,
       business: { deleted: false },
@@ -85,11 +86,12 @@ export function findActiveBranchBarber(branchId: string, barberId: string) {
   });
 }
 
-export function findManageableTerminal(terminalId: string) {
+export function findManageableTerminal(terminalId: string, businessId: string) {
   return prisma.terminal.findFirst({
     where: {
       id: terminalId,
       deleted: false,
+      branch: { businessId },
     },
     select: {
       id: true,
@@ -98,10 +100,11 @@ export function findManageableTerminal(terminalId: string) {
   });
 }
 
-export function findManageableBranch(branchId: string) {
+export function findManageableBranch(branchId: string, businessId: string) {
   return prisma.branch.findFirst({
     where: {
       id: branchId,
+      businessId,
       deleted: false,
       business: {
         deleted: false,

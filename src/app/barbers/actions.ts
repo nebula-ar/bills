@@ -10,7 +10,7 @@ import { redirect } from "next/navigation";
 const genericErrorMessage = "No pudimos guardar el barbero. Intentá de nuevo.";
 
 export async function createBarber(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const name = parseRequiredString(formData, "name");
   const branchId = parseRequiredString(formData, "branchId");
@@ -21,7 +21,7 @@ export async function createBarber(formData: FormData) {
   }
 
   try {
-    await createBarberForManagement({ name, branchId, pin });
+    await createBarberForManagement({ businessId: session.user.businessId, name, branchId, pin });
   } catch (error) {
     if (error instanceof BarberError) {
       redirectWithMessage("error", getBarberErrorMessage(error.code));
@@ -35,7 +35,7 @@ export async function createBarber(formData: FormData) {
 }
 
 export async function updateBarber(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const barberId = parseRequiredString(formData, "barberId");
   const name = parseRequiredString(formData, "name");
@@ -48,7 +48,7 @@ export async function updateBarber(formData: FormData) {
   }
 
   try {
-    await updateBarberForManagement({ barberId, name, branchId, active, pin });
+    await updateBarberForManagement({ businessId: session.user.businessId, barberId, name, branchId, active, pin });
   } catch (error) {
     if (error instanceof BarberError) {
       redirectWithMessage("error", getBarberErrorMessage(error.code));

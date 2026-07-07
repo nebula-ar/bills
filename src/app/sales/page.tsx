@@ -25,11 +25,11 @@ type SalesPageProps = {
 };
 
 export default async function SalesPage({ searchParams }: SalesPageProps) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const params = await searchParams;
   const flash = getFlashMessage(params.status, params.message);
-  const sales = await getRecentSales(20);
+  const sales = await getRecentSales(session.user.businessId, 20);
 
   const viewSales: SalesListSale[] = sales.map((sale) => ({
     id: sale.id,

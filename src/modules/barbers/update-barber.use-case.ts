@@ -4,6 +4,7 @@ import { BarberError, BarberErrorCode } from "./barber.errors";
 import { findBarberManagementBranchById, updateBarber } from "./barber.repository";
 
 export type UpdateBarberInput = {
+  businessId: string;
   barberId: string;
   name: string;
   branchId: string;
@@ -23,7 +24,7 @@ export async function updateBarberForManagement(input: UpdateBarberInput) {
     throw new BarberError(BarberErrorCode.INVALID_PIN_FORMAT);
   }
 
-  const branch = await findBarberManagementBranchById(input.branchId);
+  const branch = await findBarberManagementBranchById(input.branchId, input.businessId);
 
   if (!branch) {
     throw new BarberError(BarberErrorCode.BRANCH_NOT_FOUND);

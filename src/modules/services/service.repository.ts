@@ -29,9 +29,10 @@ export type UpsertBranchServiceConfigRepositoryInput = {
 
 export type BranchServiceConfiguration = Awaited<ReturnType<typeof findServiceManagementData>>;
 
-export async function findServiceManagementData(selectedBranchId?: string) {
+export async function findServiceManagementData(businessId: string, selectedBranchId?: string) {
   const branches = await prisma.branch.findMany({
     where: {
+      businessId,
       deleted: false,
       active: true,
       business: {
@@ -132,10 +133,11 @@ export async function findServiceManagementData(selectedBranchId?: string) {
   };
 }
 
-export function findServiceManagementBranchById(branchId: string) {
+export function findServiceManagementBranchById(branchId: string, businessId: string) {
   return prisma.branch.findFirst({
     where: {
       id: branchId,
+      businessId,
       deleted: false,
       active: true,
       business: {
@@ -149,10 +151,11 @@ export function findServiceManagementBranchById(branchId: string) {
   });
 }
 
-export function findServiceManagementServiceById(serviceId: string) {
+export function findServiceManagementServiceById(serviceId: string, businessId: string) {
   return prisma.service.findFirst({
     where: {
       id: serviceId,
+      businessId,
       deleted: false,
       business: {
         deleted: false,

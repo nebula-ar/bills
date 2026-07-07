@@ -17,12 +17,12 @@ type ServicesPageProps = {
 };
 
 export default async function ServicesPage({ searchParams }: ServicesPageProps) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const params = await searchParams;
   const selectedBranchId = getSingleParam(params.branchId);
   const flash = getFlash(params.status, params.message);
-  const { branches, selectedBranch, services } = await getBranchServiceConfiguration(selectedBranchId);
+  const { branches, selectedBranch, services } = await getBranchServiceConfiguration(session.user.businessId, selectedBranchId);
 
   if (!selectedBranch) {
     return (

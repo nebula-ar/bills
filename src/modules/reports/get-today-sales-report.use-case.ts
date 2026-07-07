@@ -3,6 +3,7 @@ import type { PaymentMethod } from "@/generated/prisma/client";
 import { findReportBarbers, findReportSales, paymentMethods } from "./report.repository";
 
 export type SalesReportInput = {
+  businessId: string;
   from?: Date;
   to?: Date;
   barberId?: string;
@@ -80,19 +81,19 @@ export type TodaySalesReport = {
   }[];
 };
 
-export async function getTodaySalesReport(input: SalesReportInput = {}): Promise<TodaySalesReport> {
+export async function getTodaySalesReport(input: SalesReportInput): Promise<TodaySalesReport> {
   const dateRange = resolveDateRange(input);
   const previousRange = buildPreviousRange(dateRange);
   const [sales, barbers, previousSales] = await Promise.all([
-    findReportSales({
+    findReportSales(input.businessId, {
       from: dateRange.from,
       to: dateRange.to,
       barberId: input.barberId,
       paymentMethod: input.paymentMethod,
     }),
-    findReportBarbers(),
+    findReportBarbers(input.businessId),
     previousRange
-      ? findReportSales({
+      ? findReportSales(input.businessId, {
           from: previousRange.from,
           to: previousRange.to,
           barberId: input.barberId,

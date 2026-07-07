@@ -16,8 +16,8 @@ export function getBranchTerminals(branchId: string) {
   return findTerminalsByBranch(branchId);
 }
 
-export function getTerminalsManagementData() {
-  return findBranchesForTerminals();
+export function getTerminalsManagementData(businessId: string) {
+  return findBranchesForTerminals(businessId);
 }
 
 export function getActiveTerminal(terminalId: string) {
@@ -39,14 +39,19 @@ async function resolveBarberId(branchId: string, barberId?: string | null) {
   return barber.id;
 }
 
-export async function createBranchTerminal(input: { branchId: string; name: string; barberId?: string | null }) {
+export async function createBranchTerminal(input: {
+  businessId: string;
+  branchId: string;
+  name: string;
+  barberId?: string | null;
+}) {
   const name = normalizeName(input.name);
 
   if (!name) {
     throw new Error("TERMINAL_NAME_REQUIRED");
   }
 
-  const branch = await findManageableBranch(input.branchId);
+  const branch = await findManageableBranch(input.branchId, input.businessId);
 
   if (!branch) {
     throw new Error("BRANCH_NOT_FOUND");
@@ -57,14 +62,19 @@ export async function createBranchTerminal(input: { branchId: string; name: stri
   return createTerminal({ branchId: branch.id, name, barberId });
 }
 
-export async function updateBranchTerminal(input: { terminalId: string; name: string; barberId?: string | null }) {
+export async function updateBranchTerminal(input: {
+  businessId: string;
+  terminalId: string;
+  name: string;
+  barberId?: string | null;
+}) {
   const name = normalizeName(input.name);
 
   if (!name) {
     throw new Error("TERMINAL_NAME_REQUIRED");
   }
 
-  const terminal = await findManageableTerminal(input.terminalId);
+  const terminal = await findManageableTerminal(input.terminalId, input.businessId);
 
   if (!terminal) {
     throw new Error("TERMINAL_NOT_FOUND");
@@ -75,8 +85,8 @@ export async function updateBranchTerminal(input: { terminalId: string; name: st
   return updateTerminalDetails({ terminalId: terminal.id, name, barberId });
 }
 
-export async function deleteBranchTerminal(terminalId: string) {
-  const terminal = await findManageableTerminal(terminalId);
+export async function deleteBranchTerminal(input: { businessId: string; terminalId: string }) {
+  const terminal = await findManageableTerminal(input.terminalId, input.businessId);
 
   if (!terminal) {
     throw new Error("TERMINAL_NOT_FOUND");

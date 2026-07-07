@@ -1,9 +1,10 @@
 import { ExpenseCategory } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
-export function findExpensesInRange(input: { from?: Date; to?: Date; branchId?: string | null }) {
+export function findExpensesInRange(input: { businessId: string; from?: Date; to?: Date; branchId?: string | null }) {
   return prisma.expense.findMany({
     where: {
+      businessId: input.businessId,
       deleted: false,
       business: { deleted: false },
       ...(input.branchId ? { branchId: input.branchId } : {}),
@@ -31,9 +32,10 @@ export function findExpensesInRange(input: { from?: Date; to?: Date; branchId?: 
   });
 }
 
-export function findExpenseBranches() {
+export function findExpenseBranches(businessId: string) {
   return prisma.branch.findMany({
     where: {
+      businessId,
       deleted: false,
       active: true,
       business: { deleted: false },
@@ -56,10 +58,11 @@ export function findExpenseBusiness() {
   });
 }
 
-export function findManageableExpense(expenseId: string) {
+export function findManageableExpense(expenseId: string, businessId: string) {
   return prisma.expense.findFirst({
     where: {
       id: expenseId,
+      businessId,
       deleted: false,
       business: { deleted: false },
     },

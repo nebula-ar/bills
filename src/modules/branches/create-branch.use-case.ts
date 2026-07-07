@@ -1,7 +1,8 @@
 import { BranchError, BranchErrorCode } from "./branch.errors";
-import { createBranch, findManagementBusiness } from "./branch.repository";
+import { createBranch } from "./branch.repository";
 
 export type CreateBranchInput = {
+  businessId: string;
   name: string;
   address?: string;
 };
@@ -14,14 +15,8 @@ export async function createBranchForManagement(input: CreateBranchInput) {
     throw new BranchError(BranchErrorCode.NAME_REQUIRED);
   }
 
-  const business = await findManagementBusiness();
-
-  if (!business) {
-    throw new BranchError(BranchErrorCode.BUSINESS_NOT_FOUND);
-  }
-
   return createBranch({
-    businessId: business.id,
+    businessId: input.businessId,
     name,
     address,
   });

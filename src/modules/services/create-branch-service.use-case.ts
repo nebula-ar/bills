@@ -2,6 +2,7 @@ import { ServiceError, ServiceErrorCode } from "./service.errors";
 import { createBranchServiceTransaction, findServiceManagementBranchById } from "./service.repository";
 
 export type CreateBranchServiceInput = {
+  businessId: string;
   branchId: string;
   name: string;
   description?: string;
@@ -20,7 +21,7 @@ export async function createBranchService(input: CreateBranchServiceInput) {
     throw new ServiceError(ServiceErrorCode.INVALID_PRICE);
   }
 
-  const branch = await findServiceManagementBranchById(input.branchId);
+  const branch = await findServiceManagementBranchById(input.branchId, input.businessId);
 
   if (!branch) {
     throw new ServiceError(ServiceErrorCode.BRANCH_NOT_FOUND);

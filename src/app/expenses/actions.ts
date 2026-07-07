@@ -34,7 +34,7 @@ function parseSpentAt(value: string) {
 }
 
 export async function createExpenseAction(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const month = parseString(formData, "month") || undefined;
   const branchId = parseString(formData, "branchId") || null;
@@ -48,7 +48,7 @@ export async function createExpenseAction(formData: FormData) {
   }
 
   try {
-    await createBusinessExpense({ branchId, category, amount, note, spentAt });
+    await createBusinessExpense({ businessId: session.user.businessId, branchId, category, amount, note, spentAt });
   } catch (error) {
     console.error(error);
     redirectWithMessage("error", "No pudimos guardar el gasto. Intentá de nuevo.", month);
@@ -58,7 +58,7 @@ export async function createExpenseAction(formData: FormData) {
 }
 
 export async function updateExpenseAction(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const month = parseString(formData, "month") || undefined;
   const expenseId = parseString(formData, "expenseId");
@@ -73,7 +73,7 @@ export async function updateExpenseAction(formData: FormData) {
   }
 
   try {
-    await updateBusinessExpense({ expenseId, branchId, category, amount, note, spentAt });
+    await updateBusinessExpense({ businessId: session.user.businessId, expenseId, branchId, category, amount, note, spentAt });
   } catch (error) {
     console.error(error);
     redirectWithMessage("error", "No pudimos actualizar el gasto. Intentá de nuevo.", month);
@@ -83,7 +83,7 @@ export async function updateExpenseAction(formData: FormData) {
 }
 
 export async function deleteExpenseAction(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const month = parseString(formData, "month") || undefined;
   const expenseId = parseString(formData, "expenseId");
@@ -93,7 +93,7 @@ export async function deleteExpenseAction(formData: FormData) {
   }
 
   try {
-    await deleteBusinessExpense(expenseId);
+    await deleteBusinessExpense({ businessId: session.user.businessId, expenseId });
   } catch (error) {
     console.error(error);
     redirectWithMessage("error", "No pudimos borrar el gasto. Intentá de nuevo.", month);

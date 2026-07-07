@@ -1,5 +1,5 @@
 import { findServiceManagementData } from "./service.repository";
 
-export async function getBranchServiceConfiguration(branchId?: string) {
-  return findServiceManagementData(branchId);
+export async function getBranchServiceConfiguration(businessId: string, branchId?: string) {
+  return findServiceManagementData(businessId, branchId);
 }

@@ -22,9 +22,9 @@ export type RecentSale = {
   }[];
 };
 
-export async function getRecentSales(limit = 10): Promise<RecentSale[]> {
+export async function getRecentSales(businessId: string, limit = 10): Promise<RecentSale[]> {
   const safeLimit = Math.min(Math.max(limit, 1), 50);
-  const sales = await findRecentSales(safeLimit);
+  const sales = await findRecentSales(businessId, safeLimit);
 
   return sales.map((sale) => ({
     id: sale.id,

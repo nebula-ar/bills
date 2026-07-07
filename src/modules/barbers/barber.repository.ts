@@ -27,9 +27,10 @@ export function findActiveBarberForPinValidation(barberId: string, branchId?: st
   });
 }
 
-export function findActiveBarbersForManagement() {
+export function findActiveBarbersForManagement(businessId: string) {
   return prisma.user.findMany({
     where: {
+      businessId,
       deleted: false,
       role: UserRole.BARBER,
       business: {
@@ -61,9 +62,10 @@ export function findActiveBarbersForManagement() {
   });
 }
 
-export function findBranchesForBarberManagement() {
+export function findBranchesForBarberManagement(businessId: string) {
   return prisma.branch.findMany({
     where: {
+      businessId,
       deleted: false,
       active: true,
       business: {
@@ -84,10 +86,11 @@ export function findBranchesForBarberManagement() {
   });
 }
 
-export function findBarberManagementBranchById(branchId: string) {
+export function findBarberManagementBranchById(branchId: string, businessId: string) {
   return prisma.branch.findFirst({
     where: {
       id: branchId,
+      businessId,
       deleted: false,
       active: true,
       business: {
@@ -134,6 +137,7 @@ export function updateBarber(input: UpdateBarberRepositoryInput) {
   return prisma.user.updateMany({
     where: {
       id: input.barberId,
+      businessId: input.businessId,
       deleted: false,
       role: UserRole.BARBER,
     },

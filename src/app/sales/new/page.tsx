@@ -17,13 +17,13 @@ type NewSalePageProps = {
 };
 
 export default async function NewSalePage({ searchParams }: NewSalePageProps) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const params = await searchParams;
   const rawBranchId = Array.isArray(params.branchId) ? params.branchId[0] : params.branchId;
   const initialBranchId = rawBranchId && rawBranchId.length > 0 ? rawBranchId : undefined;
 
-  const branches = await getSaleEntryBranches();
+  const branches = await getSaleEntryBranches(session.user.businessId);
   const posBranches: PosBranch[] = branches.map((branch) => ({
     id: branch.id,
     name: branch.name,

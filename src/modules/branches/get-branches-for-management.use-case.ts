@@ -1,5 +1,5 @@
 import { findBranchesForManagement } from "./branch.repository";
 
-export async function getBranchesForManagement() {
-  return findBranchesForManagement();
+export async function getBranchesForManagement(businessId: string) {
+  return findBranchesForManagement(businessId);
 }

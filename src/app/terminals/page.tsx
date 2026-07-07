@@ -11,12 +11,12 @@ type TerminalsPageProps = {
 };
 
 export default async function TerminalsPage({ searchParams }: TerminalsPageProps) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const params = await searchParams;
   const flash = getFlash(params.status, params.message);
   const selectedParam = getSingleParam(params.branchId);
-  const branches = await getTerminalsManagementData();
+  const branches = await getTerminalsManagementData(session.user.businessId);
 
   const rows: TerminalsBranch[] = branches.map((branch) => ({
     id: branch.id,

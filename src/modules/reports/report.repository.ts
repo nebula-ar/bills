@@ -11,7 +11,7 @@ export type SalesReportFilters = {
 export type TodaySalesReportSale = Awaited<ReturnType<typeof findReportSales>>[number];
 export type ReportBarberOption = Awaited<ReturnType<typeof findReportBarbers>>[number];
 
-export function findReportSales(filters: SalesReportFilters) {
+export function findReportSales(businessId: string, filters: SalesReportFilters) {
   return prisma.sale.findMany({
     where: {
       deleted: false,
@@ -27,6 +27,7 @@ export function findReportSales(filters: SalesReportFilters) {
           }
         : undefined,
       branch: {
+        businessId,
         deleted: false,
       },
       barber: {
@@ -83,9 +84,10 @@ export function findReportSales(filters: SalesReportFilters) {
   });
 }
 
-export function findReportBarbers() {
+export function findReportBarbers(businessId: string) {
   return prisma.user.findMany({
     where: {
+      businessId,
       deleted: false,
       active: true,
       role: UserRole.BARBER,

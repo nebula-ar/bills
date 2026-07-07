@@ -10,11 +10,11 @@ type BarbersPageProps = {
 };
 
 export default async function BarbersPage({ searchParams }: BarbersPageProps) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const params = await searchParams;
   const flash = getFlash(params.status, params.message);
-  const { barbers, branches } = await getBarbersForManagement();
+  const { barbers, branches } = await getBarbersForManagement(session.user.businessId);
 
   const rows: BarberRow[] = barbers.map((barber) => ({
     id: barber.id,

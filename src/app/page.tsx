@@ -54,14 +54,16 @@ export default async function Home({ searchParams }: HomeProps) {
   const barberId = getSingleParam(params.barberId);
   const paymentMethod = getPaymentMethodParam(params.paymentMethod);
 
+  const businessId = session.user.businessId;
   const [report, expensesSummary] = await Promise.all([
     getTodaySalesReport({
+      businessId,
       from: resolved.from,
       to: resolved.to,
       barberId,
       paymentMethod,
     }),
-    getExpensesSummary({ from: resolved.from, to: resolved.to }),
+    getExpensesSummary({ businessId, from: resolved.from, to: resolved.to }),
   ]);
 
   const paymentTotalSum = report.totalsByPaymentMethod.reduce((sum, payment) => sum + payment.total, 0);

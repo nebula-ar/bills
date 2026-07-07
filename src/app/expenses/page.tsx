@@ -16,7 +16,7 @@ type ExpensesPageProps = {
 };
 
 export default async function ExpensesPage({ searchParams }: ExpensesPageProps) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const params = await searchParams;
   const flash = getFlash(params.status, params.message);
@@ -26,7 +26,10 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
   const from = new Date(year, month - 1, 1, 0, 0, 0, 0);
   const to = new Date(year, month, 0, 23, 59, 59, 999);
 
-  const [expenses, branches] = await Promise.all([getExpensesInRange({ from, to }), getExpenseBranches()]);
+  const [expenses, branches] = await Promise.all([
+    getExpensesInRange({ businessId: session.user.businessId, from, to }),
+    getExpenseBranches(session.user.businessId),
+  ]);
 
   const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 

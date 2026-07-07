@@ -33,5 +33,6 @@ export async function validateAdminCredentials(email: string, password: string) 
     name: user.name,
     email: user.email,
     role: user.role,
+    businessId: user.businessId,
   };
 }

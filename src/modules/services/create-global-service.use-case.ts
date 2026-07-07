@@ -2,6 +2,7 @@ import { ServiceError, ServiceErrorCode } from "./service.errors";
 import { createGlobalService, findServiceManagementBranchById } from "./service.repository";
 
 export type CreateGlobalServiceInput = {
+  businessId: string;
   branchId: string;
   name: string;
   description?: string;
@@ -15,7 +16,7 @@ export async function createGlobalBusinessService(input: CreateGlobalServiceInpu
     throw new ServiceError(ServiceErrorCode.INVALID_SERVICE_NAME);
   }
 
-  const branch = await findServiceManagementBranchById(input.branchId);
+  const branch = await findServiceManagementBranchById(input.branchId, input.businessId);
 
   if (!branch) {
     throw new ServiceError(ServiceErrorCode.BRANCH_NOT_FOUND);

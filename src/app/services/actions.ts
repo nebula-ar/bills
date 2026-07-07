@@ -11,7 +11,7 @@ import { redirect } from "next/navigation";
 const genericErrorMessage = "No pudimos guardar el servicio. Intentá de nuevo.";
 
 export async function createService(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const branchId = parseRequiredString(formData, "branchId");
   const name = parseRequiredString(formData, "name");
@@ -30,13 +30,14 @@ export async function createService(formData: FormData) {
 
   try {
     const service = await createGlobalBusinessService({
+      businessId: session.user.businessId,
       branchId,
       name,
       description,
     });
 
     if (price) {
-      await upsertBranchServiceConfiguration({ branchId, serviceId: service.id, price, active: true });
+      await upsertBranchServiceConfiguration({ businessId: session.user.businessId, branchId, serviceId: service.id, price, active: true });
     }
   } catch (error) {
     handleServiceActionError(error, branchId);
@@ -50,7 +51,7 @@ export async function createService(formData: FormData) {
 }
 
 export async function saveBranchServiceConfig(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const branchId = parseRequiredString(formData, "branchId");
   const serviceId = parseRequiredString(formData, "serviceId");
@@ -63,6 +64,7 @@ export async function saveBranchServiceConfig(formData: FormData) {
 
   try {
     await upsertBranchServiceConfiguration({
+      businessId: session.user.businessId,
       branchId,
       serviceId,
       price,
@@ -76,7 +78,7 @@ export async function saveBranchServiceConfig(formData: FormData) {
 }
 
 export async function updateService(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const branchId = parseRequiredString(formData, "branchId");
   const serviceId = parseRequiredString(formData, "serviceId");
@@ -99,10 +101,10 @@ export async function updateService(formData: FormData) {
   }
 
   try {
-    await updateGlobalService({ serviceId, name, description });
+    await updateGlobalService({ businessId: session.user.businessId, serviceId, name, description });
 
     if (wantsConfig && price) {
-      await upsertBranchServiceConfiguration({ branchId, serviceId, price, active });
+      await upsertBranchServiceConfiguration({ businessId: session.user.businessId, branchId, serviceId, price, active });
     }
   } catch (error) {
     handleServiceActionError(error, branchId);

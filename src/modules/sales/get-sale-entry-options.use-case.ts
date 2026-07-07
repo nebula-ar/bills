@@ -4,6 +4,6 @@ export async function getSaleEntryOptions(branchId?: string) {
   return findSaleEntryOptionsBranch(branchId);
 }
 
-export async function getSaleEntryBranches() {
-  return findSaleEntryBranches();
+export async function getSaleEntryBranches(businessId: string) {
+  return findSaleEntryBranches(businessId);
 }

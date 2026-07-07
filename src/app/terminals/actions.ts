@@ -14,7 +14,7 @@ function parseString(formData: FormData, key: string) {
 }
 
 export async function createTerminalAction(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const branchId = parseString(formData, "branchId");
   const name = parseString(formData, "name");
@@ -25,7 +25,7 @@ export async function createTerminalAction(formData: FormData) {
   }
 
   try {
-    await createBranchTerminal({ branchId, name, barberId });
+    await createBranchTerminal({ businessId: session.user.businessId, branchId, name, barberId });
   } catch (error) {
     console.error(error);
     redirectWithMessage("error", "No pudimos crear la terminal. Revisá el barbero elegido.", branchId);
@@ -35,7 +35,7 @@ export async function createTerminalAction(formData: FormData) {
 }
 
 export async function renameTerminalAction(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const branchId = parseString(formData, "branchId");
   const terminalId = parseString(formData, "terminalId");
@@ -47,7 +47,7 @@ export async function renameTerminalAction(formData: FormData) {
   }
 
   try {
-    await updateBranchTerminal({ terminalId, name, barberId });
+    await updateBranchTerminal({ businessId: session.user.businessId, terminalId, name, barberId });
   } catch (error) {
     console.error(error);
     redirectWithMessage("error", "No pudimos actualizar la terminal. Revisá el barbero elegido.", branchId);
@@ -57,7 +57,7 @@ export async function renameTerminalAction(formData: FormData) {
 }
 
 export async function deleteTerminalAction(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const branchId = parseString(formData, "branchId");
   const terminalId = parseString(formData, "terminalId");
@@ -67,7 +67,7 @@ export async function deleteTerminalAction(formData: FormData) {
   }
 
   try {
-    await deleteBranchTerminal(terminalId);
+    await deleteBranchTerminal({ businessId: session.user.businessId, terminalId });
   } catch (error) {
     console.error(error);
     redirectWithMessage("error", "No pudimos borrar la terminal. Intentá de nuevo.", branchId);

@@ -3,7 +3,6 @@ import { ExpenseCategory } from "@/generated/prisma/client";
 import {
   createExpense,
   findExpenseBranches,
-  findExpenseBusiness,
   findExpensesInRange,
   findManageableExpense,
   softDeleteExpense,
@@ -11,6 +10,7 @@ import {
 } from "./expense.repository";
 
 export type ExpenseInput = {
+  businessId: string;
   branchId?: string | null;
   category: ExpenseCategory;
   amount: number;
@@ -18,21 +18,21 @@ export type ExpenseInput = {
   spentAt: Date;
 };
 
-function validate(input: ExpenseInput) {
+function validate(input: { amount: number }) {
   if (!Number.isInteger(input.amount) || input.amount <= 0) {
     throw new Error("INVALID_AMOUNT");
   }
 }
 
-export async function getExpensesInRange(input: { from?: Date; to?: Date; branchId?: string | null }) {
+export async function getExpensesInRange(input: { businessId: string; from?: Date; to?: Date; branchId?: string | null }) {
   return findExpensesInRange(input);
 }
 
-export function getExpenseBranches() {
-  return findExpenseBranches();
+export function getExpenseBranches(businessId: string) {
+  return findExpenseBranches(businessId);
 }
 
-export async function getExpensesSummary(input: { from?: Date; to?: Date }) {
+export async function getExpensesSummary(input: { businessId: string; from?: Date; to?: Date }) {
   const expenses = await findExpensesInRange(input);
   const byCategory = new Map<ExpenseCategory, number>();
   let total = 0;
@@ -54,13 +54,8 @@ export async function getExpensesSummary(input: { from?: Date; to?: Date }) {
 export async function createBusinessExpense(input: ExpenseInput) {
   validate(input);
 
-  const business = await findExpenseBusiness();
-  if (!business) {
-    throw new Error("BUSINESS_NOT_FOUND");
-  }
-
   return createExpense({
-    businessId: business.id,
+    businessId: input.businessId,
     branchId: input.branchId ?? null,
     category: input.category,
     amount: input.amount,
@@ -72,7 +67,7 @@ export async function createBusinessExpense(input: ExpenseInput) {
 export async function updateBusinessExpense(input: ExpenseInput & { expenseId: string }) {
   validate(input);
 
-  const expense = await findManageableExpense(input.expenseId);
+  const expense = await findManageableExpense(input.expenseId, input.businessId);
   if (!expense) {
     throw new Error("EXPENSE_NOT_FOUND");
   }
@@ -87,8 +82,8 @@ export async function updateBusinessExpense(input: ExpenseInput & { expenseId: s
   });
 }
 
-export async function deleteBusinessExpense(expenseId: string) {
-  const expense = await findManageableExpense(expenseId);
+export async function deleteBusinessExpense(input: { businessId: string; expenseId: string }) {
+  const expense = await findManageableExpense(input.expenseId, input.businessId);
   if (!expense) {
     throw new Error("EXPENSE_NOT_FOUND");
   }
