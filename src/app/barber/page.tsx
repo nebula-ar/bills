@@ -41,8 +41,11 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
   const terminal = terminalParam ? await getActiveTerminal(terminalParam) : null;
   const terminalMissing = Boolean(terminalParam) && !terminal;
   const branch = terminalMissing ? null : await getSaleEntryOptions(terminal?.branchId ?? branchParam);
-  // Una terminal personalizada es tipo mostrador (sin barbero fijo). El "barber" del link solo aplica a los teléfonos.
-  const lockedBarberId = terminal ? undefined : branch?.users.find((barber) => barber.id === barberParam)?.id;
+  // Una terminal propia puede estar asignada a un barbero (queda fija a él) o ser tipo mostrador.
+  // El "barber" del link solo aplica a los teléfonos (terminales automáticas).
+  const lockedBarberId = terminal
+    ? branch?.users.find((barber) => barber.id === terminal.barberId)?.id
+    : branch?.users.find((barber) => barber.id === barberParam)?.id;
   const terminalId = terminal?.id;
   const selfHref = terminal
     ? `/barber?terminal=${terminal.id}`

@@ -3,15 +3,18 @@
 import { createTerminalAction, deleteTerminalAction, renameTerminalAction } from "@/app/terminals/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { copyText } from "@/lib/clipboard";
-import { Check, Copy, Monitor, Pencil, Plus, Smartphone, Tag, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Copy, Monitor, Pencil, Plus, Smartphone, Tag, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ComponentType } from "react";
+
+type Barber = { id: string; name: string };
+type CustomTerminal = { id: string; name: string; barberId: string | null; barberName: string | null };
 
 export type TerminalsBranch = {
   id: string;
   name: string;
-  barbers: { id: string; name: string }[];
-  customTerminals: { id: string; name: string }[];
+  barbers: Barber[];
+  customTerminals: CustomTerminal[];
 };
 
 export type TerminalsData = {
@@ -81,7 +84,7 @@ function AutoRow({ icon: Icon, name, hint, path }: { icon: ComponentType<{ class
   );
 }
 
-function CustomRow({ terminal, onEdit }: { terminal: { id: string; name: string }; onEdit: () => void }) {
+function CustomRow({ terminal, onEdit }: { terminal: CustomTerminal; onEdit: () => void }) {
   const { copied, url, copy } = useCopy();
   return (
     <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-950/5">
@@ -91,7 +94,9 @@ function CustomRow({ terminal, onEdit }: { terminal: { id: string; name: string 
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-black text-slate-950">{terminal.name}</p>
-          <p className="truncate text-xs text-slate-500">Elegí barbero y PIN</p>
+          <p className="truncate text-xs text-slate-500">
+            {terminal.barberName ? `Fija a ${terminal.barberName} · solo PIN` : "Mostrador · elige barbero y PIN"}
+          </p>
         </div>
         <button
           aria-label="Editar"
@@ -104,6 +109,111 @@ function CustomRow({ terminal, onEdit }: { terminal: { id: string; name: string 
         <CopyButton copied={copied} onClick={() => copy(`/barber?terminal=${terminal.id}`)} />
       </div>
       <RevealedUrl url={url} />
+    </div>
+  );
+}
+
+function Select({
+  label,
+  name,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  name?: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+      {label}
+      <div className="relative">
+        <select
+          className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-11 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+          name={name}
+          onChange={(event) => onChange(event.target.value)}
+          value={value}
+        >
+          {children}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+      </div>
+    </label>
+  );
+}
+
+function TerminalForm({
+  branches,
+  defaultBranchId,
+  defaultBarberId,
+  defaultName,
+  allowBranchChange,
+}: {
+  branches: TerminalsBranch[];
+  defaultBranchId: string;
+  defaultBarberId: string;
+  defaultName: string;
+  allowBranchChange: boolean;
+}) {
+  const [branchId, setBranchId] = useState(defaultBranchId);
+  const [barberId, setBarberId] = useState(defaultBarberId);
+  const branch = branches.find((item) => item.id === branchId) ?? branches[0];
+  const barbers = branch?.barbers ?? [];
+
+  return (
+    <div className="space-y-4">
+      <input name="branchId" type="hidden" value={branchId} />
+
+      <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+        Nombre
+        <input
+          autoFocus
+          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+          defaultValue={defaultName}
+          maxLength={40}
+          name="name"
+          placeholder="Ej: Silla 3, Recepción, Caja tablet"
+          required
+          type="text"
+        />
+      </label>
+
+      {allowBranchChange ? (
+        <Select
+          label="Sucursal"
+          onChange={(value) => {
+            setBranchId(value);
+            setBarberId("");
+          }}
+          value={branchId}
+        >
+          {branches.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </Select>
+      ) : (
+        <div className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+          Sucursal
+          <div className="rounded-2xl bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950">{branch?.name}</div>
+        </div>
+      )}
+
+      <Select label="Barbero" name="barberId" onChange={setBarberId} value={barberId}>
+        <option value="">Cualquiera (mostrador)</option>
+        {barbers.map((barber) => (
+          <option key={barber.id} value={barber.id}>
+            {barber.name}
+          </option>
+        ))}
+      </Select>
+      <p className="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
+        Si asignás un barbero, la terminal ya viene con su perfil y solo pide el PIN. Si la dejás en «Cualquiera»,
+        funciona como mostrador (cada uno elige su perfil).
+      </p>
     </div>
   );
 }
@@ -223,12 +333,8 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
       <BottomSheet onClose={() => setNewOpen(false)} open={newOpen}>
         {branch ? (
           <form action={createTerminalAction} className="flex min-h-0 flex-1 flex-col">
-            <input name="branchId" type="hidden" value={branch.id} />
             <div className="flex items-center justify-between px-5 pt-6">
-              <div className="min-w-0">
-                <h3 className="text-xl font-black tracking-tight text-slate-950">Nueva terminal</h3>
-                <p className="truncate text-sm text-slate-500">{branch.name}</p>
-              </div>
+              <h3 className="text-xl font-black tracking-tight text-slate-950">Nueva terminal</h3>
               <button
                 aria-label="Cerrar"
                 className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
@@ -239,22 +345,13 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5">
-              <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                Nombre
-                <input
-                  autoFocus
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-                  maxLength={40}
-                  name="name"
-                  placeholder="Ej: Silla 3, Recepción, Caja tablet"
-                  required
-                  type="text"
-                />
-              </label>
-              <p className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-                Funciona como un mostrador con nombre propio: el barbero entra, elige su perfil y pone su PIN. Cada venta
-                queda registrada en esta terminal.
-              </p>
+              <TerminalForm
+                allowBranchChange
+                branches={data.branches}
+                defaultBarberId=""
+                defaultBranchId={branch.id}
+                defaultName=""
+              />
             </div>
             <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
               <button
@@ -284,20 +381,15 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
               </button>
             </div>
             <form action={renameTerminalAction} className="flex min-h-0 flex-1 flex-col">
-              <input name="branchId" type="hidden" value={branch.id} />
               <input name="terminalId" type="hidden" value={editing.id} />
               <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5">
-                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                  Nombre
-                  <input
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-                    defaultValue={editing.name}
-                    maxLength={40}
-                    name="name"
-                    required
-                    type="text"
-                  />
-                </label>
+                <TerminalForm
+                  allowBranchChange={false}
+                  branches={data.branches}
+                  defaultBarberId={editing.barberId ?? ""}
+                  defaultBranchId={branch.id}
+                  defaultName={editing.name}
+                />
               </div>
               <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
                 <button

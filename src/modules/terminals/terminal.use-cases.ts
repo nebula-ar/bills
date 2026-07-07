@@ -1,12 +1,13 @@
 import {
   createTerminal,
+  findActiveBranchBarber,
   findActiveTerminal,
   findBranchesForTerminals,
   findManageableBranch,
   findManageableTerminal,
   findTerminalsByBranch,
-  renameTerminal,
   softDeleteTerminal,
+  updateTerminalDetails,
 } from "./terminal.repository";
 
 const MAX_NAME_LENGTH = 40;
@@ -27,7 +28,18 @@ function normalizeName(name: string) {
   return name.trim().slice(0, MAX_NAME_LENGTH);
 }
 
-export async function createBranchTerminal(input: { branchId: string; name: string }) {
+async function resolveBarberId(branchId: string, barberId?: string | null) {
+  if (!barberId) {
+    return null;
+  }
+  const barber = await findActiveBranchBarber(branchId, barberId);
+  if (!barber) {
+    throw new Error("BARBER_NOT_IN_BRANCH");
+  }
+  return barber.id;
+}
+
+export async function createBranchTerminal(input: { branchId: string; name: string; barberId?: string | null }) {
   const name = normalizeName(input.name);
 
   if (!name) {
@@ -40,10 +52,12 @@ export async function createBranchTerminal(input: { branchId: string; name: stri
     throw new Error("BRANCH_NOT_FOUND");
   }
 
-  return createTerminal({ branchId: branch.id, name });
+  const barberId = await resolveBarberId(branch.id, input.barberId);
+
+  return createTerminal({ branchId: branch.id, name, barberId });
 }
 
-export async function renameBranchTerminal(input: { terminalId: string; name: string }) {
+export async function updateBranchTerminal(input: { terminalId: string; name: string; barberId?: string | null }) {
   const name = normalizeName(input.name);
 
   if (!name) {
@@ -56,7 +70,9 @@ export async function renameBranchTerminal(input: { terminalId: string; name: st
     throw new Error("TERMINAL_NOT_FOUND");
   }
 
-  return renameTerminal({ terminalId: terminal.id, name });
+  const barberId = await resolveBarberId(terminal.branchId, input.barberId);
+
+  return updateTerminalDetails({ terminalId: terminal.id, name, barberId });
 }
 
 export async function deleteBranchTerminal(terminalId: string) {

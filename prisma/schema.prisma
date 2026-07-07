@@ -59,6 +59,7 @@ model Branch {
 model Terminal {
   id          String    @id @default(cuid())
   branchId    String
+  barberId    String?
   name        String
   active      Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -70,9 +71,11 @@ model Terminal {
   deletedById String?
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  barber User?  @relation("BarberTerminals", fields: [barberId], references: [id], onDelete: SetNull)
   sales  Sale[]
 
   @@index([branchId])
+  @@index([barberId])
   @@index([deletedAt])
 }
 
@@ -94,9 +97,10 @@ model User {
   deletedAt    DateTime?
   deletedById  String?
 
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  branch   Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
-  sales    Sale[]   @relation("BarberSales")
+  business  Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch    Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  sales     Sale[]     @relation("BarberSales")
+  terminals Terminal[] @relation("BarberTerminals")
 
   @@unique([businessId, email])
   @@index([businessId])

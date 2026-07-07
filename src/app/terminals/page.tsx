@@ -22,7 +22,12 @@ export default async function TerminalsPage({ searchParams }: TerminalsPageProps
     id: branch.id,
     name: branch.name,
     barbers: branch.users.map((barber) => ({ id: barber.id, name: barber.name })),
-    customTerminals: branch.terminals.map((terminal) => ({ id: terminal.id, name: terminal.name })),
+    customTerminals: branch.terminals.map((terminal) => ({
+      id: terminal.id,
+      name: terminal.name,
+      barberId: terminal.barberId,
+      barberName: terminal.barber?.name ?? null,
+    })),
   }));
 
   const selectedBranchId = rows.find((branch) => branch.id === selectedParam)?.id ?? rows[0]?.id ?? "";

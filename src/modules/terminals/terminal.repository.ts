@@ -21,7 +21,12 @@ export function findBranchesForTerminals() {
       terminals: {
         where: { deleted: false },
         orderBy: { name: "asc" },
-        select: { id: true, name: true },
+        select: {
+          id: true,
+          name: true,
+          barberId: true,
+          barber: { select: { name: true } },
+        },
       },
     },
   });
@@ -62,7 +67,21 @@ export function findActiveTerminal(terminalId: string) {
       id: true,
       name: true,
       branchId: true,
+      barberId: true,
     },
+  });
+}
+
+export function findActiveBranchBarber(branchId: string, barberId: string) {
+  return prisma.user.findFirst({
+    where: {
+      id: barberId,
+      branchId,
+      active: true,
+      deleted: false,
+      role: UserRole.BARBER,
+    },
+    select: { id: true },
   });
 }
 
@@ -94,20 +113,21 @@ export function findManageableBranch(branchId: string) {
   });
 }
 
-export function createTerminal(input: { branchId: string; name: string }) {
+export function createTerminal(input: { branchId: string; name: string; barberId?: string | null }) {
   return prisma.terminal.create({
     data: {
       branchId: input.branchId,
+      barberId: input.barberId ?? null,
       name: input.name,
       active: true,
     },
   });
 }
 
-export function renameTerminal(input: { terminalId: string; name: string }) {
+export function updateTerminalDetails(input: { terminalId: string; name: string; barberId?: string | null }) {
   return prisma.terminal.update({
     where: { id: input.terminalId },
-    data: { name: input.name },
+    data: { name: input.name, barberId: input.barberId ?? null },
   });
 }
 

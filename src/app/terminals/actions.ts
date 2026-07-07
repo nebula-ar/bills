@@ -4,7 +4,7 @@ import { requireAdminSession } from "@/lib/auth";
 import {
   createBranchTerminal,
   deleteBranchTerminal,
-  renameBranchTerminal,
+  updateBranchTerminal,
 } from "@/modules/terminals/terminal.use-cases";
 import { redirect } from "next/navigation";
 
@@ -18,16 +18,17 @@ export async function createTerminalAction(formData: FormData) {
 
   const branchId = parseString(formData, "branchId");
   const name = parseString(formData, "name");
+  const barberId = parseString(formData, "barberId") || null;
 
   if (!branchId || !name) {
-    redirectWithMessage("error", "Poné un nombre para la terminal.", branchId);
+    redirectWithMessage("error", "Elegí sucursal y poné un nombre para la terminal.", branchId);
   }
 
   try {
-    await createBranchTerminal({ branchId, name });
+    await createBranchTerminal({ branchId, name, barberId });
   } catch (error) {
     console.error(error);
-    redirectWithMessage("error", "No pudimos crear la terminal. Intentá de nuevo.", branchId);
+    redirectWithMessage("error", "No pudimos crear la terminal. Revisá el barbero elegido.", branchId);
   }
 
   redirectWithMessage("success", "Terminal creada.", branchId);
@@ -39,16 +40,17 @@ export async function renameTerminalAction(formData: FormData) {
   const branchId = parseString(formData, "branchId");
   const terminalId = parseString(formData, "terminalId");
   const name = parseString(formData, "name");
+  const barberId = parseString(formData, "barberId") || null;
 
   if (!terminalId || !name) {
     redirectWithMessage("error", "Poné un nombre para la terminal.", branchId);
   }
 
   try {
-    await renameBranchTerminal({ terminalId, name });
+    await updateBranchTerminal({ terminalId, name, barberId });
   } catch (error) {
     console.error(error);
-    redirectWithMessage("error", "No pudimos renombrar la terminal. Intentá de nuevo.", branchId);
+    redirectWithMessage("error", "No pudimos actualizar la terminal. Revisá el barbero elegido.", branchId);
   }
 
   redirectWithMessage("success", "Terminal actualizada.", branchId);
