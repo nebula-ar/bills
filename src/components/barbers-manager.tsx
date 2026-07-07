@@ -118,14 +118,6 @@ export function BarbersManager({ data }: { data: BarbersData }) {
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
           <h1 className="mt-0.5 text-2xl font-black tracking-tight text-slate-950">Barberos</h1>
         </div>
-        <button
-          className="flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2.5 text-sm font-black text-white shadow-sm shadow-blue-600/25 transition active:scale-95"
-          onClick={() => setNewOpen(true)}
-          type="button"
-        >
-          <Plus className="size-4" />
-          Nuevo
-        </button>
       </header>
 
       {data.flash ? (
@@ -140,8 +132,12 @@ export function BarbersManager({ data }: { data: BarbersData }) {
 
       <div className="mt-4">
         {data.barbers.length === 0 ? (
-          <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-            Todavía no hay barberos. Tocá «Nuevo» para cargar el primero.
+          <div className="mt-8 flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-white/50 p-10 text-center">
+            <div className="mb-4 flex size-20 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-950/5">
+              <Scissors className="size-8 text-slate-300" />
+            </div>
+            <p className="text-sm font-bold text-slate-600">Todavía no hay barberos</p>
+            <p className="mt-1 text-xs text-slate-400">Tocá el botón «+» abajo para cargar el primero.</p>
           </div>
         ) : (
           <ul className="space-y-2.5">
@@ -284,6 +280,15 @@ export function BarbersManager({ data }: { data: BarbersData }) {
           </form>
         ) : null}
       </BottomSheet>
+
+      <button
+        aria-label="Nuevo barbero"
+        className="fixed bottom-[96px] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 transition hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
+        onClick={() => setNewOpen(true)}
+        type="button"
+      >
+        <Plus className="size-6" />
+      </button>
     </main>
   );
 }

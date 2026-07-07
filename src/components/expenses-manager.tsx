@@ -157,14 +157,6 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
           <h1 className="mt-0.5 text-2xl font-black tracking-tight text-slate-950">Gastos</h1>
         </div>
-        <button
-          className="flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2.5 text-sm font-black text-white shadow-sm shadow-blue-600/25 transition active:scale-95"
-          onClick={() => setNewOpen(true)}
-          type="button"
-        >
-          <Plus className="size-4" />
-          Nuevo
-        </button>
       </header>
 
       {/* Navegador de mes */}
@@ -214,8 +206,12 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
 
       <div className={`mt-4 ${isPending ? "pointer-events-none opacity-60 transition-opacity" : "transition-opacity"}`}>
         {data.expenses.length === 0 ? (
-          <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-            No hay gastos en {data.monthLabel}. Tocá «Nuevo» para registrar el primero.
+          <div className="mt-8 flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-white/50 p-10 text-center">
+            <div className="mb-4 flex size-20 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-950/5">
+              <Wallet className="size-8 text-slate-300" />
+            </div>
+            <p className="text-sm font-bold text-slate-600">Sin gastos en {data.monthLabel}</p>
+            <p className="mt-1 text-xs text-slate-400">Tocá el botón «+» abajo para registrar el primero.</p>
           </div>
         ) : (
           <ul className="space-y-2.5">
@@ -341,6 +337,15 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
           </div>
         ) : null}
       </BottomSheet>
+
+      <button
+        aria-label="Nuevo gasto"
+        className="fixed bottom-[96px] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 transition hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
+        onClick={() => setNewOpen(true)}
+        type="button"
+      >
+        <Plus className="size-6" />
+      </button>
     </main>
   );
 }

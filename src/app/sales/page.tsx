@@ -56,13 +56,6 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
           <p className="text-sm font-medium text-slate-500">Historial</p>
           <h1 className="mt-0.5 text-2xl font-black tracking-tight text-slate-950">Ventas</h1>
         </div>
-        <Link
-          className="flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2.5 text-sm font-black text-white shadow-sm shadow-blue-600/25 transition active:scale-95"
-          href="/sales/new"
-        >
-          <Plus className="size-4" />
-          Nueva venta
-        </Link>
       </header>
 
       {flash ? (
@@ -76,6 +69,14 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       ) : null}
 
       <SalesList sales={viewSales} />
+
+      <Link
+        aria-label="Nueva venta"
+        className="fixed bottom-[96px] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 transition hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
+        href="/sales/new"
+      >
+        <Plus className="size-6" />
+      </Link>
     </main>
   );
 }
