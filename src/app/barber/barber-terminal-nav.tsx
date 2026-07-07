@@ -7,7 +7,7 @@ export function BarberTerminalNav({ saleHref, active }: { saleHref: string; acti
   const off = "text-slate-500 hover:bg-blue-50 hover:text-blue-700";
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md border-t border-slate-200 bg-white/95 px-5 py-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur sm:bottom-8 sm:rounded-b-[2.5rem]">
+    <nav className="shrink-0 border-t border-slate-200 bg-white px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
       <div className="grid grid-cols-2 gap-2">
         <Link className={`${base} ${active === "sell" ? on : off}`} href={saleHref}>
           <Scissors aria-hidden="true" size={18} />

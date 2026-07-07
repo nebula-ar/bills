@@ -11,6 +11,7 @@ import {
   Minus,
   Plus,
   QrCode,
+  Scissors,
   Search,
   ShoppingBag,
   Trash2,
@@ -35,12 +36,30 @@ function money(value: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
 }
 
+function IdentityLine({ barberName, branchName, terminalName }: { barberName: string; branchName: string; terminalName: string | null }) {
+  return (
+    <div className="flex items-center gap-2 text-sm font-bold text-slate-500">
+      <Scissors aria-hidden="true" className="shrink-0 text-blue-600" size={15} />
+      <span className="truncate">
+        {barberName} · {branchName}
+        {terminalName ? ` · ${terminalName}` : ""}
+      </span>
+    </div>
+  );
+}
+
 export function BarberSaleTerminal({
   services,
   paymentOptions,
+  barberName,
+  branchName,
+  terminalName,
 }: {
   services: SaleService[];
   paymentOptions: SalePaymentOption[];
+  barberName: string;
+  branchName: string;
+  terminalName: string | null;
 }) {
   const [cart, setCart] = useState<Record<string, number>>({});
   const [search, setSearch] = useState("");
@@ -103,89 +122,97 @@ export function BarberSaleTerminal({
 
   if (services.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
-        Todavía no hay servicios cargados en esta sucursal. Pedile al administrador que los agregue.
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+        <IdentityLine barberName={barberName} branchName={branchName} terminalName={terminalName} />
+        <div className="mt-4 rounded-3xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
+          Todavía no hay servicios cargados en esta sucursal. Pedile al administrador que los agregue.
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
-      {services.length > 6 ? (
-        <div className="relative mb-3">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-          <input
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar servicio…"
-            value={search}
-          />
-        </div>
-      ) : null}
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* Servicios (scrollean) */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4 pt-4">
+        <IdentityLine barberName={barberName} branchName={branchName} terminalName={terminalName} />
 
-      <div className="grid grid-cols-2 gap-3">
-        {filtered.map((service) => {
-          const quantity = cart[service.serviceId] ?? 0;
-          const active = quantity > 0;
-          return (
-            <div
-              className={`flex min-h-[7.5rem] flex-col justify-between rounded-2xl border-2 p-3.5 transition ${
-                active ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"
-              }`}
-              key={service.serviceId}
-            >
-              <button className="text-left active:scale-[0.99]" onClick={() => add(service.serviceId)} type="button">
-                <span className="block text-base font-black leading-tight text-slate-950">{service.name}</span>
-                <span className="mt-1.5 block text-lg font-black text-blue-700">{money(service.price)}</span>
-              </button>
-              {active ? (
-                <div className="mt-3 flex items-center justify-between rounded-full bg-white p-1 ring-1 ring-blue-200">
+        {services.length > 6 ? (
+          <div className="relative mb-3 mt-3">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+            <input
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Buscar servicio…"
+              value={search}
+            />
+          </div>
+        ) : null}
+
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          {filtered.map((service) => {
+            const quantity = cart[service.serviceId] ?? 0;
+            const active = quantity > 0;
+            return (
+              <div
+                className={`flex min-h-[7.5rem] flex-col justify-between rounded-2xl border-2 p-3.5 transition ${
+                  active ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"
+                }`}
+                key={service.serviceId}
+              >
+                <button className="text-left active:scale-[0.99]" onClick={() => add(service.serviceId)} type="button">
+                  <span className="block text-base font-black leading-tight text-slate-950">{service.name}</span>
+                  <span className="mt-1.5 block text-lg font-black text-blue-700">{money(service.price)}</span>
+                </button>
+                {active ? (
+                  <div className="mt-3 flex items-center justify-between rounded-full bg-white p-1 ring-1 ring-blue-200">
+                    <button
+                      aria-label={`Restar ${service.name}`}
+                      className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition active:scale-90"
+                      onClick={() => decrease(service.serviceId)}
+                      type="button"
+                    >
+                      <Minus className="size-4" />
+                    </button>
+                    <span className="text-lg font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
+                      {quantity}
+                    </span>
+                    <button
+                      aria-label={`Sumar ${service.name}`}
+                      className="flex size-9 items-center justify-center rounded-full bg-blue-600 text-white transition active:scale-90"
+                      onClick={() => add(service.serviceId)}
+                      type="button"
+                    >
+                      <Plus className="size-4" />
+                    </button>
+                  </div>
+                ) : (
                   <button
-                    aria-label={`Restar ${service.name}`}
-                    className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition active:scale-90"
-                    onClick={() => decrease(service.serviceId)}
-                    type="button"
-                  >
-                    <Minus className="size-4" />
-                  </button>
-                  <span className="text-lg font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
-                    {quantity}
-                  </span>
-                  <button
-                    aria-label={`Sumar ${service.name}`}
-                    className="flex size-9 items-center justify-center rounded-full bg-blue-600 text-white transition active:scale-90"
+                    aria-label={`Agregar ${service.name}`}
+                    className="mt-3 flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 text-sm font-black text-slate-700 transition active:scale-[0.97]"
                     onClick={() => add(service.serviceId)}
                     type="button"
                   >
                     <Plus className="size-4" />
+                    Agregar
                   </button>
-                </div>
-              ) : (
-                <button
-                  aria-label={`Agregar ${service.name}`}
-                  className="mt-3 flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 text-sm font-black text-slate-700 transition active:scale-[0.97]"
-                  onClick={() => add(service.serviceId)}
-                  type="button"
-                >
-                  <Plus className="size-4" />
-                  Agregar
-                </button>
-              )}
-            </div>
-          );
-        })}
-        {filtered.length === 0 ? (
-          <p className="col-span-2 rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm text-slate-500">
-            No hay servicios que coincidan.
-          </p>
-        ) : null}
+                )}
+              </div>
+            );
+          })}
+          {filtered.length === 0 ? (
+            <p className="col-span-2 rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm text-slate-500">
+              No hay servicios que coincidan.
+            </p>
+          ) : null}
+        </div>
       </div>
 
-      {/* Barra de pedido (fija, sobre la nav) */}
-      <div className="fixed inset-x-0 bottom-[5rem] z-30 mx-auto max-w-md px-4">
+      {/* Barra de cobro (footer de la tarjeta) */}
+      <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-3">
         <button
-          className={`flex w-full items-center gap-3 rounded-[1.5rem] p-2.5 pl-5 text-left shadow-[0_-8px_40px_rgba(15,23,42,0.16)] transition active:scale-[0.99] ${
-            hasItems ? "bg-blue-600" : "pointer-events-none bg-slate-300"
+          className={`flex w-full items-center gap-3 rounded-[1.5rem] p-2 pl-5 text-left transition active:scale-[0.99] ${
+            hasItems ? "bg-blue-600" : "pointer-events-none bg-slate-200"
           }`}
           disabled={!hasItems}
           onClick={() => {
@@ -194,7 +221,7 @@ export function BarberSaleTerminal({
           }}
           type="button"
         >
-          <span className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-white/15 text-white">
+          <span className={`relative flex size-11 shrink-0 items-center justify-center rounded-full ${hasItems ? "bg-white/15 text-white" : "bg-white text-slate-400"}`}>
             <ShoppingBag className="size-5" />
             {itemCount > 0 ? (
               <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-white text-xs font-black text-blue-700">
@@ -203,12 +230,14 @@ export function BarberSaleTerminal({
             ) : null}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-xs font-bold text-white/80">{hasItems ? "Total" : "Tocá un servicio"}</span>
-            <span className="block text-2xl font-black text-white" style={{ fontVariantNumeric: "tabular-nums" }}>
+            <span className={`block text-xs font-bold ${hasItems ? "text-white/80" : "text-slate-500"}`}>
+              {hasItems ? "Total" : "Tocá un servicio para empezar"}
+            </span>
+            <span className={`block text-2xl font-black ${hasItems ? "text-white" : "text-slate-400"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
               {money(total)}
             </span>
           </span>
-          <span className="flex items-center gap-1.5 rounded-2xl bg-white px-5 py-4 text-sm font-black text-blue-700">
+          <span className={`flex items-center gap-1.5 rounded-2xl px-5 py-4 text-sm font-black ${hasItems ? "bg-white text-blue-700" : "bg-white/70 text-slate-400"}`}>
             Cobrar
             <ArrowRight className="size-4" />
           </span>
@@ -324,7 +353,7 @@ export function BarberSaleTerminal({
       </BottomSheet>
 
       {success ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm duration-200 animate-in fade-in">
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm duration-200 animate-in fade-in">
           <div className="flex flex-col items-center gap-3 rounded-[2rem] bg-white px-12 py-10 shadow-2xl duration-300 animate-in zoom-in-95">
             <span className="flex size-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
               <Check className="size-11" />

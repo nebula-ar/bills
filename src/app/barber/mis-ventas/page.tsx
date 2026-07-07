@@ -28,8 +28,8 @@ function money(value: number) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-slate-100 px-3 py-4 text-slate-950 sm:px-6 sm:py-8">
-      <section className="mx-auto min-h-[calc(100vh-2rem)] max-w-md overflow-hidden rounded-[2.5rem] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.16)] ring-1 ring-slate-200 sm:min-h-[calc(100vh-4rem)]">
+    <main className="flex min-h-[100dvh] bg-slate-100 px-3 py-4 text-slate-950 sm:px-6 sm:py-8">
+      <section className="mx-auto flex h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-[2.5rem] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.16)] ring-1 ring-slate-200 sm:h-[calc(100dvh-4rem)]">
         {children}
       </section>
     </main>
@@ -42,7 +42,7 @@ export default async function MisVentasPage() {
   if (!session) {
     return (
       <Shell>
-        <div className="grid gap-4 px-5 pb-32 pt-8 text-center">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-5 py-8 text-center">
           <h1 className="text-xl font-black tracking-tight text-slate-950">Mis ventas</h1>
           <p className="rounded-3xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
             Abrí tu turno con tu PIN para ver tus ventas del día.
@@ -65,7 +65,7 @@ export default async function MisVentasPage() {
 
   return (
     <Shell>
-      <div className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur">
+      <div className="shrink-0 border-b border-slate-100 px-5 py-4">
         <h1 className="text-xl font-black tracking-tight text-slate-950">Mis ventas de hoy</h1>
         <p className="mt-0.5 flex items-center gap-1.5 text-sm font-bold text-slate-500">
           <Scissors aria-hidden="true" className="text-blue-600" size={14} />
@@ -74,7 +74,7 @@ export default async function MisVentasPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 px-5 pb-32 pt-5">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 pb-5 pt-5">
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl bg-blue-50 p-4">
             <p className="text-xs font-black uppercase tracking-wide text-blue-700">Ventas</p>
