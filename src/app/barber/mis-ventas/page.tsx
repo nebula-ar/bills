@@ -28,8 +28,8 @@ function money(value: number) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-[100dvh] bg-slate-100 px-3 py-4 text-slate-950 sm:px-6 sm:py-8">
-      <section className="mx-auto flex h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-[2.5rem] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.16)] ring-1 ring-slate-200 sm:h-[calc(100dvh-4rem)]">
+    <main className="flex min-h-[100dvh] justify-center bg-slate-100 text-slate-950 sm:px-6 sm:py-8">
+      <section className="flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-white sm:h-[calc(100dvh-4rem)] sm:rounded-[2.5rem] sm:shadow-[0_24px_80px_rgba(15,23,42,0.16)] sm:ring-1 sm:ring-slate-200">
         {children}
       </section>
     </main>
