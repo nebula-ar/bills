@@ -4,7 +4,6 @@ import { registerBusinessAction } from "@/app/register/actions";
 import { ArrowLeft, ArrowRight, Check, MapPin, Plus, Scissors, Sparkles, Store, Trash2, X } from "lucide-react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -26,7 +25,6 @@ const pinClass =
   "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-bold tracking-[0.2em] text-slate-950 outline-none transition placeholder:tracking-normal placeholder:font-semibold focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100";
 
 export function RegisterWizard() {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
@@ -74,11 +72,11 @@ export function RegisterWizard() {
   function stepValid() {
     if (step === 0) return businessName.trim().length > 0;
     if (step === 1) return ownerName.trim().length > 0 && EMAIL_RE.test(email.trim()) && password.length >= 6;
-    if (step === 2) return !isBarber || PIN_RE.test(ownerPin.trim());
+    if (step === 2) return !isBarber || ownerPin.trim() === "" || PIN_RE.test(ownerPin.trim());
     if (step === 3) {
       return (
         branches[0]?.name.trim().length > 0 &&
-        branches.every((branch) => branch.barbers.every((barber) => barber.name.trim() === "" || PIN_RE.test(barber.pin.trim())))
+        branches.every((branch) => branch.barbers.every((barber) => barber.pin.trim() === "" || PIN_RE.test(barber.pin.trim())))
       );
     }
     return true;
@@ -121,11 +119,9 @@ export function RegisterWizard() {
       }
 
       const signInResult = await signIn("credentials", { email: email.trim().toLowerCase(), password, redirect: false });
-      if (signInResult?.ok) {
-        router.push("/");
-      } else {
-        router.push("/login");
-      }
+      // Navegación completa (no router.push): el layout es server component y así
+      // se re-ejecuta con la sesión nueva y aparece la barra de navegación.
+      window.location.assign(signInResult?.ok ? "/" : "/login");
     });
   }
 
@@ -247,7 +243,7 @@ export function RegisterWizard() {
                 {isBarber ? (
                   <div className="grid gap-2 duration-300 animate-in fade-in slide-in-from-bottom-2">
                     <label className="text-xs font-black uppercase tracking-wide text-slate-500" htmlFor="ownerPin">
-                      Tu PIN (4 a 8 números)
+                      Tu PIN (opcional)
                     </label>
                     <input
                       className={pinClass}
@@ -274,6 +270,9 @@ export function RegisterWizard() {
                     Ya quedás como barbero en la primera sucursal.
                   </p>
                 ) : null}
+                <p className="px-1 text-xs text-slate-400">
+                  Sumá tus barberos (podés dejarlos sin PIN y cargarlo después). Todo esto se edita luego desde el panel.
+                </p>
                 {branches.map((branch, branchIndex) => (
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5" key={branchIndex}>
                     <div className="flex items-center justify-between gap-2">

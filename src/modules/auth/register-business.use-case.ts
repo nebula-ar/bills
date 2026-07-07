@@ -41,9 +41,11 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
 
   if (branches.length === 0) return { ok: false, error: "Agregá al menos una sucursal." };
 
+  // El PIN es opcional: si lo cargan tiene que ser de 4 a 8 números; si no, el
+  // barbero queda sin PIN (se le puede poner después desde Barberos).
   for (const branch of branches) {
     for (const barber of branch.barbers) {
-      if (!PIN_RE.test(barber.pin)) {
+      if (barber.pin && !PIN_RE.test(barber.pin)) {
         return { ok: false, error: `El PIN de ${barber.name} tiene que ser de 4 a 8 números.` };
       }
     }
@@ -60,7 +62,10 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
       name: branch.name,
       address: branch.address,
       barbers: await Promise.all(
-        branch.barbers.map(async (barber) => ({ name: barber.name, pinHash: await hash(barber.pin, 12) })),
+        branch.barbers.map(async (barber) => ({
+          name: barber.name,
+          pinHash: barber.pin ? await hash(barber.pin, 12) : null,
+        })),
       ),
     })),
   );
