@@ -278,5 +278,6 @@ enum PaymentMethod {
   CREDIT_CARD
   TRANSFER
   QR
+  MERCADO_PAGO
   OTHER
 }

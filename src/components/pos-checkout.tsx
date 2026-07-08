@@ -16,6 +16,7 @@ import {
   Scissors,
   Search,
   ShoppingBag,
+  Smartphone,
   Split,
   Store,
   Trash2,
@@ -49,6 +50,7 @@ const paymentIcons: Record<string, ComponentType<{ className?: string }>> = {
   CREDIT_CARD: CreditCard,
   TRANSFER: ArrowLeftRight,
   QR: QrCode,
+  MERCADO_PAGO: Smartphone,
   OTHER: Wallet,
 };
 

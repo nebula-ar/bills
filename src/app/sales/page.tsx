@@ -11,6 +11,7 @@ const paymentMethodLabels: Record<PaymentMethod, string> = {
   [PaymentMethod.CREDIT_CARD]: "Crédito",
   [PaymentMethod.TRANSFER]: "Transferencia",
   [PaymentMethod.QR]: "QR",
+  [PaymentMethod.MERCADO_PAGO]: "Mercado Pago",
   [PaymentMethod.OTHER]: "Otro",
 };
 
