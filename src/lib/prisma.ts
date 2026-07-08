@@ -24,8 +24,18 @@ function createPrismaClient(): PrismaClient {
     process.env.DATABASE_URL ?? process.env.POSTGRES_PRISMA_URL ?? "file:./dev.db";
 
   if (url.startsWith("file:")) {
+    console.log(`[prisma] usando SQLite (${url})`);
     const { PrismaBetterSqlite3 } = require("@prisma/adapter-better-sqlite3");
     return new PrismaClient({ adapter: new PrismaBetterSqlite3({ url }) });
+  }
+
+  // Log de diagnóstico SIN credenciales: solo host/puerto para confirmar contra
+  // qué base se conecta la app en producción.
+  try {
+    const parsed = new URL(url);
+    console.log(`[prisma] usando Postgres (${parsed.host}${parsed.pathname})`);
+  } catch {
+    console.log("[prisma] usando Postgres (URL no parseable)");
   }
 
   const { PrismaPg } = require("@prisma/adapter-pg");
