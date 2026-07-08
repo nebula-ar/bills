@@ -17,7 +17,11 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient(): PrismaClient {
-  const url = process.env.DATABASE_URL ?? "file:./dev.db";
+  // En prod usamos DATABASE_URL; si no está, tomamos la que crea la integración
+  // de Supabase en Vercel (POSTGRES_PRISMA_URL, pooled con pgbouncer). En local
+  // cae al SQLite por defecto.
+  const url =
+    process.env.DATABASE_URL ?? process.env.POSTGRES_PRISMA_URL ?? "file:./dev.db";
 
   if (url.startsWith("file:")) {
     const { PrismaBetterSqlite3 } = require("@prisma/adapter-better-sqlite3");
@@ -25,7 +29,22 @@ function createPrismaClient(): PrismaClient {
   }
 
   const { PrismaPg } = require("@prisma/adapter-pg");
-  return new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
+  return new PrismaClient({ adapter: new PrismaPg({ connectionString: forcePgSsl(url) }) });
+}
+
+// El pooler de Supabase presenta un certificado que las versiones nuevas de `pg`
+// (que tratan `sslmode=require` como `verify-full`) rechazan con
+// SELF_SIGNED_CERT_IN_CHAIN. Forzamos `sslmode=no-verify`: la conexión sigue
+// cifrada por TLS pero sin validar la cadena de certificados. El pooler no es
+// accesible sin TLS, así que esto no baja la seguridad de forma relevante.
+function forcePgSsl(connectionString: string): string {
+  try {
+    const parsed = new URL(connectionString);
+    parsed.searchParams.set("sslmode", "no-verify");
+    return parsed.toString();
+  } catch {
+    return connectionString;
+  }
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();

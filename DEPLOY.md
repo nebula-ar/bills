@@ -33,14 +33,25 @@ El adapter de Prisma se elige solo en runtime según `DATABASE_URL`
 
 ## 2. Configurar las variables de entorno en Vercel
 
-En **Vercel → tu proyecto → Settings → Environment Variables**, agregá (scope: Production, y Preview si querés):
+> **Si usás la integración oficial de Supabase en Vercel** (Storage → Supabase),
+> esta crea sola las variables `POSTGRES_PRISMA_URL` (pooled) y
+> `POSTGRES_URL_NON_POOLING` (directa). La app las lee automáticamente como
+> fallback, así que **no necesitás crear `DATABASE_URL`/`DIRECT_URL` a mano**.
+> Solo te faltan las dos de NextAuth.
 
-| Variable          | Valor                                                        |
-| ----------------- | ----------------------------------------------------------- |
-| `DATABASE_URL`    | connection string **pooled** (6543, con `?pgbouncer=true`)  |
-| `DIRECT_URL`      | connection string **directa** (5432)                        |
-| `NEXTAUTH_SECRET` | secreto fuerte → generalo con `openssl rand -base64 32`      |
-| `NEXTAUTH_URL`    | `https://<tu-app>.vercel.app` (o tu dominio propio)          |
+En **Vercel → tu proyecto → Settings → Environment Variables** (scope: Production, y Preview si querés):
+
+| Variable          | Valor                                                                    |
+| ----------------- | ----------------------------------------------------------------------- |
+| `DATABASE_URL`    | pooled (6543, `?pgbouncer=true`). *Opcional si ya está `POSTGRES_PRISMA_URL`.* |
+| `DIRECT_URL`      | directa (5432). *Opcional si ya está `POSTGRES_URL_NON_POOLING`.*        |
+| `NEXTAUTH_SECRET` | secreto fuerte → generalo con `openssl rand -base64 32`                  |
+| `NEXTAUTH_URL`    | `https://<tu-app>.vercel.app` (o tu dominio propio)                      |
+
+> **SSL:** el pooler de Supabase usa un certificado que las versiones nuevas de
+> `pg` rechazan si `sslmode=require`. La app fuerza `sslmode=no-verify` en runtime
+> (ver `forcePgSsl` en `src/lib/prisma.ts`) — conexión cifrada, sin validar la
+> cadena. No hace falta tocar nada.
 
 > El build de Vercel corre `npm run vercel-build`, que:
 > 1. genera el schema de Postgres,

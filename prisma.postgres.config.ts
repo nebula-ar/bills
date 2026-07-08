@@ -16,6 +16,13 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
+    // Para migraciones preferimos una conexión directa/no-pooled. Soportamos
+    // tanto las vars propias (DIRECT_URL) como las que crea la integración de
+    // Supabase en Vercel (POSTGRES_URL_NON_POOLING).
+    url:
+      process.env["DIRECT_URL"] ??
+      process.env["POSTGRES_URL_NON_POOLING"] ??
+      process.env["DATABASE_URL"] ??
+      process.env["POSTGRES_PRISMA_URL"],
   },
 });

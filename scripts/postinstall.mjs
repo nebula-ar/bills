@@ -7,7 +7,8 @@
 
 import { execSync } from "node:child_process";
 
-const url = process.env.DATABASE_URL ?? "file:./dev.db";
+const url =
+  process.env.DATABASE_URL ?? process.env.POSTGRES_PRISMA_URL ?? "file:./dev.db";
 const isSqlite = url.startsWith("file:");
 
 function run(command) {
