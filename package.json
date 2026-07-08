@@ -5,12 +5,23 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "node scripts/build-postgres-schema.mjs && prisma generate --config prisma.postgres.config.ts && prisma migrate deploy --config prisma.postgres.config.ts && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "node scripts/postinstall.mjs",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset",
+    "db:studio": "prisma studio",
+    "db:pg:generate": "node scripts/build-postgres-schema.mjs && prisma generate --config prisma.postgres.config.ts",
+    "db:pg:deploy": "node scripts/build-postgres-schema.mjs && prisma migrate deploy --config prisma.postgres.config.ts",
+    "db:pg:seed": "prisma db seed --config prisma.postgres.config.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
     "@prisma/adapter-better-sqlite3": "^7.8.0",
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
@@ -18,6 +29,7 @@
     "lucide-react": "^1.18.0",
     "next": "16.2.9",
     "next-auth": "^4.24.14",
+    "pg": "^8.22.0",
     "radix-ui": "^1.5.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -30,17 +42,22 @@
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.0",
     "typescript": "^5"
   },
   "allowScripts": {
     "better-sqlite3@12.10.0": true,
     "prisma@7.8.0": true,
-    "sharp@0.34.5": true
+    "sharp@0.34.5": true,
+    "esbuild@0.28.1": true,
+    "@prisma/engines@7.8.0": true
   }
 }

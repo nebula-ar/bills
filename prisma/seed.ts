@@ -1,7 +1,17 @@
 import bcrypt from "bcryptjs";
 
-import { PaymentMethod, SaleStatus, UserRole } from "../src/generated/prisma/client";
+import {
+  ExpenseCategory,
+  PaymentMethod,
+  SaleStatus,
+  UserRole,
+} from "../src/generated/prisma/client";
 import { prisma } from "../src/lib/prisma";
+
+// Cantidad de días hacia atrás (incluye hoy) que cubre la data de demo.
+const SEED_DAYS = 15;
+// Cantidad total de ventas a repartir en esos días (~12 por día).
+const SALE_COUNT = 180;
 
 type BranchSeed = {
   name: string;
@@ -84,10 +94,13 @@ const branchPriceMultipliers: Record<string, number> = {
 };
 
 async function main() {
+  // Orden de borrado respetando las FKs (hijos antes que padres).
   await prisma.salePayment.deleteMany();
   await prisma.saleItem.deleteMany();
   await prisma.sale.deleteMany();
+  await prisma.expense.deleteMany();
   await prisma.branchServicePrice.deleteMany();
+  await prisma.terminal.deleteMany();
   await prisma.service.deleteMany();
   await prisma.user.deleteMany();
   await prisma.branch.deleteMany();
@@ -146,6 +159,25 @@ async function main() {
     }),
   );
 
+  // Una terminal (caja) por barbero, en su sucursal. Cubre el flujo de la
+  // terminal del barbero y permite atribuir cada venta a una terminal.
+  const terminals = await Promise.all(
+    barbers.map((barber) =>
+      prisma.terminal.create({
+        data: {
+          branchId: barber.branchId as string,
+          barberId: barber.id,
+          name: `Terminal ${barber.name.split(" ")[0]}`,
+          active: true,
+        },
+      }),
+    ),
+  );
+
+  const terminalByBarberId = new Map(
+    terminals.map((terminal) => [terminal.barberId as string, terminal]),
+  );
+
   const services = await Promise.all(
     serviceSeeds.map((service) =>
       prisma.service.create({
@@ -184,27 +216,31 @@ async function main() {
     ]),
   );
 
-  await createQuarterSales({
+  await createSales({
     branches,
     barbers,
     services,
     servicePriceByBranchAndService,
+    terminalByBarberId,
   });
+
+  await createExpenses({ business, branches });
 }
 
-async function createQuarterSales(input: {
+async function createSales(input: {
   branches: Array<{ id: string; name: string }>;
   barbers: Array<{ id: string; name: string; branchId: string | null }>;
   services: Array<{ id: string; name: string }>;
   servicePriceByBranchAndService: Map<string, { id: string; price: number }>;
+  terminalByBarberId: Map<string, { id: string }>;
 }) {
   const now = new Date();
-  const saleCount = 180;
 
-  for (let index = 0; index < saleCount; index += 1) {
+  for (let index = 0; index < SALE_COUNT; index += 1) {
     const branch = input.branches[index % input.branches.length];
     const branchBarbers = input.barbers.filter((barber) => barber.branchId === branch.id);
     const barber = branchBarbers[index % branchBarbers.length];
+    const terminal = input.terminalByBarberId.get(barber.id);
     const soldAt = buildSaleDate(now, index);
     const selectedServices = pickServices(input.services, index);
     const status = index % 29 === 0 ? SaleStatus.CANCELLED : SaleStatus.COMPLETED;
@@ -235,6 +271,7 @@ async function createQuarterSales(input: {
       data: {
         branchId: branch.id,
         barberId: barber.id,
+        terminalId: terminal?.id ?? null,
         total,
         status,
         soldAt,
@@ -248,6 +285,45 @@ async function createQuarterSales(input: {
       },
     });
   }
+}
+
+type ExpenseSeed = {
+  category: ExpenseCategory;
+  amount: number;
+  note: string;
+  // Día hacia atrás (0 = hoy) en el que se registra el gasto.
+  daysBack: number;
+};
+
+// Gastos recurrentes por sucursal repartidos en la ventana de SEED_DAYS.
+const branchExpenseSeeds: ExpenseSeed[] = [
+  { category: ExpenseCategory.RENT, amount: 350000, note: "Alquiler del local", daysBack: 14 },
+  { category: ExpenseCategory.SALARIES, amount: 480000, note: "Sueldos quincena", daysBack: 13 },
+  { category: ExpenseCategory.SUPPLIES, amount: 62000, note: "Insumos (geles, hojas, toallas)", daysBack: 11 },
+  { category: ExpenseCategory.UTILITIES, amount: 38000, note: "Luz y agua", daysBack: 9 },
+  { category: ExpenseCategory.MARKETING, amount: 25000, note: "Campaña redes sociales", daysBack: 6 },
+  { category: ExpenseCategory.SUPPLIES, amount: 41000, note: "Reposición de productos", daysBack: 4 },
+  { category: ExpenseCategory.MAINTENANCE, amount: 18000, note: "Service de máquinas", daysBack: 2 },
+];
+
+async function createExpenses(input: {
+  business: { id: string };
+  branches: Array<{ id: string; name: string }>;
+}) {
+  const now = new Date();
+
+  const data = input.branches.flatMap((branch) =>
+    branchExpenseSeeds.map((expense) => ({
+      businessId: input.business.id,
+      branchId: branch.id,
+      category: expense.category,
+      amount: expense.amount,
+      note: `${expense.note} — ${branch.name}`,
+      spentAt: buildDaysBackDate(now, expense.daysBack, 10),
+    })),
+  );
+
+  await prisma.expense.createMany({ data });
 }
 
 function pickServices<T>(services: T[], index: number) {
@@ -288,6 +364,7 @@ function buildPayments(total: number, index: number) {
     PaymentMethod.QR,
     PaymentMethod.DEBIT_CARD,
     PaymentMethod.CREDIT_CARD,
+    PaymentMethod.MERCADO_PAGO,
   ];
 
   return [
@@ -299,12 +376,20 @@ function buildPayments(total: number, index: number) {
 }
 
 function buildSaleDate(now: Date, index: number) {
-  // Reparte las ventas en los últimos 30 días (incluye hoy) para poblar las
-  // tendencias diarias. *7 con 30 es coprimo, así visita todos los días.
-  const daysBack = (index * 7) % 30;
+  // Reparte las ventas en los últimos SEED_DAYS (incluye hoy) para poblar las
+  // tendencias diarias. index*7 con 15 días es coprimo, así visita todos los días.
+  const daysBack = (index * 7) % SEED_DAYS;
   const date = new Date(now);
   date.setDate(now.getDate() - daysBack);
   date.setHours(9 + (index % 12), (index * 13) % 60, 0, 0);
+
+  return date;
+}
+
+function buildDaysBackDate(now: Date, daysBack: number, hour: number) {
+  const date = new Date(now);
+  date.setDate(now.getDate() - daysBack);
+  date.setHours(hour, 0, 0, 0);
 
   return date;
 }
@@ -315,9 +400,9 @@ function roundToNearestHundred(value: number) {
 
 main()
   .then(async () => {
-    console.log("Seed completed for Barbería El Rulo.");
+    console.log(`Seed completo para Barbería El Rulo (${SEED_DAYS} días de datos).`);
     console.log("Admin: owner@barber-bills.local / admin123");
-    console.log("Demo barber PINs:");
+    console.log("PINs de barberos demo:");
     for (const barber of barberSeeds) {
       console.log(`- ${barber.name}: ${barber.pin}`);
     }

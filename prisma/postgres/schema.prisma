@@ -1,0 +1,289 @@
+// ARCHIVO GENERADO — no editar a mano.
+// Fuente: prisma/schema.prisma (SQLite). Regenerar con:
+//   node scripts/build-postgres-schema.mjs
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Business {
+  id          String    @id @default(cuid())
+  name        String
+  createdAt   DateTime  @default(now())
+  createdById String?
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  branches Branch[]
+  users    User[]
+  services Service[]
+  expenses Expense[]
+
+  @@index([deletedAt])
+}
+
+model Branch {
+  id          String    @id @default(cuid())
+  businessId  String
+  name        String
+  address     String?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  createdById String?
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  business      Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  users         User[]
+  servicePrices BranchServicePrice[]
+  sales         Sale[]
+  terminals     Terminal[]
+  expenses      Expense[]
+
+  @@index([businessId])
+  @@index([deletedAt])
+}
+
+model Terminal {
+  id          String    @id @default(cuid())
+  branchId    String
+  barberId    String?
+  name        String
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  createdById String?
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  barber User?  @relation("BarberTerminals", fields: [barberId], references: [id], onDelete: SetNull)
+  sales  Sale[]
+
+  @@index([branchId])
+  @@index([barberId])
+  @@index([deletedAt])
+}
+
+model User {
+  id           String    @id @default(cuid())
+  businessId   String
+  branchId     String?
+  name         String
+  email        String?
+  username     String?   @unique
+  passwordHash String?
+  pinHash      String?
+  role         UserRole
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  createdById  String?
+  updatedAt    DateTime  @updatedAt
+  updatedById  String?
+  deleted      Boolean   @default(false)
+  deletedAt    DateTime?
+  deletedById  String?
+
+  business  Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch    Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  sales     Sale[]     @relation("BarberSales")
+  terminals Terminal[] @relation("BarberTerminals")
+
+  @@unique([businessId, email])
+  @@index([businessId])
+  @@index([branchId])
+  @@index([deletedAt])
+}
+
+model Service {
+  id          String    @id @default(cuid())
+  businessId  String
+  name        String
+  description String?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  createdById String?
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  business     Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchPrices BranchServicePrice[]
+  saleItems    SaleItem[]
+
+  @@index([businessId])
+  @@index([deletedAt])
+}
+
+model BranchServicePrice {
+  id          String    @id @default(cuid())
+  branchId    String
+  serviceId   String
+  price       Int
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  createdById String?
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, serviceId])
+  @@index([serviceId])
+  @@index([deletedAt])
+}
+
+model Sale {
+  id          String     @id @default(cuid())
+  branchId    String
+  barberId    String
+  terminalId  String?
+  total       Int
+  notes       String?
+  status      SaleStatus @default(COMPLETED)
+  soldAt      DateTime   @default(now())
+  createdAt   DateTime   @default(now())
+  createdById String?
+  updatedAt   DateTime   @updatedAt
+  updatedById String?
+  deleted     Boolean    @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  branch   Branch        @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  barber   User          @relation("BarberSales", fields: [barberId], references: [id], onDelete: Restrict)
+  terminal Terminal?     @relation(fields: [terminalId], references: [id], onDelete: SetNull)
+  items    SaleItem[]
+  payments SalePayment[]
+
+  @@index([branchId, soldAt])
+  @@index([barberId, soldAt])
+  @@index([terminalId])
+  @@index([deletedAt])
+}
+
+model SaleItem {
+  id          String    @id @default(cuid())
+  saleId      String
+  serviceId   String?
+  description String
+  quantity    Int       @default(1)
+  unitPrice   Int
+  total       Int
+  createdAt   DateTime  @default(now())
+  createdById String?
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  sale    Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([saleId])
+  @@index([serviceId])
+  @@index([deletedAt])
+}
+
+model SalePayment {
+  id          String        @id @default(cuid())
+  saleId      String
+  method      PaymentMethod
+  amount      Int
+  createdAt   DateTime      @default(now())
+  createdById String?
+  updatedAt   DateTime      @updatedAt
+  updatedById String?
+  deleted     Boolean       @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@index([method])
+  @@index([deletedAt])
+}
+
+model Expense {
+  id            String          @id @default(cuid())
+  businessId    String
+  branchId      String?
+  category      ExpenseCategory
+  // Cuenta de la que salió la plata (para conciliar con los ingresos por método en el cierre de caja).
+  paymentMethod PaymentMethod   @default(CASH)
+  amount        Int
+  note          String?
+  spentAt       DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+  createdById String?
+  updatedAt   DateTime        @updatedAt
+  updatedById String?
+  deleted     Boolean         @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, spentAt])
+  @@index([branchId])
+  @@index([deletedAt])
+}
+
+enum ExpenseCategory {
+  RENT
+  SALARIES
+  SUPPLIES
+  UTILITIES
+  MARKETING
+  MAINTENANCE
+  TAXES
+  OTHER
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  BARBER
+}
+
+enum SaleStatus {
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  DEBIT_CARD
+  CREDIT_CARD
+  TRANSFER
+  QR
+  MERCADO_PAGO
+  OTHER
+}

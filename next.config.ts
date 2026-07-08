@@ -30,6 +30,15 @@ function resolveAllowedDevOrigins(): string[] {
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: resolveAllowedDevOrigins(),
+  // Los driver adapters de Prisma y sus drivers nativos no deben bundlearse: se
+  // resuelven en runtime desde node_modules. better-sqlite3 es un binario nativo
+  // (solo dev) y pg trae dependencias que rompen si se empaquetan.
+  serverExternalPackages: [
+    "@prisma/adapter-better-sqlite3",
+    "better-sqlite3",
+    "@prisma/adapter-pg",
+    "pg",
+  ],
   // En desarrollo forzamos no-store para que iOS Safari (que cachea fuerte por HTTP
   // en LAN) no sirva un bundle viejo al probar desde el celular. En producción se
   // deja el comportamiento por defecto.
