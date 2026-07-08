@@ -1,5 +1,6 @@
 import { PaymentMethod } from "@/generated/prisma/client";
 import { BarberSaleTerminal } from "@/components/barber-sale-terminal";
+import { readBarberFlash } from "@/lib/barber-flash";
 import { getBarberSession } from "@/lib/barber-session";
 import { getSaleEntryOptions } from "@/modules/sales/get-sale-entry-options.use-case";
 import { getActiveTerminal } from "@/modules/terminals/terminal.use-cases";
@@ -9,6 +10,7 @@ import Link from "next/link";
 import { lockBarberTerminal, unlockBarberTerminal } from "./actions";
 import { BarberAccessPanel } from "./barber-access-panel";
 import { BarberTerminalNav } from "./barber-terminal-nav";
+import { BarberToast } from "./barber-toast";
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   [PaymentMethod.CASH]: "Efectivo",
@@ -21,8 +23,6 @@ const paymentMethodLabels: Record<PaymentMethod, string> = {
 
 type BarberPageProps = {
   searchParams: Promise<{
-    status?: string | string[];
-    message?: string | string[];
     branch?: string | string[];
     barber?: string | string[];
     terminal?: string | string[];
@@ -31,8 +31,7 @@ type BarberPageProps = {
 
 export default async function BarberPage({ searchParams }: BarberPageProps) {
   const params = await searchParams;
-  const status = getSingleParam(params.status);
-  const message = getSingleParam(params.message);
+  const flash = await readBarberFlash();
   const branchParam = getSingleParam(params.branch);
   const barberParam = getSingleParam(params.barber);
   const terminalParam = getSingleParam(params.terminal);
@@ -73,6 +72,7 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
   return (
     <main className="flex min-h-[100dvh] justify-center bg-slate-100 text-slate-950 sm:px-6 sm:py-8">
       <section className="relative flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-white sm:h-[calc(100dvh-4rem)] sm:rounded-[2.5rem] sm:shadow-[0_24px_80px_rgba(15,23,42,0.16)] sm:ring-1 sm:ring-slate-200 lg:max-w-3xl">
+        {flash ? <BarberToast message={flash.message} status={flash.status} /> : null}
         <div className="shrink-0 border-b border-slate-100 px-5 py-4">
           <div className="flex items-center justify-between gap-2">
             <h1 className="text-xl font-black tracking-tight text-slate-950">Nueva venta</h1>
@@ -98,20 +98,6 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col">
-          {message && isSupportedStatus(status) ? (
-            <div className="shrink-0 px-5 pt-4">
-              <p
-                className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-                  status === "success"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-red-200 bg-red-50 text-red-700"
-                }`}
-              >
-                {message}
-              </p>
-            </div>
-          ) : null}
-
           {!branch ? (
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
               <div className="rounded-3xl border border-slate-200 bg-white p-5 text-slate-600 shadow-sm">
@@ -130,7 +116,7 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
             />
           ) : (
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-              <form action={unlockBarberTerminal} className="grid gap-5">
+              <form action={unlockBarberTerminal} className="mx-auto grid w-full max-w-md gap-5">
                 <BarberAccessPanel branch={branch} lockedBarberId={lockedBarberId} />
                 {terminalId ? <input name="terminal" type="hidden" value={terminalId} /> : null}
                 <button
@@ -140,7 +126,7 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
                   Empezar turno
                 </button>
               </form>
-              <div className="mt-5 flex flex-wrap gap-4 px-1 text-sm font-semibold text-slate-500">
+              <div className="mx-auto mt-5 flex w-full max-w-md flex-wrap gap-4 px-1 text-sm font-semibold text-slate-500">
                 <Link className="hover:text-blue-700" href="/login">
                   Administración
                 </Link>
@@ -157,8 +143,4 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
 
 function getSingleParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
-}
-
-function isSupportedStatus(status: string | undefined): status is "error" | "success" {
-  return status === "error" || status === "success";
 }

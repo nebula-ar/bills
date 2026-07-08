@@ -1,5 +1,6 @@
 "use server";
 
+import { setBarberFlash } from "@/lib/barber-flash";
 import { clearBarberSessionCookie, getBarberSession, setBarberSessionCookie } from "@/lib/barber-session";
 import { getBarberErrorMessage } from "@/lib/barber-error-messages";
 import { getSaleErrorMessage } from "@/lib/sale-error-messages";
@@ -22,7 +23,8 @@ export async function unlockBarberTerminal(formData: FormData) {
   const ctx: RedirectContext = { branchId, barberId: terminalLocked ? barberId : null, terminalId };
 
   if (!branchId || !barberId || !pin) {
-    redirectWithMessage("error", "Elegí tu perfil y poné tu PIN.", ctx);
+    await redirectWithMessage("error", "Elegí tu perfil y poné tu PIN.", ctx);
+    return;
   }
 
   try {
@@ -30,14 +32,14 @@ export async function unlockBarberTerminal(formData: FormData) {
     await setBarberSessionCookie({ branchId, barberId, terminalId });
   } catch (error) {
     if (error instanceof BarberError) {
-      redirectWithMessage("error", getBarberErrorMessage(error.code), ctx);
+      await redirectWithMessage("error", getBarberErrorMessage(error.code), ctx);
     }
 
     console.error(error);
-    redirectWithMessage("error", "No pudimos validar el PIN. Intentá de nuevo.", ctx);
+    await redirectWithMessage("error", "No pudimos validar el PIN. Intentá de nuevo.", ctx);
   }
 
-  redirectWithMessage("success", "Turno iniciado. Ya podés cargar ventas.", ctx);
+  await redirectWithMessage("success", "Turno iniciado. Ya podés cargar ventas.", ctx);
 }
 
 export async function lockBarberTerminal(formData: FormData) {
@@ -46,7 +48,7 @@ export async function lockBarberTerminal(formData: FormData) {
   const terminalId = parseRequiredString(formData, "terminal");
 
   await clearBarberSessionCookie();
-  redirectWithMessage("success", "Cerraste el turno.", { branchId, barberId: terminalBarberId, terminalId });
+  await redirectWithMessage("success", "Cerraste el turno.", { branchId, barberId: terminalBarberId, terminalId });
 }
 
 export type BarberSaleItem = { serviceId: string; quantity: number };
@@ -93,9 +95,11 @@ export async function submitBarberSale(input: {
   }
 }
 
-function redirectWithMessage(status: "error" | "success", message: string, ctx: RedirectContext): never {
-  const params = new URLSearchParams({ status, message });
+async function redirectWithMessage(status: "error" | "success", message: string, ctx: RedirectContext): Promise<never> {
+  // El mensaje viaja por cookie efímera, no por la URL.
+  await setBarberFlash({ status, message });
 
+  const params = new URLSearchParams();
   if (ctx.terminalId) {
     params.set("terminal", ctx.terminalId);
   } else {
@@ -107,5 +111,6 @@ function redirectWithMessage(status: "error" | "success", message: string, ctx: 
     }
   }
 
-  redirect(`/barber?${params.toString()}`);
+  const query = params.toString();
+  redirect(query ? `/barber?${query}` : "/barber");
 }
