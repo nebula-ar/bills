@@ -167,7 +167,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
   const customInvalid = rangeKey === DashboardRange.Custom && (!customFrom || !customTo || customFrom > customTo);
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
       {/* Header */}
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
@@ -267,9 +267,11 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
 
       {/* Contenido (se atenúa mientras navega) */}
       <div className={isPending ? "pointer-events-none opacity-60 transition-opacity" : "transition-opacity"}>
+        {/* Hero + KPIs (en fila en pantallas grandes) */}
+        <div className="mt-4 grid gap-3 lg:grid-cols-12">
         {/* Hero total */}
         <div
-          className="relative mt-4 overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-600 p-6 text-white shadow-lg shadow-blue-600/25 duration-700 animate-in fade-in slide-in-from-bottom-3"
+          className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-600 p-6 text-white shadow-lg shadow-blue-600/25 duration-700 animate-in fade-in slide-in-from-bottom-3 lg:col-span-7"
           style={{ animationDelay: "60ms", animationFillMode: "backwards" }}
         >
           <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-white/10 blur-xl" />
@@ -298,8 +300,8 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           </p>
         </div>
 
-        {/* Gastos y neto */}
-        <div className="mt-3 grid grid-cols-2 gap-3">
+        {/* KPIs (gastos, neto, ticket, servicios) */}
+        <div className="grid grid-cols-2 gap-3 lg:col-span-5 lg:content-start">
           <Link
             className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.98] duration-500 animate-in fade-in slide-in-from-bottom-2"
             href="/expenses"
@@ -325,10 +327,6 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
               value={data.net}
             />
           </div>
-        </div>
-
-        {/* KPIs secundarios */}
-        <div className="mt-3 grid grid-cols-2 gap-3">
           <StatCard icon={Ticket} label="Ticket promedio" delay={140}>
             <AnimatedMoney className="mt-2 block text-xl font-black tracking-tight text-slate-950" delayMs={140} value={data.averageTicket} />
           </StatCard>
@@ -336,7 +334,10 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
             <AnimatedNumber className="mt-2 block text-xl font-black tracking-tight text-slate-950" delayMs={200} value={data.itemsSold} />
           </StatCard>
         </div>
+        </div>
 
+        {/* Análisis (2 columnas tipo masonry en pantallas grandes) */}
+        <div className="mt-3 lg:mt-4 lg:columns-2 lg:gap-4">
         {/* Tendencia */}
         {data.salesTrend.length >= 2 ? (
           <Panel delay={260} title="Ventas por día" icon={TrendingUp}>
@@ -504,7 +505,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
         ) : null}
 
         {/* Últimas ventas */}
-        <div className="mt-5 duration-500 animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: "620ms", animationFillMode: "backwards" }}>
+        <div className="mb-4 break-inside-avoid duration-500 animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: "620ms", animationFillMode: "backwards" }}>
           <div className="flex items-center justify-between px-1">
             <h2 className="text-base font-black text-slate-950">Últimas ventas</h2>
             <Link className="flex items-center gap-0.5 text-xs font-bold text-blue-600" href="/sales">
@@ -540,6 +541,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
               </ul>
             )}
           </div>
+        </div>
         </div>
       </div>
 
@@ -713,7 +715,7 @@ function Panel({
 }) {
   return (
     <div
-      className="mt-5 rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3"
+      className="mb-4 break-inside-avoid rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3"
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
     >
       <h2 className="flex items-center gap-2 text-base font-black text-slate-950">

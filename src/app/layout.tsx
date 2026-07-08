@@ -41,7 +41,7 @@ export default async function RootLayout({
       lang="es-AR"
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col bg-[#f6f7fb]">
         <NoZoom />
         {children}
         {showNav ? <MobileNav /> : null}
