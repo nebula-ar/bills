@@ -206,7 +206,7 @@ export function PosCheckout({ branches, paymentOptions, initialBranchId }: PosCh
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-40 pt-6 text-slate-950 lg:max-w-[820px] lg:px-6">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-40 pt-6 text-slate-950 lg:max-w-[1000px] lg:px-6 lg:pb-10">
       <header className="flex items-center gap-3 duration-500 animate-in fade-in slide-in-from-top-2">
         <Link
           aria-label="Volver"
@@ -221,6 +221,8 @@ export function PosCheckout({ branches, paymentOptions, initialBranchId }: PosCh
         </div>
       </header>
 
+      <div className="lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
+        <div className="lg:min-w-0">
       {branches.length > 1 ? (
         <Step icon={Store} step={branchStep} title="Sucursal" delay={80}>
           <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -335,9 +337,54 @@ export function PosCheckout({ branches, paymentOptions, initialBranchId }: PosCh
           ) : null}
         </div>
       </Step>
+        </div>
 
-      {/* Barra de pedido (abrir checkout) */}
-      <div className="fixed inset-x-0 bottom-[4.75rem] z-30 mx-auto max-w-[560px] px-4 sm:bottom-[7rem] lg:max-w-[820px]">
+        <aside className="hidden lg:sticky lg:top-6 lg:block">
+          <div className="rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5">
+            <h2 className="flex items-center gap-2 text-base font-black text-slate-950">
+              <ShoppingBag className="size-4 text-blue-600" />
+              Pedido
+            </h2>
+            {hasItems ? (
+              <>
+                <div className="mt-4 space-y-2">
+                  {cartItems.map((item) => (
+                    <div className="flex items-center gap-2 text-sm" key={item.serviceId}>
+                      <span className="min-w-0 flex-1 truncate font-bold text-slate-700">
+                        {item.name} <span className="text-slate-400">×{item.quantity}</span>
+                      </span>
+                      <span className="shrink-0 font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
+                        {money(item.price * item.quantity)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                  <span className="text-sm font-bold text-slate-500">Total</span>
+                  <span className="text-2xl font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    {money(total)}
+                  </span>
+                </div>
+                <button
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+                  onClick={openCheckout}
+                  type="button"
+                >
+                  Cobrar
+                  <ArrowRight className="size-4" />
+                </button>
+              </>
+            ) : (
+              <p className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
+                Tocá un servicio para empezar.
+              </p>
+            )}
+          </div>
+        </aside>
+      </div>
+
+      {/* Barra de pedido (abrir checkout) — solo mobile/tablet chico */}
+      <div className="fixed inset-x-0 bottom-[4.75rem] z-30 mx-auto max-w-[560px] px-4 sm:bottom-[7rem] lg:hidden">
         <button
           className={`flex w-full items-center gap-3 rounded-[1.5rem] p-2.5 pl-5 text-left shadow-[0_-8px_40px_rgba(15,23,42,0.16)] transition active:scale-[0.99] ${
             hasItems ? "bg-blue-600" : "pointer-events-none bg-slate-300"

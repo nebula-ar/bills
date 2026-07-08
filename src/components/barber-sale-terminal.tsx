@@ -149,7 +149,7 @@ export function BarberSaleTerminal({
           </div>
         ) : null}
 
-        <div className="mt-3 grid grid-cols-2 gap-3">
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {filtered.map((service) => {
             const quantity = cart[service.serviceId] ?? 0;
             const active = quantity > 0;
@@ -201,7 +201,7 @@ export function BarberSaleTerminal({
             );
           })}
           {filtered.length === 0 ? (
-            <p className="col-span-2 rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm text-slate-500">
+            <p className="col-span-full rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm text-slate-500">
               No hay servicios que coincidan.
             </p>
           ) : null}

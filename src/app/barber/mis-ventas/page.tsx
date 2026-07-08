@@ -29,7 +29,7 @@ function money(value: number) {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main className="flex min-h-[100dvh] justify-center bg-slate-100 text-slate-950 sm:px-6 sm:py-8">
-      <section className="flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-white sm:h-[calc(100dvh-4rem)] sm:rounded-[2.5rem] sm:shadow-[0_24px_80px_rgba(15,23,42,0.16)] sm:ring-1 sm:ring-slate-200">
+      <section className="flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-white sm:h-[calc(100dvh-4rem)] sm:rounded-[2.5rem] sm:shadow-[0_24px_80px_rgba(15,23,42,0.16)] sm:ring-1 sm:ring-slate-200 lg:max-w-3xl">
         {children}
       </section>
     </main>
@@ -95,7 +95,7 @@ export default async function MisVentasPage() {
             Todavía no cargaste ventas hoy.
           </div>
         ) : (
-          <ul className="space-y-2.5">
+          <ul className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
             {sales.map((sale) => {
               const cancelled = sale.status === SaleStatus.CANCELLED;
               const itemsLabel = sale.items.map((item) => `${item.description}${item.quantity > 1 ? ` ×${item.quantity}` : ""}`).join(" · ");
