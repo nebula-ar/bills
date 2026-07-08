@@ -115,7 +115,7 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
               terminalName={terminal?.name ?? null}
             />
           ) : (
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 lg:flex lg:flex-col lg:justify-center">
               <form action={unlockBarberTerminal} className="mx-auto grid w-full max-w-md gap-5">
                 <BarberAccessPanel branch={branch} lockedBarberId={lockedBarberId} />
                 {terminalId ? <input name="terminal" type="hidden" value={terminalId} /> : null}
