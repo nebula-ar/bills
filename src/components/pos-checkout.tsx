@@ -206,7 +206,7 @@ export function PosCheckout({ branches, paymentOptions, initialBranchId }: PosCh
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-40 pt-6 text-slate-950">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-40 pt-6 text-slate-950 lg:max-w-[820px] lg:px-6">
       <header className="flex items-center gap-3 duration-500 animate-in fade-in slide-in-from-top-2">
         <Link
           aria-label="Volver"
@@ -241,7 +241,7 @@ export function PosCheckout({ branches, paymentOptions, initialBranchId }: PosCh
       ) : null}
 
       <Step icon={Scissors} step={barberStep} title="¿Quién atiende?" delay={140}>
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           {branch.barbers.map((barber) => {
             const active = barber.id === barberId;
             return (
@@ -277,7 +277,7 @@ export function PosCheckout({ branches, paymentOptions, initialBranchId }: PosCh
             value={search}
           />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {filteredServices.map((service) => {
             const quantity = cart[service.serviceId] ?? 0;
             const active = quantity > 0;
@@ -329,7 +329,7 @@ export function PosCheckout({ branches, paymentOptions, initialBranchId }: PosCh
             );
           })}
           {filteredServices.length === 0 ? (
-            <p className="col-span-2 rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm text-slate-500">
+            <p className="col-span-full rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm text-slate-500">
               No hay servicios que coincidan.
             </p>
           ) : null}
@@ -337,7 +337,7 @@ export function PosCheckout({ branches, paymentOptions, initialBranchId }: PosCh
       </Step>
 
       {/* Barra de pedido (abrir checkout) */}
-      <div className="fixed inset-x-0 bottom-[4.75rem] z-30 mx-auto max-w-[560px] px-4">
+      <div className="fixed inset-x-0 bottom-[4.75rem] z-30 mx-auto max-w-[560px] px-4 sm:bottom-[7rem] lg:max-w-[820px]">
         <button
           className={`flex w-full items-center gap-3 rounded-[1.5rem] p-2.5 pl-5 text-left shadow-[0_-8px_40px_rgba(15,23,42,0.16)] transition active:scale-[0.99] ${
             hasItems ? "bg-blue-600" : "pointer-events-none bg-slate-300"

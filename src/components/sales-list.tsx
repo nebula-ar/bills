@@ -42,7 +42,7 @@ export function SalesList({ sales }: { sales: SalesListSale[] }) {
 
   return (
     <>
-      <ul className="mt-4 space-y-2.5">
+      <ul className="mt-4 space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
         {sales.map((sale, index) => {
           const cancelled = sale.status === "CANCELLED";
           return (

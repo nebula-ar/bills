@@ -13,7 +13,7 @@ export default async function PosLauncherPage() {
   const businessName = branches[0]?.business.name ?? "Barber Bills";
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
       <header className="duration-500 animate-in fade-in slide-in-from-top-2">
         <p className="truncate text-sm font-medium text-slate-500">{businessName}</p>
         <h1 className="mt-0.5 text-2xl font-black tracking-tight text-slate-950">Puntos de venta</h1>
@@ -28,7 +28,7 @@ export default async function PosLauncherPage() {
           </Link>
         </div>
       ) : (
-        <ul className="mt-5 space-y-3">
+        <ul className="mt-5 space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
           {branches.map((branch, index) => (
             <li
               className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3"

@@ -151,7 +151,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -160,7 +160,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
       </header>
 
       {/* Navegador de mes */}
-      <div className="mt-4 flex items-center justify-between gap-2 rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-950/5">
+      <div className="mt-4 flex items-center justify-between gap-2 rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-950/5 lg:mx-auto lg:w-full lg:max-w-sm">
         <button
           aria-label="Mes anterior"
           className="flex size-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition active:scale-90"
@@ -214,7 +214,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
             <p className="mt-1 text-xs text-slate-400">Tocá el botón «+» abajo para registrar el primero.</p>
           </div>
         ) : (
-          <ul className="space-y-2.5">
+          <ul className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
             {data.expenses.map((expense, index) => (
               <li
                 className="duration-500 animate-in fade-in slide-in-from-bottom-2"

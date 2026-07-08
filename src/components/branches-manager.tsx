@@ -51,7 +51,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
   const editing = data.branches.find((branch) => branch.id === editId) ?? null;
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -79,7 +79,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
             <p className="mt-1 text-xs text-slate-400">Tocá el botón «+» abajo para crear la primera.</p>
           </div>
         ) : (
-          <ul className="space-y-2.5">
+          <ul className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
             {data.branches.map((branch, index) => (
               <li
                 className="duration-500 animate-in fade-in slide-in-from-bottom-2"

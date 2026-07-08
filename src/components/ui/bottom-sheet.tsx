@@ -110,7 +110,7 @@ export function BottomSheet({
       : "translateY(100%)";
 
   return createPortal(
-    <div className="md:hidden" style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: 0, zIndex: 60 }}>
+    <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: 0, zIndex: 60 }}>
       <button
         aria-label="Cerrar"
         className="bg-slate-950/50"

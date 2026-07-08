@@ -231,7 +231,7 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -271,7 +271,7 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
           Cargá una sucursal activa para administrar sus terminales.
         </div>
       ) : (
-        <div className={`mt-4 space-y-5 ${isPending ? "pointer-events-none opacity-60 transition-opacity" : "transition-opacity"}`}>
+        <div className={`mt-4 space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-5 lg:space-y-0 ${isPending ? "pointer-events-none opacity-60 transition-opacity" : "transition-opacity"}`}>
           {/* Propias */}
           <section>
             <p className="mb-2 px-1 text-xs font-black uppercase tracking-wide text-slate-500">Terminales propias</p>
