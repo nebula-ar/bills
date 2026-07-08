@@ -1,4 +1,4 @@
-import { ExpenseCategory } from "@/generated/prisma/client";
+import { ExpenseCategory, PaymentMethod } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export function findExpensesInRange(input: { businessId: string; from?: Date; to?: Date; branchId?: string | null }) {
@@ -22,6 +22,7 @@ export function findExpensesInRange(input: { businessId: string; from?: Date; to
       id: true,
       amount: true,
       category: true,
+      paymentMethod: true,
       note: true,
       spentAt: true,
       branchId: true,
@@ -74,6 +75,7 @@ export function createExpense(input: {
   businessId: string;
   branchId?: string | null;
   category: ExpenseCategory;
+  paymentMethod: PaymentMethod;
   amount: number;
   note?: string | null;
   spentAt: Date;
@@ -83,6 +85,7 @@ export function createExpense(input: {
       businessId: input.businessId,
       branchId: input.branchId ?? null,
       category: input.category,
+      paymentMethod: input.paymentMethod,
       amount: input.amount,
       note: input.note ?? null,
       spentAt: input.spentAt,
@@ -94,6 +97,7 @@ export function updateExpense(input: {
   expenseId: string;
   branchId?: string | null;
   category: ExpenseCategory;
+  paymentMethod: PaymentMethod;
   amount: number;
   note?: string | null;
   spentAt: Date;
@@ -103,6 +107,7 @@ export function updateExpense(input: {
     data: {
       branchId: input.branchId ?? null,
       category: input.category,
+      paymentMethod: input.paymentMethod,
       amount: input.amount,
       note: input.note ?? null,
       spentAt: input.spentAt,

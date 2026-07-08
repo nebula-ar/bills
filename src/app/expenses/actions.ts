@@ -1,7 +1,9 @@
 "use server";
 
+import { PaymentMethod } from "@/generated/prisma/client";
 import { requireAdminSession } from "@/lib/auth";
 import { parseExpenseCategory } from "@/lib/expense-labels";
+import { parsePaymentMethodValue } from "@/lib/payment-labels";
 import {
   createBusinessExpense,
   deleteBusinessExpense,
@@ -39,6 +41,7 @@ export async function createExpenseAction(formData: FormData) {
   const month = parseString(formData, "month") || undefined;
   const branchId = parseString(formData, "branchId") || null;
   const category = parseExpenseCategory(formData.get("category"));
+  const paymentMethod = parsePaymentMethodValue(formData.get("paymentMethod")) ?? PaymentMethod.CASH;
   const amount = parseAmount(parseString(formData, "amount"));
   const note = parseString(formData, "note") || null;
   const spentAt = parseSpentAt(parseString(formData, "spentAt"));
@@ -48,7 +51,7 @@ export async function createExpenseAction(formData: FormData) {
   }
 
   try {
-    await createBusinessExpense({ businessId: session.user.businessId, branchId, category, amount, note, spentAt });
+    await createBusinessExpense({ businessId: session.user.businessId, branchId, category, paymentMethod, amount, note, spentAt });
   } catch (error) {
     console.error(error);
     redirectWithMessage("error", "No pudimos guardar el gasto. Intentá de nuevo.", month);
@@ -64,6 +67,7 @@ export async function updateExpenseAction(formData: FormData) {
   const expenseId = parseString(formData, "expenseId");
   const branchId = parseString(formData, "branchId") || null;
   const category = parseExpenseCategory(formData.get("category"));
+  const paymentMethod = parsePaymentMethodValue(formData.get("paymentMethod")) ?? PaymentMethod.CASH;
   const amount = parseAmount(parseString(formData, "amount"));
   const note = parseString(formData, "note") || null;
   const spentAt = parseSpentAt(parseString(formData, "spentAt"));
@@ -73,7 +77,7 @@ export async function updateExpenseAction(formData: FormData) {
   }
 
   try {
-    await updateBusinessExpense({ businessId: session.user.businessId, expenseId, branchId, category, amount, note, spentAt });
+    await updateBusinessExpense({ businessId: session.user.businessId, expenseId, branchId, category, paymentMethod, amount, note, spentAt });
   } catch (error) {
     console.error(error);
     redirectWithMessage("error", "No pudimos actualizar el gasto. Intentá de nuevo.", month);

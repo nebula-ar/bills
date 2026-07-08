@@ -2,6 +2,7 @@ import { PaymentMethod } from "@/generated/prisma/client";
 import { getCurrentSession, isAdminRole } from "@/lib/auth";
 import { DASHBOARD_RANGE_LABELS, DashboardRange, parseDashboardRange, resolveDashboardRange } from "@/lib/dashboard-range";
 import { EXPENSE_CATEGORY_LABELS } from "@/lib/expense-labels";
+import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER } from "@/lib/payment-labels";
 import { getExpensesSummary } from "@/modules/expenses/expense.use-cases";
 import { getTodaySalesReport } from "@/modules/reports/get-today-sales-report.use-case";
 import { ReportsView, type ReportsData } from "@/components/reports-view";
@@ -70,6 +71,15 @@ export default async function Home({ searchParams }: HomeProps) {
   const paymentTotalSum = report.totalsByPaymentMethod.reduce((sum, payment) => sum + payment.total, 0);
   const selectedBarber = report.options.barbers.find((barber) => barber.id === report.filters.barberId);
 
+  // Cierre de caja: por cuenta (método), cuánto entró por ventas y cuánto salió por gastos.
+  const incomeByMethod = new Map(report.totalsByPaymentMethod.map((payment) => [payment.method, payment.total]));
+  const expenseByMethod = new Map(expensesSummary.byPaymentMethod.map((expense) => [expense.method, expense.total]));
+  const accountBalances = PAYMENT_METHOD_ORDER.map((method) => {
+    const income = incomeByMethod.get(method) ?? 0;
+    const expense = expenseByMethod.get(method) ?? 0;
+    return { key: method, label: PAYMENT_METHOD_LABELS[method], income, expense, balance: income - expense };
+  }).filter((account) => account.income !== 0 || account.expense !== 0);
+
   const data: ReportsData = {
     range: {
       key: rangeKey,
@@ -92,6 +102,7 @@ export default async function Home({ searchParams }: HomeProps) {
       percentage: expensesSummary.total > 0 ? Math.round((category.total / expensesSummary.total) * 100) : 0,
     })),
     comparison: report.comparison,
+    accountBalances,
     salesTrend: report.salesByDay.map((day) => ({
       label: trendFormatter.format(parseISODateLocal(day.date) ?? new Date()),
       total: day.total,

@@ -1,4 +1,4 @@
-import { ExpenseCategory } from "@/generated/prisma/client";
+import { ExpenseCategory, PaymentMethod } from "@/generated/prisma/client";
 
 import {
   createExpense,
@@ -13,6 +13,7 @@ export type ExpenseInput = {
   businessId: string;
   branchId?: string | null;
   category: ExpenseCategory;
+  paymentMethod: PaymentMethod;
   amount: number;
   note?: string | null;
   spentAt: Date;
@@ -35,11 +36,13 @@ export function getExpenseBranches(businessId: string) {
 export async function getExpensesSummary(input: { businessId: string; from?: Date; to?: Date }) {
   const expenses = await findExpensesInRange(input);
   const byCategory = new Map<ExpenseCategory, number>();
+  const byPaymentMethod = new Map<PaymentMethod, number>();
   let total = 0;
 
   for (const expense of expenses) {
     total += expense.amount;
     byCategory.set(expense.category, (byCategory.get(expense.category) ?? 0) + expense.amount);
+    byPaymentMethod.set(expense.paymentMethod, (byPaymentMethod.get(expense.paymentMethod) ?? 0) + expense.amount);
   }
 
   return {
@@ -48,6 +51,7 @@ export async function getExpensesSummary(input: { businessId: string; from?: Dat
     byCategory: Array.from(byCategory.entries())
       .map(([category, categoryTotal]) => ({ category, total: categoryTotal }))
       .sort((a, b) => b.total - a.total),
+    byPaymentMethod: Array.from(byPaymentMethod.entries()).map(([method, methodTotal]) => ({ method, total: methodTotal })),
   };
 }
 
@@ -58,6 +62,7 @@ export async function createBusinessExpense(input: ExpenseInput) {
     businessId: input.businessId,
     branchId: input.branchId ?? null,
     category: input.category,
+    paymentMethod: input.paymentMethod,
     amount: input.amount,
     note: input.note ?? null,
     spentAt: input.spentAt,
@@ -76,6 +81,7 @@ export async function updateBusinessExpense(input: ExpenseInput & { expenseId: s
     expenseId: expense.id,
     branchId: input.branchId ?? null,
     category: input.category,
+    paymentMethod: input.paymentMethod,
     amount: input.amount,
     note: input.note ?? null,
     spentAt: input.spentAt,

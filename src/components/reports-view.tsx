@@ -46,6 +46,7 @@ export type ReportsData = {
   net: number;
   expensesByCategory: { key: string; label: string; total: number; percentage: number }[];
   comparison: { previousTotal: number; deltaPct: number | null } | null;
+  accountBalances: { key: string; label: string; income: number; expense: number; balance: number }[];
   salesTrend: { label: string; total: number }[];
   salesByWeekday: { label: string; total: number }[];
   salesByBranch: { branchName: string; total: number; saleCount: number }[];
@@ -338,6 +339,38 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
 
         {/* Análisis (2 columnas tipo masonry en pantallas grandes) */}
         <div className="mt-3 lg:mt-4 lg:columns-2 lg:gap-4">
+        {/* Cierre de caja: saldo por cuenta */}
+        {data.accountBalances.length > 0 ? (
+          <Panel delay={280} title="Saldo por cuenta" icon={Wallet}>
+            <p className="-mt-2 mb-3 text-xs text-slate-500">Lo que entró por ventas menos los gastos, en cada cuenta.</p>
+            <div className="space-y-2.5">
+              {data.accountBalances.map((account) => (
+                <div className="rounded-2xl bg-slate-50 p-3" key={account.key}>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="truncate text-sm font-black text-slate-800">{account.label}</span>
+                    <span
+                      className={`shrink-0 text-sm font-black ${account.balance >= 0 ? "text-emerald-600" : "text-rose-600"}`}
+                      style={{ fontVariantNumeric: "tabular-nums" }}
+                    >
+                      {formatMoney(account.balance)}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-3 text-xs font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    <span className="flex items-center gap-1 text-emerald-600">
+                      <TrendingUp className="size-3" />
+                      {formatMoney(account.income)}
+                    </span>
+                    <span className="flex items-center gap-1 text-rose-500">
+                      <TrendingDown className="size-3" />
+                      {formatMoney(account.expense)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        ) : null}
+
         {/* Tendencia */}
         {data.salesTrend.length >= 2 ? (
           <Panel delay={260} title="Ventas por día" icon={TrendingUp}>

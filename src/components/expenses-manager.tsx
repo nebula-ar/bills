@@ -10,6 +10,8 @@ export type ExpenseRow = {
   id: string;
   category: string;
   categoryLabel: string;
+  paymentMethod: string;
+  accountLabel: string;
   branchId: string | null;
   branchLabel: string;
   amount: number;
@@ -30,6 +32,7 @@ export type ExpensesData = {
   count: number;
   branches: { id: string; name: string }[];
   categories: { value: string; label: string }[];
+  paymentMethods: { value: string; label: string }[];
   todayValue: string;
   expenses: ExpenseRow[];
   flash: { status: "success" | "error"; message: string } | null;
@@ -37,26 +40,32 @@ export type ExpensesData = {
 
 function ExpenseFormFields({
   categories,
+  paymentMethods,
   branches,
   defaultCategory,
+  defaultPaymentMethod,
   defaultBranchId,
   defaultAmount,
   defaultNote,
   defaultDate,
 }: {
   categories: { value: string; label: string }[];
+  paymentMethods: { value: string; label: string }[];
   branches: { id: string; name: string }[];
   defaultCategory: string;
+  defaultPaymentMethod: string;
   defaultBranchId: string;
   defaultAmount: string;
   defaultNote: string;
   defaultDate: string;
 }) {
   const [category, setCategory] = useState(defaultCategory);
+  const [paymentMethod, setPaymentMethod] = useState(defaultPaymentMethod);
 
   return (
     <div className="space-y-4">
       <input name="category" type="hidden" value={category} />
+      <input name="paymentMethod" type="hidden" value={paymentMethod} />
 
       <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
         Monto
@@ -87,6 +96,27 @@ function ExpenseFormFields({
                 }`}
                 key={option.value}
                 onClick={() => setCategory(option.value)}
+                type="button"
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="grid gap-2">
+        <span className="text-xs font-black uppercase tracking-wide text-slate-500">¿De qué cuenta salió?</span>
+        <div className="flex flex-wrap gap-2">
+          {paymentMethods.map((option) => {
+            const active = option.value === paymentMethod;
+            return (
+              <button
+                className={`rounded-full px-3.5 py-2 text-sm font-bold transition active:scale-95 ${
+                  active ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-slate-100 text-slate-600"
+                }`}
+                key={option.value}
+                onClick={() => setPaymentMethod(option.value)}
                 type="button"
               >
                 {option.label}
@@ -231,9 +261,12 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-black text-slate-950">{expense.categoryLabel}</p>
-                    <p className="mt-0.5 truncate text-xs text-slate-500">
-                      {expense.branchLabel}
-                      {expense.note ? ` · ${expense.note}` : ""}
+                    <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
+                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 font-bold text-slate-600">{expense.accountLabel}</span>
+                      <span className="truncate">
+                        {expense.branchLabel}
+                        {expense.note ? ` · ${expense.note}` : ""}
+                      </span>
                     </p>
                   </div>
                   <p className="shrink-0 text-right text-sm font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -270,6 +303,8 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
               defaultCategory={data.categories[2]?.value ?? data.categories[0]?.value ?? ""}
               defaultDate={data.todayValue}
               defaultNote=""
+              defaultPaymentMethod={data.paymentMethods[0]?.value ?? ""}
+              paymentMethods={data.paymentMethods}
             />
           </div>
           <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
@@ -310,6 +345,8 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                   defaultCategory={editing.category}
                   defaultDate={editing.spentAtValue}
                   defaultNote={editing.note ?? ""}
+                  defaultPaymentMethod={editing.paymentMethod}
+                  paymentMethods={data.paymentMethods}
                 />
               </div>
               <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">

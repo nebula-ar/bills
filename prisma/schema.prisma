@@ -227,13 +227,15 @@ model SalePayment {
 }
 
 model Expense {
-  id          String          @id @default(cuid())
-  businessId  String
-  branchId    String?
-  category    ExpenseCategory
-  amount      Int
-  note        String?
-  spentAt     DateTime        @default(now())
+  id            String          @id @default(cuid())
+  businessId    String
+  branchId      String?
+  category      ExpenseCategory
+  // Cuenta de la que salió la plata (para conciliar con los ingresos por método en el cierre de caja).
+  paymentMethod PaymentMethod   @default(CASH)
+  amount        Int
+  note          String?
+  spentAt       DateTime        @default(now())
   createdAt   DateTime        @default(now())
   createdById String?
   updatedAt   DateTime        @updatedAt

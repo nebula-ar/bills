@@ -1,5 +1,6 @@
 import { requireAdminSession } from "@/lib/auth";
 import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS } from "@/lib/expense-labels";
+import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_OPTIONS } from "@/lib/payment-labels";
 import { getExpenseBranches, getExpensesInRange } from "@/modules/expenses/expense.use-cases";
 import { ExpensesManager, type ExpenseRow, type ExpensesData } from "@/components/expenses-manager";
 
@@ -37,6 +38,8 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
     id: expense.id,
     category: expense.category,
     categoryLabel: EXPENSE_CATEGORY_LABELS[expense.category],
+    paymentMethod: expense.paymentMethod,
+    accountLabel: PAYMENT_METHOD_LABELS[expense.paymentMethod],
     branchId: expense.branchId,
     branchLabel: expense.branch ? expense.branch.name : "General",
     amount: expense.amount,
@@ -57,6 +60,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
     count: expenses.length,
     branches: branches.map((branch) => ({ id: branch.id, name: branch.name })),
     categories: EXPENSE_CATEGORIES.map((category) => ({ value: category, label: EXPENSE_CATEGORY_LABELS[category] })),
+    paymentMethods: PAYMENT_METHOD_OPTIONS,
     todayValue: toISODateLocal(now),
     expenses: rows,
     flash,
