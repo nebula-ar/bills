@@ -22,6 +22,15 @@ const PIN_RE = /^\d{4,8}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-z0-9._-]{3,20}$/;
 
+// Chequeo temprano (paso del email) para no hacer completar todo el onboarding
+// y recién ahí avisar que el email está en uso. En el submit se revalida igual.
+export async function isEmailAvailable(email: string): Promise<boolean> {
+  const normalized = email.trim().toLowerCase();
+  if (!EMAIL_RE.test(normalized)) return false;
+  const existing = await prisma.user.findFirst({ where: { email: normalized, deleted: false }, select: { id: true } });
+  return !existing;
+}
+
 export async function registerBusiness(input: RegisterBusinessInput): Promise<RegisterResult> {
   const businessName = input.businessName.trim();
   const ownerName = input.ownerName.trim();

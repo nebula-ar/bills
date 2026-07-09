@@ -1,6 +1,6 @@
 "use client";
 
-import { registerBusinessAction } from "@/app/register/actions";
+import { checkEmailAvailableAction, registerBusinessAction } from "@/app/register/actions";
 import { ArrowLeft, ArrowRight, Check, Loader2, Plus } from "lucide-react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
@@ -77,6 +77,7 @@ export function RegisterWizard() {
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
 
   const [businessName, setBusinessName] = useState("");
   const [ownerName, setOwnerName] = useState("");
@@ -119,9 +120,19 @@ export function RegisterWizard() {
     }
   }
 
-  function goNext() {
+  async function goNext() {
     setError(null);
-    if (!stepValid()) return;
+    if (!stepValid() || checking) return;
+    // Validamos el email (formato + que no esté en uso) YA en su paso, no al final.
+    if (step === 2) {
+      setChecking(true);
+      const available = await checkEmailAvailableAction(email.trim().toLowerCase());
+      setChecking(false);
+      if (!available) {
+        setError("Ya hay una cuenta con ese email. Probá con otro o iniciá sesión.");
+        return;
+      }
+    }
     if (step < STEPS.length - 1) {
       setDir(1);
       setStep((current) => current + 1);
@@ -143,7 +154,7 @@ export function RegisterWizard() {
   function onEnter(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
       event.preventDefault();
-      goNext();
+      void goNext();
     }
   }
 
@@ -306,17 +317,22 @@ export function RegisterWizard() {
                     ) : null}
 
                     {step === 2 ? (
-                      <input
-                        autoCapitalize="none"
-                        className={inputClass}
-                        enterKeyHint="next"
-                        inputMode="email"
-                        onChange={(event) => setEmail(event.target.value)}
-                        onKeyDown={onEnter}
-                        placeholder="tucorreo@ejemplo.com"
-                        type="email"
-                        value={email}
-                      />
+                      <>
+                        <input
+                          autoCapitalize="none"
+                          className={inputClass}
+                          enterKeyHint="next"
+                          inputMode="email"
+                          onChange={(event) => setEmail(event.target.value)}
+                          onKeyDown={onEnter}
+                          placeholder="tucorreo@ejemplo.com"
+                          type="email"
+                          value={email}
+                        />
+                        {email.trim() !== "" && !EMAIL_RE.test(email.trim()) ? (
+                          <p className="mt-2 text-center text-xs font-semibold text-rose-500">Poné un email válido (ej: nombre@correo.com).</p>
+                        ) : null}
+                      </>
                     ) : null}
 
                     {step === 3 ? (
@@ -395,9 +411,20 @@ export function RegisterWizard() {
                     <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-center text-sm font-semibold text-rose-700">{error}</p>
                   ) : null}
 
-                  <button className={`${primaryBtn} mt-7`} disabled={!stepValid() || isPending} onClick={goNext} type="button">
-                    {step === STEPS.length - 1 ? "Crear mi barbería 🎉" : "Continuar"}
-                    {step === STEPS.length - 1 ? null : <ArrowRight className="size-5" />}
+                  <button className={`${primaryBtn} mt-7`} disabled={!stepValid() || isPending || checking} onClick={() => void goNext()} type="button">
+                    {checking ? (
+                      <>
+                        <Loader2 className="size-5 animate-spin" />
+                        Verificando…
+                      </>
+                    ) : step === STEPS.length - 1 ? (
+                      "Crear mi barbería 🎉"
+                    ) : (
+                      <>
+                        Continuar
+                        <ArrowRight className="size-5" />
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
