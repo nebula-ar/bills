@@ -2,7 +2,6 @@ import type { PaymentMethod } from "@/generated/prisma/client";
 
 import { createSale } from "./create-sale.use-case";
 import { SaleError, SaleErrorCode } from "./sale.errors";
-import { findBranchServicePrices } from "./sale.repository";
 
 export type CreateSimpleSaleItemInput = {
   serviceId: string;
@@ -17,34 +16,11 @@ export type CreateSimpleSaleInput = {
   paymentMethod: PaymentMethod;
 };
 
+// Venta rápida (terminal del barbero): delega en createSale, que ya calcula el
+// total a partir de los precios de la sucursal y crea un único pago con el método
+// elegido. Antes se consultaban los precios acá y otra vez en createSale.
 export async function createSimpleSale(input: CreateSimpleSaleInput) {
   if (input.items.length === 0) {
-    throw new SaleError(SaleErrorCode.EMPTY_ITEMS);
-  }
-
-  const servicePrices = await findBranchServicePrices(
-    input.branchId,
-    uniqueServiceIds(input.items),
-  );
-  const servicePriceByServiceId = new Map(
-    servicePrices.map((servicePrice) => [servicePrice.serviceId, servicePrice]),
-  );
-
-  const total = input.items.reduce((sum, item) => {
-    if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
-      throw new SaleError(SaleErrorCode.INVALID_ITEM_QUANTITY);
-    }
-
-    const servicePrice = servicePriceByServiceId.get(item.serviceId);
-
-    if (!servicePrice) {
-      throw new SaleError(SaleErrorCode.SERVICE_NOT_AVAILABLE);
-    }
-
-    return sum + servicePrice.price * item.quantity;
-  }, 0);
-
-  if (total <= 0) {
     throw new SaleError(SaleErrorCode.EMPTY_ITEMS);
   }
 
@@ -53,15 +29,7 @@ export async function createSimpleSale(input: CreateSimpleSaleInput) {
     barberId: input.barberId,
     terminalId: input.terminalId ?? null,
     items: input.items,
-    payments: [
-      {
-        method: input.paymentMethod,
-        amount: total,
-      },
-    ],
+    payments: [],
+    autoPaymentMethod: input.paymentMethod,
   });
-}
-
-function uniqueServiceIds(items: CreateSimpleSaleItemInput[]) {
-  return [...new Set(items.map((item) => item.serviceId))];
 }

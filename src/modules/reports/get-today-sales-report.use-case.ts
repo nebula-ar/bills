@@ -1,6 +1,6 @@
 import type { PaymentMethod } from "@/generated/prisma/client";
 
-import { findReportBarbers, findReportSales, paymentMethods } from "./report.repository";
+import { findReportBarbers, findReportSales, paymentMethods, sumReportSalesTotal } from "./report.repository";
 
 export type SalesReportInput = {
   businessId: string;
@@ -84,7 +84,7 @@ export type TodaySalesReport = {
 export async function getTodaySalesReport(input: SalesReportInput): Promise<TodaySalesReport> {
   const dateRange = resolveDateRange(input);
   const previousRange = buildPreviousRange(dateRange);
-  const [sales, barbers, previousSales] = await Promise.all([
+  const [sales, barbers, previousTotal] = await Promise.all([
     findReportSales(input.businessId, {
       from: dateRange.from,
       to: dateRange.to,
@@ -93,13 +93,13 @@ export async function getTodaySalesReport(input: SalesReportInput): Promise<Toda
     }),
     findReportBarbers(input.businessId),
     previousRange
-      ? findReportSales(input.businessId, {
+      ? sumReportSalesTotal(input.businessId, {
           from: previousRange.from,
           to: previousRange.to,
           barberId: input.barberId,
           paymentMethod: input.paymentMethod,
         })
-      : Promise.resolve([]),
+      : Promise.resolve(0),
   ]);
   const barberTotals = new Map<string, { barberName: string; total: number; saleCount: number }>();
   const paymentTotals = new Map<PaymentMethod, number>(paymentMethods.map((method) => [method, 0]));
@@ -155,17 +155,10 @@ export async function getTodaySalesReport(input: SalesReportInput): Promise<Toda
   );
 
   const comparison = previousRange
-    ? (() => {
-        const previousTotal = previousSales.reduce(
-          (total, sale) => total + (input.paymentMethod ? sale.payments.reduce((sum, payment) => sum + payment.amount, 0) : sale.total),
-          0,
-        );
-
-        return {
-          previousTotal,
-          deltaPct: previousTotal > 0 ? Math.round(((totalSold - previousTotal) / previousTotal) * 100) : null,
-        };
-      })()
+    ? {
+        previousTotal,
+        deltaPct: previousTotal > 0 ? Math.round(((totalSold - previousTotal) / previousTotal) * 100) : null,
+      }
     : null;
 
   return {

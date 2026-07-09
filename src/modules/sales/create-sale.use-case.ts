@@ -1,4 +1,4 @@
-import { UserRole } from "@/generated/prisma/client";
+import { PaymentMethod, UserRole } from "@/generated/prisma/client";
 
 import type { CreateSaleDto } from "./create-sale.dto";
 import {
@@ -80,7 +80,15 @@ export async function createSale(input: CreateSaleDto) {
   });
 
   const saleTotal = sum(saleItems.map((item) => item.total));
-  const paymentsTotal = sum(input.payments.map((payment) => payment.amount));
+
+  // Venta rápida: un único pago por el total calculado (no revalidamos contra un
+  // total que el caller ya no tuvo que recalcular).
+  const payments =
+    input.payments.length > 0
+      ? input.payments
+      : [{ method: input.autoPaymentMethod as PaymentMethod, amount: saleTotal }];
+
+  const paymentsTotal = sum(payments.map((payment) => payment.amount));
 
   if (paymentsTotal !== saleTotal) {
     throw new SaleError(SaleErrorCode.PAYMENTS_TOTAL_MISMATCH);
@@ -92,7 +100,7 @@ export async function createSale(input: CreateSaleDto) {
     terminalId: input.terminalId ?? null,
     total: saleTotal,
     items: saleItems,
-    payments: input.payments,
+    payments,
     notes: input.notes,
     soldAt: input.soldAt,
   });
@@ -103,7 +111,7 @@ function validateSaleInputShape(input: CreateSaleDto) {
     throw new SaleError(SaleErrorCode.EMPTY_ITEMS);
   }
 
-  if (input.payments.length === 0) {
+  if (input.payments.length === 0 && !input.autoPaymentMethod) {
     throw new SaleError(SaleErrorCode.EMPTY_PAYMENTS);
   }
 

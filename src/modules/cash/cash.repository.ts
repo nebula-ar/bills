@@ -18,9 +18,11 @@ function rangeFilter(field: "soldAt" | "spentAt" | "movedAt", scope: CashScope) 
   };
 }
 
-// Ingresos por método = pagos de ventas COMPLETADAS.
+// Ingresos por método = pagos de ventas COMPLETADAS. Agregado en la DB con
+// groupBy+_sum (no traemos todas las filas para sumarlas en JS).
 export async function findSalesIncomeByMethod(scope: CashScope) {
-  const payments = await prisma.salePayment.findMany({
+  const grouped = await prisma.salePayment.groupBy({
+    by: ["method"],
     where: {
       deleted: false,
       sale: {
@@ -31,25 +33,26 @@ export async function findSalesIncomeByMethod(scope: CashScope) {
         ...rangeFilter("soldAt", scope),
       },
     },
-    select: { method: true, amount: true },
+    _sum: { amount: true },
   });
 
-  return sumByKey(payments.map((p) => ({ key: p.method, amount: p.amount })));
+  return new Map<PaymentMethod, number>(grouped.map((row) => [row.method, row._sum.amount ?? 0]));
 }
 
-// Egresos por método = gastos.
+// Egresos por método = gastos. Agregado en la DB con groupBy+_sum.
 export async function findExpensesByMethod(scope: CashScope) {
-  const expenses = await prisma.expense.findMany({
+  const grouped = await prisma.expense.groupBy({
+    by: ["paymentMethod"],
     where: {
       deleted: false,
       businessId: scope.businessId,
       ...(scope.branchId ? { branchId: scope.branchId } : {}),
       ...rangeFilter("spentAt", scope),
     },
-    select: { paymentMethod: true, amount: true },
+    _sum: { amount: true },
   });
 
-  return sumByKey(expenses.map((e) => ({ key: e.paymentMethod, amount: e.amount })));
+  return new Map<PaymentMethod, number>(grouped.map((row) => [row.paymentMethod, row._sum.amount ?? 0]));
 }
 
 export async function findTransfers(scope: CashScope) {
@@ -159,10 +162,3 @@ export function findCashCloses(businessId: string, limit = 20) {
   });
 }
 
-function sumByKey(rows: { key: PaymentMethod; amount: number }[]) {
-  const map = new Map<PaymentMethod, number>();
-  for (const row of rows) {
-    map.set(row.key, (map.get(row.key) ?? 0) + row.amount);
-  }
-  return map;
-}

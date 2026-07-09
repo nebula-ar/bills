@@ -1,13 +1,28 @@
 "use server";
 
+import type { SalesListSale } from "@/components/sales-list";
 import { requireAdminSession } from "@/lib/auth";
 import { getSaleErrorMessage } from "@/lib/sale-error-messages";
 import { cancelSale } from "@/modules/sales/cancel-sale.use-case";
+import { getRecentSales } from "@/modules/sales/get-recent-sales.use-case";
+import { toSalesListSale } from "@/modules/sales/recent-sales-view";
 import { SaleError } from "@/modules/sales/sale.errors";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 const genericErrorMessage = "No pudimos cancelar la venta. Intentá de nuevo.";
+
+const SALES_PAGE_SIZE = 20;
+
+// Cargar la siguiente página del historial de ventas. El businessId sale de la
+// sesión (no del cliente), así que el cursor no puede filtrar ventas ajenas.
+export async function loadMoreSalesAction(
+  cursor: string,
+): Promise<{ sales: SalesListSale[]; nextCursor: string | null }> {
+  const session = await requireAdminSession();
+  const { sales, nextCursor } = await getRecentSales(session.user.businessId, SALES_PAGE_SIZE, cursor);
+  return { sales: sales.map(toSalesListSale), nextCursor };
+}
 
 export async function cancelSaleAction(formData: FormData) {
   await requireAdminSession();

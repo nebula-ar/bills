@@ -22,11 +22,20 @@ export type RecentSale = {
   }[];
 };
 
-export async function getRecentSales(businessId: string, limit = 10): Promise<RecentSale[]> {
-  const safeLimit = Math.min(Math.max(limit, 1), 50);
-  const sales = await findRecentSales(businessId, safeLimit);
+export type RecentSalesPage = {
+  sales: RecentSale[];
+  nextCursor: string | null;
+};
 
-  return sales.map((sale) => ({
+export async function getRecentSales(
+  businessId: string,
+  limit = 10,
+  cursor?: string,
+): Promise<RecentSalesPage> {
+  const safeLimit = Math.min(Math.max(limit, 1), 50);
+  const rows = await findRecentSales(businessId, safeLimit, cursor);
+
+  const sales = rows.map((sale) => ({
     id: sale.id,
     soldAt: sale.soldAt,
     total: sale.total,
@@ -36,4 +45,9 @@ export async function getRecentSales(businessId: string, limit = 10): Promise<Re
     items: sale.items,
     payments: sale.payments,
   }));
+
+  // Si trajimos la página completa, asumimos que hay más y devolvemos el cursor.
+  const nextCursor = rows.length === safeLimit ? rows[rows.length - 1].id : null;
+
+  return { sales, nextCursor };
 }

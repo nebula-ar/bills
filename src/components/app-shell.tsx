@@ -16,7 +16,7 @@ const shellMaxWidth: Record<NonNullable<AppShellProps["maxWidth"]>, string> = {
 // dejamos el padding inferior (pb-28) para que el contenido no quede tapado.
 export function AppShell({ children, maxWidth = "md" }: AppShellProps) {
   return (
-    <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-5 text-slate-950 sm:px-6 sm:py-10">
+    <main className="min-h-screen bg-[#f6f7fb] px-4 pb-28 pt-5 text-slate-950 sm:px-6 sm:py-10">
       <section className={`mx-auto flex w-full ${shellMaxWidth[maxWidth]} flex-col gap-6`}>
         {children}
       </section>

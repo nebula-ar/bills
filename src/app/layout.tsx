@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
+import { Suspense } from "react";
+import { Toaster } from "sonner";
+import { FlashToaster } from "@/components/flash-toaster";
 import { MobileNav } from "@/components/mobile-nav";
-import { NoZoom } from "@/components/no-zoom";
 import { getCurrentSession, isAdminRole } from "@/lib/auth";
 import "./globals.css";
 
@@ -20,12 +22,14 @@ export const metadata: Metadata = {
   description: "Administración de ventas para barberías",
 };
 
-// App tipo POS: bloqueamos el zoom para que no se desconfigure la vista al tocar.
+// Permitimos el zoom del usuario (accesibilidad, WCAG 1.4.4). El doble-tap-zoom
+// accidental ya se evita con `touch-action: manipulation` en el CSS global, así
+// que dejar pellizcar para acercar no desconfigura la vista tipo POS.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
 };
 
 export default async function RootLayout({
@@ -42,9 +46,12 @@ export default async function RootLayout({
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#f6f7fb]">
-        <NoZoom />
         {children}
         {showNav ? <MobileNav /> : null}
+        <Toaster position="top-center" richColors toastOptions={{ className: "font-semibold" }} />
+        <Suspense fallback={null}>
+          <FlashToaster />
+        </Suspense>
       </body>
     </html>
   );

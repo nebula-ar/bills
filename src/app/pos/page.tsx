@@ -1,7 +1,7 @@
 import { PosTerminals } from "@/components/pos-terminals";
 import { requireAdminSession } from "@/lib/auth";
 import { getSaleEntryBranches } from "@/modules/sales/get-sale-entry-options.use-case";
-import { getBranchTerminals } from "@/modules/terminals/terminal.use-cases";
+import { getTerminalsByBranchIds } from "@/modules/terminals/terminal.use-cases";
 import { ArrowRight, MapPin, Scissors, ShoppingBag, Store } from "lucide-react";
 import Link from "next/link";
 
@@ -9,7 +9,7 @@ export default async function PosLauncherPage() {
   const session = await requireAdminSession();
 
   const branches = await getSaleEntryBranches(session.user.businessId);
-  const terminalsByBranch = await Promise.all(branches.map((branch) => getBranchTerminals(branch.id)));
+  const terminalsByBranch = await getTerminalsByBranchIds(branches.map((branch) => branch.id));
   const businessName = branches[0]?.business.name ?? "Barber Bills";
 
   return (
@@ -64,7 +64,7 @@ export default async function PosLauncherPage() {
               </Link>
               <PosTerminals
                 branch={{ id: branch.id, name: branch.name, barbers: branch.users.map((barber) => ({ id: barber.id, name: barber.name })) }}
-                customTerminals={terminalsByBranch[index]}
+                customTerminals={terminalsByBranch.get(branch.id) ?? []}
               />
             </li>
           ))}

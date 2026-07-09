@@ -218,7 +218,7 @@ export function findSaleEntryBranches(businessId: string) {
   });
 }
 
-export function findRecentSales(businessId: string, limit = 10) {
+export function findRecentSales(businessId: string, limit = 10, cursor?: string) {
   return prisma.sale.findMany({
     where: {
       deleted: false,
@@ -232,9 +232,11 @@ export function findRecentSales(businessId: string, limit = 10) {
       },
     },
     take: limit,
-    orderBy: {
-      soldAt: "desc",
-    },
+    // Paginación por cursor: arrancamos después de la última venta ya mostrada.
+    // El orderBy incluye `id` para un orden determinístico (dos ventas pueden
+    // compartir soldAt).
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    orderBy: [{ soldAt: "desc" }, { id: "desc" }],
     select: {
       id: true,
       soldAt: true,

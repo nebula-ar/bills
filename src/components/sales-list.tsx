@@ -2,8 +2,8 @@
 
 import { cancelSaleAction } from "@/app/sales/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { Ban, ReceiptText, X } from "lucide-react";
-import { useState } from "react";
+import { Ban, Loader2, ReceiptText, X } from "lucide-react";
+import { useState, useTransition } from "react";
 
 export type SalesListSale = {
   id: string;
@@ -23,12 +23,34 @@ function money(value: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
 }
 
-export function SalesList({ sales }: { sales: SalesListSale[] }) {
+type SalesListProps = {
+  sales: SalesListSale[];
+  initialCursor?: string | null;
+  loadMore?: (cursor: string) => Promise<{ sales: SalesListSale[]; nextCursor: string | null }>;
+};
+
+export function SalesList({ sales, initialCursor = null, loadMore }: SalesListProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const selected = sales.find((sale) => sale.id === selectedId) ?? null;
+  const [items, setItems] = useState(sales);
+  const [cursor, setCursor] = useState<string | null>(initialCursor);
+  const [loading, startLoading] = useTransition();
+  const selected = items.find((sale) => sale.id === selectedId) ?? null;
 
-  if (sales.length === 0) {
+  function handleLoadMore() {
+    if (!loadMore || !cursor) return;
+    startLoading(async () => {
+      const page = await loadMore(cursor);
+      // Deduplicamos por si una venta nueva corrió el cursor entre páginas.
+      setItems((prev) => {
+        const seen = new Set(prev.map((sale) => sale.id));
+        return [...prev, ...page.sales.filter((sale) => !seen.has(sale.id))];
+      });
+      setCursor(page.nextCursor);
+    });
+  }
+
+  if (items.length === 0) {
     return (
       <div className="mt-12 flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-white/50 p-10 text-center">
         <div className="mb-4 flex size-20 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-950/5">
@@ -43,7 +65,7 @@ export function SalesList({ sales }: { sales: SalesListSale[] }) {
   return (
     <>
       <ul className="mt-4 space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
-        {sales.map((sale, index) => {
+        {items.map((sale, index) => {
           const cancelled = sale.status === "CANCELLED";
           return (
             <li
@@ -91,6 +113,18 @@ export function SalesList({ sales }: { sales: SalesListSale[] }) {
           );
         })}
       </ul>
+
+      {cursor && loadMore ? (
+        <button
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 shadow-sm transition active:scale-[0.99] disabled:opacity-60"
+          disabled={loading}
+          onClick={handleLoadMore}
+          type="button"
+        >
+          {loading ? <Loader2 className="size-4 animate-spin" /> : null}
+          {loading ? "Cargando…" : "Cargar más"}
+        </button>
+      ) : null}
 
       <BottomSheet onClose={() => setSelectedId(null)} open={selected !== null}>
         {selected ? (

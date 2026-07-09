@@ -6,6 +6,7 @@ import {
   findManageableBranch,
   findManageableTerminal,
   findTerminalsByBranch,
+  findTerminalsByBranchIds,
   softDeleteTerminal,
   updateTerminalDetails,
 } from "./terminal.repository";
@@ -14,6 +15,20 @@ const MAX_NAME_LENGTH = 40;
 
 export function getBranchTerminals(branchId: string) {
   return findTerminalsByBranch(branchId);
+}
+
+// Terminales de varias sucursales agrupadas por branchId, en una sola query.
+export async function getTerminalsByBranchIds(branchIds: string[]) {
+  const grouped = new Map<string, { id: string; name: string; active: boolean }[]>();
+  if (branchIds.length === 0) return grouped;
+
+  const terminals = await findTerminalsByBranchIds(branchIds);
+  for (const terminal of terminals) {
+    const list = grouped.get(terminal.branchId) ?? [];
+    list.push({ id: terminal.id, name: terminal.name, active: terminal.active });
+    grouped.set(terminal.branchId, list);
+  }
+  return grouped;
 }
 
 export function getTerminalsManagementData(businessId: string) {

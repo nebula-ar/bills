@@ -59,6 +59,8 @@ function forcePgSsl(connectionString: string): string {
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+// Cacheamos el singleton SIEMPRE (también en prod). En el runtime serverless de
+// Vercel cada instancia/contenedor reusa el mismo PrismaClient entre requests, en
+// vez de crear uno nuevo por invocación (que agota conexiones del pooler y suma
+// cold start). En dev evita además fugas por el hot-reload.
+globalForPrisma.prisma = prisma;

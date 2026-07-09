@@ -6,6 +6,7 @@ import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 export const adminRoles = [UserRole.OWNER, UserRole.ADMIN] as const;
 
@@ -80,9 +81,11 @@ export function isAdminRole(role: UserRole | undefined) {
   return role === UserRole.OWNER || role === UserRole.ADMIN;
 }
 
-export async function getCurrentSession() {
+// Memoizado por request (React cache): el layout y cada página piden la sesión,
+// y sin esto se decodifica/verifica el JWT varias veces en el mismo request.
+export const getCurrentSession = cache(async () => {
   return getServerSession(authOptions);
-}
+});
 
 export async function requireAdminSession() {
   const session = await getCurrentSession();

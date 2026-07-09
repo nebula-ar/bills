@@ -50,6 +50,26 @@ export function findTerminalsByBranch(branchId: string) {
   });
 }
 
+// Igual que findTerminalsByBranch pero para varias sucursales en UNA sola query
+// (evita el fan-out N+1 en /pos). Incluye branchId para poder agrupar.
+export function findTerminalsByBranchIds(branchIds: string[]) {
+  return prisma.terminal.findMany({
+    where: {
+      branchId: { in: branchIds },
+      deleted: false,
+    },
+    orderBy: {
+      name: "asc",
+    },
+    select: {
+      id: true,
+      name: true,
+      active: true,
+      branchId: true,
+    },
+  });
+}
+
 export function findActiveTerminal(terminalId: string) {
   return prisma.terminal.findFirst({
     where: {

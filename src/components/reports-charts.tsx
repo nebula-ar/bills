@@ -1,15 +1,13 @@
 "use client";
 
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { PAYMENT_DONUT_COLORS } from "@/components/reports-charts-colors";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts";
 
 type TrendDatum = {
   label: string;
   total: number;
 };
-
-// Paleta del donut de medios de pago (se reusa en la leyenda del componente padre).
-export const PAYMENT_DONUT_COLORS = ["#2563eb", "#06b6d4", "#8b5cf6", "#f59e0b", "#10b981", "#64748b"];
 
 const donutChartConfig = {
   total: { label: "Total" },

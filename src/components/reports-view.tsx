@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatedMoney, AnimatedNumber } from "@/components/animated-number";
-import { PAYMENT_DONUT_COLORS, PaymentDonutChart, SalesTrendChart } from "@/components/reports-charts";
+import { PAYMENT_DONUT_COLORS } from "@/components/reports-charts-colors";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { DASHBOARD_RANGE_LABELS, DashboardRange, type DashboardRangeKey } from "@/lib/dashboard-range";
 import {
@@ -22,9 +22,22 @@ import {
   X,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ComponentType, type ReactNode } from "react";
+
+// Charts basados en recharts (dependencia grande): se cargan en el cliente, on
+// demand, para no engordar el bundle inicial del dashboard.
+const ChartSkeleton = () => <div className="h-[210px] w-full animate-pulse rounded-2xl bg-slate-100" />;
+const SalesTrendChart = dynamic(
+  () => import("@/components/reports-charts").then((mod) => mod.SalesTrendChart),
+  { ssr: false, loading: ChartSkeleton },
+);
+const PaymentDonutChart = dynamic(
+  () => import("@/components/reports-charts").then((mod) => mod.PaymentDonutChart),
+  { ssr: false, loading: ChartSkeleton },
+);
 
 export type ReportsBarberOption = { id: string; name: string };
 export type ReportsPaymentOption = { value: string; label: string };
