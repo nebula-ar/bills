@@ -1,4 +1,5 @@
 import { ExpenseCategory, PaymentMethod } from "@/generated/prisma/client";
+import { logEvent } from "@/lib/logger";
 
 import {
   createExpense,
@@ -58,7 +59,7 @@ export async function getExpensesSummary(input: { businessId: string; from?: Dat
 export async function createBusinessExpense(input: ExpenseInput) {
   validate(input);
 
-  return createExpense({
+  const expense = await createExpense({
     businessId: input.businessId,
     branchId: input.branchId ?? null,
     category: input.category,
@@ -67,6 +68,19 @@ export async function createBusinessExpense(input: ExpenseInput) {
     note: input.note ?? null,
     spentAt: input.spentAt,
   });
+
+  await logEvent("expense.create", `Gasto de $${input.amount} (${input.category})`, {
+    businessId: input.businessId,
+    context: {
+      expenseId: expense.id,
+      branchId: input.branchId ?? null,
+      category: input.category,
+      paymentMethod: input.paymentMethod,
+      amount: input.amount,
+    },
+  });
+
+  return expense;
 }
 
 export async function updateBusinessExpense(input: ExpenseInput & { expenseId: string }) {

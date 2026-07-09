@@ -1,4 +1,5 @@
 import { PaymentMethod } from "@/generated/prisma/client";
+import { logEvent } from "@/lib/logger";
 import { PAYMENT_METHOD_ORDER } from "@/lib/payment-labels";
 
 import { buildCashCloseLines, computeAccountBalances, validateTransfer, type AccountBalance } from "./cash.logic";
@@ -64,7 +65,7 @@ export async function createBusinessTransfer(input: {
   if (!validation.ok) {
     throw new Error(validation.error);
   }
-  return createTransfer({
+  const transfer = await createTransfer({
     businessId: input.businessId,
     branchId: input.branchId ?? null,
     fromMethod: input.fromMethod,
@@ -73,6 +74,11 @@ export async function createBusinessTransfer(input: {
     note: input.note ?? null,
     movedAt: input.movedAt,
   });
+  await logEvent("cash.transfer", `Transferencia de $${input.amount} (${input.fromMethod} → ${input.toMethod})`, {
+    businessId: input.businessId,
+    context: { transferId: transfer.id, branchId: input.branchId ?? null, from: input.fromMethod, to: input.toMethod, amount: input.amount },
+  });
+  return transfer;
 }
 
 export async function deleteBusinessTransfer(input: { businessId: string; transferId: string }) {
@@ -97,10 +103,17 @@ export async function createBusinessCashClose(input: {
   const balances = await getAccountBalances({ businessId: input.businessId, branchId: input.branchId ?? null });
   const lines = buildCashCloseLines(balances, input.counted);
 
-  return createCashClose({
+  const close = await createCashClose({
     businessId: input.businessId,
     branchId: input.branchId ?? null,
     note: input.note ?? null,
     lines,
   });
+  const totalSystem = lines.reduce((sum, line) => sum + line.systemAmount, 0);
+  const totalCounted = lines.reduce((sum, line) => sum + line.countedAmount, 0);
+  await logEvent("cash.close", `Cierre de caja (contado $${totalCounted}, diferencia $${totalCounted - totalSystem})`, {
+    businessId: input.businessId,
+    context: { closeId: close.id, branchId: input.branchId ?? null, totalSystem, totalCounted, diff: totalCounted - totalSystem },
+  });
+  return close;
 }

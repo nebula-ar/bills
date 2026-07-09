@@ -4,6 +4,7 @@ import { PaymentMethod } from "@/generated/prisma/client";
 import { setBarberFlash } from "@/lib/barber-flash";
 import { clearBarberSessionCookie, getBarberSession, setBarberSessionCookie } from "@/lib/barber-session";
 import { getBarberErrorMessage } from "@/lib/barber-error-messages";
+import { logError } from "@/lib/logger";
 import { parseAmountInput } from "@/lib/money";
 import { getSaleErrorMessage } from "@/lib/sale-error-messages";
 import { parsePaymentMethod, parseRequiredString } from "@/lib/sale-form-parser";
@@ -40,7 +41,7 @@ export async function unlockBarberTerminal(formData: FormData) {
       await redirectWithMessage("error", getBarberErrorMessage(error.code), ctx);
     }
 
-    console.error(error);
+    await logError("barber.unlock", error, { userId: barberId, context: { branchId, terminalId } });
     await redirectWithMessage("error", "No pudimos validar el PIN. Intentá de nuevo.", ctx);
   }
 
@@ -95,7 +96,7 @@ export async function submitBarberSale(input: {
     if (error instanceof SaleError) {
       return { ok: false, error: getSaleErrorMessage(error.code) };
     }
-    console.error(error);
+    await logError("barber.sale", error, { userId: session.barberId, context: { branchId: session.branchId, terminalId: session.terminalId ?? null } });
     return { ok: false, error: "No pudimos registrar la venta. Intentá de nuevo." };
   }
 }
@@ -131,7 +132,7 @@ export async function submitBarberCashClose(formData: FormData) {
   try {
     await createBusinessCashClose({ businessId: branch.businessId, branchId: session.branchId, note, counted });
   } catch (error) {
-    console.error(error);
+    await logError("barber.cash-close", error, { businessId: branch.businessId, userId: session.barberId, context: { branchId: session.branchId } });
     await setBarberFlash({ status: "error", message: "No pudimos cerrar la caja. Intentá de nuevo." });
     redirect("/barber");
   }

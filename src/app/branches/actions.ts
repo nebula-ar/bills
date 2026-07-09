@@ -2,6 +2,7 @@
 
 import { requireAdminSession } from "@/lib/auth";
 import { getBranchErrorMessage } from "@/lib/branch-error-messages";
+import { logError } from "@/lib/logger";
 import { BranchError } from "@/modules/branches/branch.errors";
 import { createBranchForManagement } from "@/modules/branches/create-branch.use-case";
 import { updateBranchForManagement } from "@/modules/branches/update-branch.use-case";
@@ -22,7 +23,7 @@ export async function createBranch(formData: FormData) {
   try {
     await createBranchForManagement({ businessId: session.user.businessId, name, address });
   } catch (error) {
-    handleBranchActionError(error);
+    await handleBranchActionError(error, session.user.businessId, session.user.id);
   }
 
   redirectWithMessage("success", "Sucursal creada.");
@@ -43,7 +44,7 @@ export async function updateBranch(formData: FormData) {
   try {
     await updateBranchForManagement({ branchId, businessId: session.user.businessId, name, address, active });
   } catch (error) {
-    handleBranchActionError(error);
+    await handleBranchActionError(error, session.user.businessId, session.user.id);
   }
 
   redirectWithMessage("success", "Sucursal actualizada.");
@@ -71,12 +72,12 @@ function parseOptionalString(formData: FormData, key: string) {
   return trimmedValue.length > 0 ? trimmedValue : undefined;
 }
 
-function handleBranchActionError(error: unknown): never {
+async function handleBranchActionError(error: unknown, businessId: string, userId: string): Promise<never> {
   if (error instanceof BranchError) {
     redirectWithMessage("error", getBranchErrorMessage(error.code));
   }
 
-  console.error(error);
+  await logError("branch.save", error, { businessId, userId });
   redirectWithMessage("error", genericErrorMessage);
 }
 

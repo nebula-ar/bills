@@ -3,6 +3,7 @@
 import { PaymentMethod } from "@/generated/prisma/client";
 import { requireAdminSession } from "@/lib/auth";
 import { parseExpenseCategory } from "@/lib/expense-labels";
+import { logError } from "@/lib/logger";
 import { parsePaymentMethodValue } from "@/lib/payment-labels";
 import {
   createBusinessExpense,
@@ -53,7 +54,7 @@ export async function createExpenseAction(formData: FormData) {
   try {
     await createBusinessExpense({ businessId: session.user.businessId, branchId, category, paymentMethod, amount, note, spentAt });
   } catch (error) {
-    console.error(error);
+    await logError("expense.create", error, { businessId: session.user.businessId, userId: session.user.id });
     redirectWithMessage("error", "No pudimos guardar el gasto. Intentá de nuevo.", month);
   }
 
@@ -79,7 +80,7 @@ export async function updateExpenseAction(formData: FormData) {
   try {
     await updateBusinessExpense({ businessId: session.user.businessId, expenseId, branchId, category, paymentMethod, amount, note, spentAt });
   } catch (error) {
-    console.error(error);
+    await logError("expense.update", error, { businessId: session.user.businessId, userId: session.user.id });
     redirectWithMessage("error", "No pudimos actualizar el gasto. Intentá de nuevo.", month);
   }
 
@@ -99,7 +100,7 @@ export async function deleteExpenseAction(formData: FormData) {
   try {
     await deleteBusinessExpense({ businessId: session.user.businessId, expenseId });
   } catch (error) {
-    console.error(error);
+    await logError("expense.delete", error, { businessId: session.user.businessId, userId: session.user.id });
     redirectWithMessage("error", "No pudimos borrar el gasto. Intentá de nuevo.", month);
   }
 

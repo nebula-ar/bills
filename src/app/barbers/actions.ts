@@ -2,6 +2,7 @@
 
 import { requireAdminSession } from "@/lib/auth";
 import { getBarberErrorMessage } from "@/lib/barber-error-messages";
+import { logError } from "@/lib/logger";
 import { BarberError } from "@/modules/barbers/barber.errors";
 import { createBarberForManagement } from "@/modules/barbers/create-barber.use-case";
 import { updateBarberForManagement } from "@/modules/barbers/update-barber.use-case";
@@ -28,7 +29,7 @@ export async function createBarber(formData: FormData) {
       redirectWithMessage("error", getBarberErrorMessage(error.code));
     }
 
-    console.error(error);
+    await logError("barber.create", error, { businessId: session.user.businessId, userId: session.user.id });
     redirectWithMessage("error", genericErrorMessage);
   }
 
@@ -56,7 +57,7 @@ export async function updateBarber(formData: FormData) {
       redirectWithMessage("error", getBarberErrorMessage(error.code));
     }
 
-    console.error(error);
+    await logError("barber.update", error, { businessId: session.user.businessId, userId: session.user.id });
     redirectWithMessage("error", genericErrorMessage);
   }
 

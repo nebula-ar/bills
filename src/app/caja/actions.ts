@@ -2,6 +2,7 @@
 
 import { PaymentMethod } from "@/generated/prisma/client";
 import { requireAdminSession } from "@/lib/auth";
+import { logError } from "@/lib/logger";
 import { parseAmountInput } from "@/lib/money";
 import { parsePaymentMethodValue } from "@/lib/payment-labels";
 import {
@@ -46,7 +47,7 @@ export async function saveOpeningBalancesAction(formData: FormData) {
       }
     }
   } catch (error) {
-    console.error(error);
+    await logError("cash.opening", error, { businessId: session.user.businessId, userId: session.user.id });
     redirectWithMessage("error", "No pudimos guardar los saldos iniciales.", branchId);
   }
 
@@ -72,7 +73,7 @@ export async function createTransferAction(formData: FormData) {
   try {
     await createBusinessTransfer({ businessId: session.user.businessId, branchId, fromMethod, toMethod, amount, note, movedAt });
   } catch (error) {
-    console.error(error);
+    await logError("cash.transfer", error, { businessId: session.user.businessId, userId: session.user.id });
     redirectWithMessage("error", "No pudimos registrar la transferencia.", branchId);
   }
 
@@ -87,7 +88,7 @@ export async function deleteTransferAction(formData: FormData) {
   try {
     await deleteBusinessTransfer({ businessId: session.user.businessId, transferId });
   } catch (error) {
-    console.error(error);
+    await logError("cash.transfer.delete", error, { businessId: session.user.businessId, userId: session.user.id });
     redirectWithMessage("error", "No pudimos borrar la transferencia.", branchId);
   }
 
@@ -111,7 +112,7 @@ export async function createCashCloseAction(formData: FormData) {
   try {
     await createBusinessCashClose({ businessId: session.user.businessId, branchId, note, counted });
   } catch (error) {
-    console.error(error);
+    await logError("cash.close", error, { businessId: session.user.businessId, userId: session.user.id });
     redirectWithMessage("error", "No pudimos cerrar la caja.", branchId);
   }
 

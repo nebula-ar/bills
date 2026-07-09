@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAdminSession } from "@/lib/auth";
+import { logError } from "@/lib/logger";
 import { getServiceErrorMessage } from "@/lib/service-error-messages";
 import { createGlobalBusinessService } from "@/modules/services/create-global-service.use-case";
 import { ServiceError } from "@/modules/services/service.errors";
@@ -40,7 +41,7 @@ export async function createService(formData: FormData) {
       await upsertBranchServiceConfiguration({ businessId: session.user.businessId, branchId, serviceId: service.id, price, active: true });
     }
   } catch (error) {
-    handleServiceActionError(error, branchId);
+    await handleServiceActionError(error, branchId, { businessId: session.user.businessId, userId: session.user.id });
   }
 
   redirectWithMessage(
@@ -71,7 +72,7 @@ export async function saveBranchServiceConfig(formData: FormData) {
       active,
     });
   } catch (error) {
-    handleServiceActionError(error, branchId);
+    await handleServiceActionError(error, branchId, { businessId: session.user.businessId, userId: session.user.id });
   }
 
   redirectWithMessage("success", "Configuración de sucursal guardada.", branchId);
@@ -107,7 +108,7 @@ export async function updateService(formData: FormData) {
       await upsertBranchServiceConfiguration({ businessId: session.user.businessId, branchId, serviceId, price, active });
     }
   } catch (error) {
-    handleServiceActionError(error, branchId);
+    await handleServiceActionError(error, branchId, { businessId: session.user.businessId, userId: session.user.id });
   }
 
   redirectWithMessage("success", "Servicio actualizado.", branchId);
@@ -146,12 +147,16 @@ function parsePrice(value: FormDataEntryValue | null) {
   return Number.isInteger(price) && price > 0 ? price : null;
 }
 
-function handleServiceActionError(error: unknown, branchId?: string): never {
+async function handleServiceActionError(
+  error: unknown,
+  branchId: string | undefined,
+  meta: { businessId: string; userId: string },
+): Promise<never> {
   if (error instanceof ServiceError) {
     redirectWithMessage("error", getServiceErrorMessage(error.code), branchId);
   }
 
-  console.error(error);
+  await logError("service.save", error, { businessId: meta.businessId, userId: meta.userId, context: { branchId: branchId ?? null } });
   redirectWithMessage("error", genericErrorMessage, branchId);
 }
 

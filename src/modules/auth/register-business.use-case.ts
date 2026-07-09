@@ -1,6 +1,7 @@
 import { hash } from "bcryptjs";
 
 import { UserRole } from "@/generated/prisma/client";
+import { logEvent } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 
 export type RegisterBarberInput = { name: string; pin: string };
@@ -107,7 +108,7 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
     })),
   );
 
-  await prisma.$transaction(async (tx) => {
+  const businessId = await prisma.$transaction(async (tx) => {
     const business = await tx.business.create({ data: { name: businessName } });
 
     await tx.user.create({
@@ -154,6 +155,18 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
         });
       }
     }
+
+    return business.id;
+  });
+
+  await logEvent("business.register", `Alta de barbería "${businessName}"`, {
+    businessId,
+    context: {
+      businessName,
+      branches: branchesWithHashes.length,
+      barbers: branchesWithHashes.reduce((sum, branch) => sum + branch.barbers.length, 0),
+      services: services.length,
+    },
   });
 
   return { ok: true };

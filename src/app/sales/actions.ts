@@ -2,6 +2,7 @@
 
 import type { SalesListSale } from "@/components/sales-list";
 import { requireAdminSession } from "@/lib/auth";
+import { logError } from "@/lib/logger";
 import { getSaleErrorMessage } from "@/lib/sale-error-messages";
 import { cancelSale } from "@/modules/sales/cancel-sale.use-case";
 import { getRecentSales } from "@/modules/sales/get-recent-sales.use-case";
@@ -25,7 +26,7 @@ export async function loadMoreSalesAction(
 }
 
 export async function cancelSaleAction(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const saleId = parseRequiredString(formData, "saleId");
   const reason = parseOptionalString(formData, "reason");
@@ -41,7 +42,7 @@ export async function cancelSaleAction(formData: FormData) {
       redirectWithMessage("error", getSaleErrorMessage(error.code));
     }
 
-    console.error(error);
+    await logError("sale.cancel", error, { businessId: session.user.businessId, userId: session.user.id, context: { saleId } });
     redirectWithMessage("error", genericErrorMessage);
   }
 

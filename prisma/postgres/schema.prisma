@@ -366,3 +366,26 @@ enum PaymentMethod {
   MERCADO_PAGO
   OTHER
 }
+
+enum LogLevel {
+  ERROR
+  WARN
+  INFO
+}
+
+// Registro de backend: errores y eventos clave (auditoría). Sin relaciones (append-only,
+// puede referenciar entidades ya borradas). Se purga solo pasados los 90 días.
+model AppLog {
+  id         String   @id @default(cuid())
+  level      LogLevel
+  event      String
+  message    String
+  context    String?
+  businessId String?
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([level, createdAt])
+  @@index([createdAt])
+}

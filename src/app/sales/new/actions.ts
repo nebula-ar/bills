@@ -2,6 +2,7 @@
 
 import { PaymentMethod } from "@/generated/prisma/client";
 import { requireAdminSession } from "@/lib/auth";
+import { logError } from "@/lib/logger";
 import { getSaleErrorMessage } from "@/lib/sale-error-messages";
 import { parsePaymentMethod, parseRequiredString, parseSaleItemsFromFormData } from "@/lib/sale-form-parser";
 import { createSale } from "@/modules/sales/create-sale.use-case";
@@ -24,7 +25,7 @@ export type SubmitSaleResult = { ok: true } | { ok: false; error: string };
 // Alta del POS admin: recibe datos estructurados (incluye pago dividido) y devuelve
 // un resultado en vez de redirigir, para una UX fluida del lado del cliente.
 export async function submitSale(input: SubmitSaleInput): Promise<SubmitSaleResult> {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   if (!input.branchId || !input.barberId) {
     return { ok: false, error: "Elegí sucursal y barbero." };
@@ -57,13 +58,13 @@ export async function submitSale(input: SubmitSaleInput): Promise<SubmitSaleResu
       return { ok: false, error: getSaleErrorMessage(error.code) };
     }
 
-    console.error(error);
+    await logError("sale.create", error, { businessId: session.user.businessId, userId: session.user.id, context: { branchId: input.branchId, barberId: input.barberId } });
     return { ok: false, error: genericErrorMessage };
   }
 }
 
 export async function registerSale(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const branchId = parseRequiredString(formData, "branchId");
   const barberId = parseRequiredString(formData, "barberId");
@@ -90,7 +91,7 @@ export async function registerSale(formData: FormData) {
       redirectWithMessage("error", getSaleErrorMessage(error.code));
     }
 
-    console.error(error);
+    await logError("sale.create", error, { businessId: session.user.businessId, userId: session.user.id, context: { branchId, barberId } });
     redirectWithMessage("error", genericErrorMessage);
   }
 

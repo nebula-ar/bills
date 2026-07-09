@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAdminSession } from "@/lib/auth";
+import { logError } from "@/lib/logger";
 import {
   createBranchTerminal,
   deleteBranchTerminal,
@@ -27,7 +28,7 @@ export async function createTerminalAction(formData: FormData) {
   try {
     await createBranchTerminal({ businessId: session.user.businessId, branchId, name, barberId });
   } catch (error) {
-    console.error(error);
+    await logError("terminal.create", error, { businessId: session.user.businessId, userId: session.user.id });
     redirectWithMessage("error", "No pudimos crear la terminal. Revisá el barbero elegido.", branchId);
   }
 
@@ -49,7 +50,7 @@ export async function renameTerminalAction(formData: FormData) {
   try {
     await updateBranchTerminal({ businessId: session.user.businessId, terminalId, name, barberId });
   } catch (error) {
-    console.error(error);
+    await logError("terminal.update", error, { businessId: session.user.businessId, userId: session.user.id });
     redirectWithMessage("error", "No pudimos actualizar la terminal. Revisá el barbero elegido.", branchId);
   }
 
@@ -69,7 +70,7 @@ export async function deleteTerminalAction(formData: FormData) {
   try {
     await deleteBranchTerminal({ businessId: session.user.businessId, terminalId });
   } catch (error) {
-    console.error(error);
+    await logError("terminal.delete", error, { businessId: session.user.businessId, userId: session.user.id });
     redirectWithMessage("error", "No pudimos borrar la terminal. Intentá de nuevo.", branchId);
   }
 

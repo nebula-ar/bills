@@ -1,4 +1,5 @@
 import { PaymentMethod, UserRole } from "@/generated/prisma/client";
+import { logEvent } from "@/lib/logger";
 
 import type { CreateSaleDto } from "./create-sale.dto";
 import {
@@ -94,7 +95,7 @@ export async function createSale(input: CreateSaleDto) {
     throw new SaleError(SaleErrorCode.PAYMENTS_TOTAL_MISMATCH);
   }
 
-  return createSaleTransaction({
+  const sale = await createSaleTransaction({
     branchId: input.branchId,
     barberId: input.barberId,
     terminalId: input.terminalId ?? null,
@@ -104,6 +105,20 @@ export async function createSale(input: CreateSaleDto) {
     notes: input.notes,
     soldAt: input.soldAt,
   });
+
+  await logEvent("sale.create", `Venta registrada por $${saleTotal}`, {
+    businessId: branch.businessId,
+    context: {
+      saleId: sale.id,
+      branchId: input.branchId,
+      barberId: input.barberId,
+      total: saleTotal,
+      items: saleItems.length,
+      terminalId: input.terminalId ?? null,
+    },
+  });
+
+  return sale;
 }
 
 function validateSaleInputShape(input: CreateSaleDto) {
