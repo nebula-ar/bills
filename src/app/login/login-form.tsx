@@ -70,7 +70,6 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
               autoCapitalize="none"
               autoComplete="username"
               autoCorrect="off"
-              autoFocus
               className="min-w-0 flex-1 bg-transparent text-base font-semibold text-slate-950 outline-none placeholder:text-slate-400"
               disabled={isPending}
               enterKeyHint="next"

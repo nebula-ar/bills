@@ -285,7 +285,6 @@ export function RegisterWizard() {
                   <div className="mt-6 duration-500 animate-in fade-in slide-in-from-bottom-2" style={stagger(4)}>
                     {step === 0 ? (
                       <input
-                        autoFocus
                         className={inputClass}
                         enterKeyHint="next"
                         onChange={(event) => setBusinessName(event.target.value)}
@@ -297,7 +296,6 @@ export function RegisterWizard() {
 
                     {step === 1 ? (
                       <input
-                        autoFocus
                         className={inputClass}
                         enterKeyHint="next"
                         onChange={(event) => setOwnerName(event.target.value)}
@@ -310,7 +308,6 @@ export function RegisterWizard() {
                     {step === 2 ? (
                       <input
                         autoCapitalize="none"
-                        autoFocus
                         className={inputClass}
                         enterKeyHint="next"
                         inputMode="email"
@@ -324,7 +321,6 @@ export function RegisterWizard() {
 
                     {step === 3 ? (
                       <input
-                        autoFocus
                         className={inputClass}
                         enterKeyHint="go"
                         onChange={(event) => setPassword(event.target.value)}
@@ -344,7 +340,6 @@ export function RegisterWizard() {
 
                     {step === 5 ? (
                       <input
-                        autoFocus
                         className={inputClass}
                         enterKeyHint="next"
                         onChange={(event) => setBranchName(event.target.value)}
@@ -380,7 +375,6 @@ export function RegisterWizard() {
                                 <span className="ml-auto flex w-28 items-center rounded-xl border border-slate-200 bg-white px-2.5 transition focus-within:border-blue-400">
                                   <span className="text-sm font-black text-slate-400">$</span>
                                   <input
-                                    autoFocus
                                     className="w-full min-w-0 bg-transparent px-1 py-2 text-right text-sm font-black text-slate-950 outline-none"
                                     inputMode="numeric"
                                     onChange={(event) => setServicePrice(i, event.target.value.replace(/\D/g, "").slice(0, 7))}
