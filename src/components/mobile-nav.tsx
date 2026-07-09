@@ -3,6 +3,7 @@
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import {
   HomeIcon,
+  Landmark,
   MonitorSmartphone,
   MoreHorizontal,
   ReceiptText,
@@ -28,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
 
 // Los ABM (configuración) viven detrás de "Más" para no saturar la barra.
 const MORE_ITEMS: (NavItem & { hint: string })[] = [
+  { href: "/caja", label: "Caja", icon: Landmark, hint: "Saldos, transferencias y cierre de caja" },
   { href: "/terminals", label: "Terminales", icon: MonitorSmartphone, hint: "Mostrador, teléfonos y propias" },
   { href: "/services", label: "Servicios", icon: Scissors, hint: "Catálogo y precios por sucursal" },
   { href: "/barbers", label: "Barberos", icon: Users, hint: "Alta, sucursal y PIN" },
