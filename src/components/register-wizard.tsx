@@ -84,6 +84,7 @@ export function RegisterWizard() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isBarber, setIsBarber] = useState(false);
+  const [firstBarberName, setFirstBarberName] = useState("");
   const [branchName, setBranchName] = useState("");
   const [services, setServices] = useState(SUGGESTED_SERVICES.map((service) => ({ ...service, selected: false, price: "" })));
 
@@ -112,9 +113,13 @@ export function RegisterWizard() {
       case 3:
         return password.length >= 6;
       case 4:
-        return true;
+        // Tiene que quedar al menos un barbero: el dueño, o el primer empleado.
+        return isBarber || firstBarberName.trim().length > 0;
       case 5:
         return branchName.trim().length > 0;
+      case 6:
+        // Al menos un servicio con precio, para poder vender enseguida.
+        return services.some((service) => service.selected && Number(service.price) > 0);
       default:
         return true;
     }
@@ -159,9 +164,12 @@ export function RegisterWizard() {
   }
 
   function submit() {
-    const branches = [
-      { name: branchName.trim(), address: "", barbers: isBarber ? [{ name: ownerName.trim(), pin: "" }] : [] },
-    ];
+    const barbers = isBarber
+      ? [{ name: ownerName.trim(), pin: "" }]
+      : firstBarberName.trim()
+        ? [{ name: firstBarberName.trim(), pin: "" }]
+        : [];
+    const branches = [{ name: branchName.trim(), address: "", barbers }];
     const cleanServices = services
       .map((service) => ({ name: service.name.trim(), price: Number(service.price) }))
       .filter((service) => service.name.length > 0 && Number.isFinite(service.price) && service.price > 0);
@@ -351,6 +359,23 @@ export function RegisterWizard() {
                       <div className="grid gap-3">
                         <ChoiceCard emoji="✂️" hint="Te sumo como barbero" onClick={() => setIsBarber(true)} selected={isBarber} title="Sí, yo también corto" />
                         <ChoiceCard emoji="📊" hint="Solo administro el negocio" onClick={() => setIsBarber(false)} selected={!isBarber} title="No, solo administro" />
+                        {!isBarber ? (
+                          <div className="grid gap-2 duration-300 animate-in fade-in slide-in-from-bottom-2">
+                            <label className="text-xs font-black uppercase tracking-wide text-slate-500" htmlFor="firstBarber">
+                              ¿Quién es tu primer barbero?
+                            </label>
+                            <input
+                              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                              enterKeyHint="next"
+                              id="firstBarber"
+                              onChange={(event) => setFirstBarberName(event.target.value)}
+                              onKeyDown={onEnter}
+                              placeholder="Ej: Juan Pérez"
+                              value={firstBarberName}
+                            />
+                            <p className="text-xs text-slate-500">Necesitás al menos un barbero para vender. Sumás más (y sus PIN) después.</p>
+                          </div>
+                        ) : null}
                       </div>
                     ) : null}
 
