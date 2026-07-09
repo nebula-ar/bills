@@ -1,39 +1,40 @@
 "use client";
 
+import "@/lib/icons";
+
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import {
-  HomeIcon,
-  Landmark,
-  MonitorSmartphone,
-  MoreHorizontal,
-  ReceiptText,
-  Scissors,
-  ShoppingBag,
-  Store,
-  Users,
-  Wallet,
-  type LucideIcon,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-type NavItem = { href: string; label: string; icon: LucideIcon };
+type NavItem = { href: string; label: string; icon: string };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Inicio", icon: HomeIcon },
-  { href: "/pos", label: "Vender", icon: ShoppingBag },
-  { href: "/sales", label: "Historial", icon: ReceiptText },
-  { href: "/expenses", label: "Gastos", icon: Wallet },
+  { href: "/", label: "Inicio", icon: "solar:home-2-bold" },
+  { href: "/pos", label: "Vender", icon: "solar:bag-4-bold" },
+  { href: "/sales", label: "Historial", icon: "solar:bill-list-bold" },
+  { href: "/expenses", label: "Gastos", icon: "solar:wallet-bold" },
 ];
 
+// Estilo "Ajustes de iOS": cuadradito de color sólido con el icono en blanco.
+// Clases completas (Tailwind necesita verlas literales para no purgarlas).
+const TINTS: Record<string, string> = {
+  emerald: "bg-emerald-500 text-white",
+  blue: "bg-blue-500 text-white",
+  violet: "bg-violet-500 text-white",
+  orange: "bg-orange-500 text-white",
+  rose: "bg-rose-500 text-white",
+};
+
 // Los ABM (configuración) viven detrás de "Más" para no saturar la barra.
-const MORE_ITEMS: (NavItem & { hint: string })[] = [
-  { href: "/caja", label: "Caja", icon: Landmark, hint: "Saldos, transferencias y cierre de caja" },
-  { href: "/terminals", label: "Terminales", icon: MonitorSmartphone, hint: "Mostrador, teléfonos y propias" },
-  { href: "/services", label: "Servicios", icon: Scissors, hint: "Catálogo y precios por sucursal" },
-  { href: "/barbers", label: "Barberos", icon: Users, hint: "Alta, sucursal y PIN" },
-  { href: "/branches", label: "Sucursales", icon: Store, hint: "Nombre, dirección y estado" },
+// Iconos del set Solar (vía Iconify), cada uno con su color.
+const MORE_ITEMS: { href: string; label: string; icon: string; tint: string; hint: string }[] = [
+  { href: "/caja", label: "Caja", icon: "solar:safe-2-bold", tint: "emerald", hint: "Saldos, transferencias y cierre de caja" },
+  { href: "/terminals", label: "Terminales", icon: "solar:smartphone-bold", tint: "blue", hint: "Mostrador, teléfonos y propias" },
+  { href: "/services", label: "Servicios", icon: "solar:scissors-bold", tint: "violet", hint: "Catálogo y precios por sucursal" },
+  { href: "/barbers", label: "Barberos", icon: "solar:users-group-two-rounded-bold", tint: "orange", hint: "Alta, sucursal y PIN" },
+  { href: "/branches", label: "Sucursales", icon: "solar:shop-2-bold", tint: "rose", hint: "Nombre, dirección y estado" },
 ];
 
 // Rutas donde NO se muestra la nav admin (login y la terminal de barbero, que tiene la suya).
@@ -71,7 +72,7 @@ export function MobileNav() {
               href={item.href}
               key={item.href}
             >
-              <item.icon className="size-4 shrink-0" />
+              <Icon className="size-5 shrink-0" icon={item.icon} />
               <span className="max-w-full truncate">{item.label}</span>
             </Link>
           );
@@ -83,7 +84,7 @@ export function MobileNav() {
           onClick={() => setMoreOpen(true)}
           type="button"
         >
-          <MoreHorizontal className="size-4 shrink-0" />
+          <Icon className="size-5 shrink-0" icon="solar:menu-dots-bold" />
           <span className="max-w-full truncate">Más</span>
         </button>
       </nav>
@@ -105,12 +106,8 @@ export function MobileNav() {
                   key={item.href}
                   onClick={() => setMoreOpen(false)}
                 >
-                  <span
-                    className={`flex size-11 shrink-0 items-center justify-center rounded-2xl ${
-                      active ? "bg-blue-600 text-white" : "bg-white text-blue-600 ring-1 ring-slate-950/5"
-                    }`}
-                  >
-                    <item.icon className="size-5" />
+                  <span className={`flex size-11 shrink-0 items-center justify-center rounded-[0.7rem] shadow-sm ${TINTS[item.tint]}`}>
+                    <Icon className="size-6" icon={item.icon} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-black text-slate-950">{item.label}</p>
