@@ -1,7 +1,7 @@
 "use client";
 
 import { registerBusinessAction } from "@/app/register/actions";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Plus, X } from "lucide-react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useState, useTransition, type KeyboardEvent } from "react";
@@ -16,8 +16,11 @@ const STEPS: Step[] = [
   { emoji: "📧", title: "¿Cuál es tu email?", subtitle: "Lo vas a usar para entrar.", cheer: "¡Genial!" },
   { emoji: "🔒", title: "Creá tu contraseña", subtitle: "Al menos 6 caracteres.", cheer: "¡Seguridad primero!" },
   { emoji: "✂️", title: "¿Vos también atendés?", subtitle: "Podés cargar tus propias ventas.", cheer: "¡Buena!" },
-  { emoji: "🏪", title: "¿Cómo se llama tu local?", subtitle: "Después sumás más locales y tu equipo desde el panel.", cheer: "¡Último paso!" },
+  { emoji: "🏪", title: "¿Cómo se llama tu local?", subtitle: "Después sumás más locales y tu equipo desde el panel.", cheer: "¡Ya casi!" },
+  { emoji: "💵", title: "¿Qué servicios ofrecés?", subtitle: "Poné el precio de los que hacés; los demás dejalos vacíos.", cheer: "¡Último paso!" },
 ];
+
+const SUGGESTED_SERVICES = ["Corte", "Barba", "Corte + Barba", "Perfilado de cejas", "Color"];
 
 const inputClass =
   "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center text-lg font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100";
@@ -75,6 +78,19 @@ export function RegisterWizard() {
   const [password, setPassword] = useState("");
   const [isBarber, setIsBarber] = useState(false);
   const [branchName, setBranchName] = useState("");
+  const [services, setServices] = useState<{ name: string; price: string }[]>(
+    SUGGESTED_SERVICES.map((name) => ({ name, price: "" })),
+  );
+
+  function updateService(index: number, patch: Partial<{ name: string; price: string }>) {
+    setServices((current) => current.map((service, i) => (i === index ? { ...service, ...patch } : service)));
+  }
+  function addService() {
+    setServices((current) => [...current, { name: "", price: "" }]);
+  }
+  function removeService(index: number) {
+    setServices((current) => current.filter((_, i) => i !== index));
+  }
 
   function stepValid() {
     switch (step) {
@@ -127,6 +143,9 @@ export function RegisterWizard() {
     const branches = [
       { name: branchName.trim(), address: "", barbers: isBarber ? [{ name: ownerName.trim(), pin: "" }] : [] },
     ];
+    const cleanServices = services
+      .map((service) => ({ name: service.name.trim(), price: Number(service.price) }))
+      .filter((service) => service.name.length > 0 && Number.isFinite(service.price) && service.price > 0);
 
     setError(null);
     setPhase("success");
@@ -138,6 +157,7 @@ export function RegisterWizard() {
         username: "",
         password,
         branches,
+        services: cleanServices,
       });
 
       if (!result.ok) {
@@ -318,12 +338,53 @@ export function RegisterWizard() {
                       <input
                         autoFocus
                         className={inputClass}
-                        enterKeyHint="go"
+                        enterKeyHint="next"
                         onChange={(event) => setBranchName(event.target.value)}
                         onKeyDown={onEnter}
                         placeholder="Ej: Sucursal Centro"
                         value={branchName}
                       />
+                    ) : null}
+
+                    {step === 6 ? (
+                      <div className="grid gap-2">
+                        {services.map((service, i) => (
+                          <div className="flex items-center gap-2" key={i}>
+                            <input
+                              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-950 outline-none transition focus:border-blue-400"
+                              onChange={(event) => updateService(i, { name: event.target.value })}
+                              placeholder="Servicio"
+                              value={service.name}
+                            />
+                            <div className="flex w-24 shrink-0 items-center rounded-xl border border-slate-200 bg-white px-2.5 transition focus-within:border-blue-400">
+                              <span className="text-sm font-black text-slate-400">$</span>
+                              <input
+                                className="w-full bg-transparent px-1 py-2.5 text-sm font-bold text-slate-950 outline-none"
+                                inputMode="numeric"
+                                onChange={(event) => updateService(i, { price: event.target.value.replace(/\D/g, "").slice(0, 7) })}
+                                placeholder="0"
+                                value={service.price}
+                              />
+                            </div>
+                            <button
+                              aria-label="Quitar servicio"
+                              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition active:scale-90"
+                              onClick={() => removeService(i)}
+                              type="button"
+                            >
+                              <X className="size-4" />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-white py-2.5 text-xs font-black text-blue-600 transition active:scale-[0.99]"
+                          onClick={addService}
+                          type="button"
+                        >
+                          <Plus className="size-4" />
+                          Agregar servicio
+                        </button>
+                      </div>
                     ) : null}
                   </div>
 

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export type RegisterBarberInput = { name: string; pin: string };
 export type RegisterBranchInput = { name: string; address?: string; barbers: RegisterBarberInput[] };
+export type RegisterServiceInput = { name: string; price: number };
 export type RegisterBusinessInput = {
   businessName: string;
   ownerName: string;
@@ -12,6 +13,7 @@ export type RegisterBusinessInput = {
   username?: string;
   password: string;
   branches: RegisterBranchInput[];
+  services?: RegisterServiceInput[];
 };
 
 export type RegisterResult = { ok: true } | { ok: false; error: string };
@@ -46,6 +48,19 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
     .filter((branch) => branch.name.length > 0);
 
   if (branches.length === 0) return { ok: false, error: "Agregá al menos una sucursal." };
+
+  // Servicios (opcionales): se crean en la primera sucursal con su precio. Se
+  // descartan los vacíos o con precio inválido y se evita repetir por nombre.
+  const seenServiceNames = new Set<string>();
+  const services = (input.services ?? [])
+    .map((service) => ({ name: service.name.trim(), price: Math.round(service.price) }))
+    .filter((service) => {
+      if (service.name.length === 0 || !Number.isInteger(service.price) || service.price <= 0) return false;
+      const key = service.name.toLowerCase();
+      if (seenServiceNames.has(key)) return false;
+      seenServiceNames.add(key);
+      return true;
+    });
 
   // El PIN es opcional: si lo cargan tiene que ser de 4 a 8 números; si no, el
   // barbero queda sin PIN (se le puede poner después desde Barberos).
@@ -98,10 +113,12 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
       },
     });
 
-    for (const branch of branchesWithHashes) {
+    let firstBranchId: string | null = null;
+    for (const [index, branch] of branchesWithHashes.entries()) {
       const createdBranch = await tx.branch.create({
         data: { businessId: business.id, name: branch.name, address: branch.address, active: true },
       });
+      if (index === 0) firstBranchId = createdBranch.id;
 
       for (const barber of branch.barbers) {
         await tx.user.create({
@@ -113,6 +130,18 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
             role: UserRole.BARBER,
             active: true,
           },
+        });
+      }
+    }
+
+    // Catálogo inicial: cada servicio con su precio en la primera sucursal.
+    if (firstBranchId) {
+      for (const service of services) {
+        const createdService = await tx.service.create({
+          data: { businessId: business.id, name: service.name, active: true },
+        });
+        await tx.branchServicePrice.create({
+          data: { branchId: firstBranchId, serviceId: createdService.id, price: service.price, active: true },
         });
       }
     }
