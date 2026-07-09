@@ -23,10 +23,13 @@ model Business {
   deletedAt   DateTime?
   deletedById String?
 
-  branches Branch[]
-  users    User[]
-  services Service[]
-  expenses Expense[]
+  branches               Branch[]
+  users                  User[]
+  services               Service[]
+  expenses               Expense[]
+  accountOpeningBalances AccountOpeningBalance[]
+  accountTransfers       AccountTransfer[]
+  cashCloses             CashClose[]
 
   @@index([deletedAt])
 }
@@ -45,12 +48,15 @@ model Branch {
   deletedAt   DateTime?
   deletedById String?
 
-  business      Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  users         User[]
-  servicePrices BranchServicePrice[]
-  sales         Sale[]
-  terminals     Terminal[]
-  expenses      Expense[]
+  business               Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  users                  User[]
+  servicePrices          BranchServicePrice[]
+  sales                  Sale[]
+  terminals              Terminal[]
+  expenses               Expense[]
+  accountOpeningBalances AccountOpeningBalance[]
+  accountTransfers       AccountTransfer[]
+  cashCloses             CashClose[]
 
   @@index([businessId])
   @@index([deletedAt])
@@ -261,6 +267,77 @@ enum ExpenseCategory {
   MAINTENANCE
   TAXES
   OTHER
+}
+
+// Saldo inicial (apertura) de una cuenta. Opcionalmente por sucursal.
+model AccountOpeningBalance {
+  id            String        @id @default(cuid())
+  businessId    String
+  branchId      String?
+  paymentMethod PaymentMethod
+  amount        Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([branchId])
+}
+
+// Movimiento de plata entre dos cuentas (ej: de Mercado Pago a Efectivo).
+model AccountTransfer {
+  id          String        @id @default(cuid())
+  businessId  String
+  branchId    String?
+  fromMethod  PaymentMethod
+  toMethod    PaymentMethod
+  amount      Int
+  note        String?
+  movedAt     DateTime      @default(now())
+  createdAt   DateTime      @default(now())
+  createdById String?
+  deleted     Boolean       @default(false)
+  deletedAt   DateTime?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, movedAt])
+  @@index([branchId])
+  @@index([deletedAt])
+}
+
+// Cierre de caja: foto de los saldos por cuenta en un momento (arqueo).
+model CashClose {
+  id          String          @id @default(cuid())
+  businessId  String
+  branchId    String?
+  closedAt    DateTime        @default(now())
+  note        String?
+  createdById String?
+  createdAt   DateTime        @default(now())
+
+  business Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch?         @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  lines    CashCloseLine[]
+
+  @@index([businessId, closedAt])
+  @@index([branchId])
+}
+
+// Detalle por cuenta de un cierre: saldo teórico (sistema) vs contado.
+model CashCloseLine {
+  id            String        @id @default(cuid())
+  closeId       String
+  paymentMethod PaymentMethod
+  systemAmount  Int
+  countedAmount Int
+
+  close CashClose @relation(fields: [closeId], references: [id], onDelete: Cascade)
+
+  @@index([closeId])
 }
 
 enum UserRole {
