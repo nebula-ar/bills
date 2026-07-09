@@ -373,9 +373,9 @@ export function RegisterWizard() {
                               <div className="flex items-center gap-2 border-t border-blue-100 px-3 py-2.5 duration-300 animate-in fade-in slide-in-from-top-1">
                                 <span className="text-xs font-black uppercase tracking-wide text-slate-500">Precio</span>
                                 <span className="ml-auto flex w-28 items-center rounded-xl border border-slate-200 bg-white px-2.5 transition focus-within:border-blue-400">
-                                  <span className="text-sm font-black text-slate-400">$</span>
+                                  <span className="text-base font-black text-slate-400">$</span>
                                   <input
-                                    className="w-full min-w-0 bg-transparent px-1 py-2 text-right text-sm font-black text-slate-950 outline-none"
+                                    className="w-full min-w-0 bg-transparent px-1 py-2 text-right text-base font-black text-slate-950 outline-none"
                                     inputMode="numeric"
                                     onChange={(event) => setServicePrice(i, event.target.value.replace(/\D/g, "").slice(0, 7))}
                                     placeholder="0"
