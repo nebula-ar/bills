@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "vercel-build": "node scripts/build-postgres-schema.mjs && prisma generate --config prisma.postgres.config.ts && prisma migrate deploy --config prisma.postgres.config.ts && next build",
+    "vercel-build": "vitest run && node scripts/build-postgres-schema.mjs && prisma generate --config prisma.postgres.config.ts && prisma migrate deploy --config prisma.postgres.config.ts && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
