@@ -8,6 +8,8 @@
     "vercel-build": "node scripts/build-postgres-schema.mjs && prisma generate --config prisma.postgres.config.ts && prisma migrate deploy --config prisma.postgres.config.ts && next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "postinstall": "node scripts/postinstall.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
@@ -51,7 +53,8 @@
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   },
   "allowScripts": {
     "better-sqlite3@12.10.0": true,

@@ -1,0 +1,17 @@
+// Parsea un monto en pesos ingresado por el usuario (formato es-AR).
+// Los montos se guardan como enteros (pesos), sin centavos.
+//   "1.000"     -> 1000   (el punto es separador de miles)
+//   "1.234.567" -> 1234567
+//   "1000"      -> 1000
+//   "10,5"      -> null    (no permitimos centavos)
+//   ""/"abc"    -> null
+// Devuelve el entero tal cual (puede ser 0 o negativo); la regla de signo la
+// aplica cada caso de uso (un gasto/transferencia exige > 0, un conteo permite 0).
+export function parseAmountInput(raw: string): number | null {
+  const normalized = raw.trim().replace(/\./g, "").replace(",", ".");
+  if (normalized === "") {
+    return null;
+  }
+  const amount = Number(normalized);
+  return Number.isInteger(amount) ? amount : null;
+}

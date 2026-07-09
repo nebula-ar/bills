@@ -2,6 +2,7 @@
 
 import { PaymentMethod } from "@/generated/prisma/client";
 import { requireAdminSession } from "@/lib/auth";
+import { parseAmountInput } from "@/lib/money";
 import { parsePaymentMethodValue } from "@/lib/payment-labels";
 import {
   createBusinessCashClose,
@@ -17,9 +18,7 @@ function parseString(formData: FormData, key: string) {
 }
 
 function parseAmount(value: string) {
-  const normalized = value.replace(/\./g, "").replace(",", ".");
-  const amount = Number(normalized);
-  return Number.isInteger(amount) ? amount : null;
+  return parseAmountInput(value);
 }
 
 function parseBranchId(formData: FormData) {

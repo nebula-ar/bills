@@ -1,6 +1,7 @@
 import { PaymentMethod } from "@/generated/prisma/client";
 import { PAYMENT_METHOD_ORDER } from "@/lib/payment-labels";
 
+import { buildCashCloseLines, computeAccountBalances, validateTransfer, type AccountBalance } from "./cash.logic";
 import {
   createCashClose,
   createTransfer,
@@ -14,15 +15,7 @@ import {
   type CashScope,
 } from "./cash.repository";
 
-export type AccountBalance = {
-  method: PaymentMethod;
-  opening: number;
-  income: number;
-  expense: number;
-  transferIn: number;
-  transferOut: number;
-  balance: number;
-};
+export type { AccountBalance };
 
 // Motor de saldos: por cuenta, saldo inicial + ingresos − gastos + transferencias.
 // Sin rango de fechas => saldo real actual ("cuánto hay en cada cuenta").
@@ -34,30 +27,7 @@ export async function getAccountBalances(scope: CashScope): Promise<AccountBalan
     findOpeningBalances(scope.businessId, scope.branchId ?? null),
   ]);
 
-  const openingMap = new Map(openings.map((o) => [o.paymentMethod, o.amount]));
-  const inMap = new Map<PaymentMethod, number>();
-  const outMap = new Map<PaymentMethod, number>();
-  for (const transfer of transfers) {
-    outMap.set(transfer.fromMethod, (outMap.get(transfer.fromMethod) ?? 0) + transfer.amount);
-    inMap.set(transfer.toMethod, (inMap.get(transfer.toMethod) ?? 0) + transfer.amount);
-  }
-
-  return PAYMENT_METHOD_ORDER.map((method) => {
-    const opening = openingMap.get(method) ?? 0;
-    const inc = income.get(method) ?? 0;
-    const exp = expense.get(method) ?? 0;
-    const transferIn = inMap.get(method) ?? 0;
-    const transferOut = outMap.get(method) ?? 0;
-    return {
-      method,
-      opening,
-      income: inc,
-      expense: exp,
-      transferIn,
-      transferOut,
-      balance: opening + inc - exp + transferIn - transferOut,
-    };
-  });
+  return computeAccountBalances({ order: PAYMENT_METHOD_ORDER, openings, income, expense, transfers });
 }
 
 export async function setOpeningBalance(input: {
@@ -90,11 +60,9 @@ export async function createBusinessTransfer(input: {
   note?: string | null;
   movedAt: Date;
 }) {
-  if (!Number.isInteger(input.amount) || input.amount <= 0) {
-    throw new Error("INVALID_AMOUNT");
-  }
-  if (input.fromMethod === input.toMethod) {
-    throw new Error("SAME_ACCOUNT");
+  const validation = validateTransfer({ fromMethod: input.fromMethod, toMethod: input.toMethod, amount: input.amount });
+  if (!validation.ok) {
+    throw new Error(validation.error);
   }
   return createTransfer({
     businessId: input.businessId,
@@ -127,13 +95,7 @@ export async function createBusinessCashClose(input: {
   counted: Partial<Record<PaymentMethod, number>>;
 }) {
   const balances = await getAccountBalances({ businessId: input.businessId, branchId: input.branchId ?? null });
-  const lines = balances
-    .filter((account) => account.balance !== 0 || (input.counted[account.method] ?? 0) !== 0)
-    .map((account) => ({
-      paymentMethod: account.method,
-      systemAmount: account.balance,
-      countedAmount: Math.round(input.counted[account.method] ?? account.balance),
-    }));
+  const lines = buildCashCloseLines(balances, input.counted);
 
   return createCashClose({
     businessId: input.businessId,
