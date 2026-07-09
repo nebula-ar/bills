@@ -1,7 +1,7 @@
 "use client";
 
 import { registerBusinessAction } from "@/app/register/actions";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Plus } from "lucide-react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useState, useTransition, type KeyboardEvent } from "react";
@@ -17,7 +17,7 @@ const STEPS: Step[] = [
   { emoji: "🔒", title: "Creá tu contraseña", subtitle: "Al menos 6 caracteres.", cheer: "¡Seguridad primero!" },
   { emoji: "✂️", title: "¿Vos también atendés?", subtitle: "Podés cargar tus propias ventas.", cheer: "¡Buena!" },
   { emoji: "🏪", title: "¿Cómo se llama tu local?", subtitle: "Después sumás más locales y tu equipo desde el panel.", cheer: "¡Ya casi!" },
-  { emoji: "💵", title: "¿Qué servicios ofrecés?", subtitle: "Poné el precio de los que hacés; los demás dejalos vacíos.", cheer: "¡Último paso!" },
+  { emoji: "💵", title: "¿Qué servicios ofrecés?", subtitle: "Tocá los que hacés y poneles precio.", cheer: "¡Último paso!" },
 ];
 
 const SUGGESTED_SERVICES: { name: string; emoji: string }[] = [
@@ -84,8 +84,18 @@ export function RegisterWizard() {
   const [password, setPassword] = useState("");
   const [isBarber, setIsBarber] = useState(false);
   const [branchName, setBranchName] = useState("");
-  const [services, setServices] = useState(SUGGESTED_SERVICES.map((service) => ({ ...service, price: "" })));
+  const [services, setServices] = useState(SUGGESTED_SERVICES.map((service) => ({ ...service, selected: false, price: "" })));
 
+  function toggleService(index: number) {
+    setServices((current) =>
+      current.map((service, i) => {
+        if (i !== index) return service;
+        const selected = !service.selected;
+        // Al deseleccionar, olvidamos el precio.
+        return { ...service, selected, price: selected ? service.price : "" };
+      }),
+    );
+  }
   function setServicePrice(index: number, price: string) {
     setServices((current) => current.map((service, i) => (i === index ? { ...service, price } : service)));
   }
@@ -346,35 +356,43 @@ export function RegisterWizard() {
 
                     {step === 6 ? (
                       <div className="grid gap-2.5">
-                        {services.map((service, i) => {
-                          const priced = Number(service.price) > 0;
-                          return (
-                            <label
-                              className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-3 transition ${
-                                priced ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-200"
-                              }`}
-                              key={service.name}
-                            >
+                        {services.map((service, i) => (
+                          <div
+                            className={`overflow-hidden rounded-2xl border-2 transition ${
+                              service.selected ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"
+                            }`}
+                            key={service.name}
+                          >
+                            <button className="flex w-full items-center gap-3 p-3 text-left transition active:scale-[0.99]" onClick={() => toggleService(i)} type="button">
                               <span className="text-2xl">{service.emoji}</span>
                               <span className="min-w-0 flex-1 text-sm font-black text-slate-950">{service.name}</span>
                               <span
-                                className={`flex w-24 items-center rounded-xl border px-2.5 transition ${
-                                  priced ? "border-blue-300 bg-white" : "border-slate-200 bg-slate-50"
+                                className={`grid size-6 shrink-0 place-items-center rounded-full transition ${
+                                  service.selected ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-400"
                                 }`}
                               >
-                                <span className="text-sm font-black text-slate-400">$</span>
-                                <input
-                                  className="w-full min-w-0 bg-transparent px-1 py-2 text-right text-sm font-black text-slate-950 outline-none"
-                                  inputMode="numeric"
-                                  onChange={(event) => setServicePrice(i, event.target.value.replace(/\D/g, "").slice(0, 7))}
-                                  placeholder="0"
-                                  value={service.price}
-                                />
+                                {service.selected ? <Check className="size-4" /> : <Plus className="size-4" />}
                               </span>
-                            </label>
-                          );
-                        })}
-                        <p className="px-1 pt-1 text-center text-xs text-slate-400">Ponés precio solo a los que ofrecés. Sumás más después. 👌</p>
+                            </button>
+                            {service.selected ? (
+                              <div className="flex items-center gap-2 border-t border-blue-100 px-3 py-2.5 duration-300 animate-in fade-in slide-in-from-top-1">
+                                <span className="text-xs font-black uppercase tracking-wide text-slate-500">Precio</span>
+                                <span className="ml-auto flex w-28 items-center rounded-xl border border-slate-200 bg-white px-2.5 transition focus-within:border-blue-400">
+                                  <span className="text-sm font-black text-slate-400">$</span>
+                                  <input
+                                    autoFocus
+                                    className="w-full min-w-0 bg-transparent px-1 py-2 text-right text-sm font-black text-slate-950 outline-none"
+                                    inputMode="numeric"
+                                    onChange={(event) => setServicePrice(i, event.target.value.replace(/\D/g, "").slice(0, 7))}
+                                    placeholder="0"
+                                    value={service.price}
+                                  />
+                                </span>
+                              </div>
+                            ) : null}
+                          </div>
+                        ))}
+                        <p className="px-1 pt-1 text-center text-xs text-slate-400">Tocá los servicios que ofrecés y poneles precio. Sumás más después. 👌</p>
                       </div>
                     ) : null}
                   </div>
