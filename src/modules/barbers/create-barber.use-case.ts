@@ -8,6 +8,7 @@ export type CreateBarberInput = {
   name: string;
   branchId: string;
   pin: string;
+  canCloseCash: boolean;
 };
 
 export async function createBarberForManagement(input: CreateBarberInput) {
@@ -35,6 +36,7 @@ export async function createBarberForManagement(input: CreateBarberInput) {
     branchId: branch.id,
     businessId: branch.businessId,
     pinHash,
+    canCloseCash: input.canCloseCash,
   });
 }
 

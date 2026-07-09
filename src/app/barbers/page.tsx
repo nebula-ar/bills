@@ -22,6 +22,7 @@ export default async function BarbersPage({ searchParams }: BarbersPageProps) {
     branchId: barber.branchId,
     branchLabel: barber.branch ? barber.branch.name : "Sin sucursal",
     active: barber.active,
+    canCloseCash: barber.canCloseCash,
     hasPin: Boolean(barber.pinHash),
   }));
 

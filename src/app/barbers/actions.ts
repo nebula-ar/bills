@@ -15,13 +15,14 @@ export async function createBarber(formData: FormData) {
   const name = parseRequiredString(formData, "name");
   const branchId = parseRequiredString(formData, "branchId");
   const pin = parseRequiredString(formData, "pin");
+  const canCloseCash = formData.get("canCloseCash") === "on";
 
   if (!name || !branchId || !pin) {
     redirectWithMessage("error", "Completá nombre, sucursal y PIN del barbero.");
   }
 
   try {
-    await createBarberForManagement({ businessId: session.user.businessId, name, branchId, pin });
+    await createBarberForManagement({ businessId: session.user.businessId, name, branchId, pin, canCloseCash });
   } catch (error) {
     if (error instanceof BarberError) {
       redirectWithMessage("error", getBarberErrorMessage(error.code));
@@ -42,13 +43,14 @@ export async function updateBarber(formData: FormData) {
   const branchId = parseRequiredString(formData, "branchId");
   const pin = parseOptionalString(formData, "pin");
   const active = formData.get("active") === "on";
+  const canCloseCash = formData.get("canCloseCash") === "on";
 
   if (!barberId || !name || !branchId) {
     redirectWithMessage("error", "Completá nombre y sucursal del barbero.");
   }
 
   try {
-    await updateBarberForManagement({ businessId: session.user.businessId, barberId, name, branchId, active, pin });
+    await updateBarberForManagement({ businessId: session.user.businessId, barberId, name, branchId, active, canCloseCash, pin });
   } catch (error) {
     if (error instanceof BarberError) {
       redirectWithMessage("error", getBarberErrorMessage(error.code));

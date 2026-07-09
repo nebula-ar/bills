@@ -136,7 +136,7 @@ export default async function BarberPage({ searchParams }: BarberPageProps) {
           )}
         </div>
 
-        <BarberTerminalNav active="sell" saleHref={selfHref} />
+        <BarberTerminalNav active="sell" saleHref={selfHref} showCashClose={Boolean(sessionBarber?.canCloseCash)} />
       </section>
     </main>
   );

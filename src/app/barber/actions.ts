@@ -1,13 +1,18 @@
 "use server";
 
+import { PaymentMethod } from "@/generated/prisma/client";
 import { setBarberFlash } from "@/lib/barber-flash";
 import { clearBarberSessionCookie, getBarberSession, setBarberSessionCookie } from "@/lib/barber-session";
 import { getBarberErrorMessage } from "@/lib/barber-error-messages";
+import { parseAmountInput } from "@/lib/money";
 import { getSaleErrorMessage } from "@/lib/sale-error-messages";
 import { parsePaymentMethod, parseRequiredString } from "@/lib/sale-form-parser";
 import { BarberError } from "@/modules/barbers/barber.errors";
+import { barberCanCloseCash } from "@/modules/cash/cash.logic";
+import { createBusinessCashClose } from "@/modules/cash/cash.use-cases";
 import { validateBarberPin } from "@/modules/barbers/validate-barber-pin.use-case";
 import { createSimpleSale } from "@/modules/sales/create-simple-sale.use-case";
+import { getSaleEntryOptions } from "@/modules/sales/get-sale-entry-options.use-case";
 import { SaleError } from "@/modules/sales/sale.errors";
 import { redirect } from "next/navigation";
 
@@ -93,6 +98,46 @@ export async function submitBarberSale(input: {
     console.error(error);
     return { ok: false, error: "No pudimos registrar la venta. Intentá de nuevo." };
   }
+}
+
+// Cierre de caja desde la terminal: solo barberos "encargados" (canCloseCash) y
+// únicamente sobre la caja de SU sucursal (la del turno).
+export async function submitBarberCashClose(formData: FormData) {
+  const session = await getBarberSession();
+  if (!session) {
+    await setBarberFlash({ status: "error", message: "Se cerró tu turno. Ingresá tu PIN de nuevo." });
+    redirect("/barber");
+  }
+
+  const branch = await getSaleEntryOptions(session.branchId);
+  const barber = branch?.users.find((user) => user.id === session.barberId) ?? null;
+  if (!branch || !barberCanCloseCash(barber)) {
+    await setBarberFlash({ status: "error", message: "No tenés permiso para cerrar la caja." });
+    redirect("/barber");
+  }
+
+  const counted: Partial<Record<PaymentMethod, number>> = {};
+  for (const method of Object.values(PaymentMethod)) {
+    const raw = formData.get(`counted_${method}`);
+    if (typeof raw === "string" && raw.trim() !== "") {
+      const value = parseAmountInput(raw.trim());
+      if (value !== null) counted[method] = value;
+    }
+  }
+
+  const noteRaw = formData.get("note");
+  const note = typeof noteRaw === "string" && noteRaw.trim() !== "" ? noteRaw.trim() : null;
+
+  try {
+    await createBusinessCashClose({ businessId: branch.businessId, branchId: session.branchId, note, counted });
+  } catch (error) {
+    console.error(error);
+    await setBarberFlash({ status: "error", message: "No pudimos cerrar la caja. Intentá de nuevo." });
+    redirect("/barber");
+  }
+
+  await setBarberFlash({ status: "success", message: "Caja cerrada. ¡Buen trabajo!" });
+  redirect("/barber");
 }
 
 async function redirectWithMessage(status: "error" | "success", message: string, ctx: RedirectContext): Promise<never> {

@@ -110,6 +110,7 @@ export function findSaleEntryOptionsBranch(branchId?: string) {
         select: {
           id: true,
           name: true,
+          canCloseCash: true,
         },
       },
       servicePrices: {
@@ -187,6 +188,7 @@ export function findSaleEntryBranches(businessId: string) {
         select: {
           id: true,
           name: true,
+          canCloseCash: true,
         },
       },
       servicePrices: {

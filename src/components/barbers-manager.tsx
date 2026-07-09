@@ -11,6 +11,7 @@ export type BarberRow = {
   branchId: string | null;
   branchLabel: string;
   active: boolean;
+  canCloseCash: boolean;
   hasPin: boolean;
 };
 
@@ -105,6 +106,33 @@ function ActiveToggle({ defaultOn }: { defaultOn: boolean }) {
   );
 }
 
+function CashCloseToggle({ defaultOn }: { defaultOn: boolean }) {
+  const [on, setOn] = useState(defaultOn);
+
+  return (
+    <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3.5">
+      <div className="min-w-0">
+        <span className="text-sm font-black text-slate-950">Puede cerrar caja</span>
+        <p className="mt-0.5 text-xs text-slate-500">Encargado: cierra la caja de su sucursal desde la terminal, con su PIN.</p>
+      </div>
+      {on ? <input name="canCloseCash" type="hidden" value="on" /> : null}
+      <button
+        aria-checked={on}
+        aria-label="Puede cerrar caja"
+        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-blue-600" : "bg-slate-300"}`}
+        onClick={() => setOn((value) => !value)}
+        role="switch"
+        type="button"
+      >
+        <span
+          className="absolute left-1 top-1 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out"
+          style={{ transform: on ? "translateX(1.25rem)" : "translateX(0)" }}
+        />
+      </button>
+    </div>
+  );
+}
+
 export function BarbersManager({ data }: { data: BarbersData }) {
   const [newOpen, setNewOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -170,6 +198,9 @@ export function BarbersManager({ data }: { data: BarbersData }) {
                     >
                       {barber.active ? "Activo" : "Inactivo"}
                     </span>
+                    {barber.canCloseCash ? (
+                      <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[0.7rem] font-bold text-blue-700">Encargado</span>
+                    ) : null}
                     {!barber.hasPin ? (
                       <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[0.7rem] font-bold text-amber-700">Sin PIN</span>
                     ) : null}
@@ -218,6 +249,7 @@ export function BarbersManager({ data }: { data: BarbersData }) {
                   <KeyRound className="mt-0.5 size-4 shrink-0" />
                   El PIN le sirve al barbero para identificarse al cargar ventas. Se guarda protegido.
                 </p>
+                <CashCloseToggle defaultOn={false} />
               </>
             )}
           </div>
@@ -267,6 +299,7 @@ export function BarbersManager({ data }: { data: BarbersData }) {
                 {editing.hasPin ? "Dejá el PIN vacío para mantener el actual." : "Este barbero todavía no tiene PIN — cargá uno."}
               </p>
               <ActiveToggle defaultOn={editing.active} />
+              <CashCloseToggle defaultOn={editing.canCloseCash} />
             </div>
             <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
               <button

@@ -9,6 +9,7 @@ export type UpdateBarberInput = {
   name: string;
   branchId: string;
   active: boolean;
+  canCloseCash: boolean;
   pin?: string;
 };
 
@@ -37,6 +38,7 @@ export async function updateBarberForManagement(input: UpdateBarberInput) {
     branchId: branch.id,
     businessId: branch.businessId,
     active: input.active,
+    canCloseCash: input.canCloseCash,
     pinHash,
   });
 

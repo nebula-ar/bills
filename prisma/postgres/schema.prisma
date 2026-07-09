@@ -100,6 +100,8 @@ model User {
   pinHash      String?
   role         UserRole
   active       Boolean   @default(true)
+  // Barbero "encargado": puede cerrar la caja de su sucursal desde la terminal (con su PIN).
+  canCloseCash Boolean   @default(false)
   createdAt    DateTime  @default(now())
   createdById  String?
   updatedAt    DateTime  @updatedAt

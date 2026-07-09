@@ -1,7 +1,14 @@
 import type { PaymentMethod } from "@/generated/prisma/client";
 import { describe, expect, it } from "vitest";
 
-import { accountHasActivity, buildCashCloseLines, computeAccountBalances, validateTransfer, type AccountBalance } from "./cash.logic";
+import {
+  accountHasActivity,
+  barberCanCloseCash,
+  buildCashCloseLines,
+  computeAccountBalances,
+  validateTransfer,
+  type AccountBalance,
+} from "./cash.logic";
 
 const CASH = "CASH" as PaymentMethod;
 const MP = "MERCADO_PAGO" as PaymentMethod;
@@ -140,6 +147,18 @@ describe("validateTransfer", () => {
     expect(validateTransfer({ fromMethod: MP, toMethod: CASH, amount: 0 })).toEqual({ ok: false, error: "INVALID_AMOUNT" });
     expect(validateTransfer({ fromMethod: MP, toMethod: CASH, amount: -5 })).toEqual({ ok: false, error: "INVALID_AMOUNT" });
     expect(validateTransfer({ fromMethod: MP, toMethod: CASH, amount: 1.5 })).toEqual({ ok: false, error: "INVALID_AMOUNT" });
+  });
+});
+
+describe("barberCanCloseCash", () => {
+  it("solo el barbero marcado como encargado puede cerrar", () => {
+    expect(barberCanCloseCash({ canCloseCash: true })).toBe(true);
+    expect(barberCanCloseCash({ canCloseCash: false })).toBe(false);
+  });
+
+  it("null/undefined nunca puede", () => {
+    expect(barberCanCloseCash(null)).toBe(false);
+    expect(barberCanCloseCash(undefined)).toBe(false);
   });
 });
 

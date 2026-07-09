@@ -45,6 +45,7 @@ export function findActiveBarbersForManagement(businessId: string) {
       id: true,
       name: true,
       active: true,
+      canCloseCash: true,
       branchId: true,
       pinHash: true,
       branch: {
@@ -109,6 +110,7 @@ export type CreateBarberRepositoryInput = {
   branchId: string;
   businessId: string;
   pinHash: string;
+  canCloseCash: boolean;
 };
 
 export function createBarber(input: CreateBarberRepositoryInput) {
@@ -118,6 +120,7 @@ export function createBarber(input: CreateBarberRepositoryInput) {
       branchId: input.branchId,
       businessId: input.businessId,
       pinHash: input.pinHash,
+      canCloseCash: input.canCloseCash,
       role: UserRole.BARBER,
       active: true,
     },
@@ -130,6 +133,7 @@ export type UpdateBarberRepositoryInput = {
   branchId: string;
   businessId: string;
   active: boolean;
+  canCloseCash: boolean;
   pinHash?: string;
 };
 
@@ -146,6 +150,7 @@ export function updateBarber(input: UpdateBarberRepositoryInput) {
       branchId: input.branchId,
       businessId: input.businessId,
       active: input.active,
+      canCloseCash: input.canCloseCash,
       ...(input.pinHash ? { pinHash: input.pinHash } : {}),
     },
   });

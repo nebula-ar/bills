@@ -57,7 +57,8 @@ export default async function MisVentasPage() {
   }
 
   const branch = await getSaleEntryOptions(session.branchId);
-  const barberName = branch?.users.find((barber) => barber.id === session.barberId)?.name ?? "Vos";
+  const sessionBarber = branch?.users.find((barber) => barber.id === session.barberId) ?? null;
+  const barberName = sessionBarber?.name ?? "Vos";
   const saleHref = `/barber?branch=${session.branchId}&barber=${session.barberId}`;
 
   const sales = await getBarberDaySales({ branchId: session.branchId, barberId: session.barberId, now: new Date() });
@@ -134,7 +135,7 @@ export default async function MisVentasPage() {
         )}
       </div>
 
-      <BarberTerminalNav active="sales" saleHref={saleHref} />
+      <BarberTerminalNav active="sales" saleHref={saleHref} showCashClose={Boolean(sessionBarber?.canCloseCash)} />
     </Shell>
   );
 }
