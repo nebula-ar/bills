@@ -6,8 +6,7 @@ import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER } from "@/lib/payment-label
 import { getExpensesSummary } from "@/modules/expenses/expense.use-cases";
 import { getTodaySalesReport } from "@/modules/reports/get-today-sales-report.use-case";
 import { ReportsView, type ReportsData } from "@/components/reports-view";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
+import { redirect } from "next/navigation";
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   [PaymentMethod.CASH]: "Efectivo",
@@ -41,8 +40,10 @@ type HomeProps = {
 export default async function Home({ searchParams }: HomeProps) {
   const session = await getCurrentSession();
 
+  // Sin sesión de admin, la app arranca directo en el login (la terminal del
+  // barbero se accede desde el link "Ir a la terminal" del propio login).
   if (!isAdminRole(session?.user.role)) {
-    return <AccessPage />;
+    redirect("/login");
   }
 
   const params = await searchParams;
@@ -141,38 +142,6 @@ export default async function Home({ searchParams }: HomeProps) {
   };
 
   return <ReportsView data={data} userName={session.user.name ?? "admin"} />;
-}
-
-function AccessPage() {
-  return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col justify-center bg-[#f6f7fb] px-4 py-10 text-slate-950 lg:max-w-[720px] lg:px-8">
-      <section className="duration-500 animate-in fade-in slide-in-from-bottom-3">
-        <Badge className="w-fit border-blue-100 bg-blue-50 text-blue-700" variant="outline">
-          Barber Bills
-        </Badge>
-        <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
-          Administrá la barbería sin perder el pulso del día.
-        </h1>
-        <p className="mt-4 max-w-xl text-base leading-7 text-slate-500">
-          Ingresá como administrador para ver el panel de ventas, reportes y rendimiento. Si sos barbero, usá la terminal de carga rápida.
-        </p>
-        <div className="mt-8 flex flex-col gap-3">
-          <Link
-            className="flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-sm shadow-blue-600/25 transition active:scale-[0.99]"
-            href="/login"
-          >
-            Ingresar como administrador
-          </Link>
-          <Link
-            className="flex items-center justify-center rounded-2xl bg-white px-5 py-3.5 text-sm font-black text-slate-700 shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.99]"
-            href="/barber"
-          >
-            Ir a la terminal
-          </Link>
-        </div>
-      </section>
-    </main>
-  );
 }
 
 function summarizePayments(payments: { method: PaymentMethod }[]) {

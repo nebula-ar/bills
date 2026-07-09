@@ -44,6 +44,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Registrá tu barbería
             </Link>
           </p>
+
+          <p className="text-center text-sm font-semibold text-slate-500">
+            ¿Sos barbero?{" "}
+            <Link className="font-black text-blue-600" href="/barber">
+              Ir a la terminal
+            </Link>
+          </p>
         </div>
 
         <p className="shrink-0 pt-8 text-center text-xs font-medium leading-5 text-slate-400">

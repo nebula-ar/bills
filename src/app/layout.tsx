@@ -3,6 +3,7 @@ import { Geist_Mono, Inter } from "next/font/google";
 import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { FlashToaster } from "@/components/flash-toaster";
+import { InstallPrompt } from "@/components/install-prompt";
 import { MobileNav } from "@/components/mobile-nav";
 import { getCurrentSession, isAdminRole } from "@/lib/auth";
 import "./globals.css";
@@ -20,6 +21,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Barber Bills",
   description: "Administración de ventas para barberías",
+  applicationName: "Barber Bills",
+  // Habilita "Agregar a inicio" en iOS a pantalla completa (modo standalone).
+  appleWebApp: {
+    capable: true,
+    title: "Barber Bills",
+    statusBarStyle: "default",
+  },
+  // Next 16 emite el `mobile-web-app-capable` moderno; agregamos el legacy de
+  // Apple para que iOS viejo también abra a pantalla completa desde el inicio.
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
 };
 
 // Permitimos el zoom del usuario (accesibilidad, WCAG 1.4.4). El doble-tap-zoom
@@ -30,6 +43,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
+  themeColor: "#2563eb",
 };
 
 export default async function RootLayout({
@@ -48,6 +62,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col bg-[#f6f7fb]">
         {children}
         {showNav ? <MobileNav /> : null}
+        <InstallPrompt />
         <Toaster position="top-center" richColors toastOptions={{ className: "font-semibold" }} />
         <Suspense fallback={null}>
           <FlashToaster />
