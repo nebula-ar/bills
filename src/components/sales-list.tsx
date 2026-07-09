@@ -75,6 +75,7 @@ export function SalesList({ sales, initialCursor = null, loadMore }: SalesListPr
             >
               <button
                 className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.99]"
+                data-testid="sale-row"
                 onClick={() => {
                   setSelectedId(sale.id);
                   setConfirming(false);
@@ -117,6 +118,7 @@ export function SalesList({ sales, initialCursor = null, loadMore }: SalesListPr
       {cursor && loadMore ? (
         <button
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 shadow-sm transition active:scale-[0.99] disabled:opacity-60"
+          data-testid="load-more"
           disabled={loading}
           onClick={handleLoadMore}
           type="button"
