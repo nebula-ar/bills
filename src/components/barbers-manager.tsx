@@ -2,7 +2,7 @@
 
 import { createBarber, updateBarber } from "@/app/barbers/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { Check, ChevronDown, KeyRound, MapPin, Plus, Scissors, X } from "lucide-react";
+import { Check, ChevronDown, KeyRound, MapPin, Plus, Scissors, X } from "@/components/icons";
 import { useState } from "react";
 
 export type BarberRow = {

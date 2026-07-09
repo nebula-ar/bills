@@ -22,7 +22,7 @@ import {
   Trash2,
   Wallet,
   X,
-} from "lucide-react";
+} from "@/components/icons";
 import Link from "next/link";
 import { useMemo, useState, useTransition, type ComponentType } from "react";
 

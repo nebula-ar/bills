@@ -2,7 +2,7 @@ import { PaymentMethod, SaleStatus } from "@/generated/prisma/client";
 import { getBarberSession } from "@/lib/barber-session";
 import { getBarberDaySales } from "@/modules/sales/get-barber-day-sales.use-case";
 import { getSaleEntryOptions } from "@/modules/sales/get-sale-entry-options.use-case";
-import { Scissors } from "lucide-react";
+import { Scissors } from "@/components/icons";
 import Link from "next/link";
 
 import { BarberTerminalNav } from "../barber-terminal-nav";

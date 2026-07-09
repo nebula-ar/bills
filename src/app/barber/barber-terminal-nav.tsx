@@ -1,4 +1,4 @@
-import { Landmark, ReceiptText, Scissors } from "lucide-react";
+import { Landmark, ReceiptText, Scissors } from "@/components/icons";
 import Link from "next/link";
 
 export function BarberTerminalNav({

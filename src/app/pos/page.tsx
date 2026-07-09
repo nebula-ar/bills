@@ -2,7 +2,7 @@ import { PosTerminals } from "@/components/pos-terminals";
 import { requireAdminSession } from "@/lib/auth";
 import { getSaleEntryBranches } from "@/modules/sales/get-sale-entry-options.use-case";
 import { getTerminalsByBranchIds } from "@/modules/terminals/terminal.use-cases";
-import { ArrowRight, MapPin, Scissors, ShoppingBag, Store } from "lucide-react";
+import { ArrowRight, MapPin, Scissors, ShoppingBag, Store } from "@/components/icons";
 import Link from "next/link";
 
 export default async function PosLauncherPage() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw } from "lucide-react";
+import { RotateCcw } from "@/components/icons";
 import { useEffect } from "react";
 
 // Error boundary de la app. Reemplaza la pantalla rota por un mensaje claro con

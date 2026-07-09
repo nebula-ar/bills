@@ -4,7 +4,7 @@ import { LoginErrorCode } from "@/lib/auth-errors";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
-import { Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Mail } from "@/components/icons";
 
 type LoginFormProps = {
   callbackUrl: string;

@@ -2,7 +2,7 @@
 
 import { cancelSaleAction } from "@/app/sales/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { Ban, Loader2, ReceiptText, X } from "lucide-react";
+import { Ban, Loader2, ReceiptText, X } from "@/components/icons";
 import { useState, useTransition } from "react";
 
 export type SalesListSale = {

@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { LogOut } from "@/components/icons";
 import { signOut } from "next-auth/react";
 import { useTransition } from "react";
 

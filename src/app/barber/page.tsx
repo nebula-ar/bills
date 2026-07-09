@@ -4,7 +4,7 @@ import { readBarberFlash } from "@/lib/barber-flash";
 import { getBarberSession } from "@/lib/barber-session";
 import { getSaleEntryOptions } from "@/modules/sales/get-sale-entry-options.use-case";
 import { getActiveTerminal } from "@/modules/terminals/terminal.use-cases";
-import { LogOut } from "lucide-react";
+import { LogOut } from "@/components/icons";
 import Link from "next/link";
 
 import { lockBarberTerminal, unlockBarberTerminal } from "./actions";

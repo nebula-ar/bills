@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, TriangleAlert } from "lucide-react";
+import { CheckCircle2, TriangleAlert } from "@/components/icons";
 import { useEffect, useState } from "react";
 
 // Debe coincidir con FLASH_COOKIE de "@/lib/barber-flash" (no lo importamos para no

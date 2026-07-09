@@ -2,7 +2,7 @@
 
 import { createService, updateService } from "@/app/services/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { Check, ChevronDown, CircleSlash, Plus, Scissors, X } from "lucide-react";
+import { Check, ChevronDown, CircleSlash, Plus, Scissors, X } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 

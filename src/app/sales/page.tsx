@@ -3,7 +3,7 @@ import { getRecentSales } from "@/modules/sales/get-recent-sales.use-case";
 import { toSalesListSale } from "@/modules/sales/recent-sales-view";
 import { SalesList } from "@/components/sales-list";
 import { loadMoreSalesAction } from "@/app/sales/actions";
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/icons";
 import Link from "next/link";
 
 export default async function SalesPage() {

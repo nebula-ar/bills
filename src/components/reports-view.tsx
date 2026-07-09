@@ -20,7 +20,7 @@ import {
   Users,
   Wallet,
   X,
-} from "lucide-react";
+} from "@/components/icons";
 import { signOut } from "next-auth/react";
 import dynamic from "next/dynamic";
 import Link from "next/link";

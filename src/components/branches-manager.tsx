@@ -2,7 +2,7 @@
 
 import { createBranch, updateBranch } from "@/app/branches/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { Check, MapPin, Plus, Store, X } from "lucide-react";
+import { Check, MapPin, Plus, Store, X } from "@/components/icons";
 import { useState } from "react";
 
 export type BranchRow = {

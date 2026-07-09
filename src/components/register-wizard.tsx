@@ -1,7 +1,7 @@
 "use client";
 
 import { checkEmailAvailableAction, registerBusinessAction } from "@/app/register/actions";
-import { ArrowLeft, ArrowRight, Check, Loader2, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Plus } from "@/components/icons";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useState, useTransition, type KeyboardEvent } from "react";

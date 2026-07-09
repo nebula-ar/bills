@@ -2,7 +2,7 @@
 
 import { createCashCloseAction, createTransferAction, deleteTransferAction, saveOpeningBalancesAction } from "@/app/caja/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { ArrowRight, ChevronDown, Lock, PiggyBank, Trash2, Wallet, X } from "lucide-react";
+import { ArrowRight, ChevronDown, Lock, PiggyBank, Trash2, Wallet, X } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 

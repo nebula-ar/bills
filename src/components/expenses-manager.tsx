@@ -2,7 +2,7 @@
 
 import { createExpenseAction, deleteExpenseAction, updateExpenseAction } from "@/app/expenses/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { ChevronDown, ChevronLeft, ChevronRight, Plus, Trash2, Wallet, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Plus, Trash2, Wallet, X } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 

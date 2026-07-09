@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, Scissors } from "lucide-react";
+import { MapPin, Scissors } from "@/components/icons";
 import { useState } from "react";
 
 type BarberAccessPanelProps = {

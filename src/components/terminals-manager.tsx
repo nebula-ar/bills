@@ -3,7 +3,7 @@
 import { createTerminalAction, deleteTerminalAction, renameTerminalAction } from "@/app/terminals/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { copyText } from "@/lib/clipboard";
-import { Check, ChevronDown, Copy, Monitor, Pencil, Plus, Smartphone, Tag, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Copy, Monitor, Pencil, Plus, Smartphone, Tag, Trash2, X } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ComponentType } from "react";
 

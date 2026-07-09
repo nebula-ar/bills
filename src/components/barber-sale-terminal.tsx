@@ -18,7 +18,7 @@ import {
   Trash2,
   Wallet,
   X,
-} from "lucide-react";
+} from "@/components/icons";
 import { useMemo, useState, useTransition, type ComponentType } from "react";
 
 export type SaleService = { serviceId: string; name: string; price: number };

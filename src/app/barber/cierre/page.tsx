@@ -3,7 +3,7 @@ import { PAYMENT_METHOD_LABELS } from "@/lib/payment-labels";
 import { barberCanCloseCash } from "@/modules/cash/cash.logic";
 import { getAccountBalances } from "@/modules/cash/cash.use-cases";
 import { getSaleEntryOptions } from "@/modules/sales/get-sale-entry-options.use-case";
-import { Landmark, Lock } from "lucide-react";
+import { Landmark, Lock } from "@/components/icons";
 import Link from "next/link";
 
 import { submitBarberCashClose } from "../actions";

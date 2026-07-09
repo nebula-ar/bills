@@ -2,7 +2,7 @@
 
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { copyText } from "@/lib/clipboard";
-import { Check, Copy, Link2, Monitor, Smartphone, Tag, X, type LucideIcon } from "lucide-react";
+import { Check, Copy, Link2, Monitor, Smartphone, Tag, X, type LucideIcon } from "@/components/icons";
 import { useState } from "react";
 
 type Barber = { id: string; name: string };
