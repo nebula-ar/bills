@@ -39,9 +39,14 @@ export function HeroSection() {
     // 0. Responsive Fixed-Size Phone Scaler
     const setScale = () => {
       if (!scalerRef.current) return;
-      // We want the phone (360x780) to fit within 100vw width and 70vh height
+      // We want the phone (360x780) to fit within 100vw width and a safe % of vh
+      // For mobile, we must ensure it fits within the viewport height without clipping the bottom
+      const isMobile = window.innerWidth < 768;
+      const safeHeight = isMobile ? window.innerHeight * 0.60 : window.innerHeight * 0.70;
+      
       const scaleX = window.innerWidth / 400; // Extra padding for width
-      const scaleY = (window.innerHeight * 0.70) / 780; 
+      const scaleY = safeHeight / 780; 
+      
       const scale = Math.min(1, scaleX, scaleY); // Never scale up beyond 1x
       gsap.set(scalerRef.current, { scale });
     };
@@ -144,7 +149,8 @@ export function HeroSection() {
 
       scrollTl.to(heroTextLayerRef.current, { opacity: 0, y: -100, filter: "blur(10px)", duration: 1 }, "p2")
               .to(mockupLayerRef.current, { opacity: 1, y: 0, filter: "blur(0px)", scale: 0.85, duration: 1 }, "p2")
-              .to(mockupWrapperRef.current, { y: 150, duration: 1, ease: "power2.inOut" }, "p2+=0.5")
+              // Changed y from 150 to 50 to prevent bottom clipping
+              .to(mockupWrapperRef.current, { y: 50, duration: 1, ease: "power2.inOut" }, "p2+=0.5")
 
       scrollTl.to(featText1Ref.current, { opacity: 1, y: 0, duration: 0.5 }, "p3")
               .to(screen1Ref.current, { opacity: 1, duration: 0.5 }, "p3")
