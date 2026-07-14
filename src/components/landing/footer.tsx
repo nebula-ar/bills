@@ -3,7 +3,7 @@ import { Scissors } from "lucide-react";
 
 export function Footer() {
   return (
-    <footer className="bg-[#0A0A0B] pt-16 pb-8">
+    <footer className="bg-[#0A0A0B] pt-16 pb-8 relative z-10 -mt-[1px]">
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
           <div className="col-span-2">
