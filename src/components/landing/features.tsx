@@ -5,35 +5,35 @@ import { Calculator, CalendarCheck, SmartphoneNfc, TrendingUp } from "lucide-rea
 
 const features = [
   {
-    icon: <CalendarCheck className="w-6 h-6 text-[#d4af37]" />,
-    title: "24/7 Booking & No-Shows",
-    description: "Let clients book while you sleep. Collect upfront deposits and eliminate the cost of empty chairs.",
+    icon: <CalendarCheck className="w-6 h-6 text-blue-600" />,
+    title: "Reservas 24/7 y Cero Ausencias",
+    description: "Deja que los clientes reserven mientras duermes. Cobra señas por adelantado y elimina el costo de las sillas vacías.",
   },
   {
-    icon: <SmartphoneNfc className="w-6 h-6 text-[#00e5ff]" />,
-    title: "Chair-Side Checkout",
-    description: "Close out tickets right from your phone. Tap-to-pay, QR codes, or cash—everything syncs instantly.",
+    icon: <SmartphoneNfc className="w-6 h-6 text-red-600" />,
+    title: "Cobro en la Silla",
+    description: "Cierra ventas desde tu celular. Pagos sin contacto, QR o efectivo: todo se sincroniza al instante.",
   },
   {
-    icon: <Calculator className="w-6 h-6 text-[#d4af37]" />,
-    title: "Painless Payouts",
-    description: "Automate the math. We calculate booth rents and commission splits instantly at the end of every shift.",
+    icon: <Calculator className="w-6 h-6 text-blue-600" />,
+    title: "Pagos sin Dolor",
+    description: "Automatiza los números. Calculamos alquiler de sillas y comisiones al instante al final de cada turno.",
   },
   {
-    icon: <TrendingUp className="w-6 h-6 text-[#00e5ff]" />,
-    title: "Executive Reports",
-    description: "Stop guessing. See your top services, best-performing barbers, and exact profit margins in one tap.",
+    icon: <TrendingUp className="w-6 h-6 text-red-600" />,
+    title: "Reportes Ejecutivos",
+    description: "Deja de adivinar. Mira tus mejores servicios, barberos con mejor rendimiento y tus márgenes de ganancia exactos en un solo toque.",
   },
 ];
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="py-24 bg-[#0A0A0B] relative border-t border-[#353436]">
+    <section id="features" className="py-24 bg-slate-50 relative border-t border-slate-200 snap-start">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-5xl font-bold text-white mb-6 font-montserrat">
-            Everything you need. <br />
-            <span className="text-gray-500">Nothing you don&apos;t.</span>
+          <h2 className="text-3xl lg:text-5xl font-bold text-slate-900 mb-6 font-montserrat">
+            Todo lo que necesitas. <br />
+            <span className="text-slate-500">Nada que sobre.</span>
           </h2>
         </div>
 
@@ -45,13 +45,13 @@ export function FeaturesSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="group p-8 rounded-2xl bg-[#12121A] border border-[#353436] hover:border-[#d4af37] transition-all hover:bg-[#201F20] shadow-[0_4px_30px_rgba(0,0,0,0.5)] backdrop-blur-md"
+              className="group p-8 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 transition-all shadow-sm hover:shadow-[0_8px_30px_rgba(37,99,235,0.12)] hover:-translate-y-1"
             >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#353436] to-[#12121A] flex items-center justify-center mb-6 border border-[#353436] group-hover:scale-110 transition-transform group-hover:shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-6 border border-blue-100 group-hover:scale-110 transition-transform group-hover:bg-blue-100">
                 {feature.icon}
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3 font-montserrat">{feature.title}</h3>
-              <p className="text-gray-400 leading-relaxed">{feature.description}</p>
+              <h3 className="text-xl font-bold text-slate-900 mb-3 font-montserrat">{feature.title}</h3>
+              <p className="text-slate-600 leading-relaxed font-medium">{feature.description}</p>
             </motion.div>
           ))}
         </div>
