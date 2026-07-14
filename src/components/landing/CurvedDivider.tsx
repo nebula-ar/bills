@@ -36,7 +36,7 @@ export function CurvedDivider() {
   }, []);
 
   return (
-    <div ref={containerRef} className="absolute bottom-0 inset-x-0 w-full overflow-hidden leading-[0] pointer-events-none">
+    <div ref={containerRef} className="absolute -bottom-[1px] inset-x-0 w-full overflow-hidden leading-[0] pointer-events-none translate-y-[1px]">
       <svg 
         viewBox="0 0 1200 120" 
         preserveAspectRatio="none" 

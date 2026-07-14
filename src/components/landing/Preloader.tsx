@@ -38,7 +38,9 @@ export function Preloader() {
     if (!letters || !icon || !bgRef.current || !brandGroupRef.current) return;
 
     // 1. Setup initial state
-    gsap.set(brandGroupRef.current, { xPercent: -50, yPercent: -50, scale: 2.5 });
+    const isMobile = window.innerWidth < 768;
+    const initialScale = isMobile ? 1.5 : 2.5;
+    gsap.set(brandGroupRef.current, { xPercent: -50, yPercent: -50, scale: initialScale });
     gsap.set(letters, { y: 30, opacity: 0 }); // Menos distancia de 'y' porque la fuente es más chica
     gsap.set(icon, { scale: 0, opacity: 0, rotation: -90 });
 
