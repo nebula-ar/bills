@@ -52,7 +52,7 @@ export function Navbar() {
           <span className="text-xl font-bold tracking-tight text-slate-900 font-montserrat">Barber Bills</span>
         </div>
         
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 sm:gap-6">
           <Link href="/login" className="group relative hidden sm:flex items-center justify-center h-5 overflow-hidden">
             <span className="flex items-center font-medium text-sm tracking-tight text-slate-500 transition-transform duration-500 ease-[cubic-bezier(0.19,1,0.22,1)] group-hover:-translate-y-full">
               Iniciar sesión
@@ -61,7 +61,7 @@ export function Navbar() {
               Iniciar sesión
             </span>
           </Link>
-          <MagneticButton href="/dashboard" className="px-6 py-3">
+          <MagneticButton href="/dashboard" className="px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm">
             Ir al Panel
           </MagneticButton>
         </div>
