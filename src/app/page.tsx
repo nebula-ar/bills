@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { redirect } from "next/navigation";
 import { Scissors } from "lucide-react";
 import { HeroSection } from "@/components/landing/hero";
-import { FeaturesSection } from "@/components/landing/features";
-import { PricingSection } from "@/components/landing/pricing";
-import { TestimonialsSection } from "@/components/landing/testimonials";
 import { FAQSection } from "@/components/landing/faq";
 import { faqs } from "@/components/landing/faq-data";
 import { CTASection } from "@/components/landing/cta";
@@ -15,6 +13,21 @@ import { ScrollIndicator } from "@/components/landing/ScrollIndicator";
 import { Navbar } from "@/components/landing/Navbar";
 import { getCurrentSession } from "@/lib/auth";
 import { getBarberSession } from "@/lib/barber-session";
+
+// Secciones debajo del pliegue con librerías de animación pesadas (framer-motion,
+// gsap): se cargan en un chunk aparte para no sumar su parseo/ejecución al
+// bloqueo del hilo principal durante la carga inicial del hero. Siguen
+// renderizadas en el servidor (ssr: true, el default) para no perder el
+// contenido de cara a SEO.
+const FeaturesSection = dynamic(() =>
+  import("@/components/landing/features").then((m) => m.FeaturesSection)
+);
+const PricingSection = dynamic(() =>
+  import("@/components/landing/pricing").then((m) => m.PricingSection)
+);
+const TestimonialsSection = dynamic(() =>
+  import("@/components/landing/testimonials").then((m) => m.TestimonialsSection)
+);
 
 export const metadata: Metadata = {
   title: "Software para Barberías en Argentina | Barber Bills",
