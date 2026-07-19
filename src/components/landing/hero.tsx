@@ -107,7 +107,11 @@ export function HeroSection() {
       gsap.set(underlineRef.current, { strokeDasharray: pathLength, strokeDashoffset: pathLength });
     }
 
-    gsap.set(mockupLayerRef.current, { opacity: 0, filter: "blur(20px)", y: 150, scale: 0.85 });
+    // Sin filter/blur: es una propiedad no compositable (repinta en cada frame de
+    // scroll en vez de solo componer capas GPU) y era la causa principal del
+    // scroll trabado/lag en el hero. opacity+scale dan un efecto de aparición
+    // similar a un costo de frame mucho menor.
+    gsap.set(mockupLayerRef.current, { opacity: 0, y: 150, scale: 0.85 });
     
     // Hide feature texts and screens initially
     gsap.set([featText1Ref.current, featText2Ref.current, featText3Ref.current], { opacity: 0, y: 50 });
@@ -123,7 +127,7 @@ export function HeroSection() {
           trigger: pinRef.current,
           start: "top top",
           end: "+=4000",
-          scrub: 1,
+          scrub: 0.5,
           pin: true,
           pinSpacing: true,
         }
@@ -134,8 +138,8 @@ export function HeroSection() {
       }
       scrollTl.to({}, { duration: 0.5 });
 
-      scrollTl.to(heroTextLayerRef.current, { opacity: 0, y: -100, filter: "blur(15px)", duration: 1 }, "p2")
-              .to(mockupLayerRef.current, { opacity: 1, y: 0, filter: "blur(0px)", scale: 1, duration: 1 }, "p2")
+      scrollTl.to(heroTextLayerRef.current, { opacity: 0, y: -100, duration: 1 }, "p2")
+              .to(mockupLayerRef.current, { opacity: 1, y: 0, scale: 1, duration: 1 }, "p2")
               .to(mockupWrapperRef.current, { x: () => Math.min(window.innerWidth * 0.25, 288), duration: 1, ease: "power2.inOut" }, "p2+=0.5")
               
       scrollTl.to(featText1Ref.current, { opacity: 1, y: 0, duration: 0.5 }, "p3")
@@ -162,7 +166,7 @@ export function HeroSection() {
           trigger: pinRef.current,
           start: "top top",
           end: "+=3000",
-          scrub: 1,
+          scrub: 0.5,
           pin: true,
           pinSpacing: true,
         }
@@ -173,8 +177,8 @@ export function HeroSection() {
       }
       scrollTl.to({}, { duration: 0.5 });
 
-      scrollTl.to(heroTextLayerRef.current, { opacity: 0, y: -100, filter: "blur(10px)", duration: 1 }, "p2")
-              .to(mockupLayerRef.current, { opacity: 1, y: 0, filter: "blur(0px)", scale: 0.85, duration: 1 }, "p2")
+      scrollTl.to(heroTextLayerRef.current, { opacity: 0, y: -100, duration: 1 }, "p2")
+              .to(mockupLayerRef.current, { opacity: 1, y: 0, scale: 0.85, duration: 1 }, "p2")
               // Changed y from 150 to 50 to prevent bottom clipping
               .to(mockupWrapperRef.current, { y: 50, duration: 1, ease: "power2.inOut" }, "p2+=0.5")
 
