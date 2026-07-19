@@ -61,8 +61,8 @@ export function Navbar() {
               Iniciar sesión
             </span>
           </Link>
-          <MagneticButton href="/dashboard" className="px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm">
-            Ir al Panel
+          <MagneticButton href="/register" className="px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm">
+            Prueba Gratis
           </MagneticButton>
         </div>
       </div>

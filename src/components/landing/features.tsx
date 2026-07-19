@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Calculator, CalendarCheck, SmartphoneNfc, TrendingUp } from "lucide-react";
+import { Calculator, CalendarCheck, Building2, TrendingUp } from "lucide-react";
 
 const features = [
   {
@@ -10,9 +10,9 @@ const features = [
     description: "Deja que los clientes reserven mientras duermes. Cobra señas por adelantado y elimina el costo de las sillas vacías.",
   },
   {
-    icon: <SmartphoneNfc className="w-6 h-6 text-red-600" />,
-    title: "Cobro en la Silla",
-    description: "Cierra ventas desde tu celular. Pagos sin contacto, QR o efectivo: todo se sincroniza al instante.",
+    icon: <Building2 className="w-6 h-6 text-red-600" />,
+    title: "Multi-Sucursal",
+    description: "Gestiona todas tus sucursales desde una sola cuenta. Compara rendimiento entre locales y asigna barberos por sede.",
   },
   {
     icon: <Calculator className="w-6 h-6 text-blue-600" />,

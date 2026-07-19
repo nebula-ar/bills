@@ -32,12 +32,8 @@ export function Footer() {
             </ul>
           </div>
         </div>
-        <div className="pt-8 border-t border-[#1E293B] flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+        <div className="pt-8 border-t border-[#1E293B] flex justify-center items-center text-sm text-gray-500">
           <p>© {new Date().getFullYear()} Barber Bills. Todos los derechos reservados.</p>
-          <div className="flex gap-4">
-            <a href="#" className="hover:text-white transition-colors">Twitter</a>
-            <a href="#" className="hover:text-white transition-colors">Instagram</a>
-          </div>
         </div>
       </div>
     </footer>
