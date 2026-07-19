@@ -23,6 +23,8 @@ export function Preloader() {
 
   useEffect(() => {
 
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     const tl = gsap.timeline({
       onComplete: () => {
         document.body.style.overflow = "auto";
@@ -31,6 +33,10 @@ export function Preloader() {
         }
       }
     });
+    if (prefersReducedMotion) {
+      // Resuelve la intro casi al instante para no tapar el hero con un cruce de opacidad prolongado.
+      tl.timeScale(20);
+    }
 
     const letters = textWrapperRef.current?.querySelectorAll('.char');
     const icon = brandGroupRef.current?.querySelector('.icon-wrapper');
@@ -67,6 +73,10 @@ export function Preloader() {
       opacity: 0,
       duration: 1,
       ease: "power2.inOut",
+      // El hero espera este evento para arrancar su propia entrada: evita que
+      // ambas animaciones se crucen y generen un frame de bajo contraste
+      // (lo que hacía fallar el audit de accesibilidad de forma intermitente).
+      onComplete: () => window.dispatchEvent(new Event("preloader:bg-hidden")),
     }, "+=0.3")
     
     // 6. Shrink and move the logo to the exact navbar position

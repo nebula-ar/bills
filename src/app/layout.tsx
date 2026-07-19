@@ -24,6 +24,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://barber-bills-tawny.vercel.app"),
   title: "Barber Bills",
   description: "Administración de ventas para barberías",
   applicationName: "Barber Bills",

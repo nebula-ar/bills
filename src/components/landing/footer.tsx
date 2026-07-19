@@ -16,7 +16,7 @@ export function Footer() {
             </p>
           </div>
           <div>
-            <h4 className="text-white font-semibold mb-4 font-montserrat">Producto</h4>
+            <h3 className="text-white font-semibold mb-4 font-montserrat">Producto</h3>
             <ul className="space-y-2 text-sm text-gray-400">
               <li><Link href="#features" className="hover:text-[#38BDF8] transition-colors">Funciones</Link></li>
               <li><Link href="#pricing" className="hover:text-[#38BDF8] transition-colors">Precios</Link></li>
@@ -24,7 +24,7 @@ export function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="text-white font-semibold mb-4 font-montserrat">Empresa</h4>
+            <h3 className="text-white font-semibold mb-4 font-montserrat">Empresa</h3>
             <ul className="space-y-2 text-sm text-gray-400">
               <li><Link href="/about" className="hover:text-[#38BDF8] transition-colors">Nosotros</Link></li>
               <li><Link href="/contact" className="hover:text-[#38BDF8] transition-colors">Contacto</Link></li>
@@ -32,7 +32,7 @@ export function Footer() {
             </ul>
           </div>
         </div>
-        <div className="pt-8 border-t border-[#1E293B] flex justify-center items-center text-sm text-gray-500">
+        <div className="pt-8 border-t border-[#1E293B] flex justify-center items-center text-sm text-gray-400">
           <p>© {new Date().getFullYear()} Barber Bills. Todos los derechos reservados.</p>
         </div>
       </div>

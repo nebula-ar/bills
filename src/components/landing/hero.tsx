@@ -54,8 +54,16 @@ export function HeroSection() {
     window.addEventListener("resize", setScale);
 
     // 1. Entrance Animation
-    const entranceTl = gsap.timeline({ defaults: { ease: "expo.out", duration: 1.2 }, delay: 2.5 });
-    
+    // Arranca recién cuando el Preloader termina de tapar la pantalla (evento
+    // "preloader:bg-hidden"), en vez de un delay fijo adivinado: con un número
+    // fijo, ambas animaciones terminaban solapándose (cruce de opacidad que
+    // hacía fallar el contraste de forma intermitente en el audit de a11y).
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const entranceTl = gsap.timeline({ paused: true, defaults: { ease: "expo.out", duration: 1.2 } });
+    if (prefersReducedMotion) {
+      entranceTl.timeScale(20);
+    }
+
     entranceTl.fromTo(
       titleRef.current,
       { opacity: 0, y: 50, clipPath: "polygon(0 0, 100% 0, 100% 0, 0 0)" },
@@ -73,6 +81,24 @@ export function HeroSection() {
       { opacity: 1, scale: 1 },
       "-=1"
     );
+
+    let fallbackTimer: number | undefined;
+    const startEntrance = () => {
+      entranceTl.play();
+      if (fallbackTimer !== undefined) {
+        window.clearTimeout(fallbackTimer);
+      }
+    };
+
+    if (prefersReducedMotion) {
+      // El Preloader también corre a timeScale(20) en este caso: no hace falta esperar.
+      startEntrance();
+    } else {
+      window.addEventListener("preloader:bg-hidden", startEntrance, { once: true });
+      // Red de seguridad por si el Preloader no llega a emitir el evento (p.ej. se
+      // desmonta antes de tiempo): el hero no debe quedar invisible para siempre.
+      fallbackTimer = window.setTimeout(startEntrance, 4000);
+    }
 
     // Initial setups
     let pathLength = 0;
@@ -171,6 +197,10 @@ export function HeroSection() {
 
     return () => {
       window.removeEventListener("resize", setScale);
+      window.removeEventListener("preloader:bg-hidden", startEntrance);
+      if (fallbackTimer !== undefined) {
+        window.clearTimeout(fallbackTimer);
+      }
       mm.revert();
       ScrollTrigger.getAll().forEach(t => t.kill());
       entranceTl.kill();
@@ -237,7 +267,7 @@ export function HeroSection() {
 
             <p
               ref={textRef}
-              className="text-base sm:text-lg lg:text-xl text-slate-500 mb-10 leading-relaxed max-w-xl mx-auto font-normal px-4"
+              className="text-base sm:text-lg lg:text-xl text-slate-600 mb-10 leading-relaxed max-w-xl mx-auto font-normal px-4"
             >
               El sistema todo en uno creado para llenar sillas y automatizar tus comisiones. Deja de administrar, empieza a cortar.
             </p>
