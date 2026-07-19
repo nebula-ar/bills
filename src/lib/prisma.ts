@@ -57,10 +57,24 @@ function forcePgSsl(connectionString: string): string {
   }
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+// Instanciación perezosa (Proxy) en vez de crear el cliente al cargar el módulo.
+// Next.js recolecta datos de build para rutas que no tocan la DB (p.ej.
+// `/_not-found`) importando este módulo de forma transitiva; si esa recolección
+// corre en un contexto sin DATABASE_URL todavía inyectada, `createPrismaClient`
+// caía al fallback de SQLite mientras el cliente generado era el de Postgres, y
+// tiraba PrismaClientInitializationError (adapter/provider incompatibles),
+// rompiendo el build entero por una ruta que ni siquiera necesita Prisma. Con
+// el Proxy, el cliente real recién se crea la primera vez que alguien accede a
+// una propiedad (p.ej. `prisma.user`), es decir, en un request real.
+function getPrisma(): PrismaClient {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient();
+  }
+  return globalForPrisma.prisma;
+}
 
-// Cacheamos el singleton SIEMPRE (también en prod). En el runtime serverless de
-// Vercel cada instancia/contenedor reusa el mismo PrismaClient entre requests, en
-// vez de crear uno nuevo por invocación (que agota conexiones del pooler y suma
-// cold start). En dev evita además fugas por el hot-reload.
-globalForPrisma.prisma = prisma;
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getPrisma(), prop, receiver);
+  },
+}) as PrismaClient;
