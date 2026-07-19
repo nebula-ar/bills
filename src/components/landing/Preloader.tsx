@@ -75,7 +75,7 @@ export function Preloader() {
         const placeholder = document.getElementById("navbar-logo-placeholder");
         if (placeholder) {
           const rect = placeholder.getBoundingClientRect();
-          return rect.top + rect.height / 2;
+          return `${rect.top + rect.height / 2}px`;
         }
         return "1rem";
       },
@@ -83,7 +83,7 @@ export function Preloader() {
         const placeholder = document.getElementById("navbar-logo-placeholder");
         if (placeholder) {
           const rect = placeholder.getBoundingClientRect();
-          return rect.left + rect.width / 2;
+          return `${rect.left + rect.width / 2}px`;
         }
         return "24px";
       },

@@ -10,7 +10,7 @@ import { MagneticButton } from "./MagneticButton";
 gsap.registerPlugin(ScrollTrigger);
 
 export function HeroSection() {
-  const containerRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
   
   // Layers
@@ -114,19 +114,19 @@ export function HeroSection() {
               
       scrollTl.to(featText1Ref.current, { opacity: 1, y: 0, duration: 0.5 }, "p3")
               .to(screen1Ref.current, { opacity: 1, duration: 0.5 }, "p3")
-              .to(featText1Ref.current?.querySelector('h3'), { backgroundPosition: "0% 0", duration: 1.5, ease: "none" }, "p3+=0.5");
+              .to(featText1Ref.current!.querySelector('h3'), { backgroundPosition: "0% 0", duration: 1.5, ease: "none" }, "p3+=0.5");
 
       scrollTl.to(featText1Ref.current, { opacity: 0, y: -50, duration: 0.5 }, "p4")
               .to(screen1Ref.current, { opacity: 0, duration: 0.5 }, "p4")
               .to(featText2Ref.current, { opacity: 1, y: 0, duration: 0.5 }, "p4+=0.3")
               .to(screen2Ref.current, { opacity: 1, duration: 0.5 }, "p4+=0.3")
-              .to(featText2Ref.current?.querySelector('h3'), { backgroundPosition: "0% 0", duration: 1.5, ease: "none" }, "p4+=0.8");
+              .to(featText2Ref.current!.querySelector('h3'), { backgroundPosition: "0% 0", duration: 1.5, ease: "none" }, "p4+=0.8");
 
       scrollTl.to(featText2Ref.current, { opacity: 0, y: -50, duration: 0.5 }, "p5")
               .to(screen2Ref.current, { opacity: 0, duration: 0.5 }, "p5")
               .to(featText3Ref.current, { opacity: 1, y: 0, duration: 0.5 }, "p5+=0.3")
               .to(screen3Ref.current, { opacity: 1, duration: 0.5 }, "p5+=0.3")
-              .to(featText3Ref.current?.querySelector('h3'), { backgroundPosition: "0% 0", duration: 2, ease: "none" }, "p5+=0.8");
+              .to(featText3Ref.current!.querySelector('h3'), { backgroundPosition: "0% 0", duration: 2, ease: "none" }, "p5+=0.8");
     });
 
     mm.add("(max-width: 767px)", () => {
@@ -154,19 +154,19 @@ export function HeroSection() {
 
       scrollTl.to(featText1Ref.current, { opacity: 1, y: 0, duration: 0.5 }, "p3")
               .to(screen1Ref.current, { opacity: 1, duration: 0.5 }, "p3")
-              .to(featText1Ref.current?.querySelector('h3'), { backgroundPosition: "0% 0", duration: 1.5, ease: "none" }, "p3+=0.5");
+              .to(featText1Ref.current!.querySelector('h3'), { backgroundPosition: "0% 0", duration: 1.5, ease: "none" }, "p3+=0.5");
 
       scrollTl.to(featText1Ref.current, { opacity: 0, y: -20, duration: 0.5 }, "p4")
               .to(screen1Ref.current, { opacity: 0, duration: 0.5 }, "p4")
               .to(featText2Ref.current, { opacity: 1, y: 0, duration: 0.5 }, "p4+=0.3")
               .to(screen2Ref.current, { opacity: 1, duration: 0.5 }, "p4+=0.3")
-              .to(featText2Ref.current?.querySelector('h3'), { backgroundPosition: "0% 0", duration: 1.5, ease: "none" }, "p4+=0.8");
+              .to(featText2Ref.current!.querySelector('h3'), { backgroundPosition: "0% 0", duration: 1.5, ease: "none" }, "p4+=0.8");
 
       scrollTl.to(featText2Ref.current, { opacity: 0, y: -20, duration: 0.5 }, "p5")
               .to(screen2Ref.current, { opacity: 0, duration: 0.5 }, "p5")
               .to(featText3Ref.current, { opacity: 1, y: 0, duration: 0.5 }, "p5+=0.3")
               .to(screen3Ref.current, { opacity: 1, duration: 0.5 }, "p5+=0.3")
-              .to(featText3Ref.current?.querySelector('h3'), { backgroundPosition: "0% 0", duration: 2, ease: "none" }, "p5+=0.8");
+              .to(featText3Ref.current!.querySelector('h3'), { backgroundPosition: "0% 0", duration: 2, ease: "none" }, "p5+=0.8");
     });
 
     return () => {
