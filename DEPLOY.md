@@ -64,6 +64,21 @@ En **Vercel → tu proyecto → Settings → Environment Variables** (scope: Pro
 1. Conectá el repo de GitHub a Vercel (framework detectado: Next.js).
 2. Deploy. En el primer build se crean todas las tablas en Supabase.
 
+> ⚠️ **Si esa base ya se usó con una versión anterior a Bills multi-rubro**
+> (cuando la app era solo para barberías), hay que vaciarla antes del deploy.
+> El schema se reescribió de cero —`Service` pasó a `Product`, el rol `BARBER`
+> a `STAFF`, y se sumaron 22 tablas— así que la migración inicial no puede
+> aplicarse sobre las tablas viejas. En Supabase, SQL Editor:
+>
+> ```sql
+> DROP SCHEMA public CASCADE;
+> CREATE SCHEMA public;
+> GRANT ALL ON SCHEMA public TO postgres, anon, authenticated, service_role;
+> ```
+>
+> Después redeployá: `prisma migrate deploy` crea todo limpio. **Esto borra
+> todos los datos de esa base.**
+
 ## 4. Cargar datos de demo (15 días) en Supabase
 
 El seed **no** corre en el build. Corrélo una vez, apuntando a Supabase, desde tu máquina:
@@ -121,6 +136,16 @@ npm run dev
    ```
    (podés apuntar `DIRECT_URL` a una DB de staging o a un Postgres local).
    Commiteá tanto `prisma/migrations` como `prisma/postgres/migrations`.
+
+   **Sin una DB a mano**, la migración se puede generar offline comparando el
+   schema contra el estado que dejan las migraciones ya existentes:
+   ```bash
+   npx prisma migrate diff      --from-migrations prisma/postgres/migrations      --to-schema prisma/postgres/schema.prisma      --shadow-database-url <postgres-de-descarte> --script
+   ```
+   > **No alcanza con crear la migración de SQLite.** Producción aplica
+   > `prisma/postgres/migrations` y nada más: si esa carpeta se queda atrás, el
+   > build pasa igual (`next build` no toca la base) y la app rompe en la
+   > primera consulta contra una tabla que no existe.
 
 > ⚠️ Al usar dos motores distintos, un detalle de dialecto SQL podría comportarse
 > distinto entre dev y prod. Si eso se vuelve molesto, considerá mover también el
