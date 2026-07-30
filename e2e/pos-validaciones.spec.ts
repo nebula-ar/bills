@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { loginAsAdmin } from "./helpers";
+import { loginAsAdmin, elegirVendedor } from "./helpers";
 
 test.describe("POS: validaciones", () => {
   test.beforeEach(async ({ page }) => {
@@ -9,12 +9,13 @@ test.describe("POS: validaciones", () => {
 
   test("pago dividido que no cubre el total deja el botón deshabilitado", async ({ page }) => {
     await page.goto("/sales/new");
-    await page.getByRole("button", { name: "Agregar Corte clásico" }).first().click();
+    await elegirVendedor(page);
+    await page.getByRole("button", { name: "Agregar Alfajor triple" }).first().click();
     await page.getByRole("button", { name: "Cobrar" }).click();
 
     // Activar pago dividido y vaciar el monto del único método.
     await page.getByRole("button", { name: "Dividir" }).click();
-    await page.getByPlaceholder("0").fill("");
+    await page.getByLabel("Monto del pago").fill("");
 
     // No cubre el total → no se puede confirmar.
     await expect(page.getByText(/Falta/)).toBeVisible();

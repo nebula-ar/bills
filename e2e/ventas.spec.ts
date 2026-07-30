@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-import { loginAsAdmin } from "./helpers";
+import { loginAsAdmin, elegirVendedor } from "./helpers";
 
 async function crearVenta(page: import("@playwright/test").Page) {
   await page.goto("/sales/new");
-  await page.getByRole("button", { name: "Agregar Corte clásico" }).first().click();
+  await elegirVendedor(page);
+  await page.getByRole("button", { name: "Agregar Alfajor triple" }).first().click();
   await page.getByRole("button", { name: "Cobrar" }).click();
   await page.getByRole("button", { name: /Confirmar venta/ }).click();
   await expect(page.getByText("¡Venta registrada!")).toBeVisible();
@@ -25,6 +26,8 @@ test.describe("Ventas (POS admin)", () => {
     await page.getByTestId("sale-row").first().click();
     await page.getByRole("button", { name: "Cancelar venta" }).click();
     await page.getByRole("button", { name: "Confirmar cancelación" }).click();
-    await expect(page.getByText("Venta cancelada correctamente")).toBeVisible();
+    // El toast es transitorio: lo que prueba la anulación es que la venta quede
+    // marcada como cancelada en el historial.
+    await expect(page.getByTestId("sale-row").first().getByText("Cancelada")).toBeVisible();
   });
 });

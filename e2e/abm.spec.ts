@@ -15,21 +15,21 @@ test.describe("ABM (alta de entidades)", () => {
     await expect(page.getByText("Sucursal E2E").first()).toBeVisible();
   });
 
-  test("crear un barbero con PIN", async ({ page }) => {
-    await page.goto("/barbers");
-    await page.getByRole("button", { name: "Nuevo barbero" }).click();
-    await page.locator('input[name="name"]').fill("Barbero E2E");
+  test("crear un vendedor con PIN", async ({ page }) => {
+    await page.goto("/staff");
+    await page.getByRole("button", { name: "Nuevo vendedor" }).click();
+    await page.locator('input[name="name"]').fill("Vendedor E2E");
     await page.locator('input[name="pin"]').fill("9876");
-    await page.getByRole("button", { name: "Crear barbero" }).click();
-    await expect(page.getByText("Barbero E2E").first()).toBeVisible();
+    await page.getByRole("button", { name: "Crear vendedor" }).click();
+    await expect(page.getByText("Vendedor E2E").first()).toBeVisible();
   });
 
-  test("crear un servicio con precio", async ({ page }) => {
-    await page.goto("/services");
-    await page.getByRole("button", { name: "Nuevo servicio" }).click();
-    await page.locator('input[name="name"]').fill("Servicio E2E");
+  test("crear un producto con precio", async ({ page }) => {
+    await page.goto("/catalog");
+    await page.getByRole("button", { name: "Nuevo producto" }).click();
+    await page.locator('input[name="name"]').fill("Producto E2E");
     await page.locator('input[name="price"]').fill("5000");
-    await page.getByRole("button", { name: "Crear servicio" }).click();
-    await expect(page.getByText("Servicio E2E").first()).toBeVisible();
+    await page.getByRole("button", { name: "Crear producto" }).click();
+    await expect(page.getByText("Producto E2E").first()).toBeVisible();
   });
 });

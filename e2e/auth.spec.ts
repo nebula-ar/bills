@@ -5,7 +5,7 @@ import { ADMIN, loginAsAdmin } from "./helpers";
 test.describe("Autenticación admin", () => {
   test("login con credenciales válidas entra al dashboard", async ({ page }) => {
     await loginAsAdmin(page);
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL("/dashboard");
     // Elementos propios del panel de admin.
     await expect(page.getByRole("link", { name: "Vender" })).toBeVisible();
   });

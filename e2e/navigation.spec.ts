@@ -12,9 +12,14 @@ const ADMIN_ROUTES = [
   "/expenses",
   "/caja",
   "/branches",
-  "/services",
-  "/barbers",
+  "/catalog",
+  "/staff",
   "/terminals",
+  "/stock",
+  "/suppliers",
+  "/promotions",
+  "/customers",
+  "/settings",
 ];
 
 test.describe("Navegación admin (smoke)", () => {
