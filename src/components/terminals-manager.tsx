@@ -7,13 +7,13 @@ import { Check, ChevronDown, Copy, Monitor, Pencil, Plus, Smartphone, Tag, Trash
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ComponentType } from "react";
 
-type Barber = { id: string; name: string };
-type CustomTerminal = { id: string; name: string; barberId: string | null; barberName: string | null };
+type Staff = { id: string; name: string };
+type CustomTerminal = { id: string; name: string; staffId: string | null; staffName: string | null };
 
 export type TerminalsBranch = {
   id: string;
   name: string;
-  barbers: Barber[];
+  staffs: Staff[];
   customTerminals: CustomTerminal[];
 };
 
@@ -95,7 +95,7 @@ function CustomRow({ terminal, onEdit }: { terminal: CustomTerminal; onEdit: () 
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-black text-slate-950">{terminal.name}</p>
           <p className="truncate text-xs text-slate-500">
-            {terminal.barberName ? `Fija a ${terminal.barberName} · solo PIN` : "Mostrador · elige barbero y PIN"}
+            {terminal.staffName ? `Fija a ${terminal.staffName} · solo PIN` : "Mostrador · elige empleado y PIN"}
           </p>
         </div>
         <button
@@ -106,7 +106,7 @@ function CustomRow({ terminal, onEdit }: { terminal: CustomTerminal; onEdit: () 
         >
           <Pencil className="size-4" />
         </button>
-        <CopyButton copied={copied} onClick={() => copy(`/barber?terminal=${terminal.id}`)} />
+        <CopyButton copied={copied} onClick={() => copy(`/staff?terminal=${terminal.id}`)} />
       </div>
       <RevealedUrl url={url} />
     </div>
@@ -147,20 +147,20 @@ function Select({
 function TerminalForm({
   branches,
   defaultBranchId,
-  defaultBarberId,
+  defaultStaffId,
   defaultName,
   allowBranchChange,
 }: {
   branches: TerminalsBranch[];
   defaultBranchId: string;
-  defaultBarberId: string;
+  defaultStaffId: string;
   defaultName: string;
   allowBranchChange: boolean;
 }) {
   const [branchId, setBranchId] = useState(defaultBranchId);
-  const [barberId, setBarberId] = useState(defaultBarberId);
+  const [staffId, setStaffId] = useState(defaultStaffId);
   const branch = branches.find((item) => item.id === branchId) ?? branches[0];
-  const barbers = branch?.barbers ?? [];
+  const staffs = branch?.staffs ?? [];
 
   return (
     <div className="space-y-4">
@@ -184,7 +184,7 @@ function TerminalForm({
           label="Sucursal"
           onChange={(value) => {
             setBranchId(value);
-            setBarberId("");
+            setStaffId("");
           }}
           value={branchId}
         >
@@ -201,16 +201,16 @@ function TerminalForm({
         </div>
       )}
 
-      <Select label="Barbero" name="barberId" onChange={setBarberId} value={barberId}>
+      <Select label="Empleado" name="staffId" onChange={setStaffId} value={staffId}>
         <option value="">Cualquiera (mostrador)</option>
-        {barbers.map((barber) => (
-          <option key={barber.id} value={barber.id}>
-            {barber.name}
+        {staffs.map((staff) => (
+          <option key={staff.id} value={staff.id}>
+            {staff.name}
           </option>
         ))}
       </Select>
       <p className="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-        Si asignás un barbero, la terminal ya viene con su perfil y solo pide el PIN. Si la dejás en «Cualquiera»,
+        Si asignás un empleado, la terminal ya viene con su perfil y solo pide el PIN. Si la dejás en «Cualquiera»,
         funciona como mostrador (cada uno elige su perfil).
       </p>
     </div>
@@ -298,18 +298,18 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
             <p className="mb-2 px-1 text-xs font-black uppercase tracking-wide text-slate-500">Automáticas</p>
             <div className="space-y-2.5">
               <AutoRow
-                hint="El barbero elige su perfil y pone su PIN"
+                hint="El empleado elige su perfil y pone su PIN"
                 icon={Monitor}
                 name="Mostrador"
-                path={`/barber?branch=${branch.id}`}
+                path={`/staff?branch=${branch.id}`}
               />
-              {branch.barbers.map((barber) => (
+              {branch.staffs.map((staff) => (
                 <AutoRow
                   hint="Ya viene con su perfil; solo pone el PIN"
                   icon={Smartphone}
-                  key={barber.id}
-                  name={`Teléfono de ${barber.name}`}
-                  path={`/barber?branch=${branch.id}&barber=${barber.id}`}
+                  key={staff.id}
+                  name={`Teléfono de ${staff.name}`}
+                  path={`/staff?branch=${branch.id}&staff=${staff.id}`}
                 />
               ))}
             </div>
@@ -337,7 +337,7 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
               <TerminalForm
                 allowBranchChange
                 branches={data.branches}
-                defaultBarberId=""
+                defaultStaffId=""
                 defaultBranchId={branch.id}
                 defaultName=""
               />
@@ -375,7 +375,7 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
                 <TerminalForm
                   allowBranchChange={false}
                   branches={data.branches}
-                  defaultBarberId={editing.barberId ?? ""}
+                  defaultStaffId={editing.staffId ?? ""}
                   defaultBranchId={branch.id}
                   defaultName={editing.name}
                 />

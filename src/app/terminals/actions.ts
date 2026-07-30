@@ -19,17 +19,17 @@ export async function createTerminalAction(formData: FormData) {
 
   const branchId = parseString(formData, "branchId");
   const name = parseString(formData, "name");
-  const barberId = parseString(formData, "barberId") || null;
+  const staffId = parseString(formData, "staffId") || null;
 
   if (!branchId || !name) {
     redirectWithMessage("error", "Elegí sucursal y poné un nombre para la terminal.", branchId);
   }
 
   try {
-    await createBranchTerminal({ businessId: session.user.businessId, branchId, name, barberId });
+    await createBranchTerminal({ businessId: session.user.businessId, branchId, name, staffId });
   } catch (error) {
     await logError("terminal.create", error, { businessId: session.user.businessId, userId: session.user.id });
-    redirectWithMessage("error", "No pudimos crear la terminal. Revisá el barbero elegido.", branchId);
+    redirectWithMessage("error", "No pudimos crear la terminal. Revisá el empleado elegido.", branchId);
   }
 
   redirectWithMessage("success", "Terminal creada.", branchId);
@@ -41,17 +41,17 @@ export async function renameTerminalAction(formData: FormData) {
   const branchId = parseString(formData, "branchId");
   const terminalId = parseString(formData, "terminalId");
   const name = parseString(formData, "name");
-  const barberId = parseString(formData, "barberId") || null;
+  const staffId = parseString(formData, "staffId") || null;
 
   if (!terminalId || !name) {
     redirectWithMessage("error", "Poné un nombre para la terminal.", branchId);
   }
 
   try {
-    await updateBranchTerminal({ businessId: session.user.businessId, terminalId, name, barberId });
+    await updateBranchTerminal({ businessId: session.user.businessId, terminalId, name, staffId });
   } catch (error) {
     await logError("terminal.update", error, { businessId: session.user.businessId, userId: session.user.id });
-    redirectWithMessage("error", "No pudimos actualizar la terminal. Revisá el barbero elegido.", branchId);
+    redirectWithMessage("error", "No pudimos actualizar la terminal. Revisá el empleado elegido.", branchId);
   }
 
   redirectWithMessage("success", "Terminal actualizada.", branchId);

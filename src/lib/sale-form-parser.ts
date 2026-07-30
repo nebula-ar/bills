@@ -1,7 +1,7 @@
 import { PaymentMethod } from "@/generated/prisma/client";
 
 export type ParsedSaleItem = {
-  serviceId: string;
+  productId: string;
   quantity: number;
 };
 
@@ -30,20 +30,20 @@ export function parsePaymentMethod(value: FormDataEntryValue | null) {
 }
 
 export function parseSaleItemsFromFormData(formData: FormData): ParsedSaleItemsResult {
-  const serviceIds = formData.getAll("serviceId[]");
+  const productIds = formData.getAll("productId[]");
   const quantities = formData.getAll("quantity[]");
-  const rowCount = Math.max(serviceIds.length, quantities.length);
+  const rowCount = Math.max(productIds.length, quantities.length);
   const items: ParsedSaleItem[] = [];
 
   for (let index = 0; index < rowCount; index += 1) {
-    const serviceId = parseOptionalString(serviceIds[index]);
+    const productId = parseOptionalString(productIds[index]);
     const quantityValue = parseOptionalString(quantities[index]);
 
-    if (!serviceId && !quantityValue) {
+    if (!productId && !quantityValue) {
       continue;
     }
 
-    if (!serviceId || !quantityValue) {
+    if (!productId || !quantityValue) {
       return {
         error: "Completá servicio y cantidad en cada fila agregada.",
         items: [],
@@ -59,7 +59,7 @@ export function parseSaleItemsFromFormData(formData: FormData): ParsedSaleItemsR
       };
     }
 
-    items.push({ serviceId, quantity });
+    items.push({ productId, quantity });
   }
 
   if (items.length === 0) {

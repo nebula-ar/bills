@@ -4,7 +4,7 @@ import { getExpenseBranches } from "@/modules/expenses/expense.use-cases";
 import { getAccountBalances, listCashCloses, listTransfers } from "@/modules/cash/cash.use-cases";
 import { CashManager, type CashData } from "@/components/cash-manager";
 
-const dayFormatter = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const dayFormatter = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
 const shortDayFormatter = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" });
 
 function toISODateLocal(date: Date) {
@@ -49,7 +49,7 @@ export default async function CajaPage({ searchParams }: CajaPageProps) {
     (s === "success" || s === "error") && m ? { status: s, message: m } : null;
 
   const data: CashData = {
-    businessName: branches[0]?.business.name ?? "Barber Bills",
+    businessName: branches[0]?.business.name ?? "Bills",
     branches: branches.map((b) => ({ id: b.id, name: b.name })),
     selectedBranchId,
     totalBalance: balances.reduce((sum, a) => sum + a.balance, 0),

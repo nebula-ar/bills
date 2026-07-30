@@ -16,5 +16,5 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   }
 
   const queryString = query.toString();
-  redirect(queryString ? `/?${queryString}` : "/");
+  redirect(queryString ? `/dashboard?${queryString}` : "/dashboard");
 }

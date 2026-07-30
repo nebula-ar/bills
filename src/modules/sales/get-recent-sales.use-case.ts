@@ -1,4 +1,4 @@
-import type { PaymentMethod, SaleStatus } from "@/generated/prisma/client";
+import type { AfipStatus, InvoiceType, PaymentMethod, SaleStatus, TaxCondition } from "@/generated/prisma/client";
 
 import { findRecentSales } from "./sale.repository";
 
@@ -8,7 +8,17 @@ export type RecentSale = {
   total: number;
   status: SaleStatus;
   branchName: string;
-  barberName: string;
+  staffName: string;
+  customerName: string | null;
+  customerPhone: string | null;
+  customerTaxId: string | null;
+  customerTaxCondition: TaxCondition;
+  invoiceType: InvoiceType | null;
+  afipStatus: AfipStatus;
+  cae: string | null;
+  caeVencimiento: Date | null;
+  afipVoucherNumber: number | null;
+  afipError: string | null;
   items: {
     id: string;
     description: string;
@@ -41,7 +51,17 @@ export async function getRecentSales(
     total: sale.total,
     status: sale.status,
     branchName: sale.branch.name,
-    barberName: sale.barber.name,
+    staffName: sale.staff.name,
+    customerName: sale.customer?.name ?? sale.customerName,
+    customerPhone: sale.customer?.phone ?? null,
+    customerTaxId: sale.customerTaxId,
+    customerTaxCondition: sale.customerTaxCondition,
+    invoiceType: sale.invoiceType,
+    afipStatus: sale.afipStatus,
+    cae: sale.cae,
+    caeVencimiento: sale.caeVencimiento,
+    afipVoucherNumber: sale.afipVoucherNumber,
+    afipError: sale.afipError,
     items: sale.items,
     payments: sale.payments,
   }));

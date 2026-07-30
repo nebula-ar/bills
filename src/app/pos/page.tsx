@@ -2,27 +2,36 @@ import { PosTerminals } from "@/components/pos-terminals";
 import { requireAdminSession } from "@/lib/auth";
 import { getSaleEntryBranches } from "@/modules/sales/get-sale-entry-options.use-case";
 import { getTerminalsByBranchIds } from "@/modules/terminals/terminal.use-cases";
-import { ArrowRight, MapPin, Scissors, ShoppingBag, Store } from "@/components/icons";
+import { ArrowRight, MapPin, ShoppingBag, Store, Users } from "@/components/icons";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default async function PosLauncherPage() {
   const session = await requireAdminSession();
 
   const branches = await getSaleEntryBranches(session.user.businessId);
+
+  // Con una sola sucursal esta pantalla no decide nada: es un toque de peaje
+  // antes de cada venta, con el cliente esperando. Se va directo a cobrar.
+  // (Los links de terminales para los empleados siguen estando en Terminales.)
+  if (branches.length === 1) {
+    redirect(`/sales/new?branchId=${branches[0].id}`);
+  }
+
   const terminalsByBranch = await getTerminalsByBranchIds(branches.map((branch) => branch.id));
-  const businessName = branches[0]?.business.name ?? "Barber Bills";
+  const businessName = branches[0]?.business.name ?? "Bills";
 
   return (
     <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
       <header className="duration-500 animate-in fade-in slide-in-from-top-2">
         <p className="truncate text-sm font-medium text-slate-500">{businessName}</p>
         <h1 className="mt-0.5 text-2xl font-black tracking-tight text-slate-950">Puntos de venta</h1>
-        <p className="mt-1 text-sm text-slate-500">Tocá una caja para vender, o copiá su link para que los barberos carguen ventas con su PIN.</p>
+        <p className="mt-1 text-sm text-slate-500">Tocá una caja para vender, o copiá su link para que los empleados carguen ventas con su PIN.</p>
       </header>
 
       {branches.length === 0 ? (
         <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-          No hay sucursales listas para vender. Cargá una sucursal con al menos un barbero y un servicio activos.
+          No hay sucursales listas para vender. Cargá una sucursal con al menos un empleado y un servicio activos.
           <Link className="mt-4 inline-flex rounded-full bg-blue-600 px-4 py-2.5 text-sm font-black text-white" href="/branches">
             Ir a Sucursales
           </Link>
@@ -49,12 +58,12 @@ export default async function PosLauncherPage() {
                   ) : null}
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[0.7rem] font-bold text-slate-600">
-                      <Scissors className="size-3" />
-                      {branch.users.length} {branch.users.length === 1 ? "barbero" : "barberos"}
+                      <Users className="size-3" />
+                      {branch.users.length} {branch.users.length === 1 ? "empleado" : "empleados"}
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[0.7rem] font-bold text-slate-600">
                       <ShoppingBag className="size-3" />
-                      {branch.servicePrices.length} {branch.servicePrices.length === 1 ? "servicio" : "servicios"}
+                      {branch.productPrices.length} {branch.productPrices.length === 1 ? "servicio" : "servicios"}
                     </span>
                   </div>
                 </div>
@@ -63,7 +72,7 @@ export default async function PosLauncherPage() {
                 </span>
               </Link>
               <PosTerminals
-                branch={{ id: branch.id, name: branch.name, barbers: branch.users.map((barber) => ({ id: barber.id, name: barber.name })) }}
+                branch={{ id: branch.id, name: branch.name, staffs: branch.users.map((staff) => ({ id: staff.id, name: staff.name })) }}
                 customTerminals={terminalsByBranch.get(branch.id) ?? []}
               />
             </li>

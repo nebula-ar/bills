@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   accountHasActivity,
-  barberCanCloseCash,
+  staffCanCloseCash,
   buildCashCloseLines,
   computeAccountBalances,
   validateTransfer,
@@ -150,15 +150,15 @@ describe("validateTransfer", () => {
   });
 });
 
-describe("barberCanCloseCash", () => {
-  it("solo el barbero marcado como encargado puede cerrar", () => {
-    expect(barberCanCloseCash({ canCloseCash: true })).toBe(true);
-    expect(barberCanCloseCash({ canCloseCash: false })).toBe(false);
+describe("staffCanCloseCash", () => {
+  it("solo el empleado marcado como encargado puede cerrar", () => {
+    expect(staffCanCloseCash({ canCloseCash: true })).toBe(true);
+    expect(staffCanCloseCash({ canCloseCash: false })).toBe(false);
   });
 
   it("null/undefined nunca puede", () => {
-    expect(barberCanCloseCash(null)).toBe(false);
-    expect(barberCanCloseCash(undefined)).toBe(false);
+    expect(staffCanCloseCash(null)).toBe(false);
+    expect(staffCanCloseCash(undefined)).toBe(false);
   });
 });
 

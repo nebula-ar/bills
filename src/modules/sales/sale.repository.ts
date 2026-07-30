@@ -1,30 +1,65 @@
 import { prisma } from "@/lib/prisma";
-import { SaleStatus, UserRole } from "@/generated/prisma/client";
+import { SaleStatus, StockMovementType, TaxCondition, Unit, UserRole } from "@/generated/prisma/client";
+import { chargeCustomerAccount, reverseCustomerCharge } from "@/modules/customers/customer.repository";
+import { applyStockMovement } from "@/modules/stock/stock.repository";
 
 import type { CreateSalePaymentDto } from "./create-sale.dto";
 
 export type CreateSaleRepositoryItem = {
-  serviceId: string | null;
+  productId: string | null;
   description: string;
+  // En milésimas (ver src/lib/quantity.ts).
   quantity: number;
+  unit: Unit;
   unitPrice: number;
+  // Parte del descuento por promociones que le toca a este renglón.
+  discount: number;
   total: number;
+  // Costo congelado al momento de vender, para poder calcular margen histórico.
+  unitCost: number | null;
+  // Si descuenta stock al vender. Se resuelve en el caso de uso, no acá.
+  trackStock: boolean;
+};
+
+export type CreateSaleDiscountInput = {
+  promotionId: string | null;
+  description: string;
+  amount: number;
 };
 
 export type CreateSaleRepositoryInput = {
   branchId: string;
-  barberId: string;
+  staffId: string;
   terminalId?: string | null;
+  customerId?: string | null;
+  subtotal: number;
+  discountTotal: number;
   total: number;
   items: CreateSaleRepositoryItem[];
   payments: CreateSalePaymentDto[];
+  discounts: CreateSaleDiscountInput[];
+  // Monto cobrado en cuenta corriente (fiado). 0 si se cobró todo al contado.
+  accountCharge: number;
+  // Puntos que deja la venta (programa de fidelidad). 0 = no suma.
+  loyaltyPoints?: number;
+  businessId?: string;
   notes?: string;
   soldAt?: Date;
+  customerName?: string;
+  customerTaxId?: string;
+  customerTaxCondition?: TaxCondition;
+  userId?: string | null;
 };
 
 export type CancelSaleRepositoryInput = {
   saleId: string;
+  branchId: string;
   notes?: string;
+  // Renglones cuyo stock hay que devolver (cantidad positiva).
+  restockItems: { productId: string; quantity: number; unitCost: number | null }[];
+  customerId: string | null;
+  accountCharge: number;
+  userId?: string | null;
 };
 
 export function findSaleBranch(branchId: string) {
@@ -37,30 +72,30 @@ export function findSaleBranch(branchId: string) {
   });
 }
 
-export function findSaleBarber(barberId: string) {
+export function findSaleStaff(staffId: string) {
   return prisma.user.findUnique({
     where: {
-      id: barberId,
+      id: staffId,
     },
   });
 }
 
-export function findBranchServicePrices(branchId: string, serviceIds: string[]) {
-  return prisma.branchServicePrice.findMany({
+export function findBranchProductPrices(branchId: string, productIds: string[]) {
+  return prisma.branchProductPrice.findMany({
     where: {
       branchId,
-      serviceId: {
-        in: serviceIds,
+      productId: {
+        in: productIds,
       },
       active: true,
       deleted: false,
-      service: {
+      product: {
         active: true,
         deleted: false,
       },
     },
     include: {
-      service: true,
+      product: true,
     },
   });
 }
@@ -78,14 +113,14 @@ export function findSaleEntryOptionsBranch(branchId?: string) {
         some: {
           deleted: false,
           active: true,
-          role: UserRole.BARBER,
+          role: UserRole.STAFF,
         },
       },
-      servicePrices: {
+      productPrices: {
         some: {
           deleted: false,
           active: true,
-          service: {
+          product: {
             deleted: false,
             active: true,
           },
@@ -102,7 +137,7 @@ export function findSaleEntryOptionsBranch(branchId?: string) {
         where: {
           deleted: false,
           active: true,
-          role: UserRole.BARBER,
+          role: UserRole.STAFF,
         },
         orderBy: {
           name: "asc",
@@ -113,24 +148,34 @@ export function findSaleEntryOptionsBranch(branchId?: string) {
           canCloseCash: true,
         },
       },
-      servicePrices: {
+      productPrices: {
         where: {
           deleted: false,
           active: true,
-          service: {
+          product: {
             deleted: false,
             active: true,
           },
         },
         include: {
-          service: {
+          product: {
             select: {
               name: true,
+              unit: true,
+              sku: true,
+              barcode: true,
+              trackStock: true,
+              imageUpdatedAt: true,
+              packSize: true,
+              packLabel: true,
+              familyId: true,
+              variantLabel: true,
+              family: { select: { name: true } },
             },
           },
         },
         orderBy: {
-          service: {
+          product: {
             name: "asc",
           },
         },
@@ -142,7 +187,7 @@ export function findSaleEntryOptionsBranch(branchId?: string) {
   });
 }
 
-// Todas las sucursales activas con barberos y servicios, para el checkout del POS.
+// Todas las sucursales activas con empleados y servicios, para el checkout del POS.
 export function findSaleEntryBranches(businessId: string) {
   return prisma.branch.findMany({
     where: {
@@ -156,14 +201,14 @@ export function findSaleEntryBranches(businessId: string) {
         some: {
           deleted: false,
           active: true,
-          role: UserRole.BARBER,
+          role: UserRole.STAFF,
         },
       },
-      servicePrices: {
+      productPrices: {
         some: {
           deleted: false,
           active: true,
-          service: {
+          product: {
             deleted: false,
             active: true,
           },
@@ -180,7 +225,7 @@ export function findSaleEntryBranches(businessId: string) {
         where: {
           deleted: false,
           active: true,
-          role: UserRole.BARBER,
+          role: UserRole.STAFF,
         },
         orderBy: {
           name: "asc",
@@ -191,24 +236,34 @@ export function findSaleEntryBranches(businessId: string) {
           canCloseCash: true,
         },
       },
-      servicePrices: {
+      productPrices: {
         where: {
           deleted: false,
           active: true,
-          service: {
+          product: {
             deleted: false,
             active: true,
           },
         },
         include: {
-          service: {
+          product: {
             select: {
               name: true,
+              unit: true,
+              sku: true,
+              barcode: true,
+              trackStock: true,
+              imageUpdatedAt: true,
+              packSize: true,
+              packLabel: true,
+              familyId: true,
+              variantLabel: true,
+              family: { select: { name: true } },
             },
           },
         },
         orderBy: {
-          service: {
+          product: {
             name: "asc",
           },
         },
@@ -229,7 +284,7 @@ export function findRecentSales(businessId: string, limit = 10, cursor?: string)
         deleted: false,
         active: true,
       },
-      barber: {
+      staff: {
         deleted: false,
       },
     },
@@ -245,14 +300,29 @@ export function findRecentSales(businessId: string, limit = 10, cursor?: string)
       total: true,
       status: true,
       notes: true,
+      customerName: true,
+      customerTaxId: true,
+      customerTaxCondition: true,
+      invoiceType: true,
+      afipStatus: true,
+      cae: true,
+      caeVencimiento: true,
+      afipVoucherNumber: true,
+      afipError: true,
       branch: {
         select: {
           name: true,
         },
       },
-      barber: {
+      staff: {
         select: {
           name: true,
+        },
+      },
+      customer: {
+        select: {
+          name: true,
+          phone: true,
         },
       },
       items: {
@@ -286,12 +356,12 @@ export function findRecentSales(businessId: string, limit = 10, cursor?: string)
   });
 }
 
-export function findBarberSalesInRange(input: { branchId: string; barberId: string; start: Date; end: Date }) {
+export function findStaffSalesInRange(input: { branchId: string; staffId: string; start: Date; end: Date }) {
   return prisma.sale.findMany({
     where: {
       deleted: false,
       branchId: input.branchId,
-      barberId: input.barberId,
+      staffId: input.staffId,
       soldAt: {
         gte: input.start,
         lt: input.end,
@@ -331,6 +401,7 @@ export function findBarberSalesInRange(input: { branchId: string; barberId: stri
   });
 }
 
+// Para anular hay que saber qué deshacer: qué stock devolver y qué deuda borrar.
 export function findSaleForCancellation(saleId: string) {
   return prisma.sale.findFirst({
     where: {
@@ -341,38 +412,94 @@ export function findSaleForCancellation(saleId: string) {
       id: true,
       status: true,
       notes: true,
+      branchId: true,
+      customerId: true,
+      soldAt: true,
+      items: {
+        where: { deleted: false },
+        select: {
+          productId: true,
+          quantity: true,
+          unitCost: true,
+          product: { select: { trackStock: true } },
+        },
+      },
+      payments: {
+        where: { deleted: false },
+        select: { method: true, amount: true },
+      },
     },
   });
 }
 
-export function cancelSaleById(input: CancelSaleRepositoryInput) {
-  return prisma.sale.update({
-    where: {
-      id: input.saleId,
-    },
-    data: {
-      status: SaleStatus.CANCELLED,
-      notes: input.notes,
-    },
+// Anular revierte todo lo que la venta produjo, en una sola transacción:
+// devuelve el stock y da de baja el fiado. Los asientos originales no se
+// tocan; se compensan (el libro tiene que seguir contando la historia entera).
+export function cancelSaleTransaction(input: CancelSaleRepositoryInput) {
+  return prisma.$transaction(async (tx) => {
+    const sale = await tx.sale.update({
+      where: { id: input.saleId },
+      data: {
+        status: SaleStatus.CANCELLED,
+        notes: input.notes,
+      },
+    });
+
+    for (const item of input.restockItems) {
+      await applyStockMovement(tx, {
+        branchId: input.branchId,
+        productId: item.productId,
+        type: StockMovementType.SALE_CANCELLED,
+        quantity: item.quantity,
+        unitCost: item.unitCost,
+        reason: "Venta anulada",
+        saleId: input.saleId,
+        createdById: input.userId,
+      });
+    }
+
+    if (input.customerId && input.accountCharge > 0) {
+      await reverseCustomerCharge(tx, {
+        customerId: input.customerId,
+        branchId: input.branchId,
+        amount: input.accountCharge,
+        saleId: input.saleId,
+        userId: input.userId,
+      });
+    }
+
+    return sale;
   });
 }
 
+// Grabar una venta es un solo acto: los renglones, los pagos, los descuentos
+// aplicados, la salida de stock y —si se fía— el cargo en la cuenta del
+// cliente. O entra todo, o no entra nada.
 export function createSaleTransaction(input: CreateSaleRepositoryInput) {
-  return prisma.$transaction((tx) =>
-    tx.sale.create({
+  return prisma.$transaction(async (tx) => {
+    const sale = await tx.sale.create({
       data: {
         branchId: input.branchId,
-        barberId: input.barberId,
+        staffId: input.staffId,
         terminalId: input.terminalId ?? null,
+        customerId: input.customerId ?? null,
+        subtotal: input.subtotal,
+        discountTotal: input.discountTotal,
         total: input.total,
         notes: input.notes,
         soldAt: input.soldAt,
+        customerName: input.customerName,
+        customerTaxId: input.customerTaxId,
+        customerTaxCondition: input.customerTaxCondition,
         items: {
           create: input.items.map((item) => ({
-            serviceId: item.serviceId,
+            productId: item.productId,
             description: item.description,
             quantity: item.quantity,
+            unit: item.unit,
             unitPrice: item.unitPrice,
+            discount: item.discount,
+            unitCost: item.unitCost,
             total: item.total,
           })),
         },
@@ -382,11 +509,88 @@ export function createSaleTransaction(input: CreateSaleRepositoryInput) {
             amount: payment.amount,
           })),
         },
+        discounts: {
+          create: input.discounts.map((discount) => ({
+            promotionId: discount.promotionId,
+            description: discount.description,
+            amount: discount.amount,
+          })),
+        },
       },
       include: {
         items: true,
         payments: true,
+        discounts: true,
       },
-    }),
-  );
+    });
+
+    for (const item of input.items) {
+      if (!item.productId || !item.trackStock) {
+        continue;
+      }
+
+      await applyStockMovement(tx, {
+        branchId: input.branchId,
+        productId: item.productId,
+        type: StockMovementType.SALE,
+        quantity: -item.quantity,
+        unitCost: item.unitCost,
+        saleId: sale.id,
+        occurredAt: input.soldAt,
+        createdById: input.userId,
+      });
+    }
+
+    if (input.customerId && input.accountCharge > 0) {
+      await chargeCustomerAccount(tx, {
+        customerId: input.customerId,
+        branchId: input.branchId,
+        amount: input.accountCharge,
+        saleId: sale.id,
+        occurredAt: input.soldAt,
+        userId: input.userId,
+      });
+    }
+
+    // Puntos de fidelidad: van acá adentro para que no puedan existir sin su
+    // venta. El saldo es la suma del libro (ver loyalty.logic.ts).
+    if (input.customerId && input.businessId && (input.loyaltyPoints ?? 0) > 0) {
+      await tx.loyaltyEntry.create({
+        data: {
+          businessId: input.businessId,
+          customerId: input.customerId,
+          points: input.loyaltyPoints as number,
+          saleId: sale.id,
+          createdById: input.userId,
+        },
+      });
+    }
+
+    return sale;
+  });
+}
+
+// Cuántas veces se vendió cada producto últimamente, por sucursal.
+//
+// Es lo que ordena la grilla del mostrador: el que atiende busca casi siempre
+// las mismas diez cosas, y tenerlas alfabéticas lo obliga a buscar o a
+// scrollear cada vez. Cuenta TICKETS y no unidades: un producto que aparece en
+// muchas ventas es lo que se despacha seguido, aunque sea de a uno.
+export async function findTopSellingProductIds(businessId: string, from: Date) {
+  const rows = await prisma.saleItem.groupBy({
+    by: ["productId"],
+    where: {
+      deleted: false,
+      productId: { not: null },
+      sale: {
+        deleted: false,
+        status: SaleStatus.COMPLETED,
+        soldAt: { gte: from },
+        branch: { businessId, deleted: false },
+      },
+    },
+    _count: { _all: true },
+  });
+
+  return new Map(rows.map((row) => [row.productId as string, row._count._all]));
 }

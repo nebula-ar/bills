@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { Scissors } from "lucide-react";
+import { Store } from "lucide-react";
 import gsap from "gsap";
 import { MagneticButton } from "./MagneticButton";
 
@@ -47,9 +47,9 @@ export function Navbar() {
         {/* Placeholder for the logo (Preloader will animate its logo to this exact spot and fade this one in) */}
         <div id="navbar-logo-placeholder" className="flex items-center gap-3 opacity-0">
           <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-md">
-            <Scissors className="w-5 h-5 text-white" />
+            <Store className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-900 font-montserrat">Barber Bills</span>
+          <span className="text-xl font-bold tracking-tight text-slate-900 font-montserrat">Bills</span>
         </div>
         
         <div className="flex items-center gap-4 sm:gap-6">

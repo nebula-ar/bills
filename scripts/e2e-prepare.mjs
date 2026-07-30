@@ -24,7 +24,7 @@ function run(command) {
 run("prisma migrate deploy");
 run("prisma db seed");
 
-// Volcamos algunos IDs sembrados para que los tests del barbero (que entran por
+// Volcamos algunos IDs sembrados para que los tests del empleado (que entran por
 // link con ?branch=) no tengan que adivinarlos.
 const Database = require("better-sqlite3");
 const db = new Database("e2e.db", { readonly: true });

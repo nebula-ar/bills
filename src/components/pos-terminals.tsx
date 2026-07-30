@@ -5,7 +5,7 @@ import { copyText } from "@/lib/clipboard";
 import { Check, Copy, Link2, Monitor, Smartphone, Tag, X, type LucideIcon } from "@/components/icons";
 import { useState } from "react";
 
-type Barber = { id: string; name: string };
+type Staff = { id: string; name: string };
 type CustomTerminal = { id: string; name: string };
 
 type Terminal = {
@@ -65,7 +65,7 @@ export function PosTerminals({
   branch,
   customTerminals,
 }: {
-  branch: { id: string; name: string; barbers: Barber[] };
+  branch: { id: string; name: string; staffs: Staff[] };
   customTerminals: CustomTerminal[];
 }) {
   const [open, setOpen] = useState(false);
@@ -74,22 +74,22 @@ export function PosTerminals({
     {
       key: "mostrador",
       label: "Mostrador",
-      hint: "El barbero elige su perfil y pone su PIN",
-      path: `/barber?branch=${branch.id}`,
+      hint: "El empleado elige su perfil y pone su PIN",
+      path: `/staff?branch=${branch.id}`,
       icon: Monitor,
     },
-    ...branch.barbers.map((barber) => ({
-      key: barber.id,
-      label: `Teléfono de ${barber.name}`,
+    ...branch.staffs.map((staff) => ({
+      key: staff.id,
+      label: `Teléfono de ${staff.name}`,
       hint: "Ya viene con su perfil; solo pone el PIN",
-      path: `/barber?branch=${branch.id}&barber=${barber.id}`,
+      path: `/staff?branch=${branch.id}&staff=${staff.id}`,
       icon: Smartphone,
     })),
     ...customTerminals.map((terminal) => ({
       key: terminal.id,
       label: terminal.name,
-      hint: "Elegí barbero y PIN",
-      path: `/barber?terminal=${terminal.id}`,
+      hint: "Elegí empleado y PIN",
+      path: `/staff?terminal=${terminal.id}`,
       icon: Tag,
     })),
   ];
@@ -123,7 +123,7 @@ export function PosTerminals({
           </div>
           <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-5 pb-6 pt-4">
             <p className="rounded-2xl bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-700">
-              Compartí el link de cada terminal con quien la usa. El barbero entra, pone su PIN y registra la venta.
+              Compartí el link de cada terminal con quien la usa. El empleado entra, pone su PIN y registra la venta.
             </p>
             {terminals.map((terminal) => (
               <TerminalRow key={terminal.key} terminal={terminal} />

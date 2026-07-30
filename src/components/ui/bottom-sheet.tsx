@@ -14,6 +14,12 @@ type BottomSheetProps = {
   panelClassName?: string;
   /** Píxeles de arrastre a partir de los cuales soltar cierra el sheet. */
   dismissThreshold?: number;
+  /**
+   * "sheet" (default) es la columna angosta de siempre. "dialog" se ensancha en
+   * pantalla grande: hay formularios —la ficha de un producto— que en 460px son
+   * un scroll interminable y en 820px entran de un vistazo.
+   */
+  size?: "sheet" | "dialog";
 };
 
 /**
@@ -28,6 +34,7 @@ export function BottomSheet({
   children,
   panelClassName = "",
   dismissThreshold = DEFAULT_DISMISS_THRESHOLD,
+  size = "sheet",
 }: BottomSheetProps) {
   const [render, setRender] = useState(open);
   const [visible, setVisible] = useState(false);
@@ -130,7 +137,11 @@ export function BottomSheet({
         type="button"
       />
       <div
-        className={`mx-auto flex max-h-[92dvh] max-w-[460px] flex-col overflow-hidden rounded-t-[2.75rem] bg-white pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-12px_50px_rgba(15,23,42,0.25)] ${panelClassName}`}
+        className={`mx-auto flex max-h-[92dvh] flex-col overflow-hidden rounded-t-[2.75rem] bg-white pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-12px_50px_rgba(15,23,42,0.25)] ${
+          size === "dialog"
+            ? "max-w-[460px] sm:max-w-[860px] sm:rounded-[2rem] sm:pb-6"
+            : "max-w-[460px]"
+        } ${panelClassName}`}
         style={{
           position: "absolute",
           right: 0,

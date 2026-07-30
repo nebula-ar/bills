@@ -1,32 +1,15 @@
 "use client";
 
 import { checkEmailAvailableAction, registerBusinessAction } from "@/app/register/actions";
-import { ArrowLeft, ArrowRight, Check, Loader2, Plus } from "@/components/icons";
+import { Vertical } from "@/generated/prisma/enums";
+import { VERTICAL_ORDER, VERTICAL_PRESETS, verticalPreset } from "@/lib/vertical";
+import { ArrowLeft, ArrowRight, Check, DynamicIcon, Loader2 } from "@/components/icons";
+import { onboardingSteps } from "@/modules/onboarding/onboarding.logic";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { useState, useTransition, type KeyboardEvent } from "react";
+import { useMemo, useState, useTransition, type KeyboardEvent } from "react";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-type Step = { emoji: string; title: string; subtitle: string; cheer: string };
-
-const STEPS: Step[] = [
-  { emoji: "💈", title: "¿Cómo se llama tu barbería?", subtitle: "Empecemos por lo más importante.", cheer: "¡Arranquemos!" },
-  { emoji: "👋", title: "¿Cómo te llamás?", subtitle: "Así te saludamos en el panel.", cheer: "¡Hola!" },
-  { emoji: "📧", title: "¿Cuál es tu email?", subtitle: "Lo vas a usar para entrar.", cheer: "¡Genial!" },
-  { emoji: "🔒", title: "Creá tu contraseña", subtitle: "Al menos 6 caracteres.", cheer: "¡Seguridad primero!" },
-  { emoji: "✂️", title: "¿Vos también atendés?", subtitle: "Podés cargar tus propias ventas.", cheer: "¡Buena!" },
-  { emoji: "🏪", title: "¿Cómo se llama tu local?", subtitle: "Después sumás más locales y tu equipo desde el panel.", cheer: "¡Ya casi!" },
-  { emoji: "💵", title: "¿Qué servicios ofrecés?", subtitle: "Tocá los que hacés y poneles precio.", cheer: "¡Último paso!" },
-];
-
-const SUGGESTED_SERVICES: { name: string; emoji: string }[] = [
-  { name: "Corte", emoji: "✂️" },
-  { name: "Barba", emoji: "🧔" },
-  { name: "Corte + Barba", emoji: "💈" },
-  { name: "Perfilado de cejas", emoji: "🪒" },
-  { name: "Color", emoji: "🎨" },
-];
 
 const inputClass =
   "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center text-lg font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100";
@@ -79,47 +62,36 @@ export function RegisterWizard() {
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
 
+  // El rubro va primero: define el vocabulario y los iconos de todo lo que sigue.
+  const [vertical, setVertical] = useState<Vertical>(Vertical.KIOSK);
   const [businessName, setBusinessName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isBarber, setIsBarber] = useState(false);
-  const [firstBarberName, setFirstBarberName] = useState("");
-  const [branchName, setBranchName] = useState("");
-  const [services, setServices] = useState(SUGGESTED_SERVICES.map((service) => ({ ...service, selected: false, price: "" })));
+  // Por defecto atiende el dueño: es el caso de la enorme mayoría de los
+  // comercios chicos, y así el paso se resuelve sin escribir nada.
+  const [ownerSells, setOwnerSells] = useState(true);
+  const [firstStaffName, setFirstStaffName] = useState("");
 
-  function toggleService(index: number) {
-    setServices((current) =>
-      current.map((service, i) => {
-        if (i !== index) return service;
-        const selected = !service.selected;
-        // Al deseleccionar, olvidamos el precio.
-        return { ...service, selected, price: selected ? service.price : "" };
-      }),
-    );
-  }
-  function setServicePrice(index: number, price: string) {
-    setServices((current) => current.map((service, i) => (i === index ? { ...service, price } : service)));
-  }
+  const steps = useMemo(() => onboardingSteps(vertical), [vertical]);
+  const preset = verticalPreset(vertical);
+  const meta = steps[step];
 
   function stepValid() {
-    switch (step) {
-      case 0:
+    switch (meta.id) {
+      case "vertical":
+        return Boolean(vertical);
+      case "businessName":
         return businessName.trim().length > 0;
-      case 1:
+      case "ownerName":
         return ownerName.trim().length > 0;
-      case 2:
+      case "email":
         return EMAIL_RE.test(email.trim());
-      case 3:
+      case "password":
         return password.length >= 6;
-      case 4:
-        // Tiene que quedar al menos un barbero: el dueño, o el primer empleado.
-        return isBarber || firstBarberName.trim().length > 0;
-      case 5:
-        return branchName.trim().length > 0;
-      case 6:
-        // Al menos un servicio con precio, para poder vender enseguida.
-        return services.some((service) => service.selected && Number(service.price) > 0);
+      case "staff":
+        // Tiene que quedar alguien que atienda: el dueño o el primer empleado.
+        return ownerSells || firstStaffName.trim().length > 0;
       default:
         return true;
     }
@@ -129,7 +101,7 @@ export function RegisterWizard() {
     setError(null);
     if (!stepValid() || checking) return;
     // Validamos el email (formato + que no esté en uso) YA en su paso, no al final.
-    if (step === 2) {
+    if (meta.id === "email") {
       setChecking(true);
       const available = await checkEmailAvailableAction(email.trim().toLowerCase());
       setChecking(false);
@@ -138,7 +110,7 @@ export function RegisterWizard() {
         return;
       }
     }
-    if (step < STEPS.length - 1) {
+    if (step < steps.length - 1) {
       setDir(1);
       setStep((current) => current + 1);
       return;
@@ -164,27 +136,21 @@ export function RegisterWizard() {
   }
 
   function submit() {
-    const barbers = isBarber
-      ? [{ name: ownerName.trim(), pin: "" }]
-      : firstBarberName.trim()
-        ? [{ name: firstBarberName.trim(), pin: "" }]
-        : [];
-    const branches = [{ name: branchName.trim(), address: "", barbers }];
-    const cleanServices = services
-      .map((service) => ({ name: service.name.trim(), price: Number(service.price) }))
-      .filter((service) => service.name.length > 0 && Number.isFinite(service.price) && service.price > 0);
+    const staffs = ownerSells ? [{ name: ownerName.trim(), pin: "" }] : [{ name: firstStaffName.trim(), pin: "" }];
+    // Un solo local, con el nombre del negocio: no se lo volvemos a preguntar.
+    const branches = [{ name: businessName.trim(), address: "", staffs }];
 
     setError(null);
     setPhase("success");
     startTransition(async () => {
       const result = await registerBusinessAction({
         businessName,
+        vertical,
         ownerName,
         email,
         username: "",
         password,
         branches,
-        services: cleanServices,
       });
 
       if (!result.ok) {
@@ -200,8 +166,7 @@ export function RegisterWizard() {
     });
   }
 
-  const progress = ((step + 1) / STEPS.length) * 100;
-  const meta = STEPS[step];
+  const progress = ((step + 1) / steps.length) * 100;
 
   return (
     <main className="flex min-h-[100dvh] flex-col bg-white text-slate-950 sm:items-center sm:justify-center sm:bg-slate-100 sm:p-6">
@@ -212,25 +177,25 @@ export function RegisterWizard() {
           <div className="flex flex-1 flex-col px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:px-8 sm:py-10">
             <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
               <div
-                className="grid size-24 place-items-center rounded-[2rem] bg-gradient-to-br from-blue-600 to-indigo-600 text-5xl shadow-[0_18px_40px_rgba(37,99,235,0.35)]"
+                className="grid size-24 place-items-center rounded-[2rem] bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-[0_18px_40px_rgba(37,99,235,0.35)]"
                 style={{ animation: "bbPop .6s cubic-bezier(.34,1.56,.64,1) both" }}
               >
-                💈
+                <DynamicIcon className="size-12" name="solar:shop-2-bold" />
               </div>
               <div className="duration-500 animate-in fade-in slide-in-from-bottom-2" style={stagger(1)}>
-                <h1 className="text-3xl font-black tracking-tight">¡Creá tu barbería!</h1>
+                <h1 className="text-3xl font-black tracking-tight">¡Creá tu negocio!</h1>
                 <p className="mx-auto mt-3 max-w-xs text-base font-semibold leading-7 text-slate-500">
-                  Te hacemos unas preguntas rápidas y en un minuto tenés todo listo. 💪
+                  Unas preguntas rápidas y en un minuto tenés el sistema armado a tu medida.
                 </p>
               </div>
               <ul className="grid w-full gap-2 text-left duration-500 animate-in fade-in slide-in-from-bottom-2" style={stagger(2)}>
                 {[
-                  { emoji: "💈", label: "El nombre de tu barbería" },
-                  { emoji: "🔑", label: "Tu cuenta de administrador" },
-                  { emoji: "🏪", label: "Tu primer local" },
+                  { icon: "solar:shop-2-bold", label: "De qué es tu negocio" },
+                  { icon: "solar:key-bold", label: "Tu cuenta de administrador" },
+                  { icon: "solar:box-bold", label: "Y a vender: el catálogo lo cargás adentro" },
                 ].map((item) => (
                   <li className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700" key={item.label}>
-                    <span className="text-xl">{item.emoji}</span>
+                    <DynamicIcon className="size-5 text-blue-600" name={item.icon} />
                     {item.label}
                   </li>
                 ))}
@@ -273,186 +238,210 @@ export function RegisterWizard() {
                 />
               </div>
               <span className="shrink-0 text-xs font-black tabular-nums text-slate-400">
-                {step + 1}/{STEPS.length}
+                {step + 1}/{steps.length}
               </span>
             </div>
 
             {/* Contenido + botón, centrados como un grupo (botón al alcance del pulgar) */}
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 sm:px-8">
-              <div className={`my-auto w-full py-6 duration-300 animate-in fade-in ${dir === 1 ? "slide-in-from-right-8" : "slide-in-from-left-8"}`} key={step}>
-                  <div className="flex flex-col items-center gap-2.5 text-center">
-                    <div
-                      className="grid size-20 place-items-center rounded-[1.75rem] bg-blue-50 text-4xl"
-                      style={{ animation: "bbPop .5s cubic-bezier(.34,1.56,.64,1) both" }}
-                    >
-                      {meta.emoji}
-                    </div>
-                    <span
-                      className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-600 duration-500 animate-in fade-in slide-in-from-bottom-2"
-                      style={stagger(1)}
-                    >
-                      {meta.cheer}
-                    </span>
-                    <h1 className="text-2xl font-black tracking-tight text-slate-950 duration-500 animate-in fade-in slide-in-from-bottom-2" style={stagger(2)}>
-                      {meta.title}
-                    </h1>
-                    <p className="text-sm font-semibold leading-6 text-slate-500 duration-500 animate-in fade-in slide-in-from-bottom-2" style={stagger(3)}>
-                      {meta.subtitle}
-                    </p>
+              <div
+                className={`my-auto w-full py-6 duration-300 animate-in fade-in ${dir === 1 ? "slide-in-from-right-8" : "slide-in-from-left-8"}`}
+                key={step}
+              >
+                <div className="flex flex-col items-center gap-2.5 text-center">
+                  <div
+                    className="grid size-20 place-items-center rounded-[1.75rem] bg-blue-50 text-blue-600"
+                    style={{ animation: "bbPop .5s cubic-bezier(.34,1.56,.64,1) both" }}
+                  >
+                    {/* El icono sale del rubro elegido: una verdulería no se
+                        reconoce en unas tijeras. */}
+                    <DynamicIcon className="size-10" name={meta.icon} />
                   </div>
+                  <span
+                    className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-600 duration-500 animate-in fade-in slide-in-from-bottom-2"
+                    style={stagger(1)}
+                  >
+                    {meta.cheer}
+                  </span>
+                  <h1
+                    className="text-2xl font-black tracking-tight text-slate-950 duration-500 animate-in fade-in slide-in-from-bottom-2"
+                    style={stagger(2)}
+                  >
+                    {meta.title}
+                  </h1>
+                  <p
+                    className="text-sm font-semibold leading-6 text-slate-500 duration-500 animate-in fade-in slide-in-from-bottom-2"
+                    style={stagger(3)}
+                  >
+                    {meta.subtitle}
+                  </p>
+                </div>
 
-                  <div className="mt-6 duration-500 animate-in fade-in slide-in-from-bottom-2" style={stagger(4)}>
-                    {step === 0 ? (
-                      <input
-                        className={inputClass}
-                        enterKeyHint="next"
-                        onChange={(event) => setBusinessName(event.target.value)}
-                        onKeyDown={onEnter}
-                        placeholder="Ej: Barbería El Rulo"
-                        value={businessName}
-                      />
-                    ) : null}
+                <div className="mt-6 duration-500 animate-in fade-in slide-in-from-bottom-2" style={stagger(4)}>
+                  {meta.id === "vertical" ? (
+                    <div className="grid gap-2.5">
+                      {VERTICAL_ORDER.map((option) => {
+                        const optionPreset = VERTICAL_PRESETS[option];
+                        const selected = vertical === option;
 
-                    {step === 1 ? (
-                      <input
-                        className={inputClass}
-                        enterKeyHint="next"
-                        onChange={(event) => setOwnerName(event.target.value)}
-                        onKeyDown={onEnter}
-                        placeholder="Ej: Matías"
-                        value={ownerName}
-                      />
-                    ) : null}
-
-                    {step === 2 ? (
-                      <>
-                        <input
-                          autoCapitalize="none"
-                          className={inputClass}
-                          enterKeyHint="next"
-                          inputMode="email"
-                          onChange={(event) => setEmail(event.target.value)}
-                          onKeyDown={onEnter}
-                          placeholder="tucorreo@ejemplo.com"
-                          type="email"
-                          value={email}
-                        />
-                        {email.trim() !== "" && !EMAIL_RE.test(email.trim()) ? (
-                          <p className="mt-2 text-center text-xs font-semibold text-rose-500">Poné un email válido (ej: nombre@correo.com).</p>
-                        ) : null}
-                      </>
-                    ) : null}
-
-                    {step === 3 ? (
-                      <input
-                        className={inputClass}
-                        enterKeyHint="go"
-                        onChange={(event) => setPassword(event.target.value)}
-                        onKeyDown={onEnter}
-                        placeholder="Al menos 6 caracteres"
-                        type="password"
-                        value={password}
-                      />
-                    ) : null}
-
-                    {step === 4 ? (
-                      <div className="grid gap-3">
-                        <ChoiceCard emoji="✂️" hint="Te sumo como barbero" onClick={() => setIsBarber(true)} selected={isBarber} title="Sí, yo también corto" />
-                        <ChoiceCard emoji="📊" hint="Solo administro el negocio" onClick={() => setIsBarber(false)} selected={!isBarber} title="No, solo administro" />
-                        {!isBarber ? (
-                          <div className="grid gap-2 duration-300 animate-in fade-in slide-in-from-bottom-2">
-                            <label className="text-xs font-black uppercase tracking-wide text-slate-500" htmlFor="firstBarber">
-                              ¿Quién es tu primer barbero?
-                            </label>
-                            <input
-                              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-                              enterKeyHint="next"
-                              id="firstBarber"
-                              onChange={(event) => setFirstBarberName(event.target.value)}
-                              onKeyDown={onEnter}
-                              placeholder="Ej: Juan Pérez"
-                              value={firstBarberName}
-                            />
-                            <p className="text-xs text-slate-500">Necesitás al menos un barbero para vender. Sumás más (y sus PIN) después.</p>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-
-                    {step === 5 ? (
-                      <input
-                        className={inputClass}
-                        enterKeyHint="next"
-                        onChange={(event) => setBranchName(event.target.value)}
-                        onKeyDown={onEnter}
-                        placeholder="Ej: Sucursal Centro"
-                        value={branchName}
-                      />
-                    ) : null}
-
-                    {step === 6 ? (
-                      <div className="grid gap-2.5">
-                        {services.map((service, i) => (
-                          <div
-                            className={`overflow-hidden rounded-2xl border-2 transition ${
-                              service.selected ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"
+                        return (
+                          <button
+                            className={`flex items-start gap-3 rounded-2xl border-2 p-3.5 text-left transition active:scale-[0.99] ${
+                              selected ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"
                             }`}
-                            key={service.name}
+                            key={option}
+                            onClick={() => setVertical(option)}
+                            type="button"
                           >
-                            <button className="flex w-full items-center gap-3 p-3 text-left transition active:scale-[0.99]" onClick={() => toggleService(i)} type="button">
-                              <span className="text-2xl">{service.emoji}</span>
-                              <span className="min-w-0 flex-1 text-sm font-black text-slate-950">{service.name}</span>
-                              <span
-                                className={`grid size-6 shrink-0 place-items-center rounded-full transition ${
-                                  service.selected ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-400"
-                                }`}
-                              >
-                                {service.selected ? <Check className="size-4" /> : <Plus className="size-4" />}
-                              </span>
-                            </button>
-                            {service.selected ? (
-                              <div className="flex items-center gap-2 border-t border-blue-100 px-3 py-2.5 duration-300 animate-in fade-in slide-in-from-top-1">
-                                <span className="text-xs font-black uppercase tracking-wide text-slate-500">Precio</span>
-                                <span className="ml-auto flex w-28 items-center rounded-xl border border-slate-200 bg-white px-2.5 transition focus-within:border-blue-400">
-                                  <span className="text-base font-black text-slate-400">$</span>
-                                  <input
-                                    className="w-full min-w-0 bg-transparent px-1 py-2 text-right text-base font-black text-slate-950 outline-none"
-                                    inputMode="numeric"
-                                    onChange={(event) => setServicePrice(i, event.target.value.replace(/\D/g, "").slice(0, 7))}
-                                    placeholder="0"
-                                    value={service.price}
-                                  />
-                                </span>
-                              </div>
-                            ) : null}
-                          </div>
-                        ))}
-                        <p className="px-1 pt-1 text-center text-xs text-slate-400">Tocá los servicios que ofrecés y poneles precio. Sumás más después. 👌</p>
-                      </div>
-                    ) : null}
-                  </div>
-
-                  {error ? (
-                    <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-center text-sm font-semibold text-rose-700">{error}</p>
+                            <span
+                              className={`grid size-10 shrink-0 place-items-center rounded-xl ${
+                                selected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              <DynamicIcon className="size-5" name={optionPreset.icon} />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-black text-slate-950">{optionPreset.label}</span>
+                              <span className="mt-0.5 block text-xs text-slate-500">{optionPreset.tagline}</span>
+                            </span>
+                            <span
+                              className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-full transition ${
+                                selected ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-400"
+                              }`}
+                            >
+                              {selected ? <Check className="size-4" /> : null}
+                            </span>
+                          </button>
+                        );
+                      })}
+                      <p className="mt-1 text-center text-xs text-slate-500">
+                        Prendemos los módulos típicos del rubro. Después los cambiás cuando quieras.
+                      </p>
+                    </div>
                   ) : null}
 
-                  <button className={`${primaryBtn} mt-7`} disabled={!stepValid() || isPending || checking} onClick={() => void goNext()} type="button">
-                    {checking ? (
-                      <>
-                        <Loader2 className="size-5 animate-spin" />
-                        Verificando…
-                      </>
-                    ) : step === STEPS.length - 1 ? (
-                      "Crear mi barbería 🎉"
-                    ) : (
-                      <>
-                        Continuar
-                        <ArrowRight className="size-5" />
-                      </>
-                    )}
-                  </button>
+                  {meta.id === "businessName" ? (
+                    <input
+                      className={inputClass}
+                      enterKeyHint="next"
+                      onChange={(event) => setBusinessName(event.target.value)}
+                      onKeyDown={onEnter}
+                      placeholder={meta.placeholder}
+                      value={businessName}
+                    />
+                  ) : null}
+
+                  {meta.id === "ownerName" ? (
+                    <input
+                      className={inputClass}
+                      enterKeyHint="next"
+                      onChange={(event) => setOwnerName(event.target.value)}
+                      onKeyDown={onEnter}
+                      placeholder={meta.placeholder}
+                      value={ownerName}
+                    />
+                  ) : null}
+
+                  {meta.id === "email" ? (
+                    <>
+                      <input
+                        autoCapitalize="none"
+                        className={inputClass}
+                        enterKeyHint="next"
+                        inputMode="email"
+                        onChange={(event) => setEmail(event.target.value)}
+                        onKeyDown={onEnter}
+                        placeholder={meta.placeholder}
+                        type="email"
+                        value={email}
+                      />
+                      {email.trim() !== "" && !EMAIL_RE.test(email.trim()) ? (
+                        <p className="mt-2 text-center text-xs font-semibold text-rose-500">
+                          Poné un email válido (ej: nombre@correo.com).
+                        </p>
+                      ) : null}
+                    </>
+                  ) : null}
+
+                  {meta.id === "password" ? (
+                    <input
+                      className={inputClass}
+                      enterKeyHint="go"
+                      onChange={(event) => setPassword(event.target.value)}
+                      onKeyDown={onEnter}
+                      placeholder={meta.placeholder}
+                      type="password"
+                      value={password}
+                    />
+                  ) : null}
+
+                  {meta.id === "staff" ? (
+                    <div className="grid gap-3">
+                      <ChoiceCard
+                        hint={`Quedás cargado como ${preset.labels.staffSingular.toLowerCase()}`}
+                        icon={preset.staffIcon}
+                        onClick={() => setOwnerSells(true)}
+                        selected={ownerSells}
+                        title="Yo atiendo"
+                      />
+                      <ChoiceCard
+                        hint={`Cargamos a tu primer ${preset.labels.staffSingular.toLowerCase()}`}
+                        icon="solar:users-group-two-rounded-bold"
+                        onClick={() => setOwnerSells(false)}
+                        selected={!ownerSells}
+                        title="Atiende otra persona"
+                      />
+                      {!ownerSells ? (
+                        <div className="grid gap-2 duration-300 animate-in fade-in slide-in-from-bottom-2">
+                          <label className="text-xs font-black uppercase tracking-wide text-slate-500" htmlFor="firstStaff">
+                            ¿Cómo se llama?
+                          </label>
+                          <input
+                            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                            enterKeyHint="next"
+                            id="firstStaff"
+                            onChange={(event) => setFirstStaffName(event.target.value)}
+                            onKeyDown={onEnter}
+                            placeholder="Ej: Juan Pérez"
+                            value={firstStaffName}
+                          />
+                          <p className="text-xs text-slate-500">
+                            Sumás más {preset.labels.staffPlural.toLowerCase()} (y sus PIN) desde el panel.
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
+
+                {error ? (
+                  <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-center text-sm font-semibold text-rose-700">
+                    {error}
+                  </p>
+                ) : null}
+
+                <button
+                  className={`${primaryBtn} mt-7`}
+                  disabled={!stepValid() || isPending || checking}
+                  onClick={() => void goNext()}
+                  type="button"
+                >
+                  {checking ? (
+                    <>
+                      <Loader2 className="size-5 animate-spin" />
+                      Verificando…
+                    </>
+                  ) : step === steps.length - 1 ? (
+                    "Crear mi negocio"
+                  ) : (
+                    <>
+                      Continuar
+                      <ArrowRight className="size-5" />
+                    </>
+                  )}
+                </button>
               </div>
+            </div>
           </>
         ) : null}
 
@@ -461,13 +450,13 @@ export function RegisterWizard() {
           <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
             <Confetti />
             <div
-              className="grid size-24 place-items-center rounded-full bg-emerald-100 text-5xl"
+              className="grid size-24 place-items-center rounded-full bg-emerald-100 text-emerald-600"
               style={{ animation: "bbPop .6s cubic-bezier(.34,1.56,.64,1) both" }}
             >
-              🎉
+              <DynamicIcon className="size-12" name={preset.icon} />
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tight">¡Tu barbería está lista!</h1>
+              <h1 className="text-3xl font-black tracking-tight">¡Tu negocio está listo!</h1>
               <p className="mt-2 flex items-center justify-center gap-2 text-sm font-bold text-slate-500">
                 <Loader2 className="size-4 animate-spin" />
                 Entrando al panel…
@@ -480,7 +469,19 @@ export function RegisterWizard() {
   );
 }
 
-function ChoiceCard({ emoji, title, hint, selected, onClick }: { emoji: string; title: string; hint: string; selected: boolean; onClick: () => void }) {
+function ChoiceCard({
+  icon,
+  title,
+  hint,
+  selected,
+  onClick,
+}: {
+  icon: string;
+  title: string;
+  hint: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       className={`flex items-center gap-3 rounded-2xl border-2 p-4 text-left transition active:scale-[0.99] ${
@@ -489,7 +490,13 @@ function ChoiceCard({ emoji, title, hint, selected, onClick }: { emoji: string; 
       onClick={onClick}
       type="button"
     >
-      <span className="text-3xl">{emoji}</span>
+      <span
+        className={`grid size-10 shrink-0 place-items-center rounded-xl ${
+          selected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500"
+        }`}
+      >
+        <DynamicIcon className="size-5" name={icon} />
+      </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-black text-slate-950">{title}</span>
         <span className="block text-xs text-slate-500">{hint}</span>

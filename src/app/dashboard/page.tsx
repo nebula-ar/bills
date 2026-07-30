@@ -1,5 +1,7 @@
 import { PaymentMethod } from "@/generated/prisma/client";
 import { getCurrentSession, isAdminRole } from "@/lib/auth";
+import { requireBusinessContext } from "@/lib/business-context";
+import { countActiveProducts } from "@/modules/catalog/product.repository";
 import { DASHBOARD_RANGE_LABELS, DashboardRange, parseDashboardRange, resolveDashboardRange } from "@/lib/dashboard-range";
 import { EXPENSE_CATEGORY_LABELS } from "@/lib/expense-labels";
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER } from "@/lib/payment-labels";
@@ -15,6 +17,7 @@ const paymentMethodLabels: Record<PaymentMethod, string> = {
   [PaymentMethod.TRANSFER]: "Transferencia",
   [PaymentMethod.QR]: "QR",
   [PaymentMethod.MERCADO_PAGO]: "Mercado Pago",
+  [PaymentMethod.ACCOUNT]: "Cuenta corriente",
   [PaymentMethod.OTHER]: "Otro",
 };
 
@@ -22,7 +25,7 @@ const WEEKDAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 // Orden de lunes a domingo para el gráfico.
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
-const timeFormatter = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit" });
+const timeFormatter = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
 const dayFormatter = new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "numeric", month: "long" });
 const shortDateFormatter = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" });
 const trendFormatter = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "numeric" });
@@ -32,7 +35,7 @@ type HomeProps = {
     range?: string | string[];
     from?: string | string[];
     to?: string | string[];
-    barberId?: string | string[];
+    staffId?: string | string[];
     paymentMethod?: string | string[];
   }>;
 };
@@ -41,7 +44,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const session = await getCurrentSession();
 
   // Sin sesión de admin, la app arranca directo en el login (la terminal del
-  // barbero se accede desde el link "Ir a la terminal" del propio login).
+  // empleado se accede desde el link "Ir a la terminal" del propio login).
   if (!isAdminRole(session?.user.role)) {
     redirect("/login");
   }
@@ -53,23 +56,25 @@ export default async function Home({ searchParams }: HomeProps) {
     from: parseISODateLocal(params.from),
     to: parseISODateLocal(params.to),
   });
-  const barberId = getSingleParam(params.barberId);
+  const staffId = getSingleParam(params.staffId);
   const paymentMethod = getPaymentMethodParam(params.paymentMethod);
 
   const businessId = session.user.businessId;
-  const [report, expensesSummary] = await Promise.all([
+  const { business } = await requireBusinessContext();
+  const [report, expensesSummary, productCount] = await Promise.all([
     getTodaySalesReport({
       businessId,
       from: resolved.from,
       to: resolved.to,
-      barberId,
+      staffId,
       paymentMethod,
     }),
     getExpensesSummary({ businessId, from: resolved.from, to: resolved.to }),
+    countActiveProducts(businessId),
   ]);
 
   const paymentTotalSum = report.totalsByPaymentMethod.reduce((sum, payment) => sum + payment.total, 0);
-  const selectedBarber = report.options.barbers.find((barber) => barber.id === report.filters.barberId);
+  const selectedStaff = report.options.staffs.find((staff) => staff.id === report.filters.staffId);
 
   // Cierre de caja: por cuenta (método), cuánto entró por ventas y cuánto salió por gastos.
   const incomeByMethod = new Map(report.totalsByPaymentMethod.map((payment) => [payment.method, payment.total]));
@@ -81,6 +86,8 @@ export default async function Home({ searchParams }: HomeProps) {
   }).filter((account) => account.income !== 0 || account.expense !== 0);
 
   const data: ReportsData = {
+    catalogEmpty: productCount === 0,
+    catalogPlural: business.labels.catalogPlural,
     range: {
       key: rangeKey,
       label: DASHBOARD_RANGE_LABELS[rangeKey],
@@ -112,8 +119,8 @@ export default async function Home({ searchParams }: HomeProps) {
       total: report.salesByWeekday[weekday]?.total ?? 0,
     })),
     salesByBranch: report.salesByBranch,
-    topServices: report.topServices,
-    totalsByBarber: report.totalsByBarber,
+    topProducts: report.topProducts,
+    totalsByStaff: report.totalsByStaff,
     totalsByPayment: report.totalsByPaymentMethod
       .filter((payment) => payment.total > 0)
       .map((payment) => ({
@@ -125,19 +132,19 @@ export default async function Home({ searchParams }: HomeProps) {
     latestSales: report.latestSales.map((sale) => ({
       id: sale.id,
       timeLabel: timeFormatter.format(sale.soldAt),
-      barberName: sale.barberName,
+      staffName: sale.staffName,
       branchName: sale.branchName,
       total: sale.total,
       paymentLabel: summarizePayments(sale.payments),
       itemSummary: sale.items.map((item) => `${item.description} x${item.quantity}`).join(", "),
     })),
     activeFilters: {
-      barberId: report.filters.barberId,
-      barberName: selectedBarber?.name,
+      staffId: report.filters.staffId,
+      staffName: selectedStaff?.name,
       paymentMethod: report.filters.paymentMethod,
       paymentLabel: report.filters.paymentMethod ? paymentMethodLabels[report.filters.paymentMethod] : undefined,
     },
-    barberOptions: report.options.barbers,
+    staffOptions: report.options.staffs,
     paymentOptions: report.options.paymentMethods.map((method) => ({ value: method, label: paymentMethodLabels[method] })),
   };
 

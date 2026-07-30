@@ -24,9 +24,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               <span className="text-3xl font-black tracking-tight">BB</span>
             </div>
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.24em] text-blue-600">Barber Bills</p>
+              <p className="text-sm font-black uppercase tracking-[0.24em] text-blue-600">Bills</p>
               <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Bienvenido de nuevo</h1>
-              <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">Ingresá para administrar tu barbería.</p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">Ingresá para administrar tu negocio.</p>
             </div>
           </div>
 
@@ -41,13 +41,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <p className="text-center text-sm font-semibold text-slate-500">
             ¿No tenés cuenta?{" "}
             <Link className="font-black text-blue-600" href="/register">
-              Registrá tu barbería
+              Registrá tu negocio
             </Link>
           </p>
 
           <p className="text-center text-sm font-semibold text-slate-500">
-            ¿Sos barbero?{" "}
-            <Link className="font-black text-blue-600" href="/barber">
+            ¿Sos empleado?{" "}
+            <Link className="font-black text-blue-600" href="/terminal">
               Ir a la terminal
             </Link>
           </p>

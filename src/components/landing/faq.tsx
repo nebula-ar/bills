@@ -15,7 +15,7 @@ export function FAQSection() {
             Preguntas frecuentes
           </h2>
           <p className="text-slate-600">
-            Todo lo que necesitás saber sobre el software para barberías de Barber Bills.
+            Todo lo que necesitás saber sobre el software para negocios de Bills.
           </p>
         </div>
 

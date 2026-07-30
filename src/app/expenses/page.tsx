@@ -50,7 +50,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
   }));
 
   const data: ExpensesData = {
-    businessName: branches[0]?.business.name ?? "Barber Bills",
+    businessName: branches[0]?.business.name ?? "Bills",
     monthKey,
     monthLabel: capitalize(monthFormatter.format(from)),
     prevMonthKey: shiftMonth(monthKey, -1),

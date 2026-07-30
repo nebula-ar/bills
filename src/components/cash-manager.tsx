@@ -2,6 +2,7 @@
 
 import { createCashCloseAction, createTransferAction, deleteTransferAction, saveOpeningBalancesAction } from "@/app/caja/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import { ArrowRight, ChevronDown, Lock, PiggyBank, Trash2, Wallet, X } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -166,13 +167,12 @@ export function CashManager({ data }: { data: CashData }) {
                     <form action={deleteTransferAction}>
                       <input name="branchId" type="hidden" value={branchField} />
                       <input name="transferId" type="hidden" value={transfer.id} />
-                      <button
-                        aria-label="Borrar transferencia"
-                        className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition active:scale-90 hover:text-rose-600"
-                        type="submit"
+                      <ConfirmSubmit
+                        className="flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition active:scale-90 hover:text-rose-600"
+                        confirmLabel="Sí"
                       >
                         <Trash2 className="size-4" />
-                      </button>
+                      </ConfirmSubmit>
                     </form>
                   </li>
                 ))}
@@ -298,10 +298,14 @@ export function CashManager({ data }: { data: CashData }) {
       <BottomSheet onClose={() => setCloseOpen(false)} open={closeOpen}>
         <form action={createCashCloseAction} className="flex min-h-0 flex-1 flex-col">
           <input name="branchId" type="hidden" value={branchField} />
-          <SheetHeader onClose={() => setCloseOpen(false)} title="Cerrar caja (arqueo)" />
+          <SheetHeader onClose={() => setCloseOpen(false)} title="Cerrar el día" />
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 pt-5">
+            {/* Los campos van vacíos a propósito: venían con el saldo del
+                sistema y así el arqueo era un trámite que siempre daba "sin
+                diferencia". Contar es el punto de cerrar la caja. */}
             <p className="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-              Contá cuánto hay realmente en cada cuenta. Guardamos el saldo del sistema y lo contado para ver diferencias.
+              Contá la plata que hay de verdad y escribila acá. Comparamos con lo que dice el sistema para mostrarte la
+              diferencia — si no contás, no sirve de nada.
             </p>
             {activeAccounts.length === 0 ? (
               <Empty>No hay saldos para cerrar.</Empty>
@@ -318,10 +322,9 @@ export function CashManager({ data }: { data: CashData }) {
                     <span className="text-base font-black text-slate-400">$</span>
                     <input
                       className="w-full bg-transparent px-1.5 py-2.5 text-right text-base font-black text-slate-950 outline-none"
-                      defaultValue={String(account.balance)}
                       inputMode="numeric"
                       name={`counted_${account.method}`}
-                      placeholder="0"
+                      placeholder="¿Cuánto contaste?"
                       step={1}
                       type="number"
                     />

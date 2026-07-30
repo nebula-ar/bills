@@ -1,7 +1,10 @@
-// Ícono de marca (tijera sobre gradiente azul) compartido por el favicon y el
+// Ícono de marca (un local sobre gradiente azul) compartido por el favicon y el
 // ícono de iOS. Se dibuja con SVG inline para que Satori (next/og) lo rasterice
 // sin depender de archivos ni fuentes externas. Cuando haya logo real, se cambia
 // solo este archivo.
+//
+// Era una tijera cuando el producto era solo para barberías; ahora Bills le sirve
+// a cualquier comercio, así que la marca no puede casarse con un rubro.
 import type { ReactElement } from "react";
 
 export function brandIconElement(size: number): ReactElement {
@@ -28,11 +31,10 @@ export function brandIconElement(size: number): ReactElement {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <circle cx="6" cy="6" r="3" />
-        <path d="M8.12 8.12 12 12" />
-        <path d="M20 4 8.12 15.88" />
-        <circle cx="6" cy="18" r="3" />
-        <path d="M14.8 14.8 20 20" />
+        <path d="M3 9.5 4.5 4h15L21 9.5" />
+        <path d="M3 9.5a2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 3 0" />
+        <path d="M5 11.5V20h14v-8.5" />
+        <path d="M9.5 20v-5h5v5" />
       </svg>
     </div>
   );

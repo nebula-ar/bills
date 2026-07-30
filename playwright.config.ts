@@ -15,11 +15,19 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   timeout: 30_000,
-  expect: { timeout: 7_000 },
+  // Las pantallas se renderizan en el servidor y consultan varias tablas: el
+  // primer render de cada ruta puede tardar más que el default.
+  expect: { timeout: 15_000 },
   use: {
     baseURL: BASE_URL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    // El escáner pide la cámara: con un dispositivo falso, `getUserMedia`
+    // resuelve sin diálogo de permiso y el lector se puede probar headless.
+    permissions: ["camera"],
+    launchOptions: {
+      args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-capture"],
+    },
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },

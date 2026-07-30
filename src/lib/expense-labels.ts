@@ -1,4 +1,4 @@
-import { ExpenseCategory } from "@/generated/prisma/client";
+import { ExpenseCategory } from "@/generated/prisma/enums";
 
 export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   [ExpenseCategory.RENT]: "Alquiler",
@@ -8,6 +8,7 @@ export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   [ExpenseCategory.MARKETING]: "Marketing",
   [ExpenseCategory.MAINTENANCE]: "Mantenimiento",
   [ExpenseCategory.TAXES]: "Impuestos",
+  [ExpenseCategory.MERCHANDISE]: "Mercadería",
   [ExpenseCategory.OTHER]: "Otros",
 };
 
@@ -19,6 +20,7 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   ExpenseCategory.MARKETING,
   ExpenseCategory.MAINTENANCE,
   ExpenseCategory.TAXES,
+  ExpenseCategory.MERCHANDISE,
   ExpenseCategory.OTHER,
 ];
 

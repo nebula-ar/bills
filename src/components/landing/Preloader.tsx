@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
-import { Scissors } from "lucide-react";
+import { Store } from "lucide-react";
 
 export function Preloader() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -121,7 +121,7 @@ export function Preloader() {
     };
   }, []);
 
-  const brandText = "Barber Bills".split("");
+  const brandText = "Bills".split("");
 
   return (
     <div 
@@ -137,7 +137,7 @@ export function Preloader() {
         className="absolute top-1/2 left-1/2 flex items-center gap-3"
       >
         <div className="icon-wrapper w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shrink-0">
-          <Scissors className="w-5 h-5 text-white" />
+          <Store className="w-5 h-5 text-white" />
         </div>
         <div ref={textWrapperRef} className="overflow-hidden flex">
           {brandText.map((char, index) => (

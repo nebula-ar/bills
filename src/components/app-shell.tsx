@@ -12,11 +12,13 @@ const shellMaxWidth: Record<NonNullable<AppShellProps["maxWidth"]>, string> = {
   xl: "max-w-6xl",
 };
 
-// La barra de navegación inferior es global (se monta en el layout raíz); acá solo
-// dejamos el padding inferior (pb-28) para que el contenido no quede tapado.
+// La barra de navegación inferior es global (se monta en el layout raíz) y flota
+// por encima del contenido. El padding inferior tiene que dejar libre su alto más
+// el margen que la separa del borde: con menos, el último botón de la pantalla
+// queda debajo de la barra y no se puede tocar.
 export function AppShell({ children, maxWidth = "md" }: AppShellProps) {
   return (
-    <main className="min-h-screen bg-[#f6f7fb] px-4 pb-28 pt-5 text-slate-950 sm:px-6 sm:py-10">
+    <main className="min-h-screen bg-[#f6f7fb] px-4 pb-40 pt-5 text-slate-950 sm:px-6 sm:pb-40 sm:pt-10">
       <section className={`mx-auto flex w-full ${shellMaxWidth[maxWidth]} flex-col gap-6`}>
         {children}
       </section>
@@ -31,7 +33,7 @@ type PageHeaderProps = {
   actions?: ReactNode;
 };
 
-export function PageHeader({ actions, description, eyebrow = "Barber Bills", title }: PageHeaderProps) {
+export function PageHeader({ actions, description, eyebrow = "Bills", title }: PageHeaderProps) {
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>

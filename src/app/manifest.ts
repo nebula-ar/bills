@@ -4,9 +4,9 @@ import type { MetadataRoute } from "next";
 // abre en modo standalone. En iOS el ícono de inicio sale de apple-icon.tsx.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Barber Bills",
-    short_name: "Barber Bills",
-    description: "Administración de ventas para barberías",
+    name: "Bills",
+    short_name: "Bills",
+    description: "Administración de ventas para negocios",
     lang: "es-AR",
     dir: "ltr",
     start_url: "/",

@@ -1,0 +1,156 @@
+import type { ReactNode } from "react";
+
+// Piezas compartidas por las pantallas de gestión (stock, proveedores, promos,
+// clientes, módulos). Existen para que todas se vean como el mismo sistema y
+// para no repetir el mismo markup cinco veces.
+
+const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+
+export function formatMoney(value: number) {
+  return money.format(value);
+}
+
+export type Tone = "neutral" | "positive" | "warning" | "danger" | "info";
+
+const TONE_TILE: Record<Tone, string> = {
+  neutral: "bg-white text-slate-950",
+  positive: "bg-emerald-50 text-emerald-900",
+  warning: "bg-amber-50 text-amber-900",
+  danger: "bg-rose-50 text-rose-900",
+  info: "bg-blue-50 text-blue-900",
+};
+
+const TONE_BADGE: Record<Tone, string> = {
+  neutral: "bg-slate-100 text-slate-700",
+  positive: "bg-emerald-100 text-emerald-800",
+  warning: "bg-amber-100 text-amber-800",
+  danger: "bg-rose-100 text-rose-800",
+  info: "bg-blue-100 text-blue-800",
+};
+
+// Fila de números grandes que encabeza cada pantalla: lo que el dueño mira
+// primero (cuánto debo, cuánto vale mi stock, cuánto me deben).
+export function StatTiles({ tiles }: { tiles: { label: string; value: string; hint?: string; tone?: Tone }[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {tiles.map((tile) => (
+        <div
+          className={`rounded-2xl border border-slate-200 p-4 shadow-sm ${TONE_TILE[tile.tone ?? "neutral"]}`}
+          key={tile.label}
+        >
+          <p className="text-[0.68rem] font-bold uppercase tracking-wider opacity-70">{tile.label}</p>
+          <p className="mt-1 text-xl font-black tracking-tight sm:text-2xl">{tile.value}</p>
+          {tile.hint ? <p className="mt-0.5 text-xs opacity-70">{tile.hint}</p> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: Tone }) {
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold ${TONE_BADGE[tone]}`}>
+      {children}
+    </span>
+  );
+}
+
+export function SectionCard({
+  title,
+  description,
+  actions,
+  children,
+}: {
+  title: string;
+  description?: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-black tracking-tight text-slate-950">{title}</h2>
+          {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
+        </div>
+        {actions}
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+export function EmptyState({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center">
+      <p className="text-sm font-bold text-slate-700">{title}</p>
+      {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}
+    </div>
+  );
+}
+
+// Campo de formulario con su etiqueta. Los formularios de gestión son todos
+// `<form action={serverAction}>`, así que no necesitan estado en el cliente.
+export function Field({
+  label,
+  hint,
+  children,
+  className = "",
+}: {
+  label: string;
+  hint?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <label className={`flex flex-col gap-1 ${className}`}>
+      <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</span>
+      {children}
+      {hint ? <span className="text-xs text-slate-400">{hint}</span> : null}
+    </label>
+  );
+}
+
+export const inputClass =
+  "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
+
+export const selectClass = `${inputClass} appearance-none`;
+
+export function PrimaryButton({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <button
+      className={`rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700 ${className}`}
+      type="submit"
+    >
+      {children}
+    </button>
+  );
+}
+
+export function GhostButton({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <button
+      className={`rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition active:scale-95 hover:border-slate-300 ${className}`}
+      type="submit"
+    >
+      {children}
+    </button>
+  );
+}
+
+export function DangerButton({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <button
+      className={`rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-600 transition active:scale-95 hover:bg-rose-50 ${className}`}
+      type="submit"
+    >
+      {children}
+    </button>
+  );
+}
+
+// Contenedor de tabla que scrollea solo en horizontal: en el celular las
+// pantallas de gestión tienen más columnas de las que entran.
+export function TableWrap({ children }: { children: ReactNode }) {
+  return <div className="-mx-5 overflow-x-auto px-5">{children}</div>;
+}

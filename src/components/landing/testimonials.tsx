@@ -9,17 +9,17 @@ const testimonials = [
   {
     quote: "Antes perdíamos 2 horas al día haciendo cuentas. Ahora corto el pelo, toco la pantalla, y la app separa mi comisión de la del dueño automáticamente.",
     author: "Nico Fernández",
-    role: "Barbero",
+    role: "Empleado",
     shop: "El Rulo",
   },
   {
     quote: "Los clientes reservan de madrugada mientras yo duermo. El sistema les cobra seña, y si no vienen, no pierdo plata. Así de simple.",
     author: "Matías Toledo",
     role: "Dueño",
-    shop: "Barbería Sur",
+    shop: "Negocio Sur",
   },
   {
-    quote: "La mejor inversión. Con el reporte diario sé exactamente qué sucursal rinde más y qué barbero metió más cortes. Dejamos el Excel para siempre.",
+    quote: "La mejor inversión. Con el reporte diario sé exactamente qué sucursal rinde más y qué empleado metió más cortes. Dejamos el Excel para siempre.",
     author: "Fede González",
     role: "Manager",
     shop: "La Navaja",
@@ -122,7 +122,7 @@ export function TestimonialsSection() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-16">
           <h2 ref={titleRef} className="text-3xl lg:text-5xl font-bold text-slate-900 mb-6 font-montserrat">
-            Elegido por las <span className="text-blue-600">mejores barberías.</span>
+            Elegido por las <span className="text-blue-600">mejores negocios.</span>
           </h2>
         </div>
 

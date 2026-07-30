@@ -1,6 +1,8 @@
 import { requireAdminSession } from "@/lib/auth";
+import { requireBusinessContext } from "@/lib/business-context";
 import { getRecentSales } from "@/modules/sales/get-recent-sales.use-case";
 import { toSalesListSale } from "@/modules/sales/recent-sales-view";
+import { findBusinessForInvoicing } from "@/modules/business/business.repository";
 import { SalesList } from "@/components/sales-list";
 import { loadMoreSalesAction } from "@/app/sales/actions";
 import { Plus } from "@/components/icons";
@@ -9,8 +11,13 @@ import Link from "next/link";
 export default async function SalesPage() {
   const session = await requireAdminSession();
 
-  const { sales, nextCursor } = await getRecentSales(session.user.businessId, 20);
-  const viewSales = sales.map(toSalesListSale);
+  const [{ sales, nextCursor }, business, context] = await Promise.all([
+    getRecentSales(session.user.businessId, 20),
+    findBusinessForInvoicing(session.user.businessId),
+    requireBusinessContext(),
+  ]);
+  const businessBasics = { cuit: business?.cuit ?? null, salesPointNumber: business?.salesPointNumber ?? null };
+  const viewSales = sales.map((sale) => toSalesListSale(sale, businessBasics));
 
   return (
     <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
@@ -21,7 +28,7 @@ export default async function SalesPage() {
         </div>
       </header>
 
-      <SalesList sales={viewSales} initialCursor={nextCursor} loadMore={loadMoreSalesAction} />
+      <SalesList businessName={context.business.name} sales={viewSales} initialCursor={nextCursor} loadMore={loadMoreSalesAction} />
 
       <Link
         aria-label="Nueva venta"

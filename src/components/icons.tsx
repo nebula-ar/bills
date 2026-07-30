@@ -73,3 +73,13 @@ export const TrendingUp = solar("solar:graph-up-bold");
 export const TriangleAlert = solar("solar:danger-triangle-bold");
 export const Users = solar("solar:users-group-rounded-bold");
 export const Wallet = solar("solar:wallet-bold");
+
+// Icono resuelto en runtime: el nombre llega como dato (el rubro del negocio o un
+// módulo), no como import. Reemplaza al `Scissors` fijo en las pantallas que
+// tienen que hablar el idioma de cada rubro.
+export function DynamicIcon({ name, size, ...props }: IconProps & { name: string }) {
+  return <Icon icon={name} {...(size != null ? { width: size, height: size } : {})} {...props} />;
+}
+
+// Iconos genéricos de reemplazo, para lo que antes era específico de barbería.
+export const Package = solar("solar:box-bold");

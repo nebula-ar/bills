@@ -12,7 +12,7 @@ const features = [
   {
     icon: <Building2 className="w-6 h-6 text-red-600" />,
     title: "Multi-Sucursal",
-    description: "Gestiona todas tus sucursales desde una sola cuenta. Compara rendimiento entre locales y asigna barberos por sede.",
+    description: "Gestiona todas tus sucursales desde una sola cuenta. Compara rendimiento entre locales y asigna empleados por sede.",
   },
   {
     icon: <Calculator className="w-6 h-6 text-blue-600" />,
@@ -22,7 +22,7 @@ const features = [
   {
     icon: <TrendingUp className="w-6 h-6 text-red-600" />,
     title: "Reportes Ejecutivos",
-    description: "Deja de adivinar. Mira tus mejores servicios, barberos con mejor rendimiento y tus márgenes de ganancia exactos en un solo toque.",
+    description: "Deja de adivinar. Mira tus mejores servicios, empleados con mejor rendimiento y tus márgenes de ganancia exactos en un solo toque.",
   },
 ];
 

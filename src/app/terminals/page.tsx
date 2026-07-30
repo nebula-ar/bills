@@ -21,19 +21,19 @@ export default async function TerminalsPage({ searchParams }: TerminalsPageProps
   const rows: TerminalsBranch[] = branches.map((branch) => ({
     id: branch.id,
     name: branch.name,
-    barbers: branch.users.map((barber) => ({ id: barber.id, name: barber.name })),
+    staffs: branch.users.map((staff) => ({ id: staff.id, name: staff.name })),
     customTerminals: branch.terminals.map((terminal) => ({
       id: terminal.id,
       name: terminal.name,
-      barberId: terminal.barberId,
-      barberName: terminal.barber?.name ?? null,
+      staffId: terminal.staffId,
+      staffName: terminal.staff?.name ?? null,
     })),
   }));
 
   const selectedBranchId = rows.find((branch) => branch.id === selectedParam)?.id ?? rows[0]?.id ?? "";
 
   const data: TerminalsData = {
-    businessName: branches[0]?.business.name ?? "Barber Bills",
+    businessName: branches[0]?.business.name ?? "Bills",
     branches: rows,
     selectedBranchId,
     flash,

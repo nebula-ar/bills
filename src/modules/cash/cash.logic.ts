@@ -64,9 +64,9 @@ export function accountHasActivity(account: AccountBalance): boolean {
   );
 }
 
-// Solo un barbero "encargado" (canCloseCash) puede cerrar caja desde la terminal.
-export function barberCanCloseCash(barber: { canCloseCash: boolean } | null | undefined): boolean {
-  return barber?.canCloseCash === true;
+// Solo un empleado "encargado" (canCloseCash) puede cerrar caja desde la terminal.
+export function staffCanCloseCash(staff: { canCloseCash: boolean } | null | undefined): boolean {
+  return staff?.canCloseCash === true;
 }
 
 export type TransferValidation = { ok: true } | { ok: false; error: "INVALID_AMOUNT" | "SAME_ACCOUNT" };

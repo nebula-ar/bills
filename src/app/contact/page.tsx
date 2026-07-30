@@ -5,19 +5,19 @@ import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/footer";
 
 export const metadata: Metadata = {
-  title: "Contacto — Barber Bills",
+  title: "Contacto — Bills",
   description:
-    "Escribinos por WhatsApp, mail o teléfono. Te ayudamos a poner en marcha Barber Bills en tu barbería.",
+    "Escribinos por WhatsApp, mail o teléfono. Te ayudamos a poner en marcha Bills en tu negocio.",
 };
 
 const faqs = [
   {
     q: "¿Necesito comprar algún hardware especial?",
-    a: "No. Barber Bills funciona desde el celular o la tablet que ya tenés. No hace falta un lector de tarjetas ni una caja registradora nueva.",
+    a: "No. Bills funciona desde el celular o la tablet que ya tenés. No hace falta un lector de tarjetas ni una caja registradora nueva.",
   },
   {
     q: "¿Cuánto tarda en estar funcionando?",
-    a: "La mayoría de las barberías cargan sus sucursales, servicios y barberos, y empiezan a vender el mismo día. Si tenés varias sucursales, te ayudamos con la carga inicial.",
+    a: "La mayoría de las negocios cargan sus sucursales, servicios y empleados, y empiezan a vender el mismo día. Si tenés varias sucursales, te ayudamos con la carga inicial.",
   },
   {
     q: "¿Dan soporte en español?",
@@ -40,7 +40,7 @@ export default function ContactPage() {
             Contacto
           </p>
           <h1 className="text-4xl lg:text-5xl font-bold font-montserrat mb-6 leading-tight">
-            Hablemos de tu barbería
+            Hablemos de tu negocio
           </h1>
           <p className="text-lg text-slate-600 leading-relaxed max-w-xl mx-auto">
             Contanos cuántas sucursales tenés y qué te está costando más hoy. Te respondemos
@@ -51,7 +51,7 @@ export default function ContactPage() {
         <section className="max-w-3xl mx-auto px-6 mt-12">
           <div className="grid sm:grid-cols-3 gap-4">
             <a
-              href="https://wa.me/5491159804610?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Barber%20Bills"
+              href="https://wa.me/5491159804610?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Staff%20Bills"
               target="_blank"
               rel="noopener noreferrer"
               className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-blue-600 text-white shadow-[0_12px_24px_-8px_rgba(37,99,235,0.5)] hover:bg-blue-700 transition-colors"

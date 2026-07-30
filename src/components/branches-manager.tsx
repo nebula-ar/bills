@@ -150,7 +150,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
               />
             </label>
             <p className="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-              La sucursal nueva queda activa. Después cargale precios de servicios y barberos.
+              La sucursal nueva queda activa. Después cargale precios de servicios y empleados.
             </p>
           </div>
           <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">

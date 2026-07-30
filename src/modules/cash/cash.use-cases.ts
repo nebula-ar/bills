@@ -1,6 +1,9 @@
 import { PaymentMethod } from "@/generated/prisma/client";
 import { logEvent } from "@/lib/logger";
 import { PAYMENT_METHOD_ORDER } from "@/lib/payment-labels";
+import { findCustomerPaymentsByMethod } from "@/modules/customers/customer.repository";
+import { findReturnsByMethod } from "@/modules/sales/return-sale.use-case";
+import { findPurchasePaymentsByMethod } from "@/modules/suppliers/supplier.repository";
 
 import { buildCashCloseLines, computeAccountBalances, validateTransfer, type AccountBalance } from "./cash.logic";
 import {
@@ -20,15 +23,41 @@ export type { AccountBalance };
 
 // Motor de saldos: por cuenta, saldo inicial + ingresos − gastos + transferencias.
 // Sin rango de fechas => saldo real actual ("cuánto hay en cada cuenta").
+//
+// Hay cinco flujos de plata, no dos. Entra: ventas y lo que los clientes pagan
+// de su cuenta corriente (el fiado recién se cobra ahí). Sale: gastos, pagos a
+// proveedores y devoluciones a clientes.
 export async function getAccountBalances(scope: CashScope): Promise<AccountBalance[]> {
-  const [income, expense, transfers, openings] = await Promise.all([
+  const [salesIncome, customerPayments, expenses, supplierPayments, returns, transfers, openings] = await Promise.all([
     findSalesIncomeByMethod(scope),
+    findCustomerPaymentsByMethod(scope),
     findExpensesByMethod(scope),
+    findPurchasePaymentsByMethod(scope),
+    findReturnsByMethod(scope),
     findTransfers(scope),
     findOpeningBalances(scope.businessId, scope.branchId ?? null),
   ]);
 
-  return computeAccountBalances({ order: PAYMENT_METHOD_ORDER, openings, income, expense, transfers });
+  return computeAccountBalances({
+    order: PAYMENT_METHOD_ORDER,
+    openings,
+    income: mergeByMethod(salesIncome, customerPayments),
+    expense: mergeByMethod(expenses, supplierPayments, returns),
+    transfers,
+  });
+}
+
+// Suma dos agregados por método en uno solo.
+function mergeByMethod(...maps: Map<PaymentMethod, number>[]): Map<PaymentMethod, number> {
+  const merged = new Map<PaymentMethod, number>();
+
+  for (const map of maps) {
+    for (const [method, amount] of map) {
+      merged.set(method, (merged.get(method) ?? 0) + amount);
+    }
+  }
+
+  return merged;
 }
 
 export async function setOpeningBalance(input: {

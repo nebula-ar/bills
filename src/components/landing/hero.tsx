@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ArrowRight, Scissors, Calendar, CreditCard, PieChart, MapPin, Link as LinkIcon, LogOut, Sliders, Wallet, TrendingUp, Home, ShoppingBag, Receipt, MoreHorizontal, Plus } from "lucide-react";
+import { ArrowRight, Store, Calendar, CreditCard, PieChart, MapPin, Link as LinkIcon, LogOut, Sliders, Wallet, TrendingUp, Home, ShoppingBag, Receipt, MoreHorizontal, Plus } from "lucide-react";
 import Link from "next/link";
 import { MagneticButton } from "./MagneticButton";
 
@@ -240,7 +240,7 @@ export function HeroSection() {
               ref={titleRef}
               className="text-4xl sm:text-5xl lg:text-[4rem] font-semibold tracking-tight mb-6 leading-[1.2] lg:leading-[1.1] text-slate-800 font-montserrat"
             >
-              Administra tu barbería, <br className="hidden sm:block" />
+              Administra tu negocio, <br className="hidden sm:block" />
               <span className="relative inline-block text-slate-900 font-bold whitespace-nowrap px-2 mt-2 sm:mt-0">
                 no un Excel.
                 <svg 
@@ -249,7 +249,7 @@ export function HeroSection() {
                   preserveAspectRatio="none"
                 >
                   <defs>
-                    <linearGradient id="barber-gradient" x1="0" y1="0" x2="1" y2="0">
+                    <linearGradient id="staff-gradient" x1="0" y1="0" x2="1" y2="0">
                       <stop offset="0%" stopColor="#2563EB" />
                       <stop offset="40%" stopColor="#60A5FA" />
                       <stop offset="50%" stopColor="#F8FAFC" />
@@ -261,7 +261,7 @@ export function HeroSection() {
                     ref={underlineRef}
                     d="M 4,14 Q 100,18 196,14" 
                     fill="none" 
-                    stroke="url(#barber-gradient)" 
+                    stroke="url(#staff-gradient)" 
                     strokeWidth="3.5" 
                     strokeLinecap="round" 
                   />
@@ -359,7 +359,7 @@ export function HeroSection() {
                            <div className="text-xl font-black text-slate-900">$ 0</div>
                          </div>
                          <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col gap-3">
-                           <div className="text-[11px] font-black text-slate-500 flex items-center gap-1.5 tracking-wider uppercase"><Scissors className="text-blue-500 w-4 h-4"/> Servicios</div>
+                           <div className="text-[11px] font-black text-slate-500 flex items-center gap-1.5 tracking-wider uppercase"><Store className="text-blue-500 w-4 h-4"/> Servicios</div>
                            <div className="text-xl font-black text-slate-900">0</div>
                          </div>
                       </div>
@@ -392,9 +392,9 @@ export function HeroSection() {
                   {/* Screen 2: POS */}
                   <div ref={screen2Ref} className="absolute inset-0 bg-slate-50 pb-20 flex flex-col overflow-y-auto hidden-scrollbar">
                     <div className="p-6 pt-14">
-                      <div className="text-sm text-slate-500 font-medium">Barbería El Rulo</div>
+                      <div className="text-sm text-slate-500 font-medium">Negocio El Rulo</div>
                       <div className="text-3xl font-black text-slate-900 mb-2 tracking-tight">Puntos de venta</div>
-                      <p className="text-[13px] leading-snug text-slate-500 mb-6 pr-4">Tocá una caja para vender, o copiá su link para que los barberos carguen ventas con su PIN.</p>
+                      <p className="text-[13px] leading-snug text-slate-500 mb-6 pr-4">Tocá una caja para vender, o copiá su link para que los empleados carguen ventas con su PIN.</p>
                       
                       <div className="flex flex-col gap-4">
                         <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
@@ -406,7 +406,7 @@ export function HeroSection() {
                                <div className="font-black text-lg text-slate-900 tracking-tight">Sucursal Centro</div>
                                <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3"/> Av. Corrientes 1234, CABA</div>
                                <div className="flex gap-1.5 mt-2.5">
-                                 <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full flex items-center gap-1"><Scissors className="w-3 h-3"/> 2 barberos</span>
+                                 <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full flex items-center gap-1"><Store className="w-3 h-3"/> 2 empleados</span>
                                  <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full flex items-center gap-1"><ShoppingBag className="w-3 h-3"/> 6 servicios</span>
                                </div>
                              </div>
@@ -428,7 +428,7 @@ export function HeroSection() {
                                <div className="font-black text-lg text-slate-900 tracking-tight">Sucursal Norte</div>
                                <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3"/> Av. Maipú 890, Vicente Lópe</div>
                                <div className="flex gap-1.5 mt-2.5">
-                                 <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full flex items-center gap-1"><Scissors className="w-3 h-3"/> 2 barberos</span>
+                                 <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full flex items-center gap-1"><Store className="w-3 h-3"/> 2 empleados</span>
                                  <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full flex items-center gap-1"><ShoppingBag className="w-3 h-3"/> 6 servicios</span>
                                </div>
                              </div>

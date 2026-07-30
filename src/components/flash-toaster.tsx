@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
@@ -11,7 +11,6 @@ import { toast } from "sonner";
 export function FlashToaster() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const router = useRouter();
   const lastShown = useRef<string | null>(null);
 
   const status = searchParams.get("status");
@@ -32,12 +31,18 @@ export function FlashToaster() {
     }
 
     // Sacamos status/message de la URL preservando el resto de los params.
+    //
+    // Con `history.replaceState` y NO con `router.replace`: la acción que dejó el
+    // flash acaba de mutar datos y la pantalla ya se renderizó con los nuevos.
+    // Un `router.replace` dispara una navegación que puede volver a servir la
+    // copia cacheada de ANTES de la mutación, y el usuario ve su cambio
+    // desaparecer. Acá solo queremos limpiar la barra de direcciones.
     const next = new URLSearchParams(searchParams);
     next.delete("status");
     next.delete("message");
     const query = next.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [status, message, pathname, router, searchParams]);
+    window.history.replaceState(null, "", query ? `${pathname}?${query}` : pathname);
+  }, [status, message, pathname, searchParams]);
 
   return null;
 }

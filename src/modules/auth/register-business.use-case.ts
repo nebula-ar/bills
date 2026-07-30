@@ -1,20 +1,22 @@
 import { hash } from "bcryptjs";
 
-import { UserRole } from "@/generated/prisma/client";
+import { UserRole, Vertical } from "@/generated/prisma/client";
 import { logEvent } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { verticalPreset } from "@/lib/vertical";
 
-export type RegisterBarberInput = { name: string; pin: string };
-export type RegisterBranchInput = { name: string; address?: string; barbers: RegisterBarberInput[] };
-export type RegisterServiceInput = { name: string; price: number };
+export type RegisterStaffInput = { name: string; pin: string };
+export type RegisterBranchInput = { name: string; address?: string; staffs: RegisterStaffInput[] };
 export type RegisterBusinessInput = {
   businessName: string;
+  // Rubro elegido en el onboarding. Define qué módulos vienen prendidos y con
+  // qué catálogo arranca el negocio (ver src/lib/vertical.ts).
+  vertical?: Vertical;
   ownerName: string;
   email: string;
   username?: string;
   password: string;
   branches: RegisterBranchInput[];
-  services?: RegisterServiceInput[];
 };
 
 export type RegisterResult = { ok: true } | { ok: false; error: string };
@@ -39,7 +41,7 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
   const username = (input.username ?? "").trim().toLowerCase();
   const password = input.password ?? "";
 
-  if (!businessName) return { ok: false, error: "Poné el nombre de la barbería." };
+  if (!businessName) return { ok: false, error: "Poné el nombre de tu negocio." };
   if (!ownerName) return { ok: false, error: "Poné tu nombre." };
   if (!EMAIL_RE.test(email)) return { ok: false, error: "El email no es válido." };
   if (username && !USERNAME_RE.test(username)) {
@@ -51,33 +53,20 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
     .map((branch) => ({
       name: branch.name.trim(),
       address: branch.address?.trim() || undefined,
-      barbers: branch.barbers
-        .map((barber) => ({ name: barber.name.trim(), pin: barber.pin.trim() }))
-        .filter((barber) => barber.name.length > 0),
+      staffs: branch.staffs
+        .map((staff) => ({ name: staff.name.trim(), pin: staff.pin.trim() }))
+        .filter((staff) => staff.name.length > 0),
     }))
     .filter((branch) => branch.name.length > 0);
 
   if (branches.length === 0) return { ok: false, error: "Agregá al menos una sucursal." };
 
-  // Servicios (opcionales): se crean en la primera sucursal con su precio. Se
-  // descartan los vacíos o con precio inválido y se evita repetir por nombre.
-  const seenServiceNames = new Set<string>();
-  const services = (input.services ?? [])
-    .map((service) => ({ name: service.name.trim(), price: Math.round(service.price) }))
-    .filter((service) => {
-      if (service.name.length === 0 || !Number.isInteger(service.price) || service.price <= 0) return false;
-      const key = service.name.toLowerCase();
-      if (seenServiceNames.has(key)) return false;
-      seenServiceNames.add(key);
-      return true;
-    });
-
   // El PIN es opcional: si lo cargan tiene que ser de 4 a 8 números; si no, el
-  // barbero queda sin PIN (se le puede poner después desde Barberos).
+  // empleado queda sin PIN (se le puede poner después desde Empleados).
   for (const branch of branches) {
-    for (const barber of branch.barbers) {
-      if (barber.pin && !PIN_RE.test(barber.pin)) {
-        return { ok: false, error: `El PIN de ${barber.name} tiene que ser de 4 a 8 números.` };
+    for (const staff of branch.staffs) {
+      if (staff.pin && !PIN_RE.test(staff.pin)) {
+        return { ok: false, error: `El PIN de ${staff.name} tiene que ser de 4 a 8 números.` };
       }
     }
   }
@@ -99,17 +88,25 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
     branches.map(async (branch) => ({
       name: branch.name,
       address: branch.address,
-      barbers: await Promise.all(
-        branch.barbers.map(async (barber) => ({
-          name: barber.name,
-          pinHash: barber.pin ? await hash(barber.pin, 12) : null,
+      staffs: await Promise.all(
+        branch.staffs.map(async (staff) => ({
+          name: staff.name,
+          pinHash: staff.pin ? await hash(staff.pin, 12) : null,
         })),
       ),
     })),
   );
 
+  const vertical = input.vertical ?? Vertical.GENERAL;
+  const preset = verticalPreset(vertical);
+
   const businessId = await prisma.$transaction(async (tx) => {
-    const business = await tx.business.create({ data: { name: businessName } });
+    const business = await tx.business.create({ data: { name: businessName, vertical } });
+
+    // Módulos del rubro: el negocio arranca viendo solo lo que necesita.
+    await tx.businessModuleAccess.createMany({
+      data: preset.modules.map((module) => ({ businessId: business.id, module })),
+    });
 
     await tx.user.create({
       data: {
@@ -123,49 +120,40 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
       },
     });
 
-    let firstBranchId: string | null = null;
-    for (const [index, branch] of branchesWithHashes.entries()) {
+    for (const branch of branchesWithHashes) {
       const createdBranch = await tx.branch.create({
         data: { businessId: business.id, name: branch.name, address: branch.address, active: true },
       });
-      if (index === 0) firstBranchId = createdBranch.id;
 
-      for (const barber of branch.barbers) {
+      for (const staff of branch.staffs) {
         await tx.user.create({
           data: {
             businessId: business.id,
             branchId: createdBranch.id,
-            name: barber.name,
-            pinHash: barber.pinHash,
-            role: UserRole.BARBER,
+            name: staff.name,
+            pinHash: staff.pinHash,
+            role: UserRole.STAFF,
             active: true,
           },
         });
       }
     }
 
-    // Catálogo inicial: cada servicio con su precio en la primera sucursal.
-    if (firstBranchId) {
-      for (const service of services) {
-        const createdService = await tx.service.create({
-          data: { businessId: business.id, name: service.name, active: true },
-        });
-        await tx.branchServicePrice.create({
-          data: { branchId: firstBranchId, serviceId: createdService.id, price: service.price, active: true },
-        });
-      }
+    // Categorías del rubro: el catálogo todavía está vacío, pero cuando el
+    // dueño lo cargue desde la app ya tiene dónde ordenar cada cosa.
+    for (const name of preset.categories) {
+      await tx.productCategory.create({ data: { businessId: business.id, name } });
     }
 
     return business.id;
   });
 
-  await logEvent("business.register", `Alta de barbería "${businessName}"`, {
+  await logEvent("business.register", `Alta de negocio "${businessName}"`, {
     businessId,
     context: {
       businessName,
       branches: branchesWithHashes.length,
-      barbers: branchesWithHashes.reduce((sum, branch) => sum + branch.barbers.length, 0),
-      services: services.length,
+      staffs: branchesWithHashes.reduce((sum, branch) => sum + branch.staffs.length, 0),
     },
   });
 

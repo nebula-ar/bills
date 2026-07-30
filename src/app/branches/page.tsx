@@ -24,7 +24,7 @@ export default async function BranchesPage({ searchParams }: BranchesPageProps) 
   }));
 
   const data: BranchesData = {
-    businessName: branches[0]?.business.name ?? "Barber Bills",
+    businessName: branches[0]?.business.name ?? "Bills",
     branches: rows,
     flash,
   };

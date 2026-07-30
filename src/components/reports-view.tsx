@@ -4,14 +4,16 @@ import { AnimatedMoney, AnimatedNumber } from "@/components/animated-number";
 import { PAYMENT_DONUT_COLORS } from "@/components/reports-charts-colors";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { DASHBOARD_RANGE_LABELS, DashboardRange, type DashboardRangeKey } from "@/lib/dashboard-range";
+import { formatQuantity } from "@/lib/quantity";
 import {
+  ArrowRight,
   ArrowUpRight,
   Calendar,
   CalendarDays,
   CreditCard,
   LogOut,
   ReceiptText,
-  Scissors,
+  Package,
   SlidersHorizontal,
   Store,
   Ticket,
@@ -39,10 +41,13 @@ const PaymentDonutChart = dynamic(
   { ssr: false, loading: ChartSkeleton },
 );
 
-export type ReportsBarberOption = { id: string; name: string };
+export type ReportsStaffOption = { id: string; name: string };
 export type ReportsPaymentOption = { value: string; label: string };
 
 export type ReportsData = {
+  // true = el negocio todavía no cargó ningún producto/servicio.
+  catalogEmpty: boolean;
+  catalogPlural: string;
   range: {
     key: DashboardRangeKey;
     label: string;
@@ -63,25 +68,25 @@ export type ReportsData = {
   salesTrend: { label: string; total: number }[];
   salesByWeekday: { label: string; total: number }[];
   salesByBranch: { branchName: string; total: number; saleCount: number }[];
-  topServices: { name: string; total: number; quantity: number }[];
-  totalsByBarber: { barberId: string; barberName: string; total: number; saleCount: number }[];
+  topProducts: { name: string; total: number; quantity: number }[];
+  totalsByStaff: { staffId: string; staffName: string; total: number; saleCount: number }[];
   totalsByPayment: { key: string; label: string; total: number; percentage: number }[];
   latestSales: {
     id: string;
     timeLabel: string;
-    barberName: string;
+    staffName: string;
     branchName: string;
     total: number;
     paymentLabel: string;
     itemSummary: string;
   }[];
   activeFilters: {
-    barberId?: string;
-    barberName?: string;
+    staffId?: string;
+    staffName?: string;
     paymentMethod?: string;
     paymentLabel?: string;
   };
-  barberOptions: ReportsBarberOption[];
+  staffOptions: ReportsStaffOption[];
   paymentOptions: ReportsPaymentOption[];
 };
 
@@ -111,7 +116,7 @@ type FilterQuery = {
   range: DashboardRangeKey;
   from?: string;
   to?: string;
-  barberId?: string;
+  staffId?: string;
   paymentMethod?: string;
 };
 
@@ -122,10 +127,12 @@ function buildHref(query: FilterQuery) {
     if (query.from) params.set("from", query.from);
     if (query.to) params.set("to", query.to);
   }
-  if (query.barberId) params.set("barberId", query.barberId);
+  if (query.staffId) params.set("staffId", query.staffId);
   if (query.paymentMethod) params.set("paymentMethod", query.paymentMethod);
 
-  return `/?${params.toString()}`;
+  // A /dashboard y no a "/": la landing redirige sin conservar la query, así
+  // que los filtros se perdían en el camino.
+  return `/dashboard?${params.toString()}`;
 }
 
 export function ReportsView({ data, userName = "admin" }: { data: ReportsData; userName?: string }) {
@@ -135,15 +142,15 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
   const [rangeKey, setRangeKey] = useState<DashboardRangeKey>(data.range.key);
   const [customFrom, setCustomFrom] = useState(data.range.fromValue);
   const [customTo, setCustomTo] = useState(data.range.toValue);
-  const [barberId, setBarberId] = useState(data.activeFilters.barberId ?? "");
+  const [staffId, setStaffId] = useState(data.activeFilters.staffId ?? "");
   const [paymentMethod, setPaymentMethod] = useState(data.activeFilters.paymentMethod ?? "");
 
-  const maxBarberTotal = Math.max(...data.totalsByBarber.map((b) => b.total), 0);
+  const maxStaffTotal = Math.max(...data.totalsByStaff.map((b) => b.total), 0);
   const maxBranchTotal = Math.max(...data.salesByBranch.map((b) => b.total), 0);
-  const maxServiceTotal = Math.max(...data.topServices.map((s) => s.total), 0);
+  const maxProductTotal = Math.max(...data.topProducts.map((s) => s.total), 0);
   const maxExpenseCategory = Math.max(...data.expensesByCategory.map((c) => c.total), 0);
   const heroLabel = data.range.isToday ? "Ventas de hoy" : data.range.label;
-  const activeFilterCount = (data.activeFilters.barberId ? 1 : 0) + (data.activeFilters.paymentMethod ? 1 : 0);
+  const activeFilterCount = (data.activeFilters.staffId ? 1 : 0) + (data.activeFilters.paymentMethod ? 1 : 0);
 
   function navigate(href: string) {
     startTransition(() => router.push(href, { scroll: false }));
@@ -153,7 +160,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
     setRangeKey(data.range.key);
     setCustomFrom(data.range.fromValue);
     setCustomTo(data.range.toValue);
-    setBarberId(data.activeFilters.barberId ?? "");
+    setStaffId(data.activeFilters.staffId ?? "");
     setPaymentMethod(data.activeFilters.paymentMethod ?? "");
     setSheetOpen(true);
   }
@@ -162,7 +169,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
     navigate(
       buildHref({
         range: key,
-        barberId: data.activeFilters.barberId,
+        staffId: data.activeFilters.staffId,
         paymentMethod: data.activeFilters.paymentMethod,
       }),
     );
@@ -170,7 +177,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
 
   function applyFilters() {
     setSheetOpen(false);
-    navigate(buildHref({ range: rangeKey, from: customFrom, to: customTo, barberId, paymentMethod }));
+    navigate(buildHref({ range: rangeKey, from: customFrom, to: customTo, staffId, paymentMethod }));
   }
 
   function clearFilters() {
@@ -206,6 +213,23 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           </button>
         </div>
       </header>
+
+      {/* Sin catálogo no se puede vender: es lo primero que hay que resolver. */}
+      {data.catalogEmpty ? (
+        <Link
+          className="mt-5 flex items-center gap-3 rounded-[1.5rem] bg-blue-600 p-4 text-white shadow-sm transition active:scale-[0.99] duration-500 animate-in fade-in slide-in-from-bottom-2"
+          href="/catalog"
+        >
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/15">
+            <Package className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-black">Cargá tus {data.catalogPlural.toLowerCase()}</span>
+            <span className="block text-xs text-white/70">Sin catálogo no podés vender. Te lleva un minuto.</span>
+          </span>
+          <ArrowRight className="size-5 shrink-0" />
+        </Link>
+      ) : null}
 
       {/* Chips de período + filtros */}
       <div className="mt-5 flex items-center gap-2 duration-500 animate-in fade-in slide-in-from-bottom-2">
@@ -255,13 +279,13 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
         </button>
       </div>
 
-      {/* Chips de filtros activos (barbero / método) */}
-      {data.activeFilters.barberId || data.activeFilters.paymentMethod ? (
+      {/* Chips de filtros activos (empleado / método) */}
+      {data.activeFilters.staffId || data.activeFilters.paymentMethod ? (
         <div className="mt-3 flex flex-wrap gap-2 duration-500 animate-in fade-in">
-          {data.activeFilters.barberName ? (
+          {data.activeFilters.staffName ? (
             <FilterPill
               icon={Users}
-              label={data.activeFilters.barberName}
+              label={data.activeFilters.staffName}
               onClear={() =>
                 navigate(buildHref({ range: data.range.key, from: customFrom, to: customTo, paymentMethod: data.activeFilters.paymentMethod }))
               }
@@ -272,7 +296,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
               icon={CreditCard}
               label={data.activeFilters.paymentLabel}
               onClear={() =>
-                navigate(buildHref({ range: data.range.key, from: customFrom, to: customTo, barberId: data.activeFilters.barberId }))
+                navigate(buildHref({ range: data.range.key, from: customFrom, to: customTo, staffId: data.activeFilters.staffId }))
               }
             />
           ) : null}
@@ -344,7 +368,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           <StatCard icon={Ticket} label="Ticket promedio" delay={140}>
             <AnimatedMoney className="mt-2 block text-xl font-black tracking-tight text-slate-950" delayMs={140} value={data.averageTicket} />
           </StatCard>
-          <StatCard icon={Scissors} label="Servicios vendidos" delay={200}>
+          <StatCard icon={Package} label="Ítems vendidos" delay={200}>
             <AnimatedNumber className="mt-2 block text-xl font-black tracking-tight text-slate-950" delayMs={200} value={data.itemsSold} />
           </StatCard>
         </div>
@@ -391,30 +415,30 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           </Panel>
         ) : null}
 
-        {/* Totales por barbero */}
-        <Panel delay={320} title="Por barbero" icon={Users}>
-          {data.totalsByBarber.length === 0 ? (
-            <Empty>No hay ventas de barberos para estos filtros.</Empty>
+        {/* Totales por empleado */}
+        <Panel delay={320} title="Por empleado" icon={Users}>
+          {data.totalsByStaff.length === 0 ? (
+            <Empty>No hay ventas de empleados para estos filtros.</Empty>
           ) : (
             <div className="space-y-3.5">
-              {data.totalsByBarber.map((barber, index) => (
-                <div className="space-y-1.5" key={barber.barberId}>
+              {data.totalsByStaff.map((staff, index) => (
+                <div className="space-y-1.5" key={staff.staffId}>
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-black text-blue-700">
                         {index + 1}
                       </span>
-                      <span className="truncate font-bold text-slate-700">{barber.barberName}</span>
-                      <span className="shrink-0 text-xs text-slate-400">({barber.saleCount})</span>
+                      <span className="truncate font-bold text-slate-700">{staff.staffName}</span>
+                      <span className="shrink-0 text-xs text-slate-400">({staff.saleCount})</span>
                     </span>
                     <span className="shrink-0 font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
-                      {formatMoney(barber.total)}
+                      {formatMoney(staff.total)}
                     </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-500 transition-[width] duration-1000 ease-out"
-                      style={{ width: `${maxBarberTotal > 0 ? Math.max((barber.total / maxBarberTotal) * 100, 6) : 0}%` }}
+                      style={{ width: `${maxStaffTotal > 0 ? Math.max((staff.total / maxStaffTotal) * 100, 6) : 0}%` }}
                     />
                   </div>
                 </div>
@@ -514,27 +538,27 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
         ) : null}
 
         {/* Top servicios */}
-        {data.topServices.length > 0 ? (
-          <Panel delay={500} title="Servicios más vendidos" icon={Scissors}>
+        {data.topProducts.length > 0 ? (
+          <Panel delay={500} title="Lo más vendido" icon={Package}>
             <div className="space-y-3.5">
-              {data.topServices.map((service, index) => (
-                <div className="space-y-1.5" key={service.name}>
+              {data.topProducts.map((product, index) => (
+                <div className="space-y-1.5" key={product.name}>
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-black text-blue-700">
                         {index + 1}
                       </span>
-                      <span className="truncate font-bold text-slate-700">{service.name}</span>
-                      <span className="shrink-0 text-xs text-slate-400">×{service.quantity}</span>
+                      <span className="truncate font-bold text-slate-700">{product.name}</span>
+                      <span className="shrink-0 text-xs text-slate-400">×{formatQuantity(product.quantity)}</span>
                     </span>
                     <span className="shrink-0 font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
-                      {formatMoney(service.total)}
+                      {formatMoney(product.total)}
                     </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 transition-[width] duration-1000 ease-out"
-                      style={{ width: `${maxServiceTotal > 0 ? Math.max((service.total / maxServiceTotal) * 100, 6) : 0}%` }}
+                      style={{ width: `${maxProductTotal > 0 ? Math.max((product.total / maxProductTotal) * 100, 6) : 0}%` }}
                     />
                   </div>
                 </div>
@@ -570,7 +594,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                       <ReceiptText className="size-5" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-slate-950">{sale.barberName}</p>
+                      <p className="truncate text-sm font-bold text-slate-950">{sale.staffName}</p>
                       <p className="truncate text-xs text-slate-500">
                         {sale.paymentLabel}
                         {sale.itemSummary ? ` · ${sale.itemSummary}` : ""}
@@ -656,22 +680,22 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
               ) : null}
             </section>
 
-            {/* Barbero */}
+            {/* Empleado */}
             <section>
-              <label className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500" htmlFor="filter-barber">
+              <label className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500" htmlFor="filter-staff">
                 <Users className="size-4 text-blue-600" />
-                Barbero
+                Empleado
               </label>
               <select
                 className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-                id="filter-barber"
-                onChange={(event) => setBarberId(event.target.value)}
-                value={barberId}
+                id="filter-staff"
+                onChange={(event) => setStaffId(event.target.value)}
+                value={staffId}
               >
-                <option value="">Todos los barberos</option>
-                {data.barberOptions.map((barber) => (
-                  <option key={barber.id} value={barber.id}>
-                    {barber.name}
+                <option value="">Todos los empleados</option>
+                {data.staffOptions.map((staff) => (
+                  <option key={staff.id} value={staff.id}>
+                    {staff.name}
                   </option>
                 ))}
               </select>

@@ -1,12 +1,15 @@
 "use server";
 
-import { PaymentMethod } from "@/generated/prisma/client";
+import { PaymentMethod, TaxCondition } from "@/generated/prisma/client";
 import { requireAdminSession } from "@/lib/auth";
 import { logError } from "@/lib/logger";
-import { getSaleErrorMessage } from "@/lib/sale-error-messages";
+import { getSaleErrorMessage, getSaleErrorMessageFor } from "@/lib/sale-error-messages";
 import { parsePaymentMethod, parseRequiredString, parseSaleItemsFromFormData } from "@/lib/sale-form-parser";
+import { linkAppointmentToSale } from "@/modules/appointments/appointment.use-cases";
 import { createSale } from "@/modules/sales/create-sale.use-case";
 import { createSimpleSale } from "@/modules/sales/create-simple-sale.use-case";
+import { previewSaleTotals } from "@/modules/sales/preview-sale.use-case";
+import { markQuoteConverted } from "@/modules/quotes/quote.use-cases";
 import { SaleError } from "@/modules/sales/sale.errors";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -15,9 +18,19 @@ const genericErrorMessage = "No pudimos registrar la venta. Intentá de nuevo.";
 
 export type SubmitSaleInput = {
   branchId: string;
-  barberId: string;
-  items: { serviceId: string; quantity: number }[];
+  staffId: string;
+  // Cliente de la ficha: obligatorio si algún pago va a cuenta corriente.
+  customerId?: string;
+  // Turno que se está cobrando, si la venta salió de la agenda.
+  appointmentId?: string;
+  // Presupuesto que se está cobrando, si la venta salió de una cotización.
+  quoteId?: string;
+  // `quantity` viene en milésimas de unidad (ver src/lib/quantity.ts).
+  items: { productId: string; quantity: number }[];
   payments: { method: PaymentMethod; amount: number }[];
+  customerName?: string;
+  customerTaxId?: string;
+  customerTaxCondition?: TaxCondition;
 };
 
 export type SubmitSaleResult = { ok: true } | { ok: false; error: string };
@@ -27,13 +40,13 @@ export type SubmitSaleResult = { ok: true } | { ok: false; error: string };
 export async function submitSale(input: SubmitSaleInput): Promise<SubmitSaleResult> {
   const session = await requireAdminSession();
 
-  if (!input.branchId || !input.barberId) {
-    return { ok: false, error: "Elegí sucursal y barbero." };
+  if (!input.branchId || !input.staffId) {
+    return { ok: false, error: "Elegí sucursal y quién atiende." };
   }
 
-  const items = (input.items ?? []).filter((item) => item.serviceId && item.quantity > 0);
+  const items = (input.items ?? []).filter((item) => item.productId && item.quantity > 0);
   if (items.length === 0) {
-    return { ok: false, error: "Agregá al menos un servicio." };
+    return { ok: false, error: "Agregá al menos un ítem." };
   }
 
   const payments = (input.payments ?? []).filter((payment) => payment.amount > 0);
@@ -42,24 +55,89 @@ export async function submitSale(input: SubmitSaleInput): Promise<SubmitSaleResu
   }
 
   try {
-    await createSale({
+    const sale = await createSale({
       branchId: input.branchId,
-      barberId: input.barberId,
-      items: items.map((item) => ({ serviceId: item.serviceId, quantity: item.quantity })),
+      staffId: input.staffId,
+      customerId: input.customerId,
+      items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
       payments,
+      userId: session.user.id,
+      customerName: input.customerName,
+      customerTaxId: input.customerTaxId,
+      customerTaxCondition: input.customerTaxCondition,
     });
+
+    // El turno queda cobrado y enlazado: la agenda del día lo muestra así.
+    if (input.appointmentId) {
+      await linkAppointmentToSale({
+        businessId: session.user.businessId,
+        appointmentId: input.appointmentId,
+        saleId: sale.id,
+        userId: session.user.id,
+      }).catch(() => {
+        // Enlazar es secundario: la venta ya se cobró y no se vuelve atrás por esto.
+      });
+      revalidatePath("/turnos");
+    }
+
+    // Mismo criterio que el turno: la venta ya está cobrada, marcar el
+    // presupuesto es contabilidad posterior y no puede voltearla.
+    if (input.quoteId) {
+      await markQuoteConverted({
+        businessId: session.user.businessId,
+        quoteId: input.quoteId,
+        saleId: sale.id,
+      }).catch(() => {});
+      revalidatePath("/presupuestos");
+    }
 
     revalidatePath("/");
     revalidatePath("/sales");
+    revalidatePath("/stock");
 
     return { ok: true };
   } catch (error) {
     if (error instanceof SaleError) {
-      return { ok: false, error: getSaleErrorMessage(error.code) };
+      return { ok: false, error: getSaleErrorMessageFor(error) };
     }
 
-    await logError("sale.create", error, { businessId: session.user.businessId, userId: session.user.id, context: { branchId: input.branchId, barberId: input.barberId } });
+    await logError("sale.create", error, { businessId: session.user.businessId, userId: session.user.id, context: { branchId: input.branchId, staffId: input.staffId } });
     return { ok: false, error: genericErrorMessage };
+  }
+}
+
+export type PreviewSaleResult = {
+  subtotal: number;
+  discountTotal: number;
+  total: number;
+  discounts: { description: string; amount: number }[];
+};
+
+// Vista previa del cobro: corre el mismo motor de promociones que la venta real,
+// para que el vendedor vea el total definitivo ANTES de cobrar. Solo lee.
+export async function previewSale(input: {
+  branchId: string;
+  items: { productId: string; quantity: number }[];
+}): Promise<PreviewSaleResult> {
+  const session = await requireAdminSession();
+
+  const empty: PreviewSaleResult = { subtotal: 0, discountTotal: 0, total: 0, discounts: [] };
+
+  const items = (input.items ?? []).filter((item) => item.productId && item.quantity > 0);
+
+  if (!input.branchId || items.length === 0) {
+    return empty;
+  }
+
+  try {
+    return await previewSaleTotals({
+      businessId: session.user.businessId,
+      branchId: input.branchId,
+      items,
+    });
+  } catch (error) {
+    await logError("sale.preview", error, { businessId: session.user.businessId, userId: session.user.id });
+    return empty;
   }
 }
 
@@ -67,7 +145,7 @@ export async function registerSale(formData: FormData) {
   const session = await requireAdminSession();
 
   const branchId = parseRequiredString(formData, "branchId");
-  const barberId = parseRequiredString(formData, "barberId");
+  const staffId = parseRequiredString(formData, "staffId");
   const parsedItems = parseSaleItemsFromFormData(formData);
   const paymentMethod = parsePaymentMethod(formData.get("paymentMethod"));
 
@@ -75,14 +153,14 @@ export async function registerSale(formData: FormData) {
     redirectWithMessage("error", parsedItems.error);
   }
 
-  if (!branchId || !barberId || !paymentMethod) {
+  if (!branchId || !staffId || !paymentMethod) {
     redirectWithMessage("error", "Completá todos los campos para registrar la venta.");
   }
 
   try {
     await createSimpleSale({
       branchId,
-      barberId,
+      staffId,
       items: parsedItems.items,
       paymentMethod,
     });
@@ -91,7 +169,7 @@ export async function registerSale(formData: FormData) {
       redirectWithMessage("error", getSaleErrorMessage(error.code));
     }
 
-    await logError("sale.create", error, { businessId: session.user.businessId, userId: session.user.id, context: { branchId, barberId } });
+    await logError("sale.create", error, { businessId: session.user.businessId, userId: session.user.id, context: { branchId, staffId } });
     redirectWithMessage("error", genericErrorMessage);
   }
 

@@ -89,7 +89,7 @@ export function InstallPrompt() {
       }`}
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}
       role="dialog"
-      aria-label="Instalar Barber Bills"
+      aria-label="Instalar Bills"
     >
       <div className="relative w-full max-w-[440px] rounded-3xl bg-white p-4 shadow-2xl shadow-slate-950/20 ring-1 ring-slate-950/5">
         <button
@@ -106,11 +106,11 @@ export function InstallPrompt() {
             className="flex size-12 shrink-0 items-center justify-center rounded-2xl"
             style={{ backgroundImage: "linear-gradient(135deg, #2563eb, #1d4ed8)" }}
           >
-            <ScissorsGlyph />
+            <StoreGlyph />
           </div>
           <div className="min-w-0">
             <p className="text-[15px] font-black tracking-tight text-slate-950">
-              Instalá Barber Bills
+              Instalá Bills
             </p>
             <p className="text-[13px] font-medium text-slate-500">
               Tenela como app en tu pantalla de inicio.
@@ -142,7 +142,10 @@ export function InstallPrompt() {
   );
 }
 
-function ScissorsGlyph() {
+// Glifo del producto: un local, no unas tijeras — Bills ya no es solo para
+// barberías. Va inline (no por Iconify) porque este cartel aparece antes de que
+// el usuario tenga sesión y conviene que no dependa de nada.
+function StoreGlyph() {
   return (
     <svg
       width={26}
@@ -154,11 +157,10 @@ function ScissorsGlyph() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <circle cx="6" cy="6" r="3" />
-      <path d="M8.12 8.12 12 12" />
-      <path d="M20 4 8.12 15.88" />
-      <circle cx="6" cy="18" r="3" />
-      <path d="M14.8 14.8 20 20" />
+      <path d="M3 9.5 4.5 4h15L21 9.5" />
+      <path d="M3 9.5a2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 3 0" />
+      <path d="M5 11.5V20h14v-8.5" />
+      <path d="M9.5 20v-5h5v5" />
     </svg>
   );
 }

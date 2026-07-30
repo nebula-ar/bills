@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import { redirect } from "next/navigation";
-import { Scissors } from "lucide-react";
 import { HeroSection } from "@/components/landing/hero";
 import { FAQSection } from "@/components/landing/faq";
 import { faqs } from "@/components/landing/faq-data";
@@ -12,7 +10,7 @@ import { Preloader } from "@/components/landing/Preloader";
 import { ScrollIndicator } from "@/components/landing/ScrollIndicator";
 import { Navbar } from "@/components/landing/Navbar";
 import { getCurrentSession } from "@/lib/auth";
-import { getBarberSession } from "@/lib/barber-session";
+import { getStaffSession } from "@/lib/terminal-session";
 
 // Secciones debajo del pliegue con librerías de animación pesadas (framer-motion,
 // gsap): se cargan en un chunk aparte para no sumar su parseo/ejecución al
@@ -30,9 +28,9 @@ const TestimonialsSection = dynamic(() =>
 );
 
 export const metadata: Metadata = {
-  title: "Software para Barberías en Argentina | Barber Bills",
+  title: "Software para Negocios en Argentina | Bills",
   description:
-    "Gestioná turnos, cobros y comisiones de tu barbería en un solo sistema. Sin comisión sobre tus ventas. Probá gratis Barber Bills, hecho para Argentina.",
+    "Gestioná turnos, cobros y comisiones de tu negocio en un solo sistema. Sin comisión sobre tus ventas. Probá gratis Bills, hecho para Argentina.",
 };
 
 const faqJsonLd = {
@@ -51,10 +49,10 @@ const faqJsonLd = {
 const softwareJsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "Barber Bills",
+  name: "Bills",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
-  description: "Software de gestión para barberías: turnos, POS, comisiones y reportes multi-sucursal.",
+  description: "Software de gestión para negocios: turnos, POS, comisiones y reportes multi-sucursal.",
   offers: {
     "@type": "Offer",
     price: "9900",
@@ -69,10 +67,10 @@ export default async function LandingPage() {
     redirect("/dashboard");
   }
 
-  const barberSession = await getBarberSession();
+  const staffSession = await getStaffSession();
 
-  if (barberSession) {
-    redirect("/barber");
+  if (staffSession) {
+    redirect("/terminal");
   }
 
   return (

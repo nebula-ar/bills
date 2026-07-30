@@ -4,12 +4,12 @@ import { prisma } from "@/lib/prisma";
 export type SalesReportFilters = {
   from?: Date;
   to?: Date;
-  barberId?: string;
+  staffId?: string;
   paymentMethod?: PaymentMethod;
 };
 
 export type TodaySalesReportSale = Awaited<ReturnType<typeof findReportSales>>[number];
-export type ReportBarberOption = Awaited<ReturnType<typeof findReportBarbers>>[number];
+export type ReportStaffOption = Awaited<ReturnType<typeof findReportStaffs>>[number];
 
 export function findReportSales(businessId: string, filters: SalesReportFilters) {
   return prisma.sale.findMany({
@@ -17,7 +17,7 @@ export function findReportSales(businessId: string, filters: SalesReportFilters)
       deleted: false,
       status: SaleStatus.COMPLETED,
       soldAt: buildSoldAtFilter(filters),
-      barberId: filters.barberId,
+      staffId: filters.staffId,
       payments: filters.paymentMethod
         ? {
             some: {
@@ -30,7 +30,7 @@ export function findReportSales(businessId: string, filters: SalesReportFilters)
         businessId,
         deleted: false,
       },
-      barber: {
+      staff: {
         deleted: false,
       },
     },
@@ -46,7 +46,7 @@ export function findReportSales(businessId: string, filters: SalesReportFilters)
           name: true,
         },
       },
-      barber: {
+      staff: {
         select: {
           id: true,
           name: true,
@@ -92,9 +92,9 @@ export async function sumReportSalesTotal(businessId: string, filters: SalesRepo
     deleted: false,
     status: SaleStatus.COMPLETED,
     soldAt: buildSoldAtFilter(filters),
-    barberId: filters.barberId,
+    staffId: filters.staffId,
     branch: { businessId, deleted: false },
-    barber: { deleted: false },
+    staff: { deleted: false },
   };
 
   if (filters.paymentMethod) {
@@ -110,13 +110,13 @@ export async function sumReportSalesTotal(businessId: string, filters: SalesRepo
   return aggregate._sum.total ?? 0;
 }
 
-export function findReportBarbers(businessId: string) {
+export function findReportStaffs(businessId: string) {
   return prisma.user.findMany({
     where: {
       businessId,
       deleted: false,
       active: true,
-      role: UserRole.BARBER,
+      role: UserRole.STAFF,
     },
     orderBy: {
       name: "asc",

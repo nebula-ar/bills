@@ -1,51 +1,58 @@
 import bcrypt from "bcryptjs";
 
 import {
+  AppModule,
+  CustomerAccountEntryType,
   ExpenseCategory,
   PaymentMethod,
-  SaleStatus,
+  ProductKind,
+  PromotionScope,
+  PromotionType,
+  PurchaseStatus,
+  StockMovementType,
+  Unit,
   UserRole,
+  Vertical,
 } from "../src/generated/prisma/client";
 import { prisma } from "../src/lib/prisma";
 
-// Cantidad de días hacia atrás (incluye hoy) que cubre la data de demo.
+// Datos de demo de un kiosco: el rubro que ejercita TODOS los módulos a la vez
+// (stock por unidad y por peso, proveedores con vencimientos, promociones y
+// fiado). Sirve para desarrollo y es la base de los tests E2E.
+
+// Días hacia atrás (incluye hoy) que cubre la data.
 const SEED_DAYS = 15;
-// Cantidad total de ventas a repartir en esos días (~12 por día).
+// Ventas a repartir en esos días (~12 por día).
 const SALE_COUNT = 180;
+// Milésimas por unidad (ver src/lib/quantity.ts). Se repite acá para que el seed
+// no dependa del alias "@/".
+const ONE = 1000;
 
-type BranchSeed = {
-  name: string;
-  address: string;
-};
+type BranchSeed = { name: string; address: string };
+type StaffSeed = { name: string; branchName: string; pin: string };
 
-type BarberSeed = {
+type ProductSeed = {
   name: string;
-  branchName: string;
-  pin: string;
-};
-
-type ServiceSeed = {
-  name: string;
-  description: string;
-  basePrice: number;
+  category: string;
+  price: number;
+  kind?: ProductKind;
+  unit?: Unit;
+  cost?: number;
+  stock?: number;
+  minStock?: number;
+  barcode?: string;
+  // Venta por bulto: el kiosco compra y vende cajas enteras.
+  packSize?: number;
+  packLabel?: string;
 };
 
 const branchSeeds: BranchSeed[] = [
-  {
-    name: "Sucursal Centro",
-    address: "Av. Corrientes 1234, CABA",
-  },
-  {
-    name: "Sucursal Palermo",
-    address: "Gorriti 4567, CABA",
-  },
-  {
-    name: "Sucursal Norte",
-    address: "Av. Maipú 890, Vicente López",
-  },
+  { name: "Sucursal Centro", address: "Av. Corrientes 1234, CABA" },
+  { name: "Sucursal Palermo", address: "Gorriti 4567, CABA" },
+  { name: "Sucursal Norte", address: "Av. Maipú 890, Vicente López" },
 ];
 
-const barberSeeds: BarberSeed[] = [
+const staffSeeds: StaffSeed[] = [
   { name: "Nico Fernández", branchName: "Sucursal Centro", pin: "1111" },
   { name: "Lucas Gómez", branchName: "Sucursal Centro", pin: "2222" },
   { name: "Fede González", branchName: "Sucursal Palermo", pin: "3333" },
@@ -54,37 +61,22 @@ const barberSeeds: BarberSeed[] = [
   { name: "Nahuel Silva", branchName: "Sucursal Norte", pin: "6666" },
 ];
 
-const serviceSeeds: ServiceSeed[] = [
-  {
-    name: "Corte clásico",
-    description: "Corte tradicional con terminación a máquina.",
-    basePrice: 9000,
-  },
-  {
-    name: "Perfilado de barba",
-    description: "Perfilado y arreglo de barba.",
-    basePrice: 6500,
-  },
-  {
-    name: "Corte y barba",
-    description: "Combo de corte clásico y barba.",
-    basePrice: 14500,
-  },
-  {
-    name: "Lavado",
-    description: "Lavado con shampoo y secado rápido.",
-    basePrice: 4500,
-  },
-  {
-    name: "Cejas",
-    description: "Perfilado de cejas.",
-    basePrice: 3500,
-  },
-  {
-    name: "Color express",
-    description: "Servicio rápido de color y retoque.",
-    basePrice: 18000,
-  },
+const categorySeeds = ["Golosinas", "Bebidas", "Snacks", "Almacén", "Servicios"];
+
+const productSeeds: ProductSeed[] = [
+  { name: "Alfajor triple", category: "Golosinas", price: 1800, cost: 1100, stock: 120, minStock: 20, barcode: "7790001000017" },
+  { name: "Chicles", category: "Golosinas", price: 900, cost: 500, stock: 200, minStock: 40, barcode: "7790001000024" },
+  { name: "Chocolate", category: "Golosinas", price: 2600, cost: 1600, stock: 80, minStock: 15, barcode: "7790001000031" },
+  { name: "Gaseosa 500 ml", category: "Bebidas", price: 2200, cost: 1400, stock: 150, minStock: 30, barcode: "7790002000014", packSize: 12, packLabel: "Caja" },
+  { name: "Agua saborizada 1,5 L", category: "Bebidas", price: 2800, cost: 1800, stock: 90, minStock: 20, barcode: "7790002000021" },
+  { name: "Cerveza lata", category: "Bebidas", price: 3200, cost: 2100, stock: 110, minStock: 24, barcode: "7790002000038", packSize: 24, packLabel: "Cajón" },
+  { name: "Papas fritas", category: "Snacks", price: 3200, cost: 2000, stock: 70, minStock: 15, barcode: "7790003000013" },
+  { name: "Maní salado", category: "Snacks", price: 1900, cost: 1100, stock: 60, minStock: 12, barcode: "7790003000020" },
+  // Vendidos por peso: ejercitan las cantidades fraccionarias de punta a punta.
+  { name: "Fiambre cortado", category: "Almacén", price: 12_000, cost: 8000, unit: Unit.KG, stock: 25, minStock: 3 },
+  { name: "Queso cremoso", category: "Almacén", price: 9500, cost: 6200, unit: Unit.KG, stock: 18, minStock: 3 },
+  // Un servicio no descuenta existencias.
+  { name: "Recarga de SUBE", category: "Servicios", price: 500, kind: ProductKind.SERVICE },
 ];
 
 const branchPriceMultipliers: Record<string, number> = {
@@ -95,32 +87,59 @@ const branchPriceMultipliers: Record<string, number> = {
 
 async function main() {
   // Orden de borrado respetando las FKs (hijos antes que padres).
+  await prisma.customerAccountEntry.deleteMany();
+  await prisma.stockMovement.deleteMany();
+  await prisma.stockLevel.deleteMany();
+  await prisma.purchasePayment.deleteMany();
+  await prisma.purchaseItem.deleteMany();
+  await prisma.purchase.deleteMany();
+  await prisma.supplier.deleteMany();
+  await prisma.saleDiscount.deleteMany();
+  await prisma.promotionTarget.deleteMany();
+  await prisma.promotionBranch.deleteMany();
+  await prisma.promotion.deleteMany();
   await prisma.salePayment.deleteMany();
   await prisma.saleItem.deleteMany();
   await prisma.sale.deleteMany();
+  await prisma.customer.deleteMany();
   await prisma.expense.deleteMany();
-  await prisma.branchServicePrice.deleteMany();
+  await prisma.cashCloseLine.deleteMany();
+  await prisma.cashClose.deleteMany();
+  await prisma.accountTransfer.deleteMany();
+  await prisma.accountOpeningBalance.deleteMany();
+  await prisma.branchProductPrice.deleteMany();
   await prisma.terminal.deleteMany();
-  await prisma.service.deleteMany();
+  await prisma.product.deleteMany();
+  await prisma.productCategory.deleteMany();
+  await prisma.businessModuleAccess.deleteMany();
   await prisma.user.deleteMany();
   await prisma.branch.deleteMany();
   await prisma.business.deleteMany();
 
   const business = await prisma.business.create({
     data: {
-      name: "Barbería El Rulo",
+      name: "Kiosco El Rulo",
+      vertical: Vertical.KIOSK,
+      // Marketing listo para mirar: página pública prendida, link de reseñas y
+      // el programa de puntos configurado ($1.000 = 1 punto, cada punto $50).
+      publicToken: "demo-kiosco-el-rulo",
+      publicPageActive: true,
+      publicNote: "Lun a sáb de 8 a 22. Av. Siempreviva 742.",
+      googleReviewUrl: "https://g.page/r/demo-kiosco-el-rulo/review",
+      pointsPerAmount: 1_000,
+      pointValue: 50,
     },
+  });
+
+  // Todos los módulos prendidos: la demo tiene que mostrar el sistema entero.
+  await prisma.businessModuleAccess.createMany({
+    data: Object.values(AppModule).map((module) => ({ businessId: business.id, module })),
   });
 
   const branches = await Promise.all(
     branchSeeds.map((branch) =>
       prisma.branch.create({
-        data: {
-          businessId: business.id,
-          name: branch.name,
-          address: branch.address,
-          active: true,
-        },
+        data: { businessId: business.id, name: branch.name, address: branch.address, active: true },
       }),
     ),
   );
@@ -132,258 +151,492 @@ async function main() {
       businessId: business.id,
       branchId: branches[0].id,
       name: "Matías Toledo",
-      email: "owner@barber-bills.local",
+      email: "owner@bills.local",
       passwordHash: await bcrypt.hash("admin123", 12),
       role: UserRole.OWNER,
     },
   });
 
-  const barbers = await Promise.all(
-    barberSeeds.map(async (barber) => {
-      const branch = branchByName.get(barber.branchName);
+  const staffs = await Promise.all(
+    staffSeeds.map(async (staff) => {
+      const branch = branchByName.get(staff.branchName);
 
       if (!branch) {
-        throw new Error(`Missing branch for barber seed: ${barber.branchName}`);
+        throw new Error(`Falta la sucursal del empleado: ${staff.branchName}`);
       }
 
       return prisma.user.create({
         data: {
           businessId: business.id,
           branchId: branch.id,
-          name: barber.name,
-          pinHash: await bcrypt.hash(barber.pin, 12),
-          role: UserRole.BARBER,
+          name: staff.name,
+          pinHash: await bcrypt.hash(staff.pin, 12),
+          role: UserRole.STAFF,
           active: true,
+          commissionRate: 10,
         },
       });
     }),
   );
 
-  // Una terminal (caja) por barbero, en su sucursal. Cubre el flujo de la
-  // terminal del barbero y permite atribuir cada venta a una terminal.
+  // Una terminal (caja) por empleado, en su sucursal.
   const terminals = await Promise.all(
-    barbers.map((barber) =>
+    staffs.map((staff) =>
       prisma.terminal.create({
         data: {
-          branchId: barber.branchId as string,
-          barberId: barber.id,
-          name: `Terminal ${barber.name.split(" ")[0]}`,
+          branchId: staff.branchId as string,
+          staffId: staff.id,
+          name: `Terminal ${staff.name.split(" ")[0]}`,
           active: true,
         },
       }),
     ),
   );
 
-  const terminalByBarberId = new Map(
-    terminals.map((terminal) => [terminal.barberId as string, terminal]),
-  );
+  const terminalByStaffId = new Map(terminals.map((terminal) => [terminal.staffId as string, terminal]));
 
-  const services = await Promise.all(
-    serviceSeeds.map((service) =>
-      prisma.service.create({
+  const categories = await Promise.all(
+    categorySeeds.map((name) => prisma.productCategory.create({ data: { businessId: business.id, name } })),
+  );
+  const categoryByName = new Map(categories.map((category) => [category.name, category]));
+
+  const products = await Promise.all(
+    productSeeds.map((seed) =>
+      prisma.product.create({
         data: {
           businessId: business.id,
-          name: service.name,
-          description: service.description,
+          categoryId: categoryByName.get(seed.category)?.id ?? null,
+          name: seed.name,
+          kind: seed.kind ?? ProductKind.GOOD,
+          unit: seed.unit ?? Unit.UNIT,
+          barcode: seed.barcode ?? null,
+          cost: seed.cost ?? null,
+          trackStock: (seed.kind ?? ProductKind.GOOD) === ProductKind.GOOD,
+          minStock: seed.minStock ? seed.minStock * ONE : null,
+          packSize: seed.packSize ?? null,
+          packLabel: seed.packLabel ?? null,
           active: true,
         },
       }),
     ),
   );
 
-  const branchServicePrices = await Promise.all(
-    branches.flatMap((branch) =>
-      services.map((service, serviceIndex) => {
-        const seed = serviceSeeds[serviceIndex];
-        const multiplier = branchPriceMultipliers[branch.name] ?? 1;
+  const priceByBranchAndProduct = new Map<string, number>();
 
-        return prisma.branchServicePrice.create({
-          data: {
-            branchId: branch.id,
-            serviceId: service.id,
-            price: roundToNearestHundred(seed.basePrice * multiplier),
-            active: true,
-          },
+  await Promise.all(
+    branches.flatMap((branch) =>
+      products.map((product, index) => {
+        const seed = productSeeds[index];
+        const price = roundToNearestHundred(seed.price * (branchPriceMultipliers[branch.name] ?? 1));
+        priceByBranchAndProduct.set(`${branch.id}:${product.id}`, price);
+
+        return prisma.branchProductPrice.create({
+          data: { branchId: branch.id, productId: product.id, price, active: true },
         });
       }),
     ),
   );
 
-  const servicePriceByBranchAndService = new Map(
-    branchServicePrices.map((servicePrice) => [
-      `${servicePrice.branchId}:${servicePrice.serviceId}`,
-      servicePrice,
-    ]),
-  );
-
-  await createSales({
-    branches,
-    barbers,
-    services,
-    servicePriceByBranchAndService,
-    terminalByBarberId,
-  });
-
-  await createExpenses({ business, branches });
-}
-
-async function createSales(input: {
-  branches: Array<{ id: string; name: string }>;
-  barbers: Array<{ id: string; name: string; branchId: string | null }>;
-  services: Array<{ id: string; name: string }>;
-  servicePriceByBranchAndService: Map<string, { id: string; price: number }>;
-  terminalByBarberId: Map<string, { id: string }>;
-}) {
   const now = new Date();
 
+  // Carga inicial de inventario: el asiento y el saldo van siempre juntos.
+  const stock = new Map<string, number>();
+
+  for (const branch of branches) {
+    for (const [index, product] of products.entries()) {
+      const seed = productSeeds[index];
+
+      if (!seed.stock) continue;
+
+      const quantity = seed.stock * ONE;
+      stock.set(`${branch.id}:${product.id}`, quantity);
+
+      await prisma.stockMovement.create({
+        data: {
+          branchId: branch.id,
+          productId: product.id,
+          type: StockMovementType.INITIAL,
+          quantity,
+          unitCost: seed.cost ?? null,
+          reason: "Carga inicial de inventario",
+          occurredAt: buildDaysBackDate(now, SEED_DAYS, 9),
+        },
+      });
+
+      await prisma.stockLevel.create({
+        data: { branchId: branch.id, productId: product.id, quantity },
+      });
+    }
+  }
+
+  // ── Clientes con cuenta corriente ─────────────────────────────────────────
+  const customerSeeds = [
+    // `birthdayMonthOffset` es relativo al mes de la corrida: así siempre hay
+    // alguien cumpliendo este mes para poder ver la pantalla de marketing.
+    { name: "Rodrigo Pérez", phone: "11 5555-1111", creditLimit: 30_000, debt: 12_500, birthdayMonthOffset: 0, birthdayDay: 12 },
+    { name: "Carla Suárez", phone: "11 5555-2222", creditLimit: 20_000, debt: 0, birthdayMonthOffset: 0, birthdayDay: 24 },
+    { name: "Kiosco de la esquina", phone: "11 5555-3333", creditLimit: 50_000, debt: 47_000, birthdayMonthOffset: 2, birthdayDay: 5 },
+    { name: "Julián Ferreyra", phone: "11 5555-4444", creditLimit: null, debt: 3200, birthdayMonthOffset: null, birthdayDay: 1 },
+  ];
+
+  const customers: { id: string; name: string }[] = [];
+
+  for (const seed of customerSeeds) {
+    const customer = await prisma.customer.create({
+      data: {
+        businessId: business.id,
+        name: seed.name,
+        phone: seed.phone,
+        creditLimit: seed.creditLimit,
+        birthday:
+          seed.birthdayMonthOffset === null
+            ? null
+            : new Date(1990, now.getMonth() + seed.birthdayMonthOffset, seed.birthdayDay),
+        active: true,
+      },
+    });
+
+    customers.push(customer);
+
+    if (seed.debt > 0) {
+      await prisma.customerAccountEntry.create({
+        data: {
+          customerId: customer.id,
+          branchId: branches[0].id,
+          type: CustomerAccountEntryType.CHARGE,
+          amount: seed.debt,
+          note: "Saldo anterior",
+          occurredAt: buildDaysBackDate(now, SEED_DAYS - 2, 11),
+        },
+      });
+    }
+  }
+
+  // "Kiosco de la esquina" queda fuera de las ventas recientes: es el cliente
+  // que se está yendo, el que la pantalla de marketing tiene que encontrar.
+  const lapsedCustomer = customers[2];
+  const recentCustomers = customers.filter((customer) => customer.id !== lapsedCustomer.id);
+
+  // ── Proveedores y cuentas a pagar ─────────────────────────────────────────
+  const suppliers = await Promise.all(
+    [
+      { name: "Distribuidora del Centro", taxId: "30712345678", phone: "11 4444-1111" },
+      { name: "Mayorista Sur", taxId: "30798765432", phone: "11 4444-2222" },
+      { name: "Lácteos San Juan", taxId: "30711223344", phone: "11 4444-3333" },
+    ].map((seed) =>
+      prisma.supplier.create({
+        data: { businessId: business.id, name: seed.name, taxId: seed.taxId, phone: seed.phone, active: true },
+      }),
+    ),
+  );
+
+  // Una vencida, una por vencer y una saldada: cubre los tres estados que la
+  // pantalla de proveedores tiene que saber distinguir.
+  const purchaseSeeds = [
+    { supplier: suppliers[0], daysAgo: 20, dueInDays: -5, total: 185_000, paid: 0, status: PurchaseStatus.PENDING },
+    { supplier: suppliers[1], daysAgo: 6, dueInDays: 3, total: 240_000, paid: 90_000, status: PurchaseStatus.PARTIAL },
+    { supplier: suppliers[2], daysAgo: 12, dueInDays: -2, total: 96_000, paid: 96_000, status: PurchaseStatus.PAID },
+  ];
+
+  for (const [index, seed] of purchaseSeeds.entries()) {
+    const issuedAt = buildDaysBackDate(now, seed.daysAgo, 10);
+    const dueAt = new Date(now);
+    dueAt.setDate(now.getDate() + seed.dueInDays);
+    dueAt.setHours(0, 0, 0, 0);
+
+    const purchase = await prisma.purchase.create({
+      data: {
+        businessId: business.id,
+        branchId: branches[0].id,
+        supplierId: seed.supplier.id,
+        number: `0001-0000${1000 + index}`,
+        total: seed.total,
+        status: seed.status,
+        issuedAt,
+        dueAt,
+        items: {
+          create: [
+            {
+              productId: products[index].id,
+              description: products[index].name,
+              quantity: 50 * ONE,
+              unit: Unit.UNIT,
+              unitCost: Math.round(seed.total / 50),
+              total: seed.total,
+            },
+          ],
+        },
+      },
+    });
+
+    if (seed.paid > 0) {
+      await prisma.purchasePayment.create({
+        data: {
+          purchaseId: purchase.id,
+          amount: seed.paid,
+          method: PaymentMethod.TRANSFER,
+          paidAt: buildDaysBackDate(now, Math.max(seed.daysAgo - 2, 0), 12),
+        },
+      });
+    }
+  }
+
+  // ── Promociones ───────────────────────────────────────────────────────────
+  const golosinas = categoryByName.get("Golosinas");
+
+  if (golosinas) {
+    const promo = await prisma.promotion.create({
+      data: {
+        businessId: business.id,
+        name: "3x2 en golosinas",
+        type: PromotionType.NX_M,
+        scope: PromotionScope.CATEGORY,
+        buyQuantity: 3,
+        payQuantity: 2,
+        priority: 10,
+        active: true,
+      },
+    });
+
+    await prisma.promotionTarget.create({ data: { promotionId: promo.id, categoryId: golosinas.id } });
+  }
+
+  await prisma.promotion.create({
+    data: {
+      businessId: business.id,
+      name: "Miércoles de 10% off",
+      type: PromotionType.PERCENT_OFF,
+      scope: PromotionScope.ALL,
+      percentOff: 10,
+      // ISO: 3 = miércoles.
+      weekdays: "3",
+      minAmount: 10_000,
+      priority: 1,
+      active: true,
+    },
+  });
+
+  // ── Ventas ────────────────────────────────────────────────────────────────
+  const staffByBranchId = new Map<string, typeof staffs>();
+  for (const staff of staffs) {
+    const list = staffByBranchId.get(staff.branchId as string) ?? [];
+    list.push(staff);
+    staffByBranchId.set(staff.branchId as string, list);
+  }
+
+  const paymentMethods = [
+    PaymentMethod.CASH,
+    PaymentMethod.CASH,
+    PaymentMethod.DEBIT_CARD,
+    PaymentMethod.MERCADO_PAGO,
+    PaymentMethod.TRANSFER,
+    PaymentMethod.QR,
+  ];
+
   for (let index = 0; index < SALE_COUNT; index += 1) {
-    const branch = input.branches[index % input.branches.length];
-    const branchBarbers = input.barbers.filter((barber) => barber.branchId === branch.id);
-    const barber = branchBarbers[index % branchBarbers.length];
-    const terminal = input.terminalByBarberId.get(barber.id);
+    const branch = branches[index % branches.length];
+    const branchStaffs = staffByBranchId.get(branch.id) ?? [];
+    const staff = branchStaffs[index % branchStaffs.length];
     const soldAt = buildSaleDate(now, index);
-    const selectedServices = pickServices(input.services, index);
-    const status = index % 29 === 0 ? SaleStatus.CANCELLED : SaleStatus.COMPLETED;
+    // Una de cada seis ventas queda a nombre de un cliente: es lo que alimenta
+    // "clientes que no vuelven", "mejores clientes" y los puntos.
+    const saleCustomer = index % 6 === 0 ? recentCustomers[(index / 6) % recentCustomers.length] : null;
 
-    const items = selectedServices.map((service) => {
-      const servicePrice = input.servicePriceByBranchAndService.get(`${branch.id}:${service.id}`);
+    // Uno o dos renglones por venta; el segundo aparece en dos de cada tres.
+    const pickIndexes = [index % products.length];
+    if (index % 3 !== 0) {
+      pickIndexes.push((index * 5 + 3) % products.length);
+    }
 
-      if (!servicePrice) {
-        throw new Error(`Missing service price for ${branch.name} / ${service.name}`);
-      }
-
-      const quantity = index % 17 === 0 ? 2 : 1;
-      const total = servicePrice.price * quantity;
+    const items = pickIndexes.map((productIndex, pickIndex) => {
+      const product = products[productIndex];
+      const seed = productSeeds[productIndex];
+      const unitPrice = priceByBranchAndProduct.get(`${branch.id}:${product.id}`) ?? seed.price;
+      // Lo que se vende por peso va en fracciones; el resto, de a una o dos.
+      const quantity =
+        seed.unit === Unit.KG
+          ? [250, 500, 750, 1000][(index + pickIndex) % 4]
+          : ((index + pickIndex) % 2 === 0 ? 1 : 2) * ONE;
 
       return {
-        serviceId: service.id,
-        description: service.name,
+        product,
+        seed,
         quantity,
-        unitPrice: servicePrice.price,
-        total,
+        unitPrice,
+        total: Math.round((unitPrice * quantity) / ONE),
       };
     });
 
-    const total = items.reduce((sum, item) => sum + item.total, 0);
-    const payments = buildPayments(total, index);
+    const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+    const method = paymentMethods[index % paymentMethods.length];
+
+    const sale = await prisma.sale.create({
+      data: {
+        branchId: branch.id,
+        staffId: staff.id,
+        terminalId: terminalByStaffId.get(staff.id)?.id ?? null,
+        customerId: saleCustomer?.id ?? null,
+        subtotal,
+        discountTotal: 0,
+        total: subtotal,
+        soldAt,
+        items: {
+          create: items.map((item) => ({
+            productId: item.product.id,
+            description: item.product.name,
+            quantity: item.quantity,
+            unit: item.seed.unit ?? Unit.UNIT,
+            unitPrice: item.unitPrice,
+            unitCost: item.seed.cost ?? null,
+            total: item.total,
+          })),
+        },
+        payments: { create: [{ method, amount: subtotal }] },
+        // Puntos del programa de fidelidad ($1.000 = 1 punto), para que la
+        // pantalla de marketing tenga saldos reales que mostrar.
+        ...(saleCustomer
+          ? {
+              loyaltyEntries: {
+                create: [
+                  {
+                    businessId: business.id,
+                    customerId: saleCustomer.id,
+                    points: Math.floor(subtotal / 1_000),
+                  },
+                ],
+              },
+            }
+          : {}),
+      },
+    });
+
+    // La salida de stock acompaña a la venta, igual que en la app real.
+    for (const item of items) {
+      const key = `${branch.id}:${item.product.id}`;
+      const current = stock.get(key);
+
+      if (current === undefined) continue;
+
+      stock.set(key, current - item.quantity);
+
+      await prisma.stockMovement.create({
+        data: {
+          branchId: branch.id,
+          productId: item.product.id,
+          type: StockMovementType.SALE,
+          quantity: -item.quantity,
+          unitCost: item.seed.cost ?? null,
+          saleId: sale.id,
+          occurredAt: soldAt,
+        },
+      });
+    }
+  }
+
+  // La compra vieja del cliente que se está yendo (70 días atrás, fuera del
+  // rango sembrado): es lo que hace que aparezca en "clientes que no vuelven".
+  {
+    const branch = branches[0];
+    const staff = (staffByBranchId.get(branch.id) ?? [])[0];
+    const product = products[0];
+    const price = priceByBranchAndProduct.get(`${branch.id}:${product.id}`) ?? 1800;
+    const soldAt = buildDaysBackDate(now, 70, 17);
 
     await prisma.sale.create({
       data: {
         branchId: branch.id,
-        barberId: barber.id,
-        terminalId: terminal?.id ?? null,
-        total,
-        status,
+        staffId: staff.id,
+        customerId: lapsedCustomer.id,
+        subtotal: price * 3,
+        discountTotal: 0,
+        total: price * 3,
         soldAt,
-        notes: status === SaleStatus.CANCELLED ? "Venta demo cancelada para probar reportes." : null,
         items: {
-          create: items,
+          create: [
+            {
+              productId: product.id,
+              description: product.name,
+              quantity: 3 * ONE,
+              unit: Unit.UNIT,
+              unitPrice: price,
+              total: price * 3,
+              createdAt: soldAt,
+            },
+          ],
         },
-        payments: {
-          create: payments,
+        payments: { create: [{ method: PaymentMethod.CASH, amount: price * 3 }] },
+        loyaltyEntries: {
+          create: [
+            {
+              businessId: business.id,
+              customerId: lapsedCustomer.id,
+              points: Math.floor((price * 3) / 1_000),
+              createdAt: soldAt,
+            },
+          ],
         },
       },
     });
   }
-}
 
-type ExpenseSeed = {
-  category: ExpenseCategory;
-  amount: number;
-  note: string;
-  // Día hacia atrás (0 = hoy) en el que se registra el gasto.
-  daysBack: number;
-};
+  // Los saldos quedan alineados con el libro de movimientos.
+  for (const [key, quantity] of stock) {
+    const [branchId, productId] = key.split(":");
+    await prisma.stockLevel.update({
+      where: { branchId_productId: { branchId, productId } },
+      data: { quantity },
+    });
+  }
 
-// Gastos recurrentes por sucursal repartidos en la ventana de SEED_DAYS.
-const branchExpenseSeeds: ExpenseSeed[] = [
-  { category: ExpenseCategory.RENT, amount: 350000, note: "Alquiler del local", daysBack: 14 },
-  { category: ExpenseCategory.SALARIES, amount: 480000, note: "Sueldos quincena", daysBack: 13 },
-  { category: ExpenseCategory.SUPPLIES, amount: 62000, note: "Insumos (geles, hojas, toallas)", daysBack: 11 },
-  { category: ExpenseCategory.UTILITIES, amount: 38000, note: "Luz y agua", daysBack: 9 },
-  { category: ExpenseCategory.MARKETING, amount: 25000, note: "Campaña redes sociales", daysBack: 6 },
-  { category: ExpenseCategory.SUPPLIES, amount: 41000, note: "Reposición de productos", daysBack: 4 },
-  { category: ExpenseCategory.MAINTENANCE, amount: 18000, note: "Service de máquinas", daysBack: 2 },
-];
+  // ── Gastos ────────────────────────────────────────────────────────────────
+  const expenseSeeds = [
+    { category: ExpenseCategory.RENT, amount: 450_000, note: "Alquiler del local", daysBack: 12 },
+    { category: ExpenseCategory.SALARIES, amount: 780_000, note: "Sueldos quincena", daysBack: 8 },
+    { category: ExpenseCategory.MERCHANDISE, amount: 320_000, note: "Reposición mayorista", daysBack: 5 },
+    { category: ExpenseCategory.UTILITIES, amount: 96_000, note: "Luz y gas", daysBack: 3 },
+    { category: ExpenseCategory.SUPPLIES, amount: 45_000, note: "Bolsas y tickets", daysBack: 1 },
+  ];
 
-async function createExpenses(input: {
-  business: { id: string };
-  branches: Array<{ id: string; name: string }>;
-}) {
-  const now = new Date();
-
-  const data = input.branches.flatMap((branch) =>
-    branchExpenseSeeds.map((expense) => ({
-      businessId: input.business.id,
-      branchId: branch.id,
-      category: expense.category,
-      amount: expense.amount,
-      note: `${expense.note} — ${branch.name}`,
-      spentAt: buildDaysBackDate(now, expense.daysBack, 10),
-    })),
+  await Promise.all(
+    expenseSeeds.map((expense, index) =>
+      prisma.expense.create({
+        data: {
+          businessId: business.id,
+          branchId: branches[index % branches.length].id,
+          category: expense.category,
+          paymentMethod: index % 2 === 0 ? PaymentMethod.CASH : PaymentMethod.TRANSFER,
+          amount: expense.amount,
+          note: expense.note,
+          spentAt: buildDaysBackDate(now, expense.daysBack, 15),
+        },
+      }),
+    ),
   );
 
-  await prisma.expense.createMany({ data });
+  // Saldos de apertura, para que el arqueo no arranque en cero.
+  await Promise.all(
+    [PaymentMethod.CASH, PaymentMethod.MERCADO_PAGO].map((method) =>
+      prisma.accountOpeningBalance.create({
+        data: {
+          businessId: business.id,
+          branchId: null,
+          paymentMethod: method,
+          amount: method === PaymentMethod.CASH ? 150_000 : 80_000,
+        },
+      }),
+    ),
+  );
 }
 
-function pickServices<T>(services: T[], index: number) {
-  const first = services[index % services.length];
-  const second = services[(index + 2) % services.length];
-  const third = services[(index + 4) % services.length];
-
-  if (index % 11 === 0) {
-    return [first, second, third];
-  }
-
-  if (index % 4 === 0) {
-    return [first, second];
-  }
-
-  return [first];
-}
-
-function buildPayments(total: number, index: number) {
-  if (index % 7 === 0) {
-    const cashAmount = roundToNearestHundred(total * 0.4);
-
-    return [
-      {
-        method: PaymentMethod.CASH,
-        amount: cashAmount,
-      },
-      {
-        method: PaymentMethod.TRANSFER,
-        amount: total - cashAmount,
-      },
-    ];
-  }
-
-  const methods = [
-    PaymentMethod.CASH,
-    PaymentMethod.TRANSFER,
-    PaymentMethod.QR,
-    PaymentMethod.DEBIT_CARD,
-    PaymentMethod.CREDIT_CARD,
-    PaymentMethod.MERCADO_PAGO,
-  ];
-
-  return [
-    {
-      method: methods[index % methods.length],
-      amount: total,
-    },
-  ];
-}
-
+// Reparte las ventas entre los días del rango. index*7 con 15 días es coprimo,
+// así que visita todos los días.
 function buildSaleDate(now: Date, index: number) {
-  // Reparte las ventas en los últimos SEED_DAYS (incluye hoy) para poblar las
-  // tendencias diarias. index*7 con 15 días es coprimo, así visita todos los días.
   const daysBack = (index * 7) % SEED_DAYS;
   const date = new Date(now);
   date.setDate(now.getDate() - daysBack);
   date.setHours(9 + (index % 12), (index * 13) % 60, 0, 0);
 
-  return date;
+  return notInTheFuture(date, now, index);
 }
 
 function buildDaysBackDate(now: Date, daysBack: number, hour: number) {
@@ -391,7 +644,18 @@ function buildDaysBackDate(now: Date, daysBack: number, hour: number) {
   date.setDate(now.getDate() - daysBack);
   date.setHours(hour, 0, 0, 0);
 
-  return date;
+  return notInTheFuture(date, now, daysBack);
+}
+
+// Las horas de "hoy" (9 a 20) caen adelante si el seed corre a la mañana, y una
+// venta futura encabeza el historial para siempre: la que se acaba de cobrar
+// queda sepultada. Se retrocede lo justo para que el orden sea el real.
+function notInTheFuture(date: Date, now: Date, offsetIndex: number) {
+  if (date <= now) {
+    return date;
+  }
+
+  return new Date(now.getTime() - (offsetIndex + 1) * 60_000);
 }
 
 function roundToNearestHundred(value: number) {
@@ -400,11 +664,11 @@ function roundToNearestHundred(value: number) {
 
 main()
   .then(async () => {
-    console.log(`Seed completo para Barbería El Rulo (${SEED_DAYS} días de datos).`);
-    console.log("Admin: owner@barber-bills.local / admin123");
-    console.log("PINs de barberos demo:");
-    for (const barber of barberSeeds) {
-      console.log(`- ${barber.name}: ${barber.pin}`);
+    console.log(`Seed completo para Kiosco El Rulo (${SEED_DAYS} días de datos).`);
+    console.log("Admin: owner@bills.local / admin123");
+    console.log("PINs de empleados demo:");
+    for (const staff of staffSeeds) {
+      console.log(`- ${staff.name}: ${staff.pin}`);
     }
     await prisma.$disconnect();
   })

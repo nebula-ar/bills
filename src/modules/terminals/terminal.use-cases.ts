@@ -1,6 +1,6 @@
 import {
   createTerminal,
-  findActiveBranchBarber,
+  findActiveBranchStaff,
   findActiveTerminal,
   findBranchesForTerminals,
   findManageableBranch,
@@ -43,22 +43,22 @@ function normalizeName(name: string) {
   return name.trim().slice(0, MAX_NAME_LENGTH);
 }
 
-async function resolveBarberId(branchId: string, barberId?: string | null) {
-  if (!barberId) {
+async function resolveStaffId(branchId: string, staffId?: string | null) {
+  if (!staffId) {
     return null;
   }
-  const barber = await findActiveBranchBarber(branchId, barberId);
-  if (!barber) {
-    throw new Error("BARBER_NOT_IN_BRANCH");
+  const staff = await findActiveBranchStaff(branchId, staffId);
+  if (!staff) {
+    throw new Error("STAFF_NOT_IN_BRANCH");
   }
-  return barber.id;
+  return staff.id;
 }
 
 export async function createBranchTerminal(input: {
   businessId: string;
   branchId: string;
   name: string;
-  barberId?: string | null;
+  staffId?: string | null;
 }) {
   const name = normalizeName(input.name);
 
@@ -72,16 +72,16 @@ export async function createBranchTerminal(input: {
     throw new Error("BRANCH_NOT_FOUND");
   }
 
-  const barberId = await resolveBarberId(branch.id, input.barberId);
+  const staffId = await resolveStaffId(branch.id, input.staffId);
 
-  return createTerminal({ branchId: branch.id, name, barberId });
+  return createTerminal({ branchId: branch.id, name, staffId });
 }
 
 export async function updateBranchTerminal(input: {
   businessId: string;
   terminalId: string;
   name: string;
-  barberId?: string | null;
+  staffId?: string | null;
 }) {
   const name = normalizeName(input.name);
 
@@ -95,9 +95,9 @@ export async function updateBranchTerminal(input: {
     throw new Error("TERMINAL_NOT_FOUND");
   }
 
-  const barberId = await resolveBarberId(terminal.branchId, input.barberId);
+  const staffId = await resolveStaffId(terminal.branchId, input.staffId);
 
-  return updateTerminalDetails({ terminalId: terminal.id, name, barberId });
+  return updateTerminalDetails({ terminalId: terminal.id, name, staffId });
 }
 
 export async function deleteBranchTerminal(input: { businessId: string; terminalId: string }) {

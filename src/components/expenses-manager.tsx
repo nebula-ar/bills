@@ -2,6 +2,7 @@
 
 import { createExpenseAction, deleteExpenseAction, updateExpenseAction } from "@/app/expenses/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import { ChevronDown, ChevronLeft, ChevronRight, Plus, Trash2, Wallet, X } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -362,13 +363,13 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
               <form action={deleteExpenseAction}>
                 <input name="month" type="hidden" value={data.monthKey} />
                 <input name="expenseId" type="hidden" value={editing.id} />
-                <button
+                <ConfirmSubmit
                   className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-600 transition active:scale-[0.99]"
-                  type="submit"
+                  confirmLabel="Sí, borrarlo"
                 >
                   <Trash2 className="size-4" />
                   Borrar gasto
-                </button>
+                </ConfirmSubmit>
               </form>
             </div>
           </div>

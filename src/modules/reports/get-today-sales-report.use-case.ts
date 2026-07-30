@@ -1,12 +1,13 @@
 import type { PaymentMethod } from "@/generated/prisma/client";
 
-import { findReportBarbers, findReportSales, paymentMethods, sumReportSalesTotal } from "./report.repository";
+import { findReportStaffs, findReportSales, paymentMethods, sumReportSalesTotal } from "./report.repository";
+import { QUANTITY_SCALE } from "@/lib/quantity";
 
 export type SalesReportInput = {
   businessId: string;
   from?: Date;
   to?: Date;
-  barberId?: string;
+  staffId?: string;
   paymentMethod?: PaymentMethod;
 };
 
@@ -16,6 +17,8 @@ export type TodaySalesReport = {
   totalSold: number;
   saleCount: number;
   averageTicket: number;
+  // En unidades enteras equivalentes: el detalle en milésimas lo guardan los
+  // renglones (`topProducts`), acá interesa el volumen del período.
   itemsSold: number;
   comparison: {
     previousTotal: number;
@@ -35,25 +38,25 @@ export type TodaySalesReport = {
     total: number;
     saleCount: number;
   }[];
-  topServices: {
+  topProducts: {
     name: string;
     total: number;
     quantity: number;
   }[];
   filters: {
-    barberId?: string;
+    staffId?: string;
     paymentMethod?: PaymentMethod;
   };
   options: {
-    barbers: {
+    staffs: {
       id: string;
       name: string;
     }[];
     paymentMethods: PaymentMethod[];
   };
-  totalsByBarber: {
-    barberId: string;
-    barberName: string;
+  totalsByStaff: {
+    staffId: string;
+    staffName: string;
     total: number;
     saleCount: number;
   }[];
@@ -66,7 +69,7 @@ export type TodaySalesReport = {
     soldAt: Date;
     total: number;
     branchName: string;
-    barberName: string;
+    staffName: string;
     items: {
       id: string;
       description: string;
@@ -84,28 +87,28 @@ export type TodaySalesReport = {
 export async function getTodaySalesReport(input: SalesReportInput): Promise<TodaySalesReport> {
   const dateRange = resolveDateRange(input);
   const previousRange = buildPreviousRange(dateRange);
-  const [sales, barbers, previousTotal] = await Promise.all([
+  const [sales, staffs, previousTotal] = await Promise.all([
     findReportSales(input.businessId, {
       from: dateRange.from,
       to: dateRange.to,
-      barberId: input.barberId,
+      staffId: input.staffId,
       paymentMethod: input.paymentMethod,
     }),
-    findReportBarbers(input.businessId),
+    findReportStaffs(input.businessId),
     previousRange
       ? sumReportSalesTotal(input.businessId, {
           from: previousRange.from,
           to: previousRange.to,
-          barberId: input.barberId,
+          staffId: input.staffId,
           paymentMethod: input.paymentMethod,
         })
       : Promise.resolve(0),
   ]);
-  const barberTotals = new Map<string, { barberName: string; total: number; saleCount: number }>();
+  const staffTotals = new Map<string, { staffName: string; total: number; saleCount: number }>();
   const paymentTotals = new Map<PaymentMethod, number>(paymentMethods.map((method) => [method, 0]));
   const dayTotals = new Map<string, { total: number; saleCount: number }>();
   const branchTotals = new Map<string, { branchName: string; total: number; saleCount: number }>();
-  const serviceTotals = new Map<string, { total: number; quantity: number }>();
+  const productTotals = new Map<string, { total: number; quantity: number }>();
   const weekdayTotals = [0, 0, 0, 0, 0, 0, 0];
   let itemsSold = 0;
 
@@ -113,15 +116,15 @@ export async function getTodaySalesReport(input: SalesReportInput): Promise<Toda
     const saleTotal = input.paymentMethod
       ? sale.payments.reduce((total, payment) => total + payment.amount, 0)
       : sale.total;
-    const currentBarberTotal = barberTotals.get(sale.barber.id) ?? {
-      barberName: sale.barber.name,
+    const currentStaffTotal = staffTotals.get(sale.staff.id) ?? {
+      staffName: sale.staff.name,
       total: 0,
       saleCount: 0,
     };
 
-    currentBarberTotal.total += saleTotal;
-    currentBarberTotal.saleCount += 1;
-    barberTotals.set(sale.barber.id, currentBarberTotal);
+    currentStaffTotal.total += saleTotal;
+    currentStaffTotal.saleCount += 1;
+    staffTotals.set(sale.staff.id, currentStaffTotal);
 
     const currentBranch = branchTotals.get(sale.branch.name) ?? { branchName: sale.branch.name, total: 0, saleCount: 0 };
     currentBranch.total += saleTotal;
@@ -137,10 +140,10 @@ export async function getTodaySalesReport(input: SalesReportInput): Promise<Toda
     weekdayTotals[sale.soldAt.getDay()] += saleTotal;
 
     for (const item of sale.items) {
-      const currentService = serviceTotals.get(item.description) ?? { total: 0, quantity: 0 };
-      currentService.total += item.total;
-      currentService.quantity += item.quantity;
-      serviceTotals.set(item.description, currentService);
+      const currentProduct = productTotals.get(item.description) ?? { total: 0, quantity: 0 };
+      currentProduct.total += item.total;
+      currentProduct.quantity += item.quantity;
+      productTotals.set(item.description, currentProduct);
       itemsSold += item.quantity;
     }
 
@@ -167,40 +170,42 @@ export async function getTodaySalesReport(input: SalesReportInput): Promise<Toda
     totalSold,
     saleCount: sales.length,
     averageTicket: sales.length > 0 ? Math.round(totalSold / sales.length) : 0,
-    itemsSold,
+    // Las cantidades viven en milésimas (ver src/lib/quantity.ts): sin dividir,
+    // "10 ítems vendidos" se mostraría como 10.000.
+    itemsSold: Math.round(itemsSold / QUANTITY_SCALE),
     comparison,
     salesByDay: Array.from(dayTotals.entries())
       .map(([date, totals]) => ({ date, total: totals.total, saleCount: totals.saleCount }))
       .sort((a, b) => a.date.localeCompare(b.date)),
     salesByWeekday: weekdayTotals.map((total, weekday) => ({ weekday, total })),
     salesByBranch: Array.from(branchTotals.values()).sort((a, b) => b.total - a.total || a.branchName.localeCompare(b.branchName)),
-    topServices: Array.from(serviceTotals.entries())
+    topProducts: Array.from(productTotals.entries())
       .map(([name, totals]) => ({ name, total: totals.total, quantity: totals.quantity }))
       .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
       .slice(0, 6),
     filters: {
-      barberId: input.barberId,
+      staffId: input.staffId,
       paymentMethod: input.paymentMethod,
     },
     options: {
-      barbers,
+      staffs,
       paymentMethods,
     },
-    totalsByBarber: Array.from(barberTotals.entries())
-      .map(([barberId, total]) => ({
-        barberId,
-        barberName: total.barberName,
+    totalsByStaff: Array.from(staffTotals.entries())
+      .map(([staffId, total]) => ({
+        staffId,
+        staffName: total.staffName,
         total: total.total,
         saleCount: total.saleCount,
       }))
-      .sort((a, b) => b.total - a.total || a.barberName.localeCompare(b.barberName)),
+      .sort((a, b) => b.total - a.total || a.staffName.localeCompare(b.staffName)),
     totalsByPaymentMethod: Array.from(paymentTotals.entries()).map(([method, total]) => ({ method, total })),
     latestSales: sales.slice(0, 10).map((sale) => ({
       id: sale.id,
       soldAt: sale.soldAt,
       total: sale.total,
       branchName: sale.branch.name,
-      barberName: sale.barber.name,
+      staffName: sale.staff.name,
       items: sale.items,
       payments: sale.payments,
     })),

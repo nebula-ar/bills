@@ -1,7 +1,18 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Schema de Bills — sistema de gestión para comercios chicos.
+//
+// El dominio es genérico a propósito: un mismo core (catálogo, ventas, caja,
+// stock, proveedores, promociones, clientes) que cada negocio activa según su
+// rubro (ver `vertical` y `BusinessModuleAccess`). Un kiosco y una barbería
+// usan los mismos modelos; lo que cambia es qué módulos ve y cómo se llaman
+// las cosas en pantalla (ver src/lib/vertical.ts).
+//
+// Convenciones:
+//   - Los montos son enteros en PESOS (sin centavos). Ver src/lib/money.ts.
+//   - Las cantidades son enteros en MILÉSIMAS de unidad, para poder vender
+//     1,250 kg o 2,5 m. Ver src/lib/quantity.ts (QUANTITY_SCALE = 1000).
+//   - Borrado lógico (`deleted`/`deletedAt`/`deletedById`) en todo lo que el
+//     usuario administra; los libros contables (movimientos, asientos) son
+//     append-only.
 
 generator client {
   provider = "prisma-client"
@@ -12,9 +23,14 @@ datasource db {
   provider = "sqlite"
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Negocio, rubro y módulos
+// ─────────────────────────────────────────────────────────────────────────────
+
 model Business {
   id          String    @id @default(cuid())
   name        String
+  vertical    Vertical  @default(GENERAL)
   createdAt   DateTime  @default(now())
   createdById String?
   updatedAt   DateTime  @updatedAt
@@ -23,15 +39,96 @@ model Business {
   deletedAt   DateTime?
   deletedById String?
 
+  // Datos fiscales del emisor, prerequisito de facturación electrónica AFIP/ARCA.
+  // Nullable: hasta que el dueño los carga no hay un valor por defecto razonable.
+  cuit             String?
+  taxCondition     TaxCondition?
+  salesPointNumber Int?
+
+  // Certificado de producción AFIP, cifrado en reposo (ver src/lib/crypto.ts):
+  // nunca se guarda en texto plano.
+  afipCertEncrypted String?
+  afipKeyEncrypted  String?
+  afipCertAlias     String?
+  afipCertCreatedAt DateTime?
+
+  // ── Marketing ──────────────────────────────────────────────────────────────
+  // Token del link público del negocio (/n/<token>). Igual que en presupuestos:
+  // el token ES la credencial, por eso es random y no el id.
+  publicToken     String?  @unique
+  publicPageActive Boolean @default(false)
+  // Texto libre que se muestra en la página pública (horarios, dirección…).
+  publicNote      String?
+  // Link para pedir reseña (Google Maps). Se manda por WhatsApp después de cobrar.
+  googleReviewUrl String?
+  // Puntos: cada cuántos pesos se suma 1 punto y cuánto vale 1 punto al canjear.
+  // null = el programa está apagado aunque el módulo esté prendido.
+  pointsPerAmount Int?
+  pointValue      Int?
+
   branches               Branch[]
   users                  User[]
-  services               Service[]
+  products               Product[]
+  categories             ProductCategory[]
   expenses               Expense[]
   accountOpeningBalances AccountOpeningBalance[]
   accountTransfers       AccountTransfer[]
   cashCloses             CashClose[]
+  modules                BusinessModuleAccess[]
+  suppliers              Supplier[]
+  purchases              Purchase[]
+  promotions             Promotion[]
+  customers              Customer[]
+  appointments           Appointment[]
+  productFamilies        ProductFamily[]
+  quotes                 Quote[]
+  loyaltyEntries         LoyaltyEntry[]
 
   @@index([deletedAt])
+}
+
+// Rubro del negocio. Solo define los DEFAULTS del onboarding (qué módulos se
+// prenden y cómo se nombran las cosas); después cada negocio ajusta lo que
+// quiera. Nunca condiciona la lógica de negocio: el core es el mismo para todos.
+enum Vertical {
+  BARBERSHOP // Barbería / peluquería
+  BEAUTY // Estética, uñas, spa
+  CLOTHING // Local de ropa / indumentaria
+  KIOSK // Kiosco / drugstore
+  GROCERY // Verdulería / fiambrería / dietética
+  HABERDASHERY // Mercería / bazar
+  HARDWARE // Ferretería / corralón
+  GENERAL // Cualquier otro comercio
+}
+
+// Módulos activables. SALES y REPORTS están siempre activos (no se persisten
+// como fila); el resto se prende por negocio según el rubro.
+enum AppModule {
+  CASH // Caja: saldos por cuenta, transferencias y cierre
+  EXPENSES // Gastos
+  STOCK // Inventario y movimientos
+  SUPPLIERS // Proveedores y cuentas a pagar
+  PROMOTIONS // Promociones y descuentos
+  CUSTOMERS // Clientes y cuenta corriente (fiado)
+  INVOICING // Facturación electrónica AFIP/ARCA
+  TERMINALS // Terminales por empleado (venta autogestionada con PIN)
+  STAFF_COMMISSIONS // Comisiones por empleado sobre lo vendido
+  APPOINTMENTS // Agenda de turnos (barbería, estética)
+  QUOTES // Presupuestos: cotizar antes de vender (ferretería, mercería, corralón)
+  MARKETING // Recuperar clientes, cumpleaños, puntos y la página pública del negocio
+}
+
+// Un módulo prendido para un negocio. La ausencia de fila = módulo apagado.
+model BusinessModuleAccess {
+  id         String    @id @default(cuid())
+  businessId String
+  module     AppModule
+  enabledAt  DateTime  @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, module])
+  @@index([businessId])
 }
 
 model Branch {
@@ -48,15 +145,23 @@ model Branch {
   deletedAt   DateTime?
   deletedById String?
 
-  business               Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business               Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
   users                  User[]
-  servicePrices          BranchServicePrice[]
+  productPrices          BranchProductPrice[]
   sales                  Sale[]
   terminals              Terminal[]
   expenses               Expense[]
   accountOpeningBalances AccountOpeningBalance[]
   accountTransfers       AccountTransfer[]
   cashCloses             CashClose[]
+  stockLevels            StockLevel[]
+  stockMovements         StockMovement[]
+  purchases              Purchase[]
+  promotionBranches      PromotionBranch[]
+  customerAccountEntries CustomerAccountEntry[]
+  saleReturns            SaleReturn[]
+  appointments           Appointment[]
+  quotes                 Quote[]
 
   @@index([businessId])
   @@index([deletedAt])
@@ -65,7 +170,7 @@ model Branch {
 model Terminal {
   id          String    @id @default(cuid())
   branchId    String
-  barberId    String?
+  staffId     String?
   name        String
   active      Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -77,11 +182,11 @@ model Terminal {
   deletedById String?
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  barber User?  @relation("BarberTerminals", fields: [barberId], references: [id], onDelete: SetNull)
+  staff  User?  @relation("StaffTerminals", fields: [staffId], references: [id], onDelete: SetNull)
   sales  Sale[]
 
   @@index([branchId])
-  @@index([barberId])
+  @@index([staffId])
   @@index([deletedAt])
 }
 
@@ -96,8 +201,11 @@ model User {
   pinHash      String?
   role         UserRole
   active       Boolean   @default(true)
-  // Barbero "encargado": puede cerrar la caja de su sucursal desde la terminal (con su PIN).
+  // Empleado "encargado": puede cerrar la caja de su sucursal desde la terminal (con su PIN).
   canCloseCash Boolean   @default(false)
+  // Comisión sobre lo que vende, en puntos porcentuales (0-100). Solo se usa
+  // con el módulo STAFF_COMMISSIONS prendido.
+  commissionRate Int     @default(0)
   createdAt    DateTime  @default(now())
   createdById  String?
   updatedAt    DateTime  @updatedAt
@@ -108,8 +216,9 @@ model User {
 
   business  Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
   branch    Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
-  sales     Sale[]     @relation("BarberSales")
-  terminals Terminal[] @relation("BarberTerminals")
+  sales        Sale[]        @relation("StaffSales")
+  terminals    Terminal[]    @relation("StaffTerminals")
+  appointments Appointment[] @relation("StaffAppointments")
 
   @@unique([businessId, email])
   @@index([businessId])
@@ -117,12 +226,45 @@ model User {
   @@index([deletedAt])
 }
 
-model Service {
+enum UserRole {
+  OWNER
+  ADMIN
+  STAFF
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Catálogo: un solo modelo para servicios (barbería) y productos (comercio)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Familia de productos: "Remera lisa" que existe en varios talles y colores.
+//
+// Cada variante sigue siendo un Product con su propio código de barras, su
+// precio y su stock — que es como funciona de verdad en un local de ropa: la
+// etiqueta que se escanea es la del talle, no la del modelo. La familia existe
+// para que el catálogo y el mostrador las muestren juntas en vez de como
+// cinco productos sueltos.
+model ProductFamily {
   id          String    @id @default(cuid())
   businessId  String
   name        String
-  description String?
-  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  createdById String?
+  updatedAt   DateTime  @updatedAt
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@index([businessId])
+  @@index([deletedAt])
+}
+
+model ProductCategory {
+  id          String    @id @default(cuid())
+  businessId  String
+  name        String
+  color       String?
   createdAt   DateTime  @default(now())
   createdById String?
   updatedAt   DateTime  @updatedAt
@@ -131,18 +273,115 @@ model Service {
   deletedAt   DateTime?
   deletedById String?
 
-  business     Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  branchPrices BranchServicePrice[]
-  saleItems    SaleItem[]
+  business         Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  products         Product[]
+  promotionTargets PromotionTarget[]
 
   @@index([businessId])
   @@index([deletedAt])
 }
 
-model BranchServicePrice {
+// Un ítem vendible. `kind` distingue el servicio (no descuenta stock, no tiene
+// costo de compra) del producto físico (stock, costo, código de barras).
+model Product {
+  id          String      @id @default(cuid())
+  businessId  String
+  categoryId  String?
+  // Familia a la que pertenece (talle/color de un mismo modelo). null = producto suelto.
+  familyId    String?
+  // Cómo se llama esta variante dentro de la familia: "Talle M", "Negro · L".
+  variantLabel String?
+  name        String
+  description String?
+  kind        ProductKind @default(SERVICE)
+  unit        Unit        @default(UNIT)
+  sku         String?
+  barcode     String?
+  // Costo de reposición (pesos por unidad de medida). Alimenta el margen en reportes.
+  cost        Int?
+  // Cuándo se cargó la foto. Vive acá (y no en ProductImage) para que un
+  // listado sepa si hay foto y pueda cachearla sin traerse los bytes.
+  imageUpdatedAt DateTime?
+  // Si es true, vender descuenta de StockLevel y se avisa cuando falta.
+  trackStock  Boolean     @default(false)
+  // Punto de reposición: por debajo de esto la app avisa. En milésimas.
+  minStock    Int?
+  // Venta por bulto: cuántas unidades trae la caja/pack. El stock se sigue
+  // llevando en unidades sueltas (una caja abierta se vende de a uno), así que
+  // esto es solo un atajo de carga: "+1 caja" agrega packSize unidades.
+  packSize    Int?
+  // Cómo lo llama el rubro: "caja", "bulto", "docena", "plancha".
+  packLabel   String?
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  createdById String?
+  updatedAt   DateTime    @updatedAt
+  updatedById String?
+  deleted     Boolean     @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  business         Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  category         ProductCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  family           ProductFamily?       @relation(fields: [familyId], references: [id], onDelete: SetNull)
+  image            ProductImage?
+  branchPrices     BranchProductPrice[]
+  saleItems        SaleItem[]
+  stockLevels      StockLevel[]
+  stockMovements   StockMovement[]
+  purchaseItems    PurchaseItem[]
+  promotionTargets PromotionTarget[]
+  appointments     Appointment[]
+  quoteItems       QuoteItem[]
+
+  @@unique([businessId, sku])
+  @@unique([businessId, barcode])
+  @@index([businessId])
+  @@index([familyId])
+  @@index([categoryId])
+  @@index([barcode])
+  @@index([deletedAt])
+}
+
+enum ProductKind {
+  SERVICE // Trabajo/servicio: sin stock ni costo de compra
+  GOOD // Producto físico: stock, costo, código de barras
+}
+
+// Foto del producto, en tabla aparte para que ningún listado arrastre los bytes
+// sin querer. Se guarda ya normalizada (ver src/modules/catalog/product-image):
+// una miniatura chica alcanza para elegir de un vistazo en el mostrador.
+model ProductImage {
+  productId   String   @id
+  data        Bytes
+  contentType String
+  width       Int
+  height      Int
+  // Tamaño en bytes, para poder mostrar cuánto ocupa el catálogo.
+  byteSize    Int
+  updatedAt   DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// Unidad de medida de venta. Las que no son UNIT admiten cantidades
+// fraccionarias (ver src/lib/quantity.ts).
+enum Unit {
+  UNIT // unidad
+  KG // kilogramo
+  GRAM // gramo
+  LITER // litro
+  METER // metro
+  PACK // paquete/pack
+  DOZEN // docena
+}
+
+// El precio de venta vive por sucursal: el mismo producto puede valer distinto
+// en Centro que en Palermo.
+model BranchProductPrice {
   id          String    @id @default(cuid())
   branchId    String
-  serviceId   String
+  productId   String
   price       Int
   active      Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -154,19 +393,29 @@ model BranchServicePrice {
   deletedById String?
 
   branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([branchId, serviceId])
-  @@index([serviceId])
+  @@unique([branchId, productId])
+  @@index([productId])
   @@index([deletedAt])
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ventas
+// ─────────────────────────────────────────────────────────────────────────────
 
 model Sale {
   id          String     @id @default(cuid())
   branchId    String
-  barberId    String
+  // Quién vendió. En barbería es el barbero (define su comisión y su cierre);
+  // en un kiosco es simplemente quién atendió.
+  staffId     String
   terminalId  String?
-  total       Int
+  customerId  String?
+  // subtotal = suma de los ítems a precio de lista; total = subtotal - discountTotal.
+  subtotal      Int      @default(0)
+  discountTotal Int      @default(0)
+  total         Int
   notes       String?
   status      SaleStatus @default(COMPLETED)
   soldAt      DateTime   @default(now())
@@ -178,26 +427,58 @@ model Sale {
   deletedAt   DateTime?
   deletedById String?
 
-  branch   Branch        @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  barber   User          @relation("BarberSales", fields: [barberId], references: [id], onDelete: Restrict)
-  terminal Terminal?     @relation(fields: [terminalId], references: [id], onDelete: SetNull)
-  items    SaleItem[]
-  payments SalePayment[]
+  // Datos fiscales del cliente (opcionales): sin CUIT, se factura a Consumidor
+  // Final. Con CUIT + condición IVA, permite emitir factura A a una empresa.
+  // Se copian a la venta (no se leen del Customer) para que el comprobante
+  // quede congelado aunque después cambien los datos del cliente.
+  customerName         String?
+  customerTaxId        String?
+  customerTaxCondition TaxCondition @default(CONSUMIDOR_FINAL)
+
+  // Estado de facturación AFIP/ARCA de esta venta. La emisión real ocurre
+  // fuera del cobro (ver módulo de invoicing): un fallo nunca bloquea la venta.
+  invoiceType       InvoiceType?
+  afipStatus        AfipStatus   @default(NOT_CONFIGURED)
+  cae               String?
+  caeVencimiento    DateTime?
+  afipVoucherNumber Int?
+  afipError         String?
+
+  branch         Branch                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  staff          User                   @relation("StaffSales", fields: [staffId], references: [id], onDelete: Restrict)
+  terminal       Terminal?              @relation(fields: [terminalId], references: [id], onDelete: SetNull)
+  customer       Customer?              @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items          SaleItem[]
+  payments       SalePayment[]
+  discounts      SaleDiscount[]
+  stockMovements StockMovement[]
+  accountEntries CustomerAccountEntry[]
+  returns        SaleReturn[]
+  appointments   Appointment[]
+  quote          Quote?
+  loyaltyEntries LoyaltyEntry[]
 
   @@index([branchId, soldAt])
-  @@index([barberId, soldAt])
+  @@index([staffId, soldAt])
   @@index([terminalId])
+  @@index([customerId])
   @@index([deletedAt])
 }
 
 model SaleItem {
   id          String    @id @default(cuid())
   saleId      String
-  serviceId   String?
+  productId   String?
   description String
-  quantity    Int       @default(1)
+  // Cantidad en milésimas: 1 unidad = 1000, 1,250 kg = 1250.
+  quantity    Int       @default(1000)
+  unit        Unit      @default(UNIT)
   unitPrice   Int
+  // Descuento por promoción prorrateado a este renglón (ver SaleDiscount).
+  discount    Int       @default(0)
   total       Int
+  // Costo unitario al momento de vender, congelado para calcular margen histórico.
+  unitCost    Int?
   createdAt   DateTime  @default(now())
   createdById String?
   updatedAt   DateTime  @updatedAt
@@ -206,11 +487,12 @@ model SaleItem {
   deletedAt   DateTime?
   deletedById String?
 
-  sale    Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  sale    Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product?         @relation(fields: [productId], references: [id], onDelete: SetNull)
+  returns SaleReturnItem[]
 
   @@index([saleId])
-  @@index([serviceId])
+  @@index([productId])
   @@index([deletedAt])
 }
 
@@ -222,7 +504,6 @@ model SalePayment {
   createdAt   DateTime      @default(now())
   createdById String?
   updatedAt   DateTime      @updatedAt
-  updatedById String?
   deleted     Boolean       @default(false)
   deletedAt   DateTime?
   deletedById String?
@@ -231,8 +512,424 @@ model SalePayment {
 
   @@index([saleId])
   @@index([method])
+  @@index([deleted])
+}
+
+enum SaleStatus {
+  COMPLETED
+  CANCELLED
+}
+
+// Devolución PARCIAL de una venta: el cliente trae dos de las cinco remeras.
+// Anular la venta entera sería mentir sobre lo que pasó, así que la devolución
+// es un hecho aparte que apunta a la venta original.
+model SaleReturn {
+  id       String @id @default(cuid())
+  saleId   String
+  branchId String
+  // Plata efectivamente devuelta.
+  total    Int
+  // Cómo se le devolvió: por una cuenta (sale plata de la caja) o ACCOUNT, que
+  // en vez de devolver efectivo le baja la deuda al cliente.
+  method   PaymentMethod
+  reason      String?
+  returnedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  sale   Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  branch Branch           @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  items  SaleReturnItem[]
+
+  @@index([saleId])
+  @@index([branchId, returnedAt])
+  @@index([method])
+}
+
+model SaleReturnItem {
+  id         String @id @default(cuid())
+  returnId   String
+  saleItemId String
+  // Cantidad devuelta, en milésimas (se puede devolver medio kilo).
+  quantity   Int
+  // Plata devuelta por este renglón, ya proporcional al descuento que tuvo.
+  amount     Int
+
+  saleReturn SaleReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  saleItem   SaleItem   @relation(fields: [saleItemId], references: [id], onDelete: Cascade)
+
+  @@index([returnId])
+  @@index([saleItemId])
+}
+
+// Forma de cobro/pago. ACCOUNT (cuenta corriente / "fiado") no es plata que
+// entra: no suma al arqueo de caja, genera un cargo en la cuenta del cliente.
+enum PaymentMethod {
+  CASH
+  DEBIT_CARD
+  CREDIT_CARD
+  TRANSFER
+  QR
+  MERCADO_PAGO
+  ACCOUNT
+  OTHER
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Promociones
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Promotion {
+  id          String         @id @default(cuid())
+  businessId  String
+  name        String
+  type        PromotionType
+  scope       PromotionScope @default(ALL)
+
+  // Parámetros según `type` (solo se usa el del tipo correspondiente).
+  percentOff  Int? // PERCENT_OFF: 1-100
+  fixedOff    Int? // FIXED_OFF: pesos a descontar
+  buyQuantity Int? // NX_M: llevás N...
+  payQuantity Int? // NX_M: ...pagás M
+  bundlePrice Int? // BUNDLE_PRICE: precio cerrado del combo
+
+  // Condiciones de disparo.
+  minQuantity Int? // en milésimas
+  minAmount   Int?
+
+  // Vigencia. `weekdays` es una lista ISO ("1,2,3" = lun/mar/mié); null = todos los días.
+  startsAt DateTime?
+  endsAt   DateTime?
+  weekdays String?
+
+  // Ante empate, se aplica primero la de mayor prioridad.
+  priority    Int       @default(0)
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  createdById String?
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  business  Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  targets   PromotionTarget[]
+  branches  PromotionBranch[]
+  discounts SaleDiscount[]
+
+  @@index([businessId])
   @@index([deletedAt])
 }
+
+enum PromotionType {
+  PERCENT_OFF // % de descuento
+  FIXED_OFF // monto fijo de descuento
+  NX_M // 3x2, 2x1
+  BUNDLE_PRICE // precio cerrado por llevar el combo
+}
+
+enum PromotionScope {
+  ALL // toda la venta
+  CATEGORY // los ítems de ciertas categorías
+  PRODUCT // ciertos productos
+}
+
+// A qué apunta la promo (según `scope`). Sin filas con scope != ALL, la promo
+// no aplica a nada.
+model PromotionTarget {
+  id          String  @id @default(cuid())
+  promotionId String
+  productId   String?
+  categoryId  String?
+
+  promotion Promotion        @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  product   Product?         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category  ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([promotionId])
+  @@index([productId])
+  @@index([categoryId])
+}
+
+// Sucursales donde corre la promo. Sin filas = corre en todas.
+model PromotionBranch {
+  id          String @id @default(cuid())
+  promotionId String
+  branchId    String
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  branch    Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, branchId])
+  @@index([branchId])
+}
+
+// Descuento efectivamente aplicado a una venta. Congela el nombre y el monto:
+// borrar la promo no cambia lo que ya se cobró.
+model SaleDiscount {
+  id          String   @id @default(cuid())
+  saleId      String
+  promotionId String?
+  description String
+  amount      Int
+  createdAt   DateTime @default(now())
+
+  sale      Sale       @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  promotion Promotion? @relation(fields: [promotionId], references: [id], onDelete: SetNull)
+
+  @@index([saleId])
+  @@index([promotionId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stock
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Existencia actual de un producto en una sucursal. Es un caché derivable de
+// StockMovement: se actualiza en la misma transacción que el movimiento.
+model StockLevel {
+  id        String   @id @default(cuid())
+  branchId  String
+  productId String
+  // En milésimas. Puede ser negativo si se permite vender sin stock.
+  quantity  Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, productId])
+  @@index([productId])
+}
+
+// Libro de movimientos de stock: append-only, nunca se edita ni se borra.
+// El signo de `quantity` indica entrada (+) o salida (-).
+model StockMovement {
+  id          String            @id @default(cuid())
+  branchId    String
+  productId   String
+  type        StockMovementType
+  quantity    Int
+  unitCost    Int?
+  reason      String?
+  saleId      String?
+  purchaseId  String?
+  occurredAt  DateTime          @default(now())
+  createdAt   DateTime          @default(now())
+  createdById String?
+
+  branch   Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  product  Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sale     Sale?     @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  purchase Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+
+  @@index([branchId, occurredAt])
+  @@index([productId, occurredAt])
+  @@index([saleId])
+  @@index([purchaseId])
+}
+
+enum StockMovementType {
+  INITIAL // carga inicial de inventario
+  PURCHASE // ingreso por compra a proveedor
+  SALE // salida por venta
+  SALE_CANCELLED // reposición por venta anulada
+  ADJUSTMENT // ajuste manual tras un conteo
+  TRANSFER_IN // entrada por transferencia entre sucursales
+  TRANSFER_OUT // salida por transferencia entre sucursales
+  LOSS // merma, rotura o vencimiento
+  RETURN // devolución del cliente
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Proveedores y cuentas a pagar
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Supplier {
+  id          String    @id @default(cuid())
+  businessId  String
+  name        String
+  taxId       String?
+  phone       String?
+  email       String?
+  address     String?
+  notes       String?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  createdById String?
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  business  Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  purchases Purchase[]
+
+  @@index([businessId])
+  @@index([deletedAt])
+}
+
+// Factura de compra a un proveedor. Es a la vez el ingreso de mercadería (sus
+// ítems mueven stock) y la deuda a pagar (`status` + `dueAt`).
+model Purchase {
+  id          String         @id @default(cuid())
+  businessId  String
+  branchId    String?
+  supplierId  String
+  // Número de comprobante del proveedor (ej: "0001-00012345").
+  number      String?
+  total       Int
+  status      PurchaseStatus @default(PENDING)
+  issuedAt    DateTime       @default(now())
+  // Vencimiento del pago. Vencida = dueAt en el pasado y status != PAID.
+  dueAt       DateTime?
+  // Si es true, los ítems ya impactaron en el stock (no se vuelve a aplicar).
+  stockApplied Boolean       @default(false)
+  notes       String?
+  createdAt   DateTime       @default(now())
+  createdById String?
+  updatedAt   DateTime       @updatedAt
+  updatedById String?
+  deleted     Boolean        @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  business       Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch         Branch?           @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  supplier       Supplier          @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  items          PurchaseItem[]
+  payments       PurchasePayment[]
+  stockMovements StockMovement[]
+
+  @@index([businessId, issuedAt])
+  @@index([supplierId])
+  @@index([status, dueAt])
+  @@index([deletedAt])
+}
+
+enum PurchaseStatus {
+  PENDING // sin pagar
+  PARTIAL // pagada en parte
+  PAID // saldada
+  CANCELLED // anulada
+}
+
+model PurchaseItem {
+  id          String   @id @default(cuid())
+  purchaseId  String
+  productId   String?
+  description String
+  quantity    Int // milésimas
+  unit        Unit     @default(UNIT)
+  unitCost    Int
+  total       Int
+  createdAt   DateTime @default(now())
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product  Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([purchaseId])
+  @@index([productId])
+}
+
+// Pago (total o parcial) de una factura de compra. Sale de una cuenta, así que
+// impacta en el arqueo de caja igual que un gasto.
+model PurchasePayment {
+  id          String        @id @default(cuid())
+  purchaseId  String
+  method      PaymentMethod @default(CASH)
+  amount      Int
+  paidAt      DateTime      @default(now())
+  note        String?
+  createdAt   DateTime      @default(now())
+  createdById String?
+  deleted     Boolean       @default(false)
+  deletedAt   DateTime?
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseId])
+  @@index([paidAt])
+  @@index([deletedAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Clientes y cuenta corriente
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Customer {
+  id           String        @id @default(cuid())
+  businessId   String
+  name         String
+  taxId        String?
+  taxCondition TaxCondition?
+  phone        String?
+  email        String?
+  address      String?
+  notes        String?
+  // Tope de deuda permitido (pesos). null = sin límite.
+  creditLimit  Int?
+  // Cumpleaños. Se guarda la fecha completa pero solo se usan día y mes: el año
+  // casi nunca lo dan y no hace falta para saludar.
+  birthday     DateTime?
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  createdById  String?
+  updatedAt    DateTime      @updatedAt
+  updatedById  String?
+  deleted      Boolean       @default(false)
+  deletedAt    DateTime?
+  deletedById  String?
+
+  business       Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  sales          Sale[]
+  accountEntries CustomerAccountEntry[]
+  appointments   Appointment[]
+  quotes         Quote[]
+  loyaltyEntries LoyaltyEntry[]
+
+  @@index([businessId])
+  @@index([deletedAt])
+}
+
+// Libro de cuenta corriente del cliente: append-only. El saldo es la suma
+// algebraica de los `amount` (cargo positivo, pago negativo).
+model CustomerAccountEntry {
+  id          String                   @id @default(cuid())
+  customerId  String
+  // Sucursal donde se cobró. Necesaria para que el pago de un fiado entre en el
+  // arqueo de la caja correcta (el cliente paga en un mostrador concreto).
+  branchId    String?
+  type        CustomerAccountEntryType
+  // Positivo = aumenta la deuda (venta fiada). Negativo = la baja (pago).
+  amount      Int
+  saleId      String?
+  method      PaymentMethod?
+  note        String?
+  occurredAt  DateTime                 @default(now())
+  createdAt   DateTime                 @default(now())
+  createdById String?
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  branch   Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  sale     Sale?    @relation(fields: [saleId], references: [id], onDelete: SetNull)
+
+  @@index([customerId, occurredAt])
+  @@index([branchId, occurredAt])
+  @@index([saleId])
+}
+
+enum CustomerAccountEntryType {
+  CHARGE // venta a cuenta (fiado)
+  PAYMENT // pago a cuenta
+  ADJUSTMENT // corrección manual
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Gastos y caja
+// ─────────────────────────────────────────────────────────────────────────────
 
 model Expense {
   id            String          @id @default(cuid())
@@ -244,13 +941,13 @@ model Expense {
   amount        Int
   note          String?
   spentAt       DateTime        @default(now())
-  createdAt   DateTime        @default(now())
-  createdById String?
-  updatedAt   DateTime        @updatedAt
-  updatedById String?
-  deleted     Boolean         @default(false)
-  deletedAt   DateTime?
-  deletedById String?
+  createdAt     DateTime        @default(now())
+  createdById   String?
+  updatedAt     DateTime        @updatedAt
+  updatedById   String?
+  deleted       Boolean         @default(false)
+  deletedAt     DateTime?
+  deletedById   String?
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   branch   Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
@@ -268,6 +965,7 @@ enum ExpenseCategory {
   MARKETING
   MAINTENANCE
   TAXES
+  MERCHANDISE
   OTHER
 }
 
@@ -313,13 +1011,13 @@ model AccountTransfer {
 
 // Cierre de caja: foto de los saldos por cuenta en un momento (arqueo).
 model CashClose {
-  id          String          @id @default(cuid())
+  id          String   @id @default(cuid())
   businessId  String
   branchId    String?
-  closedAt    DateTime        @default(now())
+  closedAt    DateTime @default(now())
   note        String?
   createdById String?
-  createdAt   DateTime        @default(now())
+  createdAt   DateTime @default(now())
 
   business Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
   branch   Branch?         @relation(fields: [branchId], references: [id], onDelete: SetNull)
@@ -342,31 +1040,94 @@ model CashCloseLine {
   @@index([closeId])
 }
 
-enum UserRole {
-  OWNER
-  ADMIN
-  BARBER
+// ─────────────────────────────────────────────────────────────────────────────
+// Facturación y auditoría
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Condición frente al IVA (AFIP/ARCA). Se usa tanto para el negocio emisor
+// como para el cliente de una venta.
+enum TaxCondition {
+  RESPONSABLE_INSCRIPTO
+  MONOTRIBUTO
+  EXENTO
+  CONSUMIDOR_FINAL
+  NO_RESPONSABLE
 }
 
-enum SaleStatus {
-  COMPLETED
-  CANCELLED
+// Tipo de comprobante AFIP/ARCA (CbteTipo: A=1, B=6, C=11).
+enum InvoiceType {
+  A
+  B
+  C
 }
 
-enum PaymentMethod {
-  CASH
-  DEBIT_CARD
-  CREDIT_CARD
-  TRANSFER
-  QR
-  MERCADO_PAGO
-  OTHER
+// Estado de facturación AFIP/ARCA de una venta.
+enum AfipStatus {
+  NOT_CONFIGURED
+  PENDING
+  ISSUED
+  FAILED
 }
 
 enum LogLevel {
   ERROR
   WARN
   INFO
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Turnos
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Un turno agendado. Existe antes de que haya venta: cuando el cliente viene y
+// se le cobra, el turno queda enlazado a la venta (`saleId`) y así se puede ver
+// qué se agendó, qué se atendió y qué se facturó.
+//
+// El cliente puede ser de la ficha (`customerId`) o suelto (`customerName` +
+// teléfono): al que llama por primera vez no se le pide que sea "cliente" antes
+// de poder anotarlo.
+model Appointment {
+  id            String            @id @default(cuid())
+  businessId    String
+  branchId      String
+  staffId       String?
+  customerId    String?
+  customerName  String?
+  customerPhone String?
+  // Servicio a realizar. Sirve para saber cuánto dura y cuánto se va a cobrar.
+  productId     String?
+  startsAt      DateTime
+  // Duración en minutos: define el bloque que ocupa en la agenda.
+  durationMinutes Int             @default(30)
+  status        AppointmentStatus @default(SCHEDULED)
+  notes         String?
+  saleId        String?
+  createdAt     DateTime          @default(now())
+  createdById   String?
+  updatedAt     DateTime          @updatedAt
+  deleted       Boolean           @default(false)
+  deletedAt     DateTime?
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  staff    User?     @relation("StaffAppointments", fields: [staffId], references: [id], onDelete: SetNull)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  product  Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  sale     Sale?     @relation(fields: [saleId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, startsAt])
+  @@index([branchId, startsAt])
+  @@index([staffId, startsAt])
+  @@index([customerId])
+  @@index([deletedAt])
+}
+
+enum AppointmentStatus {
+  SCHEDULED // Anotado
+  CONFIRMED // El cliente confirmó que viene
+  DONE // Atendido
+  CANCELLED // Se canceló con aviso
+  NO_SHOW // No vino
 }
 
 // Registro de backend: errores y eventos clave (auditoría). Sin relaciones (append-only,
@@ -384,4 +1145,125 @@ model AppLog {
   @@index([businessId, createdAt])
   @@index([level, createdAt])
   @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Puntos
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Libro de puntos del cliente: append-only, igual que la cuenta corriente. El
+// saldo es la suma de los `points` (positivo suma, negativo canjea). No se
+// guarda un total porque un total se desincroniza; la suma nunca miente.
+model LoyaltyEntry {
+  id         String @id @default(cuid())
+  businessId String
+  customerId String
+  // Positivo = acumulado por una compra. Negativo = canjeado.
+  points     Int
+  // Venta que los generó, si vinieron de una compra.
+  saleId     String?
+  note       String?
+
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  sale     Sale?    @relation(fields: [saleId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+  @@index([customerId])
+  @@index([saleId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Presupuestos
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Un presupuesto es una venta que todavía no pasó. El corralón que cotiza 40
+// metros de caño y el de la mercería que arma una lista para un colegio hoy lo
+// hacen en un papel, y cuando el cliente vuelve a los diez días nadie se acuerda
+// del precio que le dijeron. Acá queda escrito, con fecha de vencimiento: los
+// precios se mueven, y un presupuesto sin vencimiento es una trampa para el que
+// lo firmó.
+enum QuoteStatus {
+  OPEN // Entregado, esperando respuesta
+  ACCEPTED // El cliente dijo que sí (todavía no se cobró)
+  REJECTED // No va
+  CONVERTED // Ya se convirtió en venta
+}
+
+model Quote {
+  id         String      @id @default(cuid())
+  businessId String
+  branchId   String
+  // Numeración por negocio, para poder decir "el presupuesto 42" por teléfono.
+  number     Int
+  status     QuoteStatus @default(OPEN)
+
+  customerId    String?
+  // Copiados al presupuesto: quien pide una cotización muchas veces todavía no
+  // es un cliente de la ficha.
+  customerName  String?
+  customerPhone String?
+
+  subtotal      Int     @default(0)
+  discountTotal Int     @default(0)
+  total         Int     @default(0)
+  notes         String?
+
+  // Hasta cuándo vale. Vencido no se bloquea nada: se avisa fuerte y se puede
+  // rehacer con los precios de hoy.
+  validUntil DateTime
+
+  // Token del link público. El cliente lo abre sin cuenta, desde el WhatsApp.
+  publicToken String @unique
+
+  // La venta que salió de acá, si se convirtió.
+  saleId String? @unique
+
+  createdAt   DateTime  @default(now())
+  createdById String?
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  business Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch      @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  customer Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  sale     Sale?       @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  items    QuoteItem[]
+
+  @@unique([businessId, number])
+  @@index([businessId, status])
+  @@index([branchId])
+  @@index([customerId])
+  @@index([deletedAt])
+}
+
+model QuoteItem {
+  id      String @id @default(cuid())
+  quoteId String
+  // Opcional a propósito: "mano de obra" y "flete" no están en el catálogo y son
+  // la mitad de lo que se cotiza en una ferretería.
+  productId String?
+  description String
+  // Cantidad en milésimas, igual que en la venta.
+  quantity  Int   @default(1000)
+  unit      Unit  @default(UNIT)
+  unitPrice Int
+  total     Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+  deletedAt DateTime?
+
+  quote   Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([quoteId])
+  @@index([productId])
 }

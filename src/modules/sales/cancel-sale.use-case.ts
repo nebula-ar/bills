@@ -1,6 +1,7 @@
-import { SaleStatus } from "@/generated/prisma/client";
+import { PaymentMethod, SaleStatus } from "@/generated/prisma/client";
+import { logEvent } from "@/lib/logger";
 
-import { cancelSaleById, findSaleForCancellation } from "./sale.repository";
+import { cancelSaleTransaction, findSaleForCancellation } from "./sale.repository";
 import { SaleError, SaleErrorCode } from "./sale.errors";
 
 const cancellationNotePrefix = "Cancellation reason";
@@ -8,8 +9,12 @@ const cancellationNotePrefix = "Cancellation reason";
 export type CancelSaleInput = {
   saleId: string;
   reason?: string;
+  businessId?: string;
+  userId?: string | null;
 };
 
+// Anular no borra: revierte. Devuelve al stock lo que había salido y compensa
+// el fiado con un asiento contrario, así el libro sigue explicando todo.
 export async function cancelSale(input: CancelSaleInput) {
   const sale = await findSaleForCancellation(input.saleId);
 
@@ -23,10 +28,39 @@ export async function cancelSale(input: CancelSaleInput) {
 
   const notes = buildCancellationNotes(sale.notes, input.reason);
 
-  return cancelSaleById({
+  const restockItems = sale.items.flatMap((item) =>
+    item.productId && item.product?.trackStock
+      ? [{ productId: item.productId, quantity: item.quantity, unitCost: item.unitCost }]
+      : [],
+  );
+
+  const accountCharge = sale.payments
+    .filter((payment) => payment.method === PaymentMethod.ACCOUNT)
+    .reduce((total, payment) => total + payment.amount, 0);
+
+  const cancelled = await cancelSaleTransaction({
     saleId: sale.id,
+    branchId: sale.branchId,
     notes,
+    restockItems,
+    customerId: sale.customerId,
+    accountCharge,
+    userId: input.userId,
   });
+
+  await logEvent("sale.cancel", "Venta anulada", {
+    businessId: input.businessId,
+    userId: input.userId ?? undefined,
+    context: {
+      saleId: sale.id,
+      branchId: sale.branchId,
+      restocked: restockItems.length,
+      accountCharge,
+      reason: input.reason ?? null,
+    },
+  });
+
+  return cancelled;
 }
 
 function buildCancellationNotes(currentNotes: string | null, reason: string | undefined) {

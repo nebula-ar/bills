@@ -3,8 +3,8 @@ import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/footer";
 
 export const metadata: Metadata = {
-  title: "Política de Privacidad — Barber Bills",
-  description: "Cómo Barber Bills recopila, usa y protege los datos de tu cuenta y tu negocio.",
+  title: "Política de Privacidad — Bills",
+  description: "Cómo Bills recopila, usa y protege los datos de tu cuenta y tu negocio.",
 };
 
 export default function PrivacyPage() {
@@ -22,7 +22,7 @@ export default function PrivacyPage() {
             <div>
               <h2 className="text-xl font-bold font-montserrat text-slate-900 mb-3">1. Responsable</h2>
               <p>
-                Barber Bills es el sistema de gestión operado para administrar barberías y
+                Bills es el sistema de gestión operado para administrar negocios y
                 peluquerías. Ante cualquier consulta sobre esta política o tus datos, podés
                 escribirnos a{" "}
                 <a href="mailto:wmatias1009@gmail.com" className="text-blue-600 font-medium hover:underline">
@@ -46,7 +46,7 @@ export default function PrivacyPage() {
                 <li>
                   <strong className="text-slate-900">Datos de cuentas de usuario:</strong> nombre,
                   email y usuario de cada persona que administrás dentro de tu negocio (dueños,
-                  encargados y barberos). Las contraseñas y PIN se guardan siempre cifrados, nunca
+                  encargados y empleados). Las contraseñas y PIN se guardan siempre cifrados, nunca
                   en texto plano.
                 </li>
                 <li>
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
               </ul>
               <p className="mt-3">
                 No pedimos ni almacenamos datos de tarjetas de crédito o débito de tus clientes:
-                Barber Bills solo registra qué medio de pago usaron, no procesa el cobro en sí.
+                Bills solo registra qué medio de pago usaron, no procesa el cobro en sí.
               </p>
             </div>
 
@@ -75,7 +75,7 @@ export default function PrivacyPage() {
               <h2 className="text-xl font-bold font-montserrat text-slate-900 mb-3">4. Cookies</h2>
               <p>
                 Usamos únicamente cookies técnicas necesarias para mantener tu sesión iniciada.
-                Barber Bills no utiliza cookies de rastreo publicitario ni comparte datos de
+                Bills no utiliza cookies de rastreo publicitario ni comparte datos de
                 navegación con redes de publicidad.
               </p>
             </div>

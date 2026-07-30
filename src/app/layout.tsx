@@ -5,7 +5,10 @@ import { Toaster } from "sonner";
 import { FlashToaster } from "@/components/flash-toaster";
 import { InstallPrompt } from "@/components/install-prompt";
 import { MobileNav } from "@/components/mobile-nav";
+import { buildNav } from "@/lib/app-modules";
+import { verticalPreset } from "@/lib/vertical";
 import { getCurrentSession, isAdminRole } from "@/lib/auth";
+import { findBusinessContext } from "@/lib/business-context";
 import "./globals.css";
 
 const inter = Inter({
@@ -25,13 +28,13 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://barber-bills-tawny.vercel.app"),
-  title: "Barber Bills",
-  description: "Administración de ventas para barberías",
-  applicationName: "Barber Bills",
+  title: "Bills",
+  description: "Ventas, stock, caja y proveedores para tu negocio",
+  applicationName: "Bills",
   // Habilita "Agregar a inicio" en iOS a pantalla completa (modo standalone).
   appleWebApp: {
     capable: true,
-    title: "Barber Bills",
+    title: "Bills",
     statusBarStyle: "default",
   },
   // Next 16 emite el `mobile-web-app-capable` moderno; agregamos el legacy de
@@ -60,6 +63,11 @@ export default async function RootLayout({
   const session = await getCurrentSession();
   const showNav = isAdminRole(session?.user.role);
 
+  // La navegación depende del negocio (rubro + módulos prendidos), así que se
+  // arma acá con los datos ya resueltos y viaja al cliente lista para pintar.
+  const business = showNav && session ? await findBusinessContext(session.user.businessId) : null;
+  const nav = business ? buildNav(business.labels, business.modules, verticalPreset(business.vertical).catalogIcon) : null;
+
   return (
     <html
       lang="es-AR"
@@ -67,7 +75,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#f6f7fb]">
         {children}
-        {showNav ? <MobileNav /> : null}
+        {nav ? <MobileNav nav={nav} /> : null}
         <InstallPrompt />
         <Toaster position="top-center" richColors toastOptions={{ className: "font-semibold" }} />
         <Suspense fallback={null}>

@@ -13,7 +13,7 @@ export function CTASection() {
           ¿Listo para subir de nivel?
         </h2>
         <p className="text-xl text-slate-600 mb-10 max-w-2xl mx-auto">
-          Únete a las barberías modernas que dejaron los Excel y empezaron a crecer su negocio de verdad.
+          Únete a las negocios modernas que dejaron los Excel y empezaron a crecer su negocio de verdad.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link

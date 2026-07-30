@@ -6,9 +6,9 @@ import { CheckCircle2, User, Clock, DollarSign } from "lucide-react";
 
 export function InteractiveMockup() {
   const [appointments, setAppointments] = useState([
-    { id: 1, name: "Lucas M.", service: "Corte + Barba", time: "10:00 AM", price: "$15", status: "pending" },
-    { id: 2, name: "Martín T.", service: "Corte Clásico", time: "11:30 AM", price: "$10", status: "pending" },
-    { id: 3, name: "Diego G.", service: "Perfilado", time: "01:00 PM", price: "$5", status: "pending" },
+    { id: 1, name: "Lucas M.", product: "Corte + Barba", time: "10:00 AM", price: "$15", status: "pending" },
+    { id: 2, name: "Martín T.", product: "Corte Clásico", time: "11:30 AM", price: "$10", status: "pending" },
+    { id: 3, name: "Diego G.", product: "Perfilado", time: "01:00 PM", price: "$5", status: "pending" },
   ]);
 
   const completeAppointment = (id: number) => {
@@ -67,7 +67,7 @@ export function InteractiveMockup() {
                 <Clock className="w-4 h-4 text-slate-400" />
                 <span>{appt.time}</span>
               </div>
-              <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-md">{appt.service}</span>
+              <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-md">{appt.product}</span>
             </div>
 
             {/* Action overlay on hover for pending */}
