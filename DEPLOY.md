@@ -96,8 +96,8 @@ npm run db:generate
 
 ### Credenciales de la demo
 
-- **Admin:** `owner@barber-bills.local` / `admin123`
-- **PINs de barberos:** Nico 1111 · Lucas 2222 · Fede 3333 · Matías 4444 · Franco 5555 · Nahuel 6666
+- **Admin:** `owner@bills.local` / `admin123`
+- **PINs de empleados:** Nico 1111 · Lucas 2222 · Fede 3333 · Matías 4444 · Franco 5555 · Nahuel 6666
 
 ---
 
