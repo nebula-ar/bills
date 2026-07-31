@@ -4,6 +4,7 @@ import { previewSale, submitSale, type SubmitSaleInput } from "@/app/sales/new/a
 import type { PaymentMethod, Unit } from "@/generated/prisma/client";
 import { TaxCondition } from "@/generated/prisma/enums";
 import { BarcodeScanner } from "@/components/barcode-scanner";
+import { ScanConfirmSheet, type ScannedProduct } from "@/components/scan-confirm-sheet";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { TAX_CONDITION_LABELS } from "@/lib/invoice-labels";
 import { allowsFraction, formatQuantity, lineTotal, ONE, parseQuantityInput, unitShort } from "@/lib/quantity";
@@ -189,6 +190,9 @@ export function PosCheckout({
   // Modelo abierto en el selector de talles.
   const [openFamily, setOpenFamily] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  // Lo último escaneado, esperando confirmación. Mientras hay algo acá, el
+  // lector no sigue leyendo: primero se resuelve lo que ya está en pantalla.
+  const [scanned, setScanned] = useState<ScannedProduct | null>(null);
   const [scanFeedback, setScanFeedback] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [splitMode, setSplitMode] = useState(false);
@@ -386,10 +390,15 @@ export function PosCheckout({
   // Escaneo en venta: el catálogo de la sucursal ya está en memoria, así que
   // resolver el código es instantáneo y no hay que ir al servidor con la cámara
   // abierta. Suma 1 y sigue leyendo, para pasar productos uno atrás de otro.
+  // Escanear NO agrega directo: abre la confirmación con el producto y la
+  // cantidad. Un código mal leído o dos envases parecidos se colaban al pedido
+  // sin que nadie los viera hasta el total.
   function handleScan(code: string) {
-    const match = products.find(
-      (product) => product.barcode === code || product.sku === code,
-    );
+    // Con la confirmación abierta el lector sigue disparando: se ignora hasta
+    // que la persona resuelva lo que tiene en pantalla.
+    if (scanned) return;
+
+    const match = products.find((product) => product.barcode === code || product.sku === code);
 
     if (!match) {
       setScanFeedback({ tone: "warn", text: `Código ${code}: no está en el catálogo` });
@@ -397,20 +406,30 @@ export function PosCheckout({
       return;
     }
 
-    if (allowsFraction(match.unit)) {
-      // Lo que se vende por peso necesita que alguien lo pese: se agrega al
-      // carrito y se avisa que hay que cargar la cantidad.
-      setCart((current) => ({ ...current, [match.productId]: current[match.productId] ?? ONE }));
-      setScanFeedback({ tone: "warn", text: `${match.name}: cargá los ${unitShort(match.unit)}` });
-      window.setTimeout(() => setScanFeedback(null), 2600);
-      return;
-    }
+    setScanned({
+      productId: match.productId,
+      name: match.name,
+      price: match.price,
+      unit: match.unit,
+      stock: match.stock,
+      imageVersion: match.imageVersion,
+      packSize: match.packSize,
+      packLabel: match.packLabel,
+    });
+  }
 
-    addProduct(match.productId);
+  // Confirmado: entra al pedido y el lector queda listo para el siguiente.
+  function confirmScanned(quantity: number) {
+    if (!scanned) return;
 
-    const nextQuantity = (cart[match.productId] ?? 0) / ONE + 1;
-    setScanFeedback({ tone: "ok", text: `${match.name} ×${nextQuantity}` });
-    window.setTimeout(() => setScanFeedback(null), 1600);
+    const producto = scanned;
+    setCart((current) => ({ ...current, [producto.productId]: (current[producto.productId] ?? 0) + quantity }));
+    setScanned(null);
+    setScanFeedback({
+      tone: "ok",
+      text: `${producto.name} · ${formatQuantity(quantity, producto.unit)}`,
+    });
+    window.setTimeout(() => setScanFeedback(null), 1800);
   }
 
   // Carga directa de cantidad, para lo que se vende por peso o por metro.
@@ -862,7 +881,11 @@ export function PosCheckout({
 
       <BarcodeScanner
         feedback={scanFeedback}
-        hint={`${itemCount} ítem(s) en el carrito · ${money(total)}`}
+        hint={
+          itemCount === 0
+            ? "Pasá el código por la cámara"
+            : `${itemCount} ${itemCount === 1 ? catalogSingular.toLowerCase() : catalogPlural.toLowerCase()} · ${money(total)}`
+        }
         mode="continuous"
         onClose={() => {
           setScanning(false);
@@ -871,6 +894,16 @@ export function PosCheckout({
         onDetect={(code) => handleScan(code)}
         open={scanning}
         title="Escanear para vender"
+      />
+
+      {/* Confirmación de lo escaneado: qué es y cuántos. */}
+      <ScanConfirmSheet
+        alreadyInCart={scanned ? cart[scanned.productId] ?? 0 : 0}
+        catalogIcon={catalogIcon}
+        key={scanned?.productId ?? "vacio"}
+        onCancel={() => setScanned(null)}
+        onConfirm={confirmScanned}
+        product={scanned}
       />
 
       {/* Selector de talles de un modelo */}
