@@ -5,6 +5,7 @@ import type { PaymentMethod, Unit } from "@/generated/prisma/client";
 import { TaxCondition } from "@/generated/prisma/enums";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { ScanConfirmSheet, type ScannedProduct } from "@/components/scan-confirm-sheet";
+import { findProductToSell } from "@/app/sales/new/scan-actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { TAX_CONDITION_LABELS } from "@/lib/invoice-labels";
 import { allowsFraction, formatQuantity, lineTotal, ONE, parseQuantityInput, unitShort } from "@/lib/quantity";
@@ -214,11 +215,20 @@ export function PosCheckout({
   );
   const customerTaxIdHasError = customerTaxIdCheck !== null && !customerTaxIdCheck.valid;
 
-  const products = branch?.products ?? [];
+  // Productos que llegaron por el lector y no estaban en la lista con la que se
+  // abrió la pantalla (se cargaron después, o desde otra pantalla). Se suman
+  // acá para que el carrito, el total y la grilla los traten como a cualquier
+  // otro.
+  const [extraProducts, setExtraProducts] = useState<PosProduct[]>([]);
+
+  const products = useMemo(
+    () => [...(branch?.products ?? []), ...extraProducts.filter((extra) => !(branch?.products ?? []).some((p) => p.productId === extra.productId))],
+    [branch, extraProducts],
+  );
   // Busca por nombre, SKU y código de barras: con un lector, escanear escribe el
   // código en este mismo campo y el producto queda filtrado solo.
   const filteredProducts = useMemo(() => {
-    const list = branch?.products ?? [];
+    const list = products;
     // Sin acentos y sin mayúsculas: quien busca "banana" tiene que encontrar
     // "Banana", y quien escribe "cafe" tiene que encontrar "Café". Escribir mal
     // el término es de los problemas más documentados en este tipo de usuario.
@@ -243,7 +253,7 @@ export function PosCheckout({
         normalize(field).includes(query),
       ),
     );
-  }, [branch, search, salesRank]);
+  }, [products, search, salesRank]);
 
   // Con fotos, la grilla tiene que quedar pareja: si al menos un producto tiene,
   // todas las tarjetas reservan el cuadrado. Si ninguno tiene, no se reserva
@@ -393,7 +403,12 @@ export function PosCheckout({
   // Escanear NO agrega directo: abre la confirmación con el producto y la
   // cantidad. Un código mal leído o dos envases parecidos se colaban al pedido
   // sin que nadie los viera hasta el total.
-  function handleScan(code: string) {
+  function avisar(tone: "ok" | "warn", text: string, ms = 2600) {
+    setScanFeedback({ tone, text });
+    window.setTimeout(() => setScanFeedback(null), ms);
+  }
+
+  async function handleScan(code: string) {
     // Con la confirmación abierta el lector sigue disparando: se ignora hasta
     // que la persona resuelva lo que tiene en pantalla.
     if (scanned) return;
@@ -401,8 +416,9 @@ export function PosCheckout({
     const match = products.find((product) => product.barcode === code || product.sku === code);
 
     if (!match) {
-      setScanFeedback({ tone: "warn", text: `Código ${code}: no está en el catálogo` });
-      window.setTimeout(() => setScanFeedback(null), 2400);
+      // No está en la lista con la que se abrió la pantalla, pero puede haberse
+      // cargado recién. Antes de decir "no está", preguntamos.
+      await lookupOnServer(code);
       return;
     }
 
@@ -416,6 +432,64 @@ export function PosCheckout({
       packSize: match.packSize,
       packLabel: match.packLabel,
     });
+  }
+
+  // Segunda oportunidad: el código no estaba en la lista local. La base sabe si
+  // el producto existe, si le falta precio en esta sucursal o si no está.
+  async function lookupOnServer(code: string) {
+    if (!branch) return;
+
+    avisar("warn", "Buscando…", 4000);
+    const result = await findProductToSell({ code, branchId: branch.id });
+
+    if (result.status === "sellable") {
+      const encontrado: PosProduct = {
+        productId: result.product.productId,
+        name: result.product.name,
+        price: result.product.price,
+        unit: result.product.unit as PosProduct["unit"],
+        sku: null,
+        barcode: code,
+        stock: result.product.stock,
+        imageVersion: result.product.imageVersion,
+        packSize: result.product.packSize,
+        packLabel: result.product.packLabel,
+        familyId: null,
+        familyName: null,
+        variantLabel: null,
+      };
+
+      setExtraProducts((current) => [...current, encontrado]);
+      setScanFeedback(null);
+      setScanned({
+        productId: encontrado.productId,
+        name: encontrado.name,
+        price: encontrado.price,
+        unit: encontrado.unit,
+        stock: encontrado.stock,
+        imageVersion: encontrado.imageVersion,
+        packSize: encontrado.packSize,
+        packLabel: encontrado.packLabel,
+      });
+      return;
+    }
+
+    if (result.status === "no-price") {
+      avisar("warn", `${result.name}: está cargado pero sin precio en esta sucursal`, 3600);
+      return;
+    }
+
+    if (result.status === "unavailable") {
+      avisar("warn", `${result.name}: está apagado para vender en esta sucursal`, 3600);
+      return;
+    }
+
+    if (result.status === "inactive") {
+      avisar("warn", `${result.name}: está dado de baja del catálogo`, 3600);
+      return;
+    }
+
+    avisar("warn", `Código ${code}: no está cargado todavía`, 3000);
   }
 
   // Confirmado: entra al pedido y el lector queda listo para el siguiente.
@@ -891,7 +965,7 @@ export function PosCheckout({
           setScanning(false);
           setScanFeedback(null);
         }}
-        onDetect={(code) => handleScan(code)}
+        onDetect={(code) => void handleScan(code)}
         open={scanning}
         title="Escanear para vender"
       />

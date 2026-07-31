@@ -11,6 +11,10 @@ import { toast } from "sonner";
 // Carga de mercadería con la cámara: escaneás, y si el código no está en el
 // catálogo se abre el alta guiada; si ya está, te avisa (para no duplicarlo).
 // Al terminar vuelve al escáner, listo para el siguiente producto de la caja.
+//
+// Antes de preguntar nada se busca el código en la base pública de productos: si
+// está, el nombre viene escrito y la foto es la del producto. Solo si no está se
+// guarda el cuadro de la cámara, que apuntando al código suele ser... el código.
 
 type CatalogScanButtonProps = {
   branchId: string;
@@ -23,15 +27,23 @@ export function CatalogScanButton({ branchId, categories, units }: CatalogScanBu
   const [scanning, setScanning] = useState(false);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
-  const [pending, setPending] = useState<{ code: string; photo: File | null; preview: string | null } | null>(null);
+  const [pending, setPending] = useState<{
+    code: string;
+    photo: File | null;
+    preview: string | null;
+    // La foto que ya está online: no hay archivo que subir, la baja el servidor.
+    fromDirectory: boolean;
+    suggestedName: string;
+  } | null>(null);
 
   // La preview se crea con createObjectURL: hay que soltarla o se filtra memoria.
+  // La de la base pública es una URL común y no se toca.
   useEffect(() => {
-    const preview = pending?.preview;
+    const preview = pending?.fromDirectory ? null : pending?.preview;
     return () => {
       if (preview) URL.revokeObjectURL(preview);
     };
-  }, [pending?.preview]);
+  }, [pending?.preview, pending?.fromDirectory]);
 
   async function handleDetect(code: string, takePhoto: () => Promise<File | null>) {
     if (busy) return;
@@ -46,13 +58,26 @@ export function CatalogScanButton({ branchId, categories, units }: CatalogScanBu
         return;
       }
 
-      // Aprovechamos que la cámara está apuntando al producto para quedarnos con
-      // la foto: en el alta ya viene lista y no hay que sacarla aparte.
-      const photo = await takePhoto();
-      const preview = photo ? URL.createObjectURL(photo) : null;
+      const suggestion = result.suggestion;
+
+      if (suggestion) {
+        setFeedback({ tone: "ok", text: `Lo encontramos: ${suggestion.name}` });
+        window.setTimeout(() => setFeedback(null), 1800);
+      }
+
+      // Con foto de la base no hace falta sacar ninguna. Sin ella, se guarda el
+      // cuadro de la cámara como antes (y en el alta se puede descartar).
+      const photo = suggestion?.imageUrl ? null : await takePhoto();
+      const preview = suggestion?.imageUrl ?? (photo ? URL.createObjectURL(photo) : null);
 
       setScanning(false);
-      setPending({ code, photo, preview });
+      setPending({
+        code,
+        photo,
+        preview,
+        fromDirectory: Boolean(suggestion?.imageUrl),
+        suggestedName: suggestion?.name ?? "",
+      });
     } finally {
       setBusy(false);
     }
@@ -94,7 +119,9 @@ export function CatalogScanButton({ branchId, categories, units }: CatalogScanBu
           }}
           open
           photo={pending.photo}
+          photoFromDirectory={pending.fromDirectory}
           photoPreview={pending.preview}
+          suggestedName={pending.suggestedName}
           units={units}
         />
       ) : null}

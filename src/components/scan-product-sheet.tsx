@@ -27,6 +27,10 @@ type ScanProductSheetProps = {
   // Foto tomada con la misma cámara al escanear.
   photo: File | null;
   photoPreview: string | null;
+  // La foto ya existe online (la trajo el código): la baja el servidor, no se sube.
+  photoFromDirectory: boolean;
+  // Nombre que trajo el código de la base pública de productos. Puede ser "".
+  suggestedName: string;
   onClose: () => void;
   onCreated: (productId: string, name: string) => void;
 };
@@ -50,11 +54,13 @@ export function ScanProductSheet({
   units,
   photo,
   photoPreview,
+  photoFromDirectory,
+  suggestedName,
   onClose,
   onCreated,
 }: ScanProductSheetProps) {
   const [step, setStep] = useState(0);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(suggestedName);
   const [price, setPrice] = useState("");
   const [cost, setCost] = useState("");
   const [stock, setStock] = useState("");
@@ -62,7 +68,12 @@ export function ScanProductSheet({
   const [minStock, setMinStock] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // La foto de la cámara se puede descartar: apuntando al código, muchas veces
+  // lo que sale es el código y no el producto.
+  const [keepPhoto, setKeepPhoto] = useState(true);
   const [isPending, startTransition] = useTransition();
+
+  const showPhoto = Boolean(photoPreview) && (photoFromDirectory || keepPhoto);
 
   const meta = STEPS[step];
   const isLast = step === STEPS.length - 1;
@@ -71,7 +82,7 @@ export function ScanProductSheet({
 
   function reset() {
     setStep(0);
-    setName("");
+    setName(suggestedName);
     setPrice("");
     setCost("");
     setStock("");
@@ -79,6 +90,7 @@ export function ScanProductSheet({
     setMinStock("");
     setCategoryId("");
     setError(null);
+    setKeepPhoto(true);
   }
 
   function close() {
@@ -108,7 +120,10 @@ export function ScanProductSheet({
       formData.set("unit", unit);
       formData.set("minStock", minStock);
       formData.set("categoryId", categoryId);
-      if (photo) {
+
+      if (photoFromDirectory) {
+        formData.set("directoryPhoto", "1");
+      } else if (photo && keepPhoto) {
         formData.set("photo", photo);
       }
 
@@ -149,14 +164,29 @@ export function ScanProductSheet({
           {/* El código y la foto viajan con el alta: se ven siempre, para que
               quede claro qué se está cargando. */}
           <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
-            {photoPreview ? (
+            {showPhoto ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img alt="" className="size-14 shrink-0 rounded-xl object-cover" src={photoPreview} />
+              <img alt="" className="size-14 shrink-0 rounded-xl bg-white object-contain" src={photoPreview ?? ""} />
             ) : null}
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Código escaneado</p>
               <p className="truncate font-mono text-sm font-bold text-slate-700">{code || "sin código"}</p>
+              {photoFromDirectory ? (
+                <p className="mt-0.5 text-xs font-bold text-emerald-600">Foto y nombre traídos del código</p>
+              ) : null}
             </div>
+
+            {/* Sin foto de la base queda la de la cámara, que suele ser el propio
+                código de barras. Se puede tirar de un toque. */}
+            {photoPreview && !photoFromDirectory && keepPhoto ? (
+              <button
+                className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-black text-slate-500 shadow-sm transition active:scale-95"
+                onClick={() => setKeepPhoto(false)}
+                type="button"
+              >
+                Quitar foto
+              </button>
+            ) : null}
           </div>
 
           {step === 0 ? (

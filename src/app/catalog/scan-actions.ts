@@ -6,6 +6,7 @@ import { getProductErrorMessage } from "@/lib/catalog-error-messages";
 import { logError } from "@/lib/logger";
 import { parseQuantityInput } from "@/lib/quantity";
 import { ProductError } from "@/modules/catalog/product.errors";
+import { downloadDirectoryImage, lookupBarcodeInDirectory, type DirectorySuggestion } from "@/modules/catalog/barcode-directory";
 import { saveProductImage } from "@/modules/catalog/product-image.use-case";
 import {
   createScannedProduct,
@@ -20,7 +21,9 @@ import { revalidatePath } from "next/cache";
 
 export type LookupResult =
   | { found: true; product: ScannedProduct }
-  | { found: false };
+  // Si no lo tenemos, va lo que sepa de ese código la base pública de productos:
+  // nombre y foto, para no tener que tipear ni fotografiar nada.
+  | { found: false; suggestion: DirectorySuggestion | null };
 
 export async function lookupProductByCode(input: { code: string; branchId?: string | null }): Promise<LookupResult> {
   const session = await requireAdminSession();
@@ -31,7 +34,11 @@ export async function lookupProductByCode(input: { code: string; branchId?: stri
     code: input.code,
   });
 
-  return product ? { found: true, product } : { found: false };
+  if (product) {
+    return { found: true, product };
+  }
+
+  return { found: false, suggestion: await lookupBarcodeInDirectory(input.code) };
 }
 
 export type CreateScannedResult =
@@ -59,6 +66,10 @@ export async function createProductFromScan(formData: FormData): Promise<CreateS
   }
 
   const photo = formData.get("photo");
+  // La foto sugerida no viaja por URL desde el navegador: se vuelve a preguntar
+  // por el código acá. Una URL que manda el cliente es una dirección que elige
+  // el cliente, y el que la pediría sería el servidor.
+  const useDirectoryPhoto = text(formData, "directoryPhoto") === "1";
 
   try {
     const product = await createScannedProduct({
@@ -75,14 +86,16 @@ export async function createProductFromScan(formData: FormData): Promise<CreateS
       userId: session.user.id,
     });
 
-    // La foto sale del mismo cuadro de la cámara con el que se escaneó, así que
-    // si vino, se guarda acá mismo. Que falle no invalida el alta.
-    if (photo instanceof File && photo.size > 0) {
+    // La foto sale de la base pública (buscada por el código) o del cuadro de la
+    // cámara. Que falle no invalida el alta: el producto ya está creado.
+    const file = useDirectoryPhoto ? await directoryPhoto(code) : photo instanceof File && photo.size > 0 ? photo : null;
+
+    if (file) {
       try {
         await saveProductImage({
           businessId: session.user.businessId,
           productId: product.id,
-          file: photo,
+          file,
           userId: session.user.id,
         });
       } catch (error) {
@@ -112,6 +125,11 @@ export async function createProductFromScan(formData: FormData): Promise<CreateS
 
     return { ok: false, error: "No pudimos crear el producto. Intentá de nuevo." };
   }
+}
+
+async function directoryPhoto(code: string) {
+  const suggestion = await lookupBarcodeInDirectory(code);
+  return suggestion?.imageUrl ? await downloadDirectoryImage(suggestion.imageUrl) : null;
 }
 
 function text(formData: FormData, key: string) {
