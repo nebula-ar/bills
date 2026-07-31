@@ -52,7 +52,7 @@ test.describe("Escáner de códigos", () => {
     await expect(page.getByTestId("scan-feedback")).toHaveText(/Ya lo tenés/, { timeout: 15_000 });
   });
 
-  test("en el POS, escanear pide confirmar el producto y la cantidad", async ({ page }) => {
+  test("lo escaneado entra al pedido y se ve abajo, sin cerrar la cámara", async ({ page }) => {
     await page.goto("/sales/new");
     await elegirVendedor(page);
     await page.getByRole("button", { name: "Escanear código" }).click();
@@ -62,24 +62,21 @@ test.describe("Escáner de códigos", () => {
     await page.locator('input[name="code"]').fill("7790001000017");
     await page.getByRole("button", { name: "Buscar" }).click();
 
-    // No entra solo al pedido: primero se ve QUÉ es y CUÁNTOS.
-    await expect(page.getByText("¿Cuántos?")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole("paragraph").filter({ hasText: "Alfajor triple" })).toBeVisible();
-    await expect(page.getByTestId("scan-confirm")).toContainText("1.800");
+    // El renglón aparece en el panel de abajo, con la cámara todavía abierta.
+    const pedido = page.getByTestId("scan-cart");
+    await expect(pedido.getByText("Alfajor triple")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("scan-review")).toContainText("1.800");
 
-    // Dos unidades: el total del botón acompaña.
-    await page.getByRole("button", { name: "Sumar" }).click();
-    await expect(page.getByTestId("scan-confirm")).toContainText("3.600");
+    // Y la cantidad se corrige ahí mismo: 2 alfajores = $3.600.
+    await pedido.getByRole("button", { name: "Sumar Alfajor triple" }).click();
+    await expect(page.getByTestId("scan-review")).toContainText("3.600");
 
-    await page.getByTestId("scan-confirm").click();
-    await expect(page.getByTestId("scan-feedback")).toHaveText(/Alfajor triple/, { timeout: 15_000 });
-
-    // Y el carrito quedó con lo confirmado: 2 alfajores = $3.600.
-    await page.getByRole("button", { name: "Cerrar" }).click();
+    // Al revisar, el pedido está cargado en el mostrador.
+    await page.getByTestId("scan-review").click();
     await expect(page.getByText(/3\.600/).first()).toBeVisible({ timeout: 15_000 });
   });
 
-  test("se puede cancelar lo escaneado sin que entre al pedido", async ({ page }) => {
+  test("lo que se escaneó de más se saca desde el mismo panel", async ({ page }) => {
     await page.goto("/sales/new");
     await elegirVendedor(page);
     await page.getByRole("button", { name: "Escanear código" }).click();
@@ -87,13 +84,13 @@ test.describe("Escáner de códigos", () => {
     await page.locator('input[name="code"]').fill("7790001000017");
     await page.getByRole("button", { name: "Buscar" }).click();
 
-    await expect(page.getByText("¿Cuántos?")).toBeVisible({ timeout: 15_000 });
-    await page.getByTestId("scan-cancel").click();
+    const pedido = page.getByTestId("scan-cart");
+    await expect(pedido.getByText("Alfajor triple")).toBeVisible({ timeout: 15_000 });
+    await pedido.getByRole("button", { name: "Restar Alfajor triple" }).click();
 
-    // Nada se agregó: el pedido sigue vacío.
-    await expect(page.getByText("¿Cuántos?")).toHaveCount(0);
-    await page.getByRole("button", { name: "Cerrar" }).click();
-    await expect(page.getByRole("button", { name: /Confirmar venta/ })).toHaveCount(0);
+    // Vuelve a quedar vacío: no hay nada que revisar.
+    await expect(page.getByText("Todavía no pasaste nada")).toBeVisible();
+    await expect(page.getByTestId("scan-review")).toBeDisabled();
   });
 
   test("el atajo de bulto carga la caja entera de una", async ({ page }) => {
@@ -105,10 +102,12 @@ test.describe("Escáner de códigos", () => {
     await page.locator('input[name="code"]').fill("7790002000014");
     await page.getByRole("button", { name: "Buscar" }).click();
 
-    await expect(page.getByText("¿Cuántos?")).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("button", { name: /Caja ×12/ }).click();
-    // 12 × $2.200 = $26.400
-    await expect(page.getByTestId("scan-confirm")).toContainText("26.400");
+    const pedido = page.getByTestId("scan-cart");
+    await expect(pedido.getByText("Gaseosa 500 ml")).toBeVisible({ timeout: 15_000 });
+    await pedido.getByRole("button", { name: /Caja ×12/ }).click();
+
+    // La que se escaneó más la caja: 13 × $2.200 = $28.600
+    await expect(page.getByTestId("scan-review")).toContainText("28.600");
   });
 
   test("un código desconocido en el POS avisa que no está", async ({ page }) => {
@@ -162,7 +161,7 @@ test.describe("Escanear busca en la base, no solo en memoria", () => {
     await page.locator('input[name="code"]').fill(codigo);
     await page.getByRole("button", { name: "Buscar" }).click();
 
-    await expect(page.getByTestId("scan-confirm")).toContainText("2.500", { timeout: 20_000 });
+    await expect(page.getByTestId("scan-review")).toContainText("2.500", { timeout: 20_000 });
   });
 
   test("un producto apagado en la sucursal lo dice con todas las letras", async ({ page }) => {

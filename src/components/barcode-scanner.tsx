@@ -2,13 +2,18 @@
 
 import { Loader2, X } from "@/components/icons";
 import { captureFrame, cleanCode, openCamera, startScanning, stopCamera, type Scanner } from "@/lib/barcode";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 // Cámara a pantalla completa que lee códigos de barras y QR.
 //
 // Es el mismo componente para las dos cosas que se hacen con la cámara —cargar
 // un producto nuevo y venderlo— porque el gesto es idéntico: apuntar y leer. Lo
 // que cambia es qué hace el que la usa con el código (`onDetect`).
+//
+// Con `panel`, la cámara ocupa la franja de arriba y abajo queda un panel fijo
+// (en la venta: el pedido, con cantidades y total). Es la diferencia entre
+// escanear a ciegas y ver lo que llevás mientras pasás la mercadería: el error
+// de haber sumado dos veces el mismo envase se ve en el momento, no en el total.
 
 export type ScannerMode = "single" | "continuous";
 
@@ -23,6 +28,8 @@ type BarcodeScannerProps = {
   onClose: () => void;
   // Mensaje efímero que muestra el que la usa ("Alfajor triple +1").
   feedback?: { tone: "ok" | "warn"; text: string } | null;
+  // Panel bajo la cámara. Sin esto, la cámara ocupa todo el alto.
+  panel?: ReactNode;
 };
 
 // Cuánto esperamos antes de volver a aceptar el MISMO código. Sin esto, un
@@ -37,6 +44,7 @@ export function BarcodeScanner({
   onDetect,
   onClose,
   feedback,
+  panel,
 }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -45,7 +53,12 @@ export function BarcodeScanner({
   // El callback cambia en cada render del padre; lo guardamos para no reiniciar
   // la cámara cada vez (reiniciarla parpadea y tarda).
   const onDetectRef = useRef(onDetect);
-  onDetectRef.current = onDetect;
+
+  // Se actualiza después del render, no durante: tocar un ref mientras se
+  // renderiza es justamente lo que hace que React no vea el cambio.
+  useEffect(() => {
+    onDetectRef.current = onDetect;
+  });
 
   const [status, setStatus] = useState<"idle" | "starting" | "scanning" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -155,12 +168,20 @@ export function BarcodeScanner({
         </button>
       </div>
 
-      <div className="relative min-h-0 flex-1">
+      {/* Con panel, la cámara cede la mitad de abajo: sigue siendo cómoda para
+          apuntar y deja ver el pedido sin cerrar el lector. */}
+      {/* `overflow-hidden` no es cosmético: el velo del marco de puntería es una
+          sombra de 100vmax y, sin recortar, oscurece también el panel de abajo. */}
+      <div className={panel ? "relative h-[38dvh] shrink-0 overflow-hidden" : "relative min-h-0 flex-1 overflow-hidden"}>
         <video className="size-full object-cover" muted playsInline ref={videoRef} />
 
         {/* Marco de puntería: ayuda a encuadrar el código. */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-40 w-[78%] max-w-sm rounded-2xl border-2 border-white/80 shadow-[0_0_0_100vmax_rgba(2,6,23,0.55)]" />
+          <div
+            className={`w-[78%] max-w-sm rounded-2xl border-2 border-white/80 shadow-[0_0_0_100vmax_rgba(2,6,23,0.55)] ${
+              panel ? "h-28" : "h-40"
+            }`}
+          />
         </div>
 
         {status === "starting" ? (
@@ -182,9 +203,21 @@ export function BarcodeScanner({
             </button>
           </div>
         ) : null}
-      </div>
 
-      <div className="px-5 pt-2">
+        {/* Escribir el código a mano y el aviso de la última lectura van
+            superpuestos: no le roban alto ni a la cámara ni al pedido. */}
+        <div className="absolute inset-x-0 bottom-0 space-y-2 bg-gradient-to-t from-slate-950/90 to-transparent px-4 pb-3 pt-8">
+          {feedback ? (
+            <p
+              className={`rounded-2xl bg-slate-950/80 px-4 py-2.5 text-center text-sm font-black ${
+                feedback.tone === "ok" ? "text-emerald-300" : "text-amber-300"
+              }`}
+              data-testid="scan-feedback"
+            >
+              {feedback.text}
+            </p>
+          ) : null}
+
         {manualOpen ? (
           <form
             className="flex items-center gap-2"
@@ -214,25 +247,18 @@ export function BarcodeScanner({
           </form>
         ) : (
           <button
-            className="w-full rounded-2xl bg-white/10 py-2.5 text-xs font-bold text-white/70 transition active:scale-95"
+            className="w-full rounded-2xl bg-slate-950/70 py-2.5 text-xs font-bold text-white/80 transition active:scale-95"
             onClick={() => setManualOpen(true)}
             type="button"
           >
             Escribir el código a mano
           </button>
         )}
+        </div>
       </div>
 
-      {feedback ? (
-        <div
-          className={`px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 ${
-            feedback.tone === "ok" ? "text-emerald-300" : "text-amber-300"
-          }`}
-        >
-          <p className="rounded-2xl bg-white/10 px-4 py-3 text-center text-sm font-black" data-testid="scan-feedback">
-            {feedback.text}
-          </p>
-        </div>
+      {panel ? (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-[1.75rem] bg-white">{panel}</div>
       ) : (
         <div className="px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3">
           <p className="text-center text-xs text-white/50">

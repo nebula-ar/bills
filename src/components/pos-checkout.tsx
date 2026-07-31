@@ -195,6 +195,9 @@ export function PosCheckout({
   // lector no sigue leyendo: primero se resuelve lo que ya está en pantalla.
   const [scanned, setScanned] = useState<ScannedProduct | null>(null);
   const [scanFeedback, setScanFeedback] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
+  // Lo último que entró por el lector. Se resalta en el panel: con la caja
+  // enfrente, "¿lo tomó?" se contesta mirando, no revisando el total.
+  const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [splitMode, setSplitMode] = useState(false);
   const [singleMethod, setSingleMethod] = useState(paymentOptions[0]?.value ?? "");
@@ -400,12 +403,31 @@ export function PosCheckout({
   // Escaneo en venta: el catálogo de la sucursal ya está en memoria, así que
   // resolver el código es instantáneo y no hay que ir al servidor con la cámara
   // abierta. Suma 1 y sigue leyendo, para pasar productos uno atrás de otro.
-  // Escanear NO agrega directo: abre la confirmación con el producto y la
-  // cantidad. Un código mal leído o dos envases parecidos se colaban al pedido
-  // sin que nadie los viera hasta el total.
+  //
+  // Lo escaneado entra derecho al pedido y se ve en el panel de abajo, con su
+  // cantidad y el total: ahí se corrige un envase de más sin cortar el ritmo.
+  // La confirmación en pantalla queda solo para lo que se vende por peso o por
+  // metro, donde no hay cantidad que suponer: sale de la balanza.
   function avisar(tone: "ok" | "warn", text: string, ms = 2600) {
     setScanFeedback({ tone, text });
     window.setTimeout(() => setScanFeedback(null), ms);
+  }
+
+  // Suma al pedido lo que llegó por el lector y lo deja marcado en el panel.
+  function pushScanned(product: ScannedProduct, quantity: number) {
+    setCart((current) => ({ ...current, [product.productId]: (current[product.productId] ?? 0) + quantity }));
+    setLastAddedId(product.productId);
+    avisar("ok", `${product.name} · ${formatQuantity(quantity, product.unit)}`, 1800);
+  }
+
+  // Por peso o por metro se pregunta; por unidad, uno.
+  function takeScanned(product: ScannedProduct) {
+    if (allowsFraction(product.unit)) {
+      setScanned(product);
+      return;
+    }
+
+    pushScanned(product, ONE);
   }
 
   async function handleScan(code: string) {
@@ -422,7 +444,7 @@ export function PosCheckout({
       return;
     }
 
-    setScanned({
+    takeScanned({
       productId: match.productId,
       name: match.name,
       price: match.price,
@@ -461,7 +483,7 @@ export function PosCheckout({
 
       setExtraProducts((current) => [...current, encontrado]);
       setScanFeedback(null);
-      setScanned({
+      takeScanned({
         productId: encontrado.productId,
         name: encontrado.name,
         price: encontrado.price,
@@ -497,13 +519,8 @@ export function PosCheckout({
     if (!scanned) return;
 
     const producto = scanned;
-    setCart((current) => ({ ...current, [producto.productId]: (current[producto.productId] ?? 0) + quantity }));
     setScanned(null);
-    setScanFeedback({
-      tone: "ok",
-      text: `${producto.name} · ${formatQuantity(quantity, producto.unit)}`,
-    });
-    window.setTimeout(() => setScanFeedback(null), 1800);
+    pushScanned(producto, quantity);
   }
 
   // Carga directa de cantidad, para lo que se vende por peso o por metro.
@@ -955,18 +972,140 @@ export function PosCheckout({
 
       <BarcodeScanner
         feedback={scanFeedback}
-        hint={
-          itemCount === 0
-            ? "Pasá el código por la cámara"
-            : `${itemCount} ${itemCount === 1 ? catalogSingular.toLowerCase() : catalogPlural.toLowerCase()} · ${money(total)}`
-        }
+        hint="Pasá un producto atrás de otro"
         mode="continuous"
         onClose={() => {
           setScanning(false);
           setScanFeedback(null);
+          setLastAddedId(null);
         }}
         onDetect={(code) => void handleScan(code)}
         open={scanning}
+        // El pedido, abajo de la cámara y en vivo: lo que se escanea se ve
+        // entrar, con su cantidad y el total, sin cerrar el lector.
+        panel={
+          <>
+            <div className="flex items-start justify-between gap-3 px-4 pt-4">
+              <div className="min-w-0">
+                <p className="text-base font-black tracking-tight text-slate-950">Escaneados</p>
+                <p className="text-xs font-bold text-slate-400">
+                  {itemCount === 0
+                    ? "Todavía no pasaste nada"
+                    : `${itemCount} ${itemCount === 1 ? catalogSingular.toLowerCase() : catalogPlural.toLowerCase()}`}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Total</p>
+                <p className="text-xl font-black tabular-nums text-slate-950">{money(total)}</p>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3" data-testid="scan-cart">
+              {hasItems ? (
+                cartItems.map((item) => {
+                  const sinStock = item.stock !== null && item.quantity > item.stock;
+
+                  return (
+                    <div
+                      className={`flex items-center gap-2.5 rounded-2xl p-2.5 transition ${
+                        item.productId === lastAddedId ? "bg-blue-50 ring-2 ring-blue-500" : "bg-slate-50"
+                      }`}
+                      key={item.productId}
+                    >
+                      {item.imageVersion !== null ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          alt=""
+                          className="size-11 shrink-0 rounded-xl bg-white object-cover"
+                          src={`/api/products/${item.productId}/image?v=${item.imageVersion}`}
+                        />
+                      ) : (
+                        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600">
+                          <DynamicIcon className="size-5" name={catalogIcon} />
+                        </span>
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-black leading-tight text-slate-950">{item.name}</p>
+                        <p className="text-xs font-bold tabular-nums text-slate-500">
+                          {money(lineTotal(item.price, item.quantity))}
+                          <span className="text-slate-400"> · {money(item.price)} c/u</span>
+                        </p>
+                        {sinStock ? <p className="text-xs font-bold text-amber-600">Más de lo que te queda</p> : null}
+
+                        {/* El bulto entero, sin tocar "+" doce veces. */}
+                        {item.packSize && item.packSize > 1 ? (
+                          <button
+                            className="mt-1 rounded-lg bg-slate-900 px-2.5 py-1.5 text-[11px] font-black text-white transition active:scale-95"
+                            onClick={() => addPack(item.productId, item.packSize as number)}
+                            type="button"
+                          >
+                            + {item.packLabel ?? "Bulto"} ×{item.packSize}
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {allowsFraction(item.unit) ? (
+                        // Por peso no hay +/-: la cantidad la dio la balanza.
+                        <span className="shrink-0 rounded-xl bg-white px-3 py-2 text-sm font-black tabular-nums text-slate-700">
+                          {formatQuantity(item.quantity, item.unit)}
+                        </span>
+                      ) : (
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            aria-label={`Restar ${item.name}`}
+                            className="flex size-10 items-center justify-center rounded-xl bg-white text-slate-600 shadow-sm transition active:scale-90"
+                            onClick={() => decreaseProduct(item.productId)}
+                            type="button"
+                          >
+                            <Minus className="size-4" />
+                          </button>
+                          <span className="w-7 text-center text-base font-black tabular-nums text-slate-950">
+                            {formatQuantity(item.quantity)}
+                          </span>
+                          <button
+                            aria-label={`Sumar ${item.name}`}
+                            className="flex size-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm transition active:scale-90"
+                            onClick={() => addProduct(item.productId)}
+                            type="button"
+                          >
+                            <Plus className="size-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
+                  <span className="flex size-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+                    <QrCode className="size-6" />
+                  </span>
+                  <p className="text-sm font-bold text-slate-400">
+                    Lo que escanees aparece acá, con la cantidad y el total.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-slate-100 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
+              <button
+                className="flex w-full items-center justify-between gap-3 rounded-2xl bg-blue-600 px-5 py-4 text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+                data-testid="scan-review"
+                disabled={!hasItems}
+                onClick={() => {
+                  setScanning(false);
+                  setScanFeedback(null);
+                  setLastAddedId(null);
+                }}
+                type="button"
+              >
+                <span className="text-base font-black">Revisar el pedido</span>
+                <span className="text-lg font-black tabular-nums">{money(total)}</span>
+              </button>
+            </div>
+          </>
+        }
         title="Escanear para vender"
       />
 
