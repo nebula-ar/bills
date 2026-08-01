@@ -29,6 +29,10 @@ export function findExpensesInRange(input: { businessId: string; from?: Date; to
       branch: {
         select: { name: true },
       },
+      supplierId: true,
+      supplier: {
+        select: { name: true },
+      },
     },
   });
 }
@@ -74,6 +78,7 @@ export function findManageableExpense(expenseId: string, businessId: string) {
 export function createExpense(input: {
   businessId: string;
   branchId?: string | null;
+  supplierId?: string | null;
   category: ExpenseCategory;
   paymentMethod: PaymentMethod;
   amount: number;
@@ -84,6 +89,7 @@ export function createExpense(input: {
     data: {
       businessId: input.businessId,
       branchId: input.branchId ?? null,
+      supplierId: input.supplierId ?? null,
       category: input.category,
       paymentMethod: input.paymentMethod,
       amount: input.amount,
@@ -96,6 +102,7 @@ export function createExpense(input: {
 export function updateExpense(input: {
   expenseId: string;
   branchId?: string | null;
+  supplierId?: string | null;
   category: ExpenseCategory;
   paymentMethod: PaymentMethod;
   amount: number;
@@ -106,6 +113,7 @@ export function updateExpense(input: {
     where: { id: input.expenseId },
     data: {
       branchId: input.branchId ?? null,
+      supplierId: input.supplierId ?? null,
       category: input.category,
       paymentMethod: input.paymentMethod,
       amount: input.amount,
@@ -113,6 +121,17 @@ export function updateExpense(input: {
       spentAt: input.spentAt,
     },
   });
+}
+
+// Un proveedor solo se puede nombrar en un gasto si es de este negocio: el id
+// llega de un <select> del navegador y de ahí no se cree nada.
+export async function findUsableSupplierId(supplierId: string, businessId: string) {
+  const supplier = await prisma.supplier.findFirst({
+    where: { id: supplierId, businessId, deleted: false },
+    select: { id: true },
+  });
+
+  return supplier?.id ?? null;
 }
 
 export function softDeleteExpense(expenseId: string) {

@@ -1,4 +1,4 @@
-import { PaymentMethod, SaleStatus, UserRole } from "@/generated/prisma/client";
+import { PaymentMethod, SaleStatus, StockMovementType, UserRole } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type SalesReportFilters = {
@@ -64,6 +64,14 @@ export function findReportSales(businessId: string, filters: SalesReportFilters)
           description: true,
           quantity: true,
           total: true,
+          // Costo congelado al vender: es lo que hace que la ganancia sea la
+          // de ese momento y no la que daría el costo de reposición de hoy.
+          unitCost: true,
+          // Para distinguir el renglón que le FALTA el costo del que no tiene
+          // costo porque no puede tenerlo: un corte de pelo no tiene costo de
+          // mercadería, lo que cuesta es el tiempo del empleado (y eso ya está
+          // en sueldos y comisiones).
+          product: { select: { trackStock: true } },
         },
       },
       payments: {
@@ -108,6 +116,54 @@ export async function sumReportSalesTotal(businessId: string, filters: SalesRepo
 
   const aggregate = await prisma.sale.aggregate({ where: saleWhere, _sum: { total: true } });
   return aggregate._sum.total ?? 0;
+}
+
+// Devoluciones del período, con el costo de lo que volvió al stock. Se cuentan
+// por `returnedAt` y no por la fecha de la venta: la plata se devuelve el día
+// que el cliente vuelve, aunque haya comprado el mes pasado.
+export function findReturnedItemsInRange(businessId: string, from?: Date, to?: Date) {
+  return prisma.saleReturnItem.findMany({
+    where: {
+      saleReturn: {
+        branch: { businessId, deleted: false },
+        ...(from || to ? { returnedAt: { gte: from, lte: to } } : {}),
+      },
+    },
+    select: {
+      quantity: true,
+      amount: true,
+      saleItem: { select: { unitCost: true } },
+    },
+  });
+}
+
+// Plata inmovilizada en mercadería, sumando las sucursales. Es lo que la compra
+// dejó en la góndola en vez de dejarlo en la caja. Se valúa al promedio
+// ponderado de cada sucursal (ver costing.logic.ts).
+export function findStockForValuation(businessId: string) {
+  return prisma.product.findMany({
+    where: { businessId, deleted: false, active: true, trackStock: true },
+    select: {
+      cost: true,
+      stockLevels: { select: { quantity: true, avgCost: true } },
+    },
+  });
+}
+
+// Mercadería que se perdió: merma, rotura, vencimiento, robo, y los faltantes
+// que aparecen al contar. Es pérdida del período — plata que se compró y nunca
+// se va a vender. Antes bajaba el stock en silencio y el resultado no se
+// enteraba, que es justo por donde se escapa un faltante sin que nadie lo note.
+export function findInventoryLossesInRange(businessId: string, from?: Date, to?: Date) {
+  return prisma.stockMovement.findMany({
+    where: {
+      branch: { businessId, deleted: false },
+      type: { in: [StockMovementType.LOSS, StockMovementType.ADJUSTMENT] },
+      quantity: { lt: 0 },
+      ...(from || to ? { occurredAt: { gte: from, lte: to } } : {}),
+    },
+    select: { type: true, quantity: true, unitCost: true, reason: true, product: { select: { name: true } } },
+  });
 }
 
 export function findReportStaffs(businessId: string) {

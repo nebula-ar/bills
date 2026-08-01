@@ -40,6 +40,12 @@ export async function getBranchStockOverview(businessId: string, branchId: strin
     const status: StockRow["status"] =
       quantity <= 0 ? "out" : minStock !== null && quantity <= minStock ? "low" : "ok";
 
+    // Se valúa al promedio ponderado de lo que hay, no al último costo pagado:
+    // valuar mercadería vieja al precio de la última compra infla el patrimonio
+    // (ver costing.logic.ts). El costo del producto queda de respaldo para el
+    // stock que entró antes de que hubiera promedio.
+    const valuationCost = product.stockLevels[0]?.avgCost ?? product.cost;
+
     return {
       productId: product.id,
       name: product.name,
@@ -51,7 +57,7 @@ export async function getBranchStockOverview(businessId: string, branchId: strin
       minStock,
       cost: product.cost,
       price: product.branchPrices[0]?.price ?? null,
-      stockValue: product.cost ? lineTotal(product.cost, Math.max(quantity, 0)) : 0,
+      stockValue: valuationCost ? lineTotal(valuationCost, Math.max(quantity, 0)) : 0,
       status,
     };
   });

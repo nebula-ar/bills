@@ -88,20 +88,23 @@ test.describe("Módulos del sistema", () => {
     await expect(page.getByRole("listitem").filter({ hasText: "Pago" }).first()).toBeVisible({ timeout: 15_000 });
   });
 
-  test("proveedores: cargar una factura y pagarla la deja saldada", async ({ page }) => {
+  // Proveedores no tiene pantalla propia: una compra es plata que sale, así que
+  // todo el circuito —alta, factura, pago— pasa por Gastos.
+  test("proveedores: cargar una factura y pagarla la saca de lo que se debe", async ({ page }) => {
     const unique = Date.now();
-    await page.goto("/suppliers");
+    await page.goto("/expenses");
 
     // Proveedor propio del test: así no depende del estado que dejaron otros.
-    const alta = page.locator("form", { hasText: "Crear proveedor" });
+    await page.getByRole("button", { name: "Proveedores" }).click();
+    const alta = page.locator("form", { hasText: "Nuevo proveedor" });
     await alta.locator('input[name="name"]').fill(`Proveedor E2E ${unique}`);
     await alta.getByRole("button", { name: "Crear proveedor" }).click();
-    // Recargamos para leer la lista ya persistida, sin depender de cuándo el
-    // router termina de aplicar la respuesta de la acción.
-    await page.goto("/suppliers");
-    await expect(page.getByRole("row").filter({ hasText: `Proveedor E2E ${unique}` })).toBeVisible();
+    await expect(page.getByText(`Proveedor E2E ${unique}`)).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Cerrar" }).last().click();
 
     // Factura de compra a ese proveedor por $10.000 (10 unidades a $1.000).
+    await page.getByRole("button", { name: "Nuevo gasto" }).click();
+    await page.getByRole("button", { name: "Cargar una factura de proveedor" }).click();
     const factura = page.locator("form", { hasText: "Cargar factura" });
     await factura.locator('select[name="supplierId"]').selectOption({ label: `Proveedor E2E ${unique}` });
     await factura.locator('input[name="number"]').fill(`0001-${unique}`);
@@ -109,17 +112,77 @@ test.describe("Módulos del sistema", () => {
     await factura.locator('input[name="itemQuantity"]').first().fill("10");
     await factura.locator('input[name="itemUnitCost"]').first().fill("1000");
     await factura.getByRole("button", { name: "Cargar factura" }).click();
-    await page.goto("/suppliers");
 
-    const fila = page.getByRole("row").filter({ hasText: `Proveedor E2E ${unique}` });
-    await expect(fila.getByText("Pendiente")).toBeVisible();
+    // Queda en "A pagar" con lo que falta.
+    await page.goto("/expenses");
+    const deuda = page.getByRole("button", { name: `Factura de Proveedor E2E ${unique}` });
+    await expect(deuda).toBeVisible({ timeout: 15_000 });
 
-    // Se paga completa: queda saldada y sin saldo pendiente.
-    await fila.getByRole("button", { name: "Pagar" }).click();
-    await page.goto("/suppliers");
-    await expect(
-      page.getByRole("row").filter({ hasText: `Proveedor E2E ${unique}` }).getByText("Pagada"),
-    ).toBeVisible();
+    // Se paga completa: sale de lo que se debe y entra a lo que salió este mes.
+    await deuda.click();
+    await page.getByRole("button", { name: "Registrar pago" }).click();
+
+    await page.goto("/expenses");
+    await expect(page.getByRole("button", { name: `Factura de Proveedor E2E ${unique}` })).toHaveCount(0, {
+      timeout: 15_000,
+    });
+    await expect(page.getByText(`Pago a Proveedor E2E ${unique}`)).toBeVisible();
+  });
+
+  // Anular una compra tiene que devolver la mercadería. Si no, queda stock
+  // fantasma: valuado en el patrimonio y vendible en el POS.
+  test("proveedores: anular una factura saca del stock lo que había metido", async ({ page }) => {
+    const unique = Date.now();
+
+    // Existencia conocida de partida.
+    await page.goto("/stock");
+    const ajuste = page.locator("form", { hasText: "Guardar ajuste" });
+    await ajuste.locator('select[name="productId"]').selectOption({ label: "Chicles (un)" });
+    await ajuste.locator('input[name="counted"]').fill("50");
+    await ajuste.getByRole("button", { name: "Guardar ajuste" }).click();
+    await expect(page.getByRole("row").filter({ hasText: "Chicles" }).getByText("50 un")).toBeVisible({
+      timeout: 15_000,
+    });
+
+    // Factura que mete 20 Chicles.
+    await page.goto("/expenses");
+    await page.getByRole("button", { name: "Proveedores" }).click();
+    const alta = page.locator("form", { hasText: "Nuevo proveedor" });
+    await alta.locator('input[name="name"]').fill(`Anulable ${unique}`);
+    await alta.getByRole("button", { name: "Crear proveedor" }).click();
+    await expect(page.getByText(`Anulable ${unique}`)).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Cerrar" }).last().click();
+
+    await page.getByRole("button", { name: "Nuevo gasto" }).click();
+    await page.getByRole("button", { name: "Cargar una factura de proveedor" }).click();
+    const factura = page.locator("form", { hasText: "Cargar factura" });
+    await factura.locator('select[name="supplierId"]').selectOption({ label: `Anulable ${unique}` });
+    await factura.locator('select[name="branchId"]').selectOption({ label: "Sucursal Centro" });
+    await factura.locator('select[name="itemProductId"]').first().selectOption({ label: "Chicles (un)" });
+    await factura.locator('input[name="itemDescription"]').first().fill("Chicles");
+    await factura.locator('input[name="itemQuantity"]').first().fill("20");
+    await factura.locator('input[name="itemUnitCost"]').first().fill("500");
+    await factura.getByRole("button", { name: "Cargar factura" }).click();
+
+    // Entró: 50 + 20.
+    await page.goto("/stock");
+    await expect(page.getByRole("row").filter({ hasText: "Chicles" }).getByText("70 un")).toBeVisible({
+      timeout: 15_000,
+    });
+
+    // Se anula y la mercadería tiene que volver a salir.
+    await page.goto("/expenses");
+    await page.getByRole("button", { name: `Factura de Anulable ${unique}` }).click();
+    await page.getByRole("button", { name: "Anular" }).click();
+    // `force`: el botón de confirmar vive dentro del bottom sheet, que sigue
+    // animando, y el chequeo de estabilidad de Playwright agota los 4 segundos
+    // que el propio botón se da para desarmarse solo.
+    await page.getByRole("button", { name: "Sí, anularla" }).click({ force: true });
+
+    await page.goto("/stock");
+    await expect(page.getByRole("row").filter({ hasText: "Chicles" }).getByText("50 un")).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
   test("módulos: apagar uno lo saca de la navegación", async ({ page }) => {

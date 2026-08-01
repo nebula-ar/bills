@@ -27,7 +27,10 @@ export const MODULE_INFO: Record<AppModule, ModuleInfo> = {
   [AppModule.SUPPLIERS]: {
     module: AppModule.SUPPLIERS,
     label: "Proveedores",
-    hint: "Compras, vencimientos y deuda",
+    // No tiene pantalla propia: una compra es plata que sale, así que vive
+    // dentro de Gastos. Prender esto le agrega a Gastos las facturas, la deuda
+    // y los vencimientos (ver MODULE_REQUIRES).
+    hint: "Facturas, deuda y vencimientos, dentro de Gastos",
     icon: "solar:delivery-bold",
     tint: "indigo",
   },
@@ -55,7 +58,7 @@ export const MODULE_INFO: Record<AppModule, ModuleInfo> = {
   [AppModule.EXPENSES]: {
     module: AppModule.EXPENSES,
     label: "Gastos",
-    hint: "Qué se gastó y de qué cuenta salió",
+    hint: "Todo lo que sale: gastos y compras a proveedores",
     icon: "solar:wallet-bold",
     tint: "orange",
   },
@@ -124,6 +127,13 @@ export function isAppModule(value: string): value is AppModule {
   return Object.values(AppModule).includes(value as AppModule);
 }
 
+// Módulos que no se sostienen solos porque viven dentro de otra pantalla.
+// Proveedores es el caso: sin Gastos no hay dónde entrar a las facturas, y
+// prenderlo dejaría un módulo activo sin puerta.
+export const MODULE_REQUIRES: Partial<Record<AppModule, AppModule>> = {
+  [AppModule.SUPPLIERS]: AppModule.EXPENSES,
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Navegación
 // ─────────────────────────────────────────────────────────────────────────────
@@ -188,13 +198,17 @@ export function buildNav(
   // Los módulos operativos primero; los ABM de configuración, al final.
   push(AppModule.STOCK, "/stock", { hint: "Faltantes, movimientos y traspasos" });
   push(AppModule.APPOINTMENTS, "/turnos");
-  push(AppModule.SUPPLIERS, "/suppliers");
   push(AppModule.PROMOTIONS, "/promotions");
   push(AppModule.MARKETING, "/marketing");
   push(AppModule.QUOTES, "/presupuestos");
   push(AppModule.CUSTOMERS, "/customers");
   push(AppModule.CASH, "/caja");
-  push(AppModule.EXPENSES, "/expenses");
+  // Proveedores no tiene entrada propia: entra por acá. Que el dueño no tenga
+  // que decidir si lo que le pagó al distribuidor es "un gasto" o "una compra"
+  // para saber en qué pantalla buscarlo.
+  push(AppModule.EXPENSES, "/expenses", {
+    hint: has(AppModule.SUPPLIERS) ? "Gastos, facturas de proveedor y vencimientos" : MODULE_INFO[AppModule.EXPENSES].hint,
+  });
 
   more.push({
     href: "/staff",

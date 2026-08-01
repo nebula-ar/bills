@@ -1,7 +1,14 @@
 import { PurchaseStatus } from "@/generated/prisma/client";
 import { describe, expect, it } from "vitest";
 
-import { isDueSoon, isOverdue, pendingAmount, resolvePurchaseStatus, summarizePayables } from "./purchase.logic";
+import {
+  declaredTotalGap,
+  isDueSoon,
+  isOverdue,
+  pendingAmount,
+  resolvePurchaseStatus,
+  summarizePayables,
+} from "./purchase.logic";
 
 const NOW = new Date("2026-07-27T10:00:00");
 
@@ -108,5 +115,57 @@ describe("summarizePayables", () => {
       dueSoonCount: 0,
       openCount: 0,
     });
+  });
+});
+
+// Nota de crédito: el proveedor te bonifica o te devolvés mercadería fallada.
+// Cancela deuda igual que un pago, pero sin que salga plata de la caja.
+describe("notas de crédito", () => {
+  it("bajan lo que falta pagar", () => {
+    expect(pendingAmount({ total: 100_000, paid: 30_000, credited: 20_000, status: PurchaseStatus.PARTIAL })).toBe(50_000);
+  });
+
+  it("una nota de crédito que cubre el saldo deja la factura saldada", () => {
+    expect(resolvePurchaseStatus(100_000, 40_000, false, 60_000)).toBe(PurchaseStatus.PAID);
+  });
+
+  it("sola, sin ningún pago, también salda", () => {
+    expect(resolvePurchaseStatus(100_000, 0, false, 100_000)).toBe(PurchaseStatus.PAID);
+  });
+
+  it("si no alcanza, la factura queda parcial", () => {
+    expect(resolvePurchaseStatus(100_000, 0, false, 30_000)).toBe(PurchaseStatus.PARTIAL);
+  });
+
+  it("no se cuentan en una factura anulada", () => {
+    expect(pendingAmount({ total: 100_000, paid: 0, credited: 20_000, status: PurchaseStatus.CANCELLED })).toBe(0);
+  });
+
+  it("cuentan para la deuda total del resumen", () => {
+    const summary = summarizePayables(
+      [{ id: "a", total: 100_000, paid: 0, credited: 40_000, status: PurchaseStatus.PARTIAL, dueAt: days(5) }],
+      NOW,
+    );
+
+    expect(summary.pending).toBe(60_000);
+  });
+});
+
+describe("declaredTotalGap", () => {
+  it("avisa cuando el papel dice más que los renglones", () => {
+    // Percepciones, flete o un renglón que faltó cargar.
+    expect(declaredTotalGap(700_000, 712_340)).toBe(12_340);
+  });
+
+  it("avisa cuando dice menos", () => {
+    expect(declaredTotalGap(700_000, 690_000)).toBe(-10_000);
+  });
+
+  it("sin total declarado no hay nada que comparar", () => {
+    expect(declaredTotalGap(700_000, null)).toBe(0);
+  });
+
+  it("cuando cierra, da cero", () => {
+    expect(declaredTotalGap(700_000, 700_000)).toBe(0);
   });
 });

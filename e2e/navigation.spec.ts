@@ -16,7 +16,6 @@ const ADMIN_ROUTES = [
   "/staff",
   "/terminals",
   "/stock",
-  "/suppliers",
   "/promotions",
   "/customers",
   "/settings",

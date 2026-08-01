@@ -1,6 +1,18 @@
 import { AfipStatus, InvoiceType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
+// Condición frente a AFIP. Cambia qué se le pregunta al cargar una compra: un
+// Responsable Inscripto recupera el IVA (es crédito fiscal, no costo), un
+// monotributista no.
+export async function findBusinessTaxCondition(businessId: string) {
+  const business = await prisma.business.findFirst({
+    where: { id: businessId, deleted: false },
+    select: { taxCondition: true },
+  });
+
+  return business?.taxCondition ?? null;
+}
+
 export function findSaleForInvoicing(saleId: string, businessId: string) {
   return prisma.sale.findFirst({
     where: {

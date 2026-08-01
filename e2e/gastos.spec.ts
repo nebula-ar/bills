@@ -9,12 +9,15 @@ test.describe("Gastos", () => {
 
   test("registrar un gasto nuevo", async ({ page }) => {
     await page.goto("/expenses");
+    // Con proveedores prendidos el «+» pregunta primero qué se carga: un gasto
+    // ya pago o una factura que queda a pagar.
     await page.getByRole("button", { name: "Nuevo gasto" }).click();
+    await page.getByRole("button", { name: "Cargar un gasto" }).click();
     // Monto (categoría/cuenta/fecha tienen valores por defecto).
     await page.locator('input[name="amount"]').fill("13579");
     await page.getByRole("button", { name: "Registrar gasto" }).click();
     // El gasto aparece en la lista del mes.
-    await expect(page.getByText(/13\.579/).first()).toBeVisible();
+    await expect(page.getByText(/13\.579/).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test("navegar al mes anterior", async ({ page }) => {

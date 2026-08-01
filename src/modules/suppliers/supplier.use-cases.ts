@@ -1,29 +1,31 @@
-import { PaymentMethod, StockMovementType, Unit } from "@/generated/prisma/client";
+import { ExpenseCategory, PaymentMethod, PurchaseStatus, StockMovementType, Unit } from "@/generated/prisma/client";
 import { logEvent } from "@/lib/logger";
+import { movesCash } from "@/lib/payment-labels";
 import { prisma } from "@/lib/prisma";
 import { validateTaxId } from "@/lib/tax-id";
-import { applyStockMovement } from "@/modules/stock/stock.repository";
+import { applyStockMovement, reverseStockEntry, type Tx } from "@/modules/stock/stock.repository";
 
-import { pendingAmount, resolvePurchaseStatus, summarizePayables } from "./purchase.logic";
+import { declaredTotalGap, pendingAmount, resolvePurchaseStatus, summarizePayables } from "./purchase.logic";
 import { SupplierError, SupplierErrorCode } from "./supplier.errors";
 import {
+  createPurchaseCreditRecord,
   createPurchasePayment,
   createPurchaseRecord,
   createSupplierRecord,
+  findLastPurchaseMovementAt,
   findPurchaseById,
   findPurchases,
   findSupplierById,
   findSuppliersForManagement,
   markPurchaseStockApplied,
   setPurchaseStatus,
-  softDeletePurchase,
   softDeleteSupplier,
   updateSupplierRecord,
   type PurchaseItemInput,
   type SupplierWriteInput,
 } from "./supplier.repository";
 
-export { findPurchasePaymentsByMethod, findPurchasableProducts } from "./supplier.repository";
+export { findPurchasePaymentsByMethod, findPurchasePaymentsInRange, findPurchasableProducts } from "./supplier.repository";
 export { summarizePayables, pendingAmount, isOverdue, isDueSoon } from "./purchase.logic";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -125,11 +127,14 @@ export async function getPurchases(businessId: string, filters?: { supplierId?: 
 
   const purchases = rows.map((purchase) => {
     const paid = sumPayments(purchase.payments);
+    const credited = sumPayments(purchase.credits);
 
     return {
       ...purchase,
       paid,
-      pending: pendingAmount({ total: purchase.total, paid, status: purchase.status }),
+      credited,
+      gap: declaredTotalGap(purchase.total, purchase.declaredTotal),
+      pending: pendingAmount({ total: purchase.total, paid, credited, status: purchase.status }),
     };
   });
 
@@ -140,6 +145,7 @@ export async function getPurchases(businessId: string, filters?: { supplierId?: 
         id: purchase.id,
         total: purchase.total,
         paid: purchase.paid,
+        credited: purchase.credited,
         status: purchase.status,
         dueAt: purchase.dueAt,
       })),
@@ -156,8 +162,15 @@ export async function getPurchaseDetail(purchaseId: string, businessId: string) 
   }
 
   const paid = sumPayments(purchase.payments);
+  const credited = sumPayments(purchase.credits);
 
-  return { ...purchase, paid, pending: pendingAmount({ total: purchase.total, paid, status: purchase.status }) };
+  return {
+    ...purchase,
+    paid,
+    credited,
+    gap: declaredTotalGap(purchase.total, purchase.declaredTotal),
+    pending: pendingAmount({ total: purchase.total, paid, credited, status: purchase.status }),
+  };
 }
 
 export type PurchaseInput = {
@@ -168,6 +181,13 @@ export type PurchaseInput = {
   issuedAt: Date;
   dueAt?: Date | null;
   notes?: string | null;
+  // Lo que dice el papel, para contrastar contra la suma de los renglones.
+  declaredTotal?: number | null;
+  // IVA discriminado (solo Responsable Inscripto): crédito fiscal, no costo.
+  taxAmount?: number | null;
+  // null = mercadería. Cualquier otra cosa es un gasto operativo y no entra al
+  // stock aunque los renglones nombren productos.
+  expenseCategory?: ExpenseCategory | null;
   items: { productId?: string | null; description: string; quantity: number; unit?: Unit; unitCost: number }[];
   userId?: string | null;
 };
@@ -207,9 +227,13 @@ export async function createPurchase(input: PurchaseInput) {
 
   const total = items.reduce((sum, item) => sum + item.total, 0);
   const branchId = input.branchId ?? null;
+  // Una factura de servicios (el arreglo del freezer, un flete) no es
+  // mercadería: no entra al stock aunque los renglones nombren productos, y
+  // baja la ganancia del período en que se emitió.
+  const isMerchandise = !input.expenseCategory;
 
   // Solo mueve stock lo que apunta a un producto con seguimiento activado.
-  const trackedProductIds = items.flatMap((item) => (item.productId ? [item.productId] : []));
+  const trackedProductIds = isMerchandise ? items.flatMap((item) => (item.productId ? [item.productId] : [])) : [];
   const tracked = trackedProductIds.length
     ? await prisma.product.findMany({
         where: { id: { in: trackedProductIds }, businessId: input.businessId, trackStock: true, deleted: false },
@@ -222,6 +246,15 @@ export async function createPurchase(input: PurchaseInput) {
     throw new SupplierError(SupplierErrorCode.BRANCH_REQUIRED_FOR_STOCK);
   }
 
+  // Cargar hoy una factura de hace tres meses no puede pisar el costo de
+  // reposición de hoy: el margen de todo lo que se venda después saldría mal
+  // hasta la próxima compra. El promedio ponderado sí se recalcula igual — esa
+  // mercadería entró de verdad.
+  const lastPurchaseAt = new Map<string, Date | null>();
+  for (const productId of trackedIds) {
+    lastPurchaseAt.set(productId, await findLastPurchaseMovementAt(productId));
+  }
+
   const purchase = await prisma.$transaction(async (tx) => {
     const created = await createPurchaseRecord(tx, {
       businessId: input.businessId,
@@ -229,6 +262,9 @@ export async function createPurchase(input: PurchaseInput) {
       supplierId: input.supplierId,
       number: input.number?.trim() || null,
       total,
+      declaredTotal: input.declaredTotal ?? null,
+      taxAmount: input.taxAmount ?? null,
+      expenseCategory: input.expenseCategory ?? null,
       issuedAt: input.issuedAt,
       dueAt: input.dueAt ?? null,
       notes: input.notes?.trim() || null,
@@ -236,7 +272,7 @@ export async function createPurchase(input: PurchaseInput) {
       userId: input.userId,
     });
 
-    if (branchId) {
+    if (branchId && isMerchandise) {
       for (const item of items) {
         if (!item.productId || !trackedIds.has(item.productId)) {
           continue;
@@ -254,8 +290,11 @@ export async function createPurchase(input: PurchaseInput) {
           createdById: input.userId,
         });
 
-        // El último costo pagado es el costo de reposición vigente.
-        await tx.product.update({ where: { id: item.productId }, data: { cost: item.unitCost } });
+        const previous = lastPurchaseAt.get(item.productId) ?? null;
+        if (!previous || input.issuedAt >= previous) {
+          // Es la compra más reciente: su precio es el costo de reposición.
+          await tx.product.update({ where: { id: item.productId }, data: { cost: item.unitCost } });
+        }
       }
 
       if (trackedIds.size > 0) {
@@ -300,6 +339,12 @@ export async function registerPurchasePayment(input: {
     throw new SupplierError(SupplierErrorCode.INVALID_AMOUNT);
   }
 
+  // A un proveedor no se le paga "en cuenta corriente": eso no es un pago, es
+  // seguir debiendo. Si entrara, la caja restaría plata que nunca salió.
+  if (!movesCash(input.method)) {
+    throw new SupplierError(SupplierErrorCode.INVALID_PAYMENT_METHOD);
+  }
+
   if (input.amount > purchase.pending) {
     throw new SupplierError(SupplierErrorCode.PAYMENT_EXCEEDS_PENDING, {
       pending: purchase.pending,
@@ -317,7 +362,7 @@ export async function registerPurchasePayment(input: {
   });
 
   const paid = purchase.paid + input.amount;
-  await setPurchaseStatus(input.purchaseId, resolvePurchaseStatus(purchase.total, paid));
+  await setPurchaseStatus(input.purchaseId, resolvePurchaseStatus(purchase.total, paid, false, purchase.credited));
 
   await logEvent("purchase.payment", `Pago de $${input.amount} a ${purchase.supplier.name}`, {
     businessId: input.businessId,
@@ -325,30 +370,201 @@ export async function registerPurchasePayment(input: {
     context: { purchaseId: input.purchaseId, amount: input.amount, method: input.method, paid, total: purchase.total },
   });
 
-  return { paid, pending: purchase.total - paid };
+  return { paid, pending: purchase.pending - input.amount };
 }
 
+// Un solo pago que salda varias facturas del mismo proveedor. Es como cobra un
+// distribuidor en la vida real: pasa, te cobra un número y ese número cubre los
+// comprobantes que quedaron. Se imputa de la más vieja a la más nueva.
+export async function registerSupplierPayment(input: {
+  businessId: string;
+  supplierId: string;
+  amount: number;
+  method: PaymentMethod;
+  paidAt?: Date;
+  note?: string | null;
+  userId?: string | null;
+}) {
+  if (!Number.isInteger(input.amount) || input.amount <= 0) {
+    throw new SupplierError(SupplierErrorCode.INVALID_AMOUNT);
+  }
+
+  if (!movesCash(input.method)) {
+    throw new SupplierError(SupplierErrorCode.INVALID_PAYMENT_METHOD);
+  }
+
+  const supplier = await requireSupplier(input.supplierId, input.businessId);
+  const { purchases } = await getPurchases(input.businessId, { supplierId: input.supplierId, onlyOpen: true });
+
+  // De la más vieja a la más nueva: es lo que hace cualquiera y lo que espera
+  // el proveedor.
+  const open = purchases
+    .filter((purchase) => purchase.pending > 0)
+    .sort((a, b) => a.issuedAt.getTime() - b.issuedAt.getTime());
+
+  const debt = open.reduce((sum, purchase) => sum + purchase.pending, 0);
+
+  if (debt <= 0) {
+    throw new SupplierError(SupplierErrorCode.PURCHASE_ALREADY_PAID);
+  }
+
+  if (input.amount > debt) {
+    throw new SupplierError(SupplierErrorCode.PAYMENT_EXCEEDS_PENDING, { pending: debt, attempted: input.amount });
+  }
+
+  let left = input.amount;
+  const applied: { purchaseId: string; amount: number }[] = [];
+
+  for (const purchase of open) {
+    if (left <= 0) break;
+
+    const amount = Math.min(left, purchase.pending);
+    left -= amount;
+    applied.push({ purchaseId: purchase.id, amount });
+
+    await createPurchasePayment({
+      purchaseId: purchase.id,
+      amount,
+      method: input.method,
+      paidAt: input.paidAt ?? new Date(),
+      note: input.note?.trim() || null,
+      userId: input.userId,
+    });
+
+    await setPurchaseStatus(
+      purchase.id,
+      resolvePurchaseStatus(purchase.total, purchase.paid + amount, false, purchase.credited),
+    );
+  }
+
+  await logEvent("purchase.payment.bulk", `Pago de $${input.amount} a ${supplier.name} (${applied.length} factura/s)`, {
+    businessId: input.businessId,
+    userId: input.userId ?? undefined,
+    context: { supplierId: input.supplierId, amount: input.amount, method: input.method, applied },
+  });
+
+  return { applied, remaining: debt - input.amount };
+}
+
+// Nota de crédito del proveedor: baja lo que le debés sin mover plata. No toca
+// la caja —no salió nada— y por eso no es un pago.
+export async function registerPurchaseCredit(input: {
+  purchaseId: string;
+  businessId: string;
+  amount: number;
+  number?: string | null;
+  reason?: string | null;
+  issuedAt?: Date;
+  userId?: string | null;
+}) {
+  const purchase = await getPurchaseDetail(input.purchaseId, input.businessId);
+
+  if (purchase.status === PurchaseStatus.CANCELLED) {
+    throw new SupplierError(SupplierErrorCode.PURCHASE_CANCELLED);
+  }
+
+  if (!Number.isInteger(input.amount) || input.amount <= 0) {
+    throw new SupplierError(SupplierErrorCode.INVALID_AMOUNT);
+  }
+
+  if (input.amount > purchase.pending) {
+    throw new SupplierError(SupplierErrorCode.CREDIT_EXCEEDS_PENDING, {
+      pending: purchase.pending,
+      attempted: input.amount,
+    });
+  }
+
+  await createPurchaseCreditRecord({
+    purchaseId: input.purchaseId,
+    amount: input.amount,
+    number: input.number?.trim() || null,
+    reason: input.reason?.trim() || null,
+    issuedAt: input.issuedAt ?? new Date(),
+    userId: input.userId,
+  });
+
+  const credited = purchase.credited + input.amount;
+  await setPurchaseStatus(input.purchaseId, resolvePurchaseStatus(purchase.total, purchase.paid, false, credited));
+
+  await logEvent("purchase.credit", `Nota de crédito de $${input.amount} de ${purchase.supplier.name}`, {
+    businessId: input.businessId,
+    userId: input.userId ?? undefined,
+    context: { purchaseId: input.purchaseId, amount: input.amount, credited },
+  });
+
+  return { credited, pending: purchase.pending - input.amount };
+}
+
+// Anular una compra tiene que sacar del stock lo que esa compra metió. Si no,
+// queda mercadería fantasma: valuada en el patrimonio, vendible en el POS y
+// haciendo que el inventario nunca cierre contra el conteo físico. Se asientan
+// movimientos compensatorios, nunca se borra el original (ver AGENTS.md).
 export async function cancelPurchase(purchaseId: string, businessId: string, userId?: string | null) {
   const purchase = await getPurchaseDetail(purchaseId, businessId);
 
-  await setPurchaseStatus(purchaseId, resolvePurchaseStatus(purchase.total, purchase.paid, true));
+  if (purchase.status === PurchaseStatus.CANCELLED) {
+    throw new SupplierError(SupplierErrorCode.PURCHASE_CANCELLED);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await revertPurchaseStock(tx, purchase, userId);
+    await tx.purchase.update({
+      where: { id: purchaseId },
+      data: { status: resolvePurchaseStatus(purchase.total, purchase.paid, true), stockApplied: false },
+    });
+  });
 
   await logEvent("purchase.cancel", `Compra anulada a ${purchase.supplier.name}`, {
     businessId,
     userId: userId ?? undefined,
-    context: { purchaseId },
+    context: { purchaseId, stockReverted: purchase.stockApplied },
   });
 }
 
 export async function deletePurchase(purchaseId: string, businessId: string, userId?: string | null) {
-  await getPurchaseDetail(purchaseId, businessId);
-  await softDeletePurchase(purchaseId, userId);
+  const purchase = await getPurchaseDetail(purchaseId, businessId);
+
+  await prisma.$transaction(async (tx) => {
+    await revertPurchaseStock(tx, purchase, userId);
+    await tx.purchase.update({
+      where: { id: purchaseId },
+      data: { deleted: true, deletedAt: new Date(), deletedById: userId, stockApplied: false },
+    });
+  });
 
   await logEvent("purchase.delete", "Compra eliminada", {
     businessId,
     userId: userId ?? undefined,
-    context: { purchaseId },
+    context: { purchaseId, stockReverted: purchase.stockApplied },
   });
+}
+
+// Saca del stock lo que la compra había metido, renglón por renglón y al costo
+// con el que entró. Si la compra nunca movió stock, no hace nada.
+async function revertPurchaseStock(
+  tx: Tx,
+  purchase: Awaited<ReturnType<typeof getPurchaseDetail>>,
+  userId?: string | null,
+) {
+  if (!purchase.stockApplied || !purchase.branchId) {
+    return;
+  }
+
+  for (const item of purchase.items) {
+    if (!item.product) {
+      continue;
+    }
+
+    await reverseStockEntry(tx, {
+      branchId: purchase.branchId,
+      productId: item.product.id,
+      quantity: item.quantity,
+      unitCost: item.unitCost,
+      reason: `Compra anulada a ${purchase.supplier.name}`,
+      purchaseId: purchase.id,
+      createdById: userId,
+    });
+  }
 }
 
 async function requireSupplier(supplierId: string, businessId: string) {

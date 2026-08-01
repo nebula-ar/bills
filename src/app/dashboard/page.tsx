@@ -1,4 +1,4 @@
-import { PaymentMethod } from "@/generated/prisma/client";
+import { ExpenseCategory, PaymentMethod } from "@/generated/prisma/client";
 import { getCurrentSession, isAdminRole } from "@/lib/auth";
 import { requireBusinessContext } from "@/lib/business-context";
 import { countActiveProducts } from "@/modules/catalog/product.repository";
@@ -7,6 +7,14 @@ import { EXPENSE_CATEGORY_LABELS } from "@/lib/expense-labels";
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER } from "@/lib/payment-labels";
 import { getExpensesSummary } from "@/modules/expenses/expense.use-cases";
 import { getTodaySalesReport } from "@/modules/reports/get-today-sales-report.use-case";
+import {
+  computeProfit,
+  getInventoryLossesInRange,
+  getOperatingPurchasesInRange,
+  getReturnsInRange,
+  getStockValuation,
+  operatingExpensesOf,
+} from "@/modules/reports/profit.use-case";
 import { ReportsView, type ReportsData } from "@/components/reports-view";
 import { redirect } from "next/navigation";
 
@@ -61,7 +69,8 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const businessId = session.user.businessId;
   const { business } = await requireBusinessContext();
-  const [report, expensesSummary, productCount] = await Promise.all([
+  const range = { businessId, from: resolved.from, to: resolved.to };
+  const [report, expensesSummary, productCount, returns, stock, losses, servicePurchases] = await Promise.all([
     getTodaySalesReport({
       businessId,
       from: resolved.from,
@@ -69,9 +78,33 @@ export default async function Home({ searchParams }: HomeProps) {
       staffId,
       paymentMethod,
     }),
-    getExpensesSummary({ businessId, from: resolved.from, to: resolved.to }),
+    getExpensesSummary(range),
     countActiveProducts(businessId),
+    getReturnsInRange(range),
+    getStockValuation(businessId),
+    getInventoryLossesInRange(range),
+    getOperatingPurchasesInRange(range),
   ]);
+
+  // La mercadería no baja la ganancia cuando se compra sino cuando se vende:
+  // sale de los gastos operativos y entra como costo de lo vendido. Las
+  // facturas de proveedor que NO son mercadería (un service, un flete) sí son
+  // gasto operativo y se suman acá: si no, serían plata que sale y no baja
+  // nada.
+  const operatingExpenses =
+    operatingExpensesOf(
+      expensesSummary.byCategory.map((row) => ({ category: row.category as string, total: row.total })),
+      ExpenseCategory.MERCHANDISE,
+    ) + servicePurchases;
+
+  const { profit } = computeProfit({
+    revenue: report.revenue,
+    returnedRevenue: returns.returnedRevenue,
+    soldCost: report.soldCost,
+    returnedCost: returns.returnedCost,
+    operatingExpenses,
+    inventoryLosses: losses.total,
+  });
 
   const paymentTotalSum = report.totalsByPaymentMethod.reduce((sum, payment) => sum + payment.total, 0);
   const selectedStaff = report.options.staffs.find((staff) => staff.id === report.filters.staffId);
@@ -100,14 +133,29 @@ export default async function Home({ searchParams }: HomeProps) {
     saleCount: report.saleCount,
     averageTicket: report.averageTicket,
     itemsSold: report.itemsSold,
-    expensesTotal: expensesSummary.total,
-    net: report.totalSold - expensesSummary.total,
-    expensesByCategory: expensesSummary.byCategory.map((category) => ({
-      key: category.category,
-      label: EXPENSE_CATEGORY_LABELS[category.category],
-      total: category.total,
-      percentage: expensesSummary.total > 0 ? Math.round((category.total / expensesSummary.total) * 100) : 0,
-    })),
+    expensesTotal: operatingExpenses,
+    profit,
+    stockValue: stock.value,
+    losses: {
+      total: losses.total,
+      firstNames: losses.byProduct.slice(0, 3).map((row) => row.name),
+    },
+    // Mientras haya algo vendido sin costo, la ganancia está inflada: se dice.
+    costGaps: {
+      soldWithoutCost: report.itemsWithoutCost.length,
+      firstNames: report.itemsWithoutCost.slice(0, 3).map((item) => item.name),
+      productsWithoutCost: stock.productsWithoutCost,
+    },
+    // La mercadería queda afuera acá también: todo lo que dice "gasto" en el
+    // dashboard significa lo mismo, plata que no dejó nada atrás.
+    expensesByCategory: expensesSummary.byCategory
+      .filter((category) => category.category !== ExpenseCategory.MERCHANDISE)
+      .map((category) => ({
+        key: category.category,
+        label: EXPENSE_CATEGORY_LABELS[category.category],
+        total: category.total,
+        percentage: operatingExpenses > 0 ? Math.round((category.total / operatingExpenses) * 100) : 0,
+      })),
     comparison: report.comparison,
     accountBalances,
     salesTrend: report.salesByDay.map((day) => ({

@@ -1,5 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { PaymentMethod, PurchaseStatus, Unit } from "@/generated/prisma/client";
+import { ExpenseCategory, PaymentMethod, PurchaseStatus, StockMovementType, Unit } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type Tx = Prisma.TransactionClient;
@@ -91,6 +91,9 @@ const purchaseSelect = {
   id: true,
   number: true,
   total: true,
+  declaredTotal: true,
+  taxAmount: true,
+  expenseCategory: true,
   status: true,
   issuedAt: true,
   dueAt: true,
@@ -103,6 +106,11 @@ const purchaseSelect = {
     where: { deleted: false },
     orderBy: { paidAt: "desc" as const },
     select: { id: true, amount: true, method: true, paidAt: true, note: true },
+  },
+  credits: {
+    where: { deleted: false },
+    orderBy: { issuedAt: "desc" as const },
+    select: { id: true, amount: true, number: true, reason: true, issuedAt: true },
   },
   items: {
     select: {
@@ -154,6 +162,9 @@ export type CreatePurchaseInput = {
   supplierId: string;
   number: string | null;
   total: number;
+  declaredTotal: number | null;
+  taxAmount: number | null;
+  expenseCategory: ExpenseCategory | null;
   issuedAt: Date;
   dueAt: Date | null;
   notes: string | null;
@@ -169,6 +180,9 @@ export function createPurchaseRecord(tx: Tx, input: CreatePurchaseInput) {
       supplierId: input.supplierId,
       number: input.number,
       total: input.total,
+      declaredTotal: input.declaredTotal,
+      taxAmount: input.taxAmount,
+      expenseCategory: input.expenseCategory,
       issuedAt: input.issuedAt,
       dueAt: input.dueAt,
       notes: input.notes,
@@ -217,6 +231,59 @@ export function setPurchaseStatus(purchaseId: string, status: PurchaseStatus) {
   return prisma.purchase.update({ where: { id: purchaseId }, data: { status } });
 }
 
+export function createPurchaseCreditRecord(input: {
+  purchaseId: string;
+  amount: number;
+  number: string | null;
+  reason: string | null;
+  issuedAt: Date;
+  userId?: string | null;
+}) {
+  return prisma.purchaseCredit.create({
+    data: {
+      purchaseId: input.purchaseId,
+      amount: input.amount,
+      number: input.number,
+      reason: input.reason,
+      issuedAt: input.issuedAt,
+      createdById: input.userId,
+    },
+  });
+}
+
+// Compras que son gasto operativo (un service, un flete, el contador): no son
+// mercadería, así que bajan la ganancia del período en que se emitió la factura
+// —devengado— y no cuando se pagan.
+export function findOperatingPurchasesInRange(businessId: string, from?: Date, to?: Date) {
+  return prisma.purchase.findMany({
+    where: {
+      businessId,
+      deleted: false,
+      status: { not: PurchaseStatus.CANCELLED },
+      expenseCategory: { not: null },
+      ...(from || to ? { issuedAt: { gte: from, lte: to } } : {}),
+    },
+    select: {
+      total: true,
+      taxAmount: true,
+      expenseCategory: true,
+      credits: { where: { deleted: false }, select: { amount: true } },
+    },
+  });
+}
+
+// El último ingreso por compra de un producto. Sirve para no pisar el costo de
+// reposición cuando se carga una factura vieja traspapelada.
+export async function findLastPurchaseMovementAt(productId: string) {
+  const movement = await prisma.stockMovement.findFirst({
+    where: { productId, type: StockMovementType.PURCHASE },
+    orderBy: { occurredAt: "desc" },
+    select: { occurredAt: true },
+  });
+
+  return movement?.occurredAt ?? null;
+}
+
 export function softDeletePurchase(purchaseId: string, userId?: string | null) {
   return prisma.purchase.update({
     where: { id: purchaseId },
@@ -253,6 +320,44 @@ export async function findPurchasePaymentsByMethod(scope: {
   });
 
   return new Map<PaymentMethod, number>(grouped.map((row) => [row.method, row._sum.amount ?? 0]));
+}
+
+// Los pagos de un rango, uno por uno (no agrupados): son los renglones que la
+// pantalla de Gastos mezcla con los gastos sueltos para mostrar todo lo que
+// salió en el mes.
+export function findPurchasePaymentsInRange(scope: {
+  businessId: string;
+  branchId?: string | null;
+  from: Date;
+  to: Date;
+}) {
+  return prisma.purchasePayment.findMany({
+    where: {
+      deleted: false,
+      paidAt: { gte: scope.from, lte: scope.to },
+      purchase: {
+        deleted: false,
+        businessId: scope.businessId,
+        ...(scope.branchId ? { branchId: scope.branchId } : {}),
+      },
+    },
+    orderBy: { paidAt: "desc" },
+    select: {
+      id: true,
+      amount: true,
+      method: true,
+      paidAt: true,
+      note: true,
+      purchase: {
+        select: {
+          id: true,
+          number: true,
+          supplier: { select: { id: true, name: true } },
+          branch: { select: { name: true } },
+        },
+      },
+    },
+  });
 }
 
 // Productos con stock que se pueden cargar en una factura de compra.

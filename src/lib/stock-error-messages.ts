@@ -33,6 +33,7 @@ export function getStockErrorMessageFor(error: StockError): string {
 export const STOCK_MOVEMENT_LABELS: Record<StockMovementType, string> = {
   [StockMovementType.INITIAL]: "Carga inicial",
   [StockMovementType.PURCHASE]: "Ingreso por compra",
+  [StockMovementType.PURCHASE_CANCELLED]: "Compra anulada",
   [StockMovementType.SALE]: "Venta",
   [StockMovementType.SALE_CANCELLED]: "Venta anulada",
   [StockMovementType.ADJUSTMENT]: "Ajuste por conteo",

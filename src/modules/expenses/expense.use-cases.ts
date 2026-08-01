@@ -6,6 +6,7 @@ import {
   findExpenseBranches,
   findExpensesInRange,
   findManageableExpense,
+  findUsableSupplierId,
   softDeleteExpense,
   updateExpense,
 } from "./expense.repository";
@@ -13,6 +14,7 @@ import {
 export type ExpenseInput = {
   businessId: string;
   branchId?: string | null;
+  supplierId?: string | null;
   category: ExpenseCategory;
   paymentMethod: PaymentMethod;
   amount: number;
@@ -24,6 +26,16 @@ function validate(input: { amount: number }) {
   if (!Number.isInteger(input.amount) || input.amount <= 0) {
     throw new Error("INVALID_AMOUNT");
   }
+}
+
+// El proveedor es opcional y viene de un <select>: si no existe o es de otro
+// negocio, el gasto se guarda igual pero sin proveedor. Nombrar mal a quién le
+// pagaste es peor que no nombrarlo.
+async function resolveSupplierId(input: ExpenseInput) {
+  if (!input.supplierId) {
+    return null;
+  }
+  return findUsableSupplierId(input.supplierId, input.businessId);
 }
 
 export async function getExpensesInRange(input: { businessId: string; from?: Date; to?: Date; branchId?: string | null }) {
@@ -59,9 +71,12 @@ export async function getExpensesSummary(input: { businessId: string; from?: Dat
 export async function createBusinessExpense(input: ExpenseInput) {
   validate(input);
 
+  const supplierId = await resolveSupplierId(input);
+
   const expense = await createExpense({
     businessId: input.businessId,
     branchId: input.branchId ?? null,
+    supplierId,
     category: input.category,
     paymentMethod: input.paymentMethod,
     amount: input.amount,
@@ -74,6 +89,7 @@ export async function createBusinessExpense(input: ExpenseInput) {
     context: {
       expenseId: expense.id,
       branchId: input.branchId ?? null,
+      supplierId,
       category: input.category,
       paymentMethod: input.paymentMethod,
       amount: input.amount,
@@ -94,6 +110,7 @@ export async function updateBusinessExpense(input: ExpenseInput & { expenseId: s
   return updateExpense({
     expenseId: expense.id,
     branchId: input.branchId ?? null,
+    supplierId: await resolveSupplierId(input),
     category: input.category,
     paymentMethod: input.paymentMethod,
     amount: input.amount,

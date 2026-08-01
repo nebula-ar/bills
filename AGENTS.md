@@ -20,11 +20,44 @@ negocio. Ver el README para el panorama completo.
 - **Stock**: `StockMovement` es append-only y `StockLevel` es un caché derivado. Las
   dos escrituras van **siempre en la misma transacción** (`applyStockMovement`).
   Nunca se pisa una existencia a mano.
+- **El inventario se valúa a promedio ponderado (PPP), no a último costo**
+  (`costing.logic.ts`). `StockLevel.avgCost` es por sucursal y se recalcula solo
+  en las ENTRADAS; las salidas sacan al promedio vigente. Es distinto de
+  `Product.cost`, que es el costo de **reposición** (lo último que se pagó,
+  sirve para fijar precio) y que una factura vieja no puede pisar. Valuar 100
+  unidades compradas a $1.000 al precio de las 10 que entraron ayer a $1.500
+  inventa $50.000 de patrimonio y encarece el costo de lo vendido.
 - **Anular revierte, no borra**: se asientan movimientos compensatorios.
 - **Una venta se graba en una sola transacción**: renglones, pagos, descuentos,
   stock y fiado. O entra todo, o nada.
 - **El fiado (`PaymentMethod.ACCOUNT`) no entra a la caja**: genera deuda del
   cliente. Impacta en caja recién cuando el cliente paga.
+- **Una compra a proveedor es la misma historia del otro lado**: la `Purchase`
+  es deuda, no gasto, y toca la caja recién con cada `PurchasePayment`. Por eso
+  el mes de Gastos suma **gastos + pagos**, nunca el total de una factura
+  (`outflow.logic.ts`): si sumara las dos cosas, una factura en tres cuotas
+  aparecería contada dos veces. Proveedores no tiene pantalla propia —vive
+  dentro de Gastos, porque para el dueño es todo "plata que sale"— y el módulo
+  `SUPPLIERS` no se sostiene solo: `MODULE_REQUIRES` lo ata a `EXPENSES`.
+- **Caja y ganancia son dos preguntas distintas y no se mezclan.** Comprar
+  mercadería saca plata de la caja pero **no es un gasto**: es cambiar plata por
+  stock, y recién se vuelve costo cuando se vende. Entonces: lo que dice "salió"
+  (caja, arqueo, total del mes en Gastos) cuenta **todo**; lo que dice "gasto" o
+  "ganancia" (dashboard) deja afuera la mercadería —la categoría `MERCHANDISE` y
+  las compras a proveedor— y descuenta el costo con la venta, vía
+  `SaleItem.unitCost`, que se congela al vender justamente para esto
+  (`profit.logic.ts`). Lo no vendido no se pierde de vista: se muestra como
+  patrimonio ("En mercadería" = promedio ponderado × existencia). Si un producto
+  se vendió sin costo cargado, la ganancia queda inflada y **hay que decirlo en
+  pantalla**, nunca inventar un costo ni disimular el hueco. Ojo: un servicio
+  sin costo no es un hueco —un corte de pelo no tiene costo de mercadería— así
+  que solo avisa lo que lleva `trackStock`.
+- **Todo lo que sale tiene que caer en algún lado del resultado.** Una factura
+  de proveedor que no es mercadería (`Purchase.expenseCategory`) es gasto
+  operativo devengado a `issuedAt`; la merma y los faltantes de conteo son
+  pérdida del período valuada al costo con el que salieron. Si algo baja el
+  stock o la caja y no aparece en la ganancia, es un agujero: por ahí se escapa
+  un robo sin que el resultado se entere.
 - **El rubro no condiciona la lógica**: solo etiquetas (`src/lib/vertical.ts`) y
   módulos habilitados (`src/lib/app-modules.ts`).
 - **Cada rubro declara qué herramientas se le muestran** (`VerticalFeatures`:

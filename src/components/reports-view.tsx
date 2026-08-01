@@ -60,8 +60,16 @@ export type ReportsData = {
   saleCount: number;
   averageTicket: number;
   itemsSold: number;
+  // Gastos operativos: los que no dejan nada atrás. La mercadería no está acá.
   expensesTotal: number;
-  net: number;
+  // Ventas − costo de lo vendido − gastos operativos.
+  profit: number;
+  // Plata parada en mercadería (promedio ponderado × existencia). Es
+  // patrimonio, no gasto.
+  stockValue: number;
+  // Mercadería que se perdió en el período: merma, rotura, faltantes.
+  losses: { total: number; firstNames: string[] };
+  costGaps: { soldWithoutCost: number; firstNames: string[]; productsWithoutCost: number };
   expensesByCategory: { key: string; label: string; total: number; percentage: number }[];
   comparison: { previousTotal: number; deltaPct: number | null } | null;
   accountBalances: { key: string; label: string; income: number; expense: number; balance: number }[];
@@ -338,7 +346,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           </p>
         </div>
 
-        {/* KPIs (gastos, neto, ticket, servicios) */}
+        {/* KPIs (gastos, ganancia, mercadería, ticket) */}
         <div className="grid grid-cols-2 gap-3 lg:col-span-5 lg:content-start">
           <Link
             className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.98] duration-500 animate-in fade-in slide-in-from-bottom-2"
@@ -356,23 +364,69 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
             style={{ animationDelay: "120ms", animationFillMode: "backwards" }}
           >
             <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
-              {data.net >= 0 ? <TrendingUp className="size-3.5 text-emerald-500" /> : <TrendingDown className="size-3.5 text-rose-500" />}
-              Neto
+              {data.profit >= 0 ? <TrendingUp className="size-3.5 text-emerald-500" /> : <TrendingDown className="size-3.5 text-rose-500" />}
+              Ganancia
             </span>
             <AnimatedMoney
-              className={`mt-2 block text-xl font-black tracking-tight ${data.net >= 0 ? "text-emerald-600" : "text-rose-600"}`}
+              className={`mt-2 block text-xl font-black tracking-tight ${data.profit >= 0 ? "text-emerald-600" : "text-rose-600"}`}
               delayMs={120}
-              value={data.net}
+              value={data.profit}
             />
           </div>
-          <StatCard icon={Ticket} label="Ticket promedio" delay={140}>
-            <AnimatedMoney className="mt-2 block text-xl font-black tracking-tight text-slate-950" delayMs={140} value={data.averageTicket} />
-          </StatCard>
-          <StatCard icon={Package} label="Ítems vendidos" delay={200}>
-            <AnimatedNumber className="mt-2 block text-xl font-black tracking-tight text-slate-950" delayMs={200} value={data.itemsSold} />
+          {/* La mercadería comprada no se evaporó: está acá. Sin esta tarjeta,
+              un mes de reposición fuerte se lee como un mes malo. */}
+          <Link
+            className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.98] duration-500 animate-in fade-in slide-in-from-bottom-2"
+            href="/stock"
+            style={{ animationDelay: "140ms", animationFillMode: "backwards" }}
+          >
+            <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
+              <Package className="size-3.5 text-indigo-500" />
+              En mercadería
+            </span>
+            <AnimatedMoney className="mt-2 block text-xl font-black tracking-tight text-slate-950" delayMs={140} value={data.stockValue} />
+          </Link>
+          <StatCard icon={Ticket} label="Ticket promedio" delay={200}>
+            <AnimatedMoney className="mt-2 block text-xl font-black tracking-tight text-slate-950" delayMs={200} value={data.averageTicket} />
           </StatCard>
         </div>
         </div>
+
+        {/* La mercadería que se perdió también es plata: se compró y no se va a
+            vender nunca. Antes bajaba el stock en silencio. */}
+        {data.losses.total > 0 ? (
+          <Link
+            className="mt-3 flex items-start gap-2.5 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-950/5 transition active:scale-[0.99]"
+            href="/stock"
+          >
+            <TrendingDown className="mt-0.5 size-4 shrink-0 text-rose-500" />
+            <span className="text-xs font-semibold text-slate-600">
+              Se perdió {formatMoney(data.losses.total)} en mercadería
+              {data.losses.firstNames.length > 0 ? ` (${data.losses.firstNames.join(", ")})` : ""}: merma, rotura o
+              faltantes de conteo. Ya está descontado de la ganancia.
+            </span>
+          </Link>
+        ) : null}
+
+        {/* Sin costos cargados la ganancia miente para arriba. Se dice, con los
+            nombres, porque el arreglo es ir a la ficha y cargar el costo.
+            Ojo con prometer de más: el costo se congela en el renglón al
+            vender, así que cargarlo ahora arregla de acá en adelante, no lo ya
+            vendido. */}
+        {data.costGaps.soldWithoutCost > 0 ? (
+          <Link
+            className="mt-3 flex items-start gap-2.5 rounded-2xl bg-amber-50 px-4 py-3 text-amber-900 ring-1 ring-amber-200 transition active:scale-[0.99]"
+            href="/catalog"
+          >
+            <TrendingUp className="mt-0.5 size-4 shrink-0 text-amber-600" />
+            <span className="text-xs font-semibold">
+              La ganancia está inflada: se vendieron {data.costGaps.soldWithoutCost}{" "}
+              {data.costGaps.soldWithoutCost === 1 ? "producto" : "productos"} sin costo cargado
+              {data.costGaps.firstNames.length > 0 ? ` (${data.costGaps.firstNames.join(", ")}…)` : ""}. Cargales el costo
+              en su ficha: se arregla para las ventas de acá en adelante.
+            </span>
+          </Link>
+        ) : null}
 
         {/* Análisis (2 columnas tipo masonry en pantallas grandes) */}
         <div className="mt-3 lg:mt-4 lg:columns-2 lg:gap-4">
@@ -474,7 +528,8 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           )}
         </Panel>
 
-        {/* Gastos por categoría */}
+        {/* Gastos por categoría. Sin mercadería: acá "gasto" significa siempre
+            lo mismo, plata que no dejó nada atrás. */}
         <Panel delay={420} title="Gastos por categoría" icon={Wallet}>
           {data.expensesByCategory.length === 0 ? (
             <Empty>
@@ -485,6 +540,9 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
             </Empty>
           ) : (
             <>
+              <p className="mb-3 text-xs text-slate-400">
+                La mercadería no cuenta como gasto: la descuenta la venta, no la compra.
+              </p>
               <div className="space-y-3.5">
                 {data.expensesByCategory.map((category) => (
                   <div className="space-y-1.5" key={category.key}>

@@ -2,6 +2,8 @@ import type { Prisma } from "@/generated/prisma/client";
 import { StockMovementType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
+import { averageCostAfterEntry, averageCostAfterReversal, isEntryMovement } from "./costing.logic";
+
 // Cliente de Prisma dentro de una transacción. El stock siempre se mueve junto
 // con lo que lo causó (una venta, una compra), así que casi todo acá recibe el
 // `tx` de quien lo llama en vez de abrir su propia transacción.
@@ -24,6 +26,10 @@ export type StockMovementInput = {
 // Asienta un movimiento y actualiza el saldo del producto en la sucursal.
 // Las dos escrituras van juntas: StockLevel es un caché de StockMovement y no
 // puede quedar desfasado.
+//
+// Cuando el movimiento hace ENTRAR mercadería, además recalcula el costo
+// promedio ponderado de esa sucursal (ver costing.logic.ts). Las salidas no lo
+// tocan: sacan al promedio vigente.
 export async function applyStockMovement(tx: Tx, input: StockMovementInput) {
   await tx.stockMovement.create({
     data: {
@@ -40,16 +46,72 @@ export async function applyStockMovement(tx: Tx, input: StockMovementInput) {
     },
   });
 
+  const level = await tx.stockLevel.findUnique({
+    where: { branchId_productId: { branchId: input.branchId, productId: input.productId } },
+    select: { quantity: true, avgCost: true },
+  });
+
+  const avgCost = isEntryMovement(input.type, input.quantity)
+    ? averageCostAfterEntry({
+        currentQuantity: level?.quantity ?? 0,
+        currentAvgCost: level?.avgCost ?? null,
+        incomingQuantity: input.quantity,
+        incomingUnitCost: input.unitCost ?? null,
+      })
+    : (level?.avgCost ?? null);
+
   await tx.stockLevel.upsert({
     where: { branchId_productId: { branchId: input.branchId, productId: input.productId } },
     create: {
       branchId: input.branchId,
       productId: input.productId,
       quantity: input.quantity,
+      avgCost,
     },
     update: {
       quantity: { increment: input.quantity },
+      avgCost,
     },
+  });
+}
+
+// Deshace la entrada de una compra: saca las unidades y le quita al promedio
+// exactamente el valor que esa compra le había metido. Es lo que hace que
+// anular una factura deje el inventario como estaba, en vez de dejar
+// mercadería fantasma valuada (ver AGENTS.md: anular revierte, no borra).
+export async function reverseStockEntry(
+  tx: Tx,
+  input: { branchId: string; productId: string; quantity: number; unitCost: number | null; reason: string; purchaseId?: string | null; createdById?: string | null },
+) {
+  await tx.stockMovement.create({
+    data: {
+      branchId: input.branchId,
+      productId: input.productId,
+      type: StockMovementType.PURCHASE_CANCELLED,
+      quantity: -input.quantity,
+      unitCost: input.unitCost,
+      reason: input.reason,
+      purchaseId: input.purchaseId ?? null,
+      createdById: input.createdById ?? null,
+    },
+  });
+
+  const level = await tx.stockLevel.findUnique({
+    where: { branchId_productId: { branchId: input.branchId, productId: input.productId } },
+    select: { quantity: true, avgCost: true },
+  });
+
+  const avgCost = averageCostAfterReversal({
+    currentQuantity: level?.quantity ?? 0,
+    currentAvgCost: level?.avgCost ?? null,
+    removedQuantity: input.quantity,
+    removedUnitCost: input.unitCost,
+  });
+
+  await tx.stockLevel.upsert({
+    where: { branchId_productId: { branchId: input.branchId, productId: input.productId } },
+    create: { branchId: input.branchId, productId: input.productId, quantity: -input.quantity, avgCost },
+    update: { quantity: { decrement: input.quantity }, avgCost },
   });
 }
 
@@ -75,6 +137,21 @@ export async function findStockLevels(branchId: string, productIds: string[]) {
   return new Map(levels.map((level) => [level.productId, level.quantity]));
 }
 
+// Costo promedio de esos productos en esa sucursal. Es el costo al que sale la
+// mercadería cuando se vende: el que se congela en el renglón de la venta.
+export async function findAverageCosts(branchId: string, productIds: string[]) {
+  if (productIds.length === 0) {
+    return new Map<string, number | null>();
+  }
+
+  const levels = await prisma.stockLevel.findMany({
+    where: { branchId, productId: { in: productIds } },
+    select: { productId: true, avgCost: true },
+  });
+
+  return new Map(levels.map((level) => [level.productId, level.avgCost]));
+}
+
 // Inventario completo de una sucursal: qué hay, cuánto vale y qué falta.
 export function findBranchStock(businessId: string, branchId: string) {
   return prisma.product.findMany({
@@ -96,7 +173,7 @@ export function findBranchStock(businessId: string, branchId: string) {
       category: { select: { id: true, name: true } },
       stockLevels: {
         where: { branchId },
-        select: { quantity: true, updatedAt: true },
+        select: { quantity: true, updatedAt: true, avgCost: true },
       },
       branchPrices: {
         where: { branchId, deleted: false },

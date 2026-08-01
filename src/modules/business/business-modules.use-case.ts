@@ -1,4 +1,5 @@
 import { AppModule, Vertical } from "@/generated/prisma/client";
+import { MODULE_REQUIRES } from "@/lib/app-modules";
 import { logEvent } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { verticalPreset } from "@/lib/vertical";
@@ -22,18 +23,39 @@ export async function setModuleEnabled(input: {
   enabled: boolean;
   userId?: string | null;
 }) {
+  // Hay módulos que viven dentro de otro (Proveedores vive dentro de Gastos).
+  // Prender el de adentro prende también al que lo aloja, y apagar al que aloja
+  // se lleva al de adentro: si no, queda un módulo activo sin ninguna pantalla
+  // desde donde entrar.
+  const modules = new Set<AppModule>([input.module]);
+  const host = MODULE_REQUIRES[input.module];
+
+  if (input.enabled && host) {
+    modules.add(host);
+  }
+
+  if (!input.enabled) {
+    for (const [guest, needs] of Object.entries(MODULE_REQUIRES) as [AppModule, AppModule][]) {
+      if (needs === input.module) {
+        modules.add(guest);
+      }
+    }
+  }
+
   if (input.enabled) {
-    // Idempotente: prender dos veces el mismo módulo no rompe nada.
-    await prisma.businessModuleAccess.upsert({
-      where: { businessId_module: { businessId: input.businessId, module: input.module } },
-      create: { businessId: input.businessId, module: input.module },
-      update: {},
-    });
+    for (const module of modules) {
+      // Idempotente: prender dos veces el mismo módulo no rompe nada.
+      await prisma.businessModuleAccess.upsert({
+        where: { businessId_module: { businessId: input.businessId, module } },
+        create: { businessId: input.businessId, module },
+        update: {},
+      });
+    }
   } else {
     // Apagar solo esconde: los datos del módulo quedan intactos por si lo
     // vuelven a prender (nadie quiere perder su stock por tocar un switch).
     await prisma.businessModuleAccess.deleteMany({
-      where: { businessId: input.businessId, module: input.module },
+      where: { businessId: input.businessId, module: { in: Array.from(modules) } },
     });
   }
 

@@ -7,7 +7,7 @@ import { assertCanChargeToAccount } from "@/modules/customers/customer.use-cases
 import { applyPromotions, type CartLine } from "@/modules/promotions/promotion.logic";
 import { findActivePromotions } from "@/modules/promotions/promotion.repository";
 import { pointsForSale } from "@/modules/marketing/loyalty.logic";
-import { findStockLevels } from "@/modules/stock/stock.repository";
+import { findAverageCosts, findStockLevels } from "@/modules/stock/stock.repository";
 
 import type { CreateSaleDto } from "./create-sale.dto";
 import {
@@ -29,10 +29,14 @@ import { SaleError, SaleErrorCode } from "./sale.errors";
 export async function createSale(input: CreateSaleDto) {
   validateSaleInputShape(input);
 
-  const [branch, staff, productPrices] = await Promise.all([
+  const [branch, staff, productPrices, averageCosts] = await Promise.all([
     findSaleBranch(input.branchId),
     findSaleStaff(input.staffId),
     findBranchProductPrices(input.branchId, uniqueProductIds(input.items)),
+    // El costo que se congela en el renglón es el promedio de ESTA sucursal, no
+    // el último precio pagado: si no, vender mercadería vieja se costea al
+    // precio de la última compra y el margen sale mal (ver costing.logic.ts).
+    findAverageCosts(input.branchId, uniqueProductIds(input.items)),
   ]);
 
   if (!branch || branch.deleted) {
@@ -98,7 +102,9 @@ export async function createSale(input: CreateSaleDto) {
       quantity: item.quantity,
       unit: price.product.unit,
       unitPrice: price.price,
-      unitCost: price.product.cost,
+      // Sin promedio todavía (mercadería que entró antes del PPP, o producto
+      // sin movimientos) cae al costo de reposición, que es lo único que hay.
+      unitCost: averageCosts.get(item.productId) ?? price.product.cost,
       trackStock: price.product.trackStock,
     };
   });

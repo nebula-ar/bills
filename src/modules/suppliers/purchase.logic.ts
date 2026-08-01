@@ -7,31 +7,47 @@ export type PayableSummaryInput = {
   id: string;
   total: number;
   paid: number;
+  // Notas de crédito del proveedor: bajan la deuda sin mover plata.
+  credited?: number;
   status: PurchaseStatus;
   dueAt: Date | null;
 };
 
-// El estado sale de la plata, no de un campo que alguien tocó a mano.
-export function resolvePurchaseStatus(total: number, paid: number, cancelled = false): PurchaseStatus {
+// El estado sale de la plata, no de un campo que alguien tocó a mano. Una nota
+// de crédito cancela deuda igual que un pago —la diferencia es que no sale de
+// la caja—, así que cuenta para saber si la factura está saldada.
+export function resolvePurchaseStatus(total: number, paid: number, cancelled = false, credited = 0): PurchaseStatus {
   if (cancelled) {
     return PurchaseStatus.CANCELLED;
   }
 
-  if (paid <= 0) {
+  const settled = paid + credited;
+
+  if (settled <= 0) {
     return PurchaseStatus.PENDING;
   }
 
   // `>=` y no `===`: si el proveedor cobró de más (redondeo, ajuste), la
   // factura igual está saldada.
-  return paid >= total ? PurchaseStatus.PAID : PurchaseStatus.PARTIAL;
+  return settled >= total ? PurchaseStatus.PAID : PurchaseStatus.PARTIAL;
 }
 
-export function pendingAmount(purchase: { total: number; paid: number; status: PurchaseStatus }): number {
+export function pendingAmount(purchase: { total: number; paid: number; credited?: number; status: PurchaseStatus }): number {
   if (purchase.status === PurchaseStatus.CANCELLED) {
     return 0;
   }
 
-  return Math.max(purchase.total - purchase.paid, 0);
+  return Math.max(purchase.total - purchase.paid - (purchase.credited ?? 0), 0);
+}
+
+// Diferencia entre lo que dicen los renglones y lo que dice el papel. Una
+// factura argentina trae percepciones, flete y redondeos que no están en los
+// ítems: si no cierra, hay que avisar en vez de registrar una deuda mal cargada.
+export function declaredTotalGap(total: number, declaredTotal: number | null): number {
+  if (declaredTotal === null) {
+    return 0;
+  }
+  return declaredTotal - total;
 }
 
 // Vencida = tiene saldo y la fecha de pago ya pasó.

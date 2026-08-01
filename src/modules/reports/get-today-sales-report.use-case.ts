@@ -1,7 +1,7 @@
 import type { PaymentMethod } from "@/generated/prisma/client";
 
 import { findReportStaffs, findReportSales, paymentMethods, sumReportSalesTotal } from "./report.repository";
-import { QUANTITY_SCALE } from "@/lib/quantity";
+import { lineTotal, QUANTITY_SCALE } from "@/lib/quantity";
 
 export type SalesReportInput = {
   businessId: string;
@@ -15,6 +15,15 @@ export type TodaySalesReport = {
   from?: Date;
   to?: Date;
   totalSold: number;
+  // Lo facturado, siempre a partir del total de cada venta. `totalSold` cambia
+  // de significado cuando se filtra por cuenta (pasa a ser la suma de los pagos
+  // de esa cuenta) y con eso no se puede calcular una ganancia.
+  revenue: number;
+  // Costo congelado de todo lo vendido en el período.
+  soldCost: number;
+  // Lo que se vendió sin costo cargado. Mientras haya algo acá, la ganancia
+  // está inflada y hay que decirlo en vez de disimularlo.
+  itemsWithoutCost: { name: string; quantity: number }[];
   saleCount: number;
   averageTicket: number;
   // En unidades enteras equivalentes: el detalle en milésimas lo guardan los
@@ -110,7 +119,9 @@ export async function getTodaySalesReport(input: SalesReportInput): Promise<Toda
   const branchTotals = new Map<string, { branchName: string; total: number; saleCount: number }>();
   const productTotals = new Map<string, { total: number; quantity: number }>();
   const weekdayTotals = [0, 0, 0, 0, 0, 0, 0];
+  const withoutCost = new Map<string, number>();
   let itemsSold = 0;
+  let soldCost = 0;
 
   for (const sale of sales) {
     const saleTotal = input.paymentMethod
@@ -145,6 +156,19 @@ export async function getTodaySalesReport(input: SalesReportInput): Promise<Toda
       currentProduct.quantity += item.quantity;
       productTotals.set(item.description, currentProduct);
       itemsSold += item.quantity;
+
+      // Sin costo cargado no se inventa uno: se suma cero y se anota el
+      // producto, porque una ganancia inflada en silencio es peor que no tenerla.
+      //
+      // Pero solo cuenta como faltante la mercadería. Un servicio —un corte, una
+      // instalación— no tiene costo de mercadería y nunca lo va a tener: avisar
+      // por eso dejaría a una barbería con el cartel de "ganancia inflada"
+      // puesto para siempre, y un aviso que está siempre no lo lee nadie.
+      if (item.unitCost) {
+        soldCost += lineTotal(item.unitCost, item.quantity);
+      } else if (item.product?.trackStock) {
+        withoutCost.set(item.description, (withoutCost.get(item.description) ?? 0) + item.quantity);
+      }
     }
 
     for (const payment of sale.payments) {
@@ -168,6 +192,11 @@ export async function getTodaySalesReport(input: SalesReportInput): Promise<Toda
     from: dateRange.from,
     to: dateRange.to,
     totalSold,
+    revenue: sales.reduce((total, sale) => total + sale.total, 0),
+    soldCost,
+    itemsWithoutCost: Array.from(withoutCost.entries())
+      .map(([name, quantity]) => ({ name, quantity: Math.round(quantity / QUANTITY_SCALE) }))
+      .sort((a, b) => b.quantity - a.quantity || a.name.localeCompare(b.name)),
     saleCount: sales.length,
     averageTicket: sales.length > 0 ? Math.round(totalSold / sales.length) : 0,
     // Las cantidades viven en milésimas (ver src/lib/quantity.ts): sin dividir,
