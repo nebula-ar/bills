@@ -13,6 +13,7 @@ import {
   StatTiles,
   TableWrap,
 } from "@/components/manager-ui";
+import { MoneyInput } from "@/components/money-input";
 import { AppModule } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { formatQuantity, unitShort } from "@/lib/quantity";
@@ -208,7 +209,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
               <input className={inputClass} inputMode="decimal" name="quantity" placeholder="0" required />
             </Field>
             <Field label="Costo unitario" hint="Opcional: actualiza el costo">
-              <input className={inputClass} inputMode="numeric" name="unitCost" placeholder="$" />
+              <MoneyInput className={inputClass} name="unitCost" placeholder="$" />
             </Field>
             <PrimaryButton className="sm:col-span-2">Ingresar</PrimaryButton>
           </form>

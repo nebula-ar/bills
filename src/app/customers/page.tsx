@@ -11,6 +11,7 @@ import {
   StatTiles,
   TableWrap,
 } from "@/components/manager-ui";
+import { MoneyInput } from "@/components/money-input";
 import { AppModule, TaxCondition } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { PAYMENT_METHOD_OPTIONS } from "@/lib/payment-labels";
@@ -138,7 +139,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                 <form action={registerPaymentAction} className="mt-2 grid gap-3 sm:grid-cols-2">
                   <input name="customerId" type="hidden" value={detail.customer.id} />
                   <Field label="Importe">
-                    <input className={inputClass} inputMode="numeric" name="amount" placeholder="$" required />
+                    <MoneyInput className={inputClass} name="amount" placeholder="$" required />
                   </Field>
                   <Field label="Cobrado en">
                     <select className={selectClass} name="method">
@@ -224,10 +225,9 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                   </select>
                 </Field>
                 <Field label="Límite de crédito" hint="Vacío = sin tope">
-                  <input
+                  <MoneyInput
                     className={inputClass}
                     defaultValue={detail.customer.creditLimit ?? ""}
-                    inputMode="numeric"
                     name="creditLimit"
                   />
                 </Field>
@@ -327,7 +327,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
             <input className={inputClass} name="taxId" placeholder="20123456789" />
           </Field>
           <Field label="Límite de crédito" hint="Vacío = sin tope">
-            <input className={inputClass} inputMode="numeric" name="creditLimit" placeholder="$" />
+            <MoneyInput className={inputClass} name="creditLimit" placeholder="$" />
           </Field>
           <Field label="Notas">
             <input className={inputClass} name="notes" placeholder="Pasa los martes" />

@@ -3,6 +3,7 @@
 import { saveMarketingSettingsAction } from "@/app/marketing/actions";
 import { Check, Loader2 } from "@/components/icons";
 import { Field, inputClass } from "@/components/manager-ui";
+import { MoneyInput } from "@/components/money-input";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
@@ -79,20 +80,18 @@ export function MarketingSettingsForm({
       </Field>
 
       <Field label="Pesos por punto" hint="Cada cuánto se gana 1 punto">
-        <input
+        <MoneyInput
           className={inputClass}
           defaultValue={pointsPerAmount ?? ""}
-          inputMode="numeric"
           name="pointsPerAmount"
           placeholder="1000"
         />
       </Field>
 
       <Field label="Cuánto vale un punto" hint="En pesos, al canjear">
-        <input
+        <MoneyInput
           className={inputClass}
           defaultValue={pointValue ?? ""}
-          inputMode="numeric"
           name="pointValue"
           placeholder="50"
         />

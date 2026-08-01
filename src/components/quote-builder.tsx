@@ -4,6 +4,7 @@ import { createQuoteAction } from "@/app/presupuestos/actions";
 import { Check, Loader2, Plus, Trash2 } from "@/components/icons";
 import { inputClass, selectClass } from "@/components/manager-ui";
 import { Unit } from "@/generated/prisma/enums";
+import { formatAmountInput } from "@/lib/money";
 import { formatQuantity, lineTotal, ONE, parseQuantityInput, unitShort } from "@/lib/quantity";
 import { quoteTotals } from "@/modules/quotes/quote.logic";
 import { useRouter } from "next/navigation";
@@ -258,7 +259,7 @@ export function QuoteBuilder({
                   inputMode="numeric"
                   onChange={(event) => patch(line.key, { unitPrice: event.target.value.replace(/\D/g, "") })}
                   placeholder={`$ por ${unitShort(line.unit)}`}
-                  value={line.unitPrice}
+                  value={formatAmountInput(line.unitPrice)}
                 />
 
                 <div className="flex items-center justify-end px-1 text-sm font-black text-slate-950 sm:justify-center">
@@ -304,7 +305,7 @@ export function QuoteBuilder({
             inputMode="numeric"
             onChange={(event) => setDiscount(event.target.value.replace(/\D/g, ""))}
             placeholder="$"
-            value={discount}
+            value={formatAmountInput(discount)}
           />
         </label>
         <label className="grid gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">

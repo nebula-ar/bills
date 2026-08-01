@@ -197,7 +197,9 @@ function parsePrice(value: FormDataEntryValue | null) {
     return null;
   }
 
-  const normalizedValue = value.trim().replace(",", ".");
+  // El precio llega con separador de miles ("28.000"): acá el punto siempre
+  // separa miles, nunca decimales (ver src/lib/money.ts).
+  const normalizedValue = value.trim().replace(/\./g, "").replace(",", ".");
   const price = Number(normalizedValue);
 
   return Number.isInteger(price) && price > 0 ? price : null;

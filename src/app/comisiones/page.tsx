@@ -8,6 +8,7 @@ import {
   StatTiles,
   TableWrap,
 } from "@/components/manager-ui";
+import { MoneyInput } from "@/components/money-input";
 import { AppModule } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { PAYMENT_METHOD_OPTIONS } from "@/lib/payment-labels";
@@ -118,11 +119,10 @@ export default async function ComisionesPage({ searchParams }: ComisionesPagePro
                           <input name="month" type="hidden" value={monthKey} />
                           <input name="from" type="hidden" value={toISODate(from)} />
                           <input name="to" type="hidden" value={toISODate(to)} />
-                          <input
+                          <MoneyInput
                             aria-label={`Importe a pagar a ${row.name}`}
                             className="w-24 rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold"
                             defaultValue={row.commission}
-                            inputMode="numeric"
                             name="amount"
                           />
                           <select

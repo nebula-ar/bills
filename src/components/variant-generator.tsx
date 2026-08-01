@@ -3,6 +3,7 @@
 import { createVariantsAction } from "@/app/catalog/variant-actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Check, Loader2, X } from "@/components/icons";
+import { formatAmountInput } from "@/lib/money";
 import { generateVariants, parseAxisValues } from "@/modules/catalog/variants.logic";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
@@ -166,7 +167,7 @@ export function VariantGenerator({
                   inputMode="numeric"
                   onChange={(event) => setPrice(event.target.value.replace(/\D/g, ""))}
                   placeholder="$"
-                  value={price}
+                  value={formatAmountInput(price)}
                 />
               </label>
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
@@ -176,7 +177,7 @@ export function VariantGenerator({
                   inputMode="numeric"
                   onChange={(event) => setCost(event.target.value.replace(/\D/g, ""))}
                   placeholder="$"
-                  value={cost}
+                  value={formatAmountInput(cost)}
                 />
               </label>
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">

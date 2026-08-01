@@ -8,6 +8,7 @@ import { ScanConfirmSheet, type ScannedProduct } from "@/components/scan-confirm
 import { findProductToSell } from "@/app/sales/new/scan-actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { TAX_CONDITION_LABELS } from "@/lib/invoice-labels";
+import { formatAmountInput } from "@/lib/money";
 import { allowsFraction, formatQuantity, lineTotal, ONE, parseQuantityInput, unitShort } from "@/lib/quantity";
 import { changeFor, coversTotal, quickCashAmounts } from "@/modules/sales/change.logic";
 import { validateTaxId } from "@/lib/tax-id";
@@ -1365,7 +1366,7 @@ export function PosCheckout({
                           inputMode="numeric"
                           onChange={(event) => updateSplitRow(row.id, { amount: event.target.value.replace(/\D/g, "") })}
                           placeholder="0"
-                          value={row.amount}
+                          value={formatAmountInput(row.amount)}
                         />
                       </div>
                       {splitRows.length > 1 ? (
@@ -1455,7 +1456,7 @@ export function PosCheckout({
                       inputMode="numeric"
                       onChange={(event) => setCashReceived(event.target.value.replace(/\D/g, ""))}
                       placeholder="Otro monto"
-                      value={cashReceived}
+                      value={formatAmountInput(cashReceived)}
                     />
                   </label>
 

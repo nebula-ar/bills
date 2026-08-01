@@ -15,3 +15,17 @@ export function parseAmountInput(raw: string): number | null {
   const amount = Number(normalized);
   return Number.isInteger(amount) ? amount : null;
 }
+
+// Cómo se ve un monto mientras se tipea: con el separador de miles de acá.
+//   "28000"  -> "28.000"
+//   "28.000" -> "28.000"   (idempotente: se le puede pasar lo ya formateado)
+//   "0028"   -> "28"       (los ceros a la izquierda no significan nada)
+//   ""       -> ""
+// Es la inversa de `parseAmountInput`, que después limpia los puntos.
+export function formatAmountInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+  if (digits === "") {
+    return "";
+  }
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}

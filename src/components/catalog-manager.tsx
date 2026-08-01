@@ -2,6 +2,7 @@
 
 import { createProduct, updateProduct } from "@/app/catalog/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { MoneyInput } from "@/components/money-input";
 import { CatalogScanButton } from "@/components/catalog-scan-button";
 import { VariantGenerator } from "@/components/variant-generator";
 import { CatalogOnboarding } from "@/components/catalog-onboarding";
@@ -380,14 +381,10 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               {newBranchName ? `Precio en ${newBranchName} (opcional)` : "Precio (opcional)"}
               <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
                 <span className="text-lg font-black text-slate-400">$</span>
-                <input
+                <MoneyInput
                   className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
-                  inputMode="numeric"
-                  min={1}
                   name="price"
                   placeholder="0"
-                  step={1}
-                  type="number"
                 />
               </div>
             </label>
@@ -406,9 +403,8 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 </label>
                 <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                   ¿Cuánto te cuesta? (opcional)
-                  <input
+                  <MoneyInput
                     className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white"
-                    inputMode="numeric"
                     name="cost"
                     placeholder="$"
                   />
@@ -490,16 +486,12 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 {editBranchName ? `Precio en ${editBranchName}` : "Precio en esta sucursal"}
                 <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
                   <span className="text-lg font-black text-slate-400">$</span>
-                  <input
+                  <MoneyInput
                     className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
                     defaultValue={editConfig?.priceValue ?? ""}
-                    inputMode="numeric"
                     key={editBranchId}
-                    min={1}
                     name="price"
                     placeholder="0"
-                    step={1}
-                    type="number"
                   />
                 </div>
               </label>
@@ -570,10 +562,9 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   </label>
                   <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Costo
-                    <input
+                    <MoneyInput
                       className={sheetInput}
                       defaultValue={editing.cost ?? ""}
-                      inputMode="numeric"
                       name="cost"
                       placeholder="$"
                     />

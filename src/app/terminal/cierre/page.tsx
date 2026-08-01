@@ -4,6 +4,7 @@ import { staffCanCloseCash } from "@/modules/cash/cash.logic";
 import { getAccountBalances } from "@/modules/cash/cash.use-cases";
 import { getSaleEntryOptions } from "@/modules/sales/get-sale-entry-options.use-case";
 import { Landmark, Lock } from "@/components/icons";
+import { MoneyInput } from "@/components/money-input";
 import Link from "next/link";
 
 import { submitStaffCashClose } from "../actions";
@@ -93,14 +94,11 @@ export default async function StaffCashClosePage() {
                 </div>
                 <div className="mt-2 flex items-center rounded-xl border border-slate-200 bg-white px-3 focus-within:border-blue-400">
                   <span className="text-base font-black text-slate-400">$</span>
-                  <input
+                  <MoneyInput
                     className="w-full bg-transparent px-1.5 py-2.5 text-right text-base font-black text-slate-950 outline-none"
                     defaultValue={String(account.balance)}
-                    inputMode="numeric"
                     name={`counted_${account.method}`}
                     placeholder="0"
-                    step={1}
-                    type="number"
                   />
                 </div>
               </div>

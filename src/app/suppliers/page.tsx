@@ -14,6 +14,7 @@ import {
   TableWrap,
   type Tone,
 } from "@/components/manager-ui";
+import { MoneyInput } from "@/components/money-input";
 import { AppModule, PurchaseStatus, Unit } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { PAYMENT_METHOD_OPTIONS } from "@/lib/payment-labels";
@@ -155,11 +156,10 @@ export default async function SuppliersPage({ searchParams }: SuppliersPageProps
                         {purchase.pending > 0 && purchase.status !== PurchaseStatus.CANCELLED ? (
                           <form action={payPurchaseAction} className="flex flex-wrap items-center gap-1.5">
                             <input name="purchaseId" type="hidden" value={purchase.id} />
-                            <input
+                            <MoneyInput
                               aria-label="Importe a pagar"
                               className="w-24 rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold"
                               defaultValue={purchase.pending}
-                              inputMode="numeric"
                               name="amount"
                             />
                             <select
@@ -271,10 +271,9 @@ export default async function SuppliersPage({ searchParams }: SuppliersPageProps
                         </option>
                       ))}
                     </select>
-                    <input
+                    <MoneyInput
                       aria-label="Costo unitario"
                       className={`${inputClass} sm:col-span-2`}
-                      inputMode="numeric"
                       name="itemUnitCost"
                       placeholder="Costo $"
                     />

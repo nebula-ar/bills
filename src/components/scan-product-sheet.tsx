@@ -3,6 +3,7 @@
 import { createProductFromScan } from "@/app/catalog/scan-actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Check, Loader2, X } from "@/components/icons";
+import { formatAmountInput } from "@/lib/money";
 import { unitLabel } from "@/lib/quantity";
 import { useState, useTransition } from "react";
 
@@ -208,7 +209,7 @@ export function ScanProductSheet({
                 onChange={(event) => setPrice(event.target.value.replace(/\D/g, ""))}
                 onKeyDown={(event) => event.key === "Enter" && next()}
                 placeholder="0"
-                value={price}
+                value={formatAmountInput(price)}
               />
             </label>
           ) : null}
@@ -223,7 +224,7 @@ export function ScanProductSheet({
                   onChange={(event) => setCost(event.target.value.replace(/\D/g, ""))}
                   onKeyDown={(event) => event.key === "Enter" && next()}
                   placeholder="0"
-                  value={cost}
+                  value={formatAmountInput(cost)}
                 />
               </label>
               {Number(price) > 0 && Number(cost) > 0 ? (

@@ -11,6 +11,7 @@ import {
   SectionCard,
   selectClass,
 } from "@/components/manager-ui";
+import { MoneyInput } from "@/components/money-input";
 import { AppModule, PromotionScope, PromotionType } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import {
@@ -162,7 +163,7 @@ export default async function PromotionsPage({ searchParams }: PromotionsPagePro
                 <input className={inputClass} inputMode="numeric" max={100} min={1} name="percentOff" type="number" />
               </Field>
               <Field label="Descuento fijo $" hint="Solo para «Descuento fijo»">
-                <input className={inputClass} inputMode="numeric" name="fixedOff" />
+                <MoneyInput className={inputClass} name="fixedOff" />
               </Field>
               <div className="grid grid-cols-2 gap-2">
                 <Field label="Llevá (N)">
@@ -173,10 +174,10 @@ export default async function PromotionsPage({ searchParams }: PromotionsPagePro
                 </Field>
               </div>
               <Field label="Precio del combo $" hint="Solo para «Combo»">
-                <input className={inputClass} inputMode="numeric" name="bundlePrice" />
+                <MoneyInput className={inputClass} name="bundlePrice" />
               </Field>
               <Field label="Compra mínima $" hint="Opcional">
-                <input className={inputClass} inputMode="numeric" name="minAmount" />
+                <MoneyInput className={inputClass} name="minAmount" />
               </Field>
               <Field label="Cantidad mínima" hint="Opcional">
                 <input className={inputClass} inputMode="decimal" name="minQuantity" />

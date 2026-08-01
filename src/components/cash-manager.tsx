@@ -2,6 +2,7 @@
 
 import { createCashCloseAction, createTransferAction, deleteTransferAction, saveOpeningBalancesAction } from "@/app/caja/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { MoneyInput } from "@/components/money-input";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import { ArrowRight, ChevronDown, Lock, PiggyBank, Trash2, Wallet, X } from "@/components/icons";
 import { useRouter } from "next/navigation";
@@ -227,15 +228,11 @@ export function CashManager({ data }: { data: CashData }) {
                 <span className="text-sm font-black text-slate-700">{account.label}</span>
                 <div className="flex w-40 items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 focus-within:border-blue-400 focus-within:bg-white">
                   <span className="text-lg font-black text-slate-400">$</span>
-                  <input
+                  <MoneyInput
                     className="w-full bg-transparent px-1.5 py-2.5 text-right text-lg font-black text-slate-950 outline-none"
                     defaultValue={account.opening ? String(account.opening) : ""}
-                    inputMode="numeric"
-                    min={0}
                     name={`opening_${account.method}`}
                     placeholder="0"
-                    step={1}
-                    type="number"
                   />
                 </div>
               </label>
@@ -260,14 +257,10 @@ export function CashManager({ data }: { data: CashData }) {
               Monto
               <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
                 <span className="text-2xl font-black text-slate-400">$</span>
-                <input
+                <MoneyInput
                   className="w-full bg-transparent px-2 py-3.5 text-2xl font-black text-slate-950 outline-none"
-                  inputMode="numeric"
-                  min={1}
                   name="amount"
                   placeholder="0"
-                  step={1}
-                  type="number"
                 />
               </div>
             </label>
@@ -320,13 +313,10 @@ export function CashManager({ data }: { data: CashData }) {
                   </div>
                   <div className="mt-2 flex items-center rounded-xl border border-slate-200 bg-white px-3 focus-within:border-blue-400">
                     <span className="text-base font-black text-slate-400">$</span>
-                    <input
+                    <MoneyInput
                       className="w-full bg-transparent px-1.5 py-2.5 text-right text-base font-black text-slate-950 outline-none"
-                      inputMode="numeric"
                       name={`counted_${account.method}`}
                       placeholder="¿Cuánto contaste?"
-                      step={1}
-                      type="number"
                     />
                   </div>
                 </div>

@@ -2,6 +2,7 @@
 
 import { createExpenseAction, deleteExpenseAction, updateExpenseAction } from "@/app/expenses/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { MoneyInput } from "@/components/money-input";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import { ChevronDown, ChevronLeft, ChevronRight, Plus, Trash2, Wallet, X } from "@/components/icons";
 import { useRouter } from "next/navigation";
@@ -72,15 +73,11 @@ function ExpenseFormFields({
         Monto
         <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
           <span className="text-2xl font-black text-slate-400">$</span>
-          <input
+          <MoneyInput
             className="w-full bg-transparent px-2 py-3.5 text-2xl font-black text-slate-950 outline-none"
             defaultValue={defaultAmount}
-            inputMode="numeric"
-            min={1}
             name="amount"
             placeholder="0"
-            step={1}
-            type="number"
           />
         </div>
       </label>
