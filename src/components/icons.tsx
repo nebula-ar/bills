@@ -55,6 +55,7 @@ export const Monitor = solar("solar:monitor-bold");
 export const MoreHorizontal = solar("solar:menu-dots-bold");
 export const Pencil = solar("solar:pen-bold");
 export const PiggyBank = solar("solar:money-bag-bold");
+export const Flashlight = solar("solar:flashlight-bold");
 export const QrCode = solar("solar:qr-code-bold");
 export const ReceiptText = solar("solar:bill-list-bold");
 export const RotateCcw = solar("solar:refresh-bold");

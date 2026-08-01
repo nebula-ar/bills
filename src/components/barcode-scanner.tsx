@@ -1,7 +1,16 @@
 "use client";
 
-import { Loader2, X } from "@/components/icons";
-import { captureFrame, cleanCode, openCamera, startScanning, stopCamera, type Scanner } from "@/lib/barcode";
+import { Flashlight, Loader2, X } from "@/components/icons";
+import {
+  captureFrame,
+  cleanCode,
+  openCamera,
+  setTorch,
+  startScanning,
+  stopCamera,
+  torchAvailable,
+  type Scanner,
+} from "@/lib/barcode";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 // Cámara a pantalla completa que lee códigos de barras y QR.
@@ -32,9 +41,14 @@ type BarcodeScannerProps = {
   panel?: ReactNode;
 };
 
-// Cuánto esperamos antes de volver a aceptar el MISMO código. Sin esto, un
-// código quieto frente a la cámara se leería decenas de veces por segundo.
-const SAME_CODE_COOLDOWN_MS = 1800;
+// Cuánto tiene que dejar de verse un código para volver a aceptarlo. Sin esto,
+// uno quieto frente a la cámara se leería decenas de veces por segundo.
+//
+// Va por "dejó de verse" y no por un tiempo fijo desde la última lectura: seis
+// yogures iguales se pasan uno atrás de otro, y esperar dos segundos entre cada
+// uno es exactamente la lentitud que se siente en el mostrador. Mientras el
+// código siga en cuadro no se repite; apenas sale, el siguiente entra.
+const CODE_LEFT_FRAME_MS = 500;
 
 export function BarcodeScanner({
   open,
@@ -49,7 +63,7 @@ export function BarcodeScanner({
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scannerRef = useRef<Scanner | null>(null);
-  const lastCodeRef = useRef<{ code: string; at: number } | null>(null);
+  const lastCodeRef = useRef<{ code: string; seenAt: number } | null>(null);
   // El callback cambia en cada render del padre; lo guardamos para no reiniciar
   // la cámara cada vez (reiniciarla parpadea y tarda).
   const onDetectRef = useRef(onDetect);
@@ -64,6 +78,8 @@ export function BarcodeScanner({
   const [error, setError] = useState<string | null>(null);
   const [manual, setManual] = useState("");
   const [manualOpen, setManualOpen] = useState(false);
+  const [torchReady, setTorchReady] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   const takePhoto = useCallback(async () => {
     return videoRef.current ? captureFrame(videoRef.current) : null;
@@ -87,6 +103,7 @@ export function BarcodeScanner({
           return;
         }
         streamRef.current = stream;
+        setTorchReady(torchAvailable(stream));
 
         const scanner = await startScanning({
           video,
@@ -101,12 +118,16 @@ export function BarcodeScanner({
             const previous = lastCodeRef.current;
             const now = Date.now();
 
-            // El mismo código, recién leído: lo ignoramos.
-            if (previous && previous.code === code && now - previous.at < SAME_CODE_COOLDOWN_MS) {
-              return;
+            if (previous && previous.code === code) {
+              const salioDeCuadro = now - previous.seenAt > CODE_LEFT_FRAME_MS;
+              // Se sigue viendo el mismo: se anota y, si no llegó a salir de
+              // cuadro, se ignora.
+              previous.seenAt = now;
+
+              if (!salioDeCuadro) return;
             }
 
-            lastCodeRef.current = { code, at: now };
+            lastCodeRef.current = { code, seenAt: now };
 
             // Vibración corta: en el mostrador confirma la lectura sin mirar.
             navigator.vibrate?.(40);
@@ -146,6 +167,8 @@ export function BarcodeScanner({
       }
       streamRef.current = null;
       lastCodeRef.current = null;
+      setTorchReady(false);
+      setTorchOn(false);
     };
   }, [open, takePhoto]);
 
@@ -158,14 +181,36 @@ export function BarcodeScanner({
           <h2 className="text-lg font-black tracking-tight text-white">{title}</h2>
           {hint ? <p className="mt-0.5 text-sm text-white/60">{hint}</p> : null}
         </div>
-        <button
-          aria-label="Cerrar"
-          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition active:scale-90"
-          onClick={onClose}
-          type="button"
-        >
-          <X className="size-5" />
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          {/* Con el código a la sombra del mostrador, la linterna es la
+              diferencia entre leer y no leer. */}
+          {torchReady ? (
+            <button
+              aria-label={torchOn ? "Apagar la luz" : "Prender la luz"}
+              aria-pressed={torchOn}
+              className={`flex size-10 items-center justify-center rounded-full transition active:scale-90 ${
+                torchOn ? "bg-amber-300 text-slate-900" : "bg-white/10 text-white"
+              }`}
+              onClick={async () => {
+                const next = !torchOn;
+                const ok = await setTorch(streamRef.current, next);
+                if (ok) setTorchOn(next);
+              }}
+              type="button"
+            >
+              <Flashlight className="size-5" />
+            </button>
+          ) : null}
+
+          <button
+            aria-label="Cerrar"
+            className="flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition active:scale-90"
+            onClick={onClose}
+            type="button"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
       </div>
 
       {/* Con panel, la cámara cede la mitad de abajo: sigue siendo cómoda para
