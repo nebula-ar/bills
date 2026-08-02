@@ -1,135 +1,32 @@
-"use client";
-
-import { motion } from "framer-motion";
 import Link from "next/link";
 import { Check } from "lucide-react";
 
-const plans = [
-  {
-    name: "Individual",
-    price: "9.900",
-    period: "/mes",
-    description: "Para el empleado o la negocio de un solo puesto que quiere dejar el cuaderno.",
-    features: [
-      "1 sucursal, 1 terminal de cobro",
-      "Empleados ilimitados con PIN propio",
-      "Comisiones calculadas automáticamente",
-      "Apertura y cierre de caja diario",
-      "Reportes básicos de ventas y gastos",
-      "0% de comisión sobre tus ventas",
-    ],
-    cta: "Prueba Gratis",
-    highlighted: false,
-  },
-  {
-    name: "Pro",
-    price: "18.900",
-    period: "/mes",
-    description: "Para negocios con varios puestos de cobro trabajando al mismo tiempo.",
-    features: [
-      "Todo lo de Individual",
-      "Terminales de cobro ilimitadas",
-      "Gestión avanzada de gastos y caja",
-      "Reportes ejecutivos: ticket promedio y ranking de empleados",
-      "Links de cobro por terminal para tu equipo",
-      "0% de comisión sobre tus ventas",
-    ],
-    cta: "Prueba Gratis",
-    highlighted: true,
-  },
-  {
-    name: "Multi-Sucursal",
-    price: "34.900",
-    period: "/mes",
-    description: "Para cadenas de negocios que gestionan varias sedes desde un solo lugar.",
-    features: [
-      "Todo lo de Pro",
-      "Sucursales ilimitadas",
-      "Comparación de rendimiento entre sucursales",
-      "Asignación de empleados y precios por sede",
-      "Soporte prioritario",
-      "0% de comisión sobre tus ventas",
-    ],
-    cta: "Hablar con Ventas",
-    highlighted: false,
-  },
-];
+import { landingPlans } from "./landing-content";
 
 export function PricingSection() {
   return (
-    <section id="pricing" className="py-24 bg-white relative border-t border-slate-200 snap-start">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-5xl font-bold text-slate-900 mb-6 font-montserrat">
-            Precio simple. <span className="text-slate-500">Sin sorpresas.</span>
-          </h2>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            A diferencia de otras plataformas, no cobramos comisión sobre tus ventas. Pagás una cuota fija y el resto es tuyo.
-          </p>
+    <section id="precios" className="border-t border-slate-200 bg-[#f5f4ef] py-24 text-slate-950 lg:py-32">
+      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+        <div className="max-w-2xl">
+          <p className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-[#3158e8]">Precios claros</p>
+          <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.07em] sm:text-5xl">Pagás por las herramientas que necesitás. Nada más.</h2>
+          <p className="mt-6 text-base leading-7 text-slate-600 sm:text-lg">Cuota fija, 0% de comisión sobre tus ventas y 14 días para probar sin tarjeta.</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 items-start">
-          {plans.map((plan, i) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-              className={`relative flex flex-col p-8 rounded-2xl border transition-all ${
-                plan.highlighted
-                  ? "bg-slate-900 border-slate-900 shadow-[0_20px_50px_-15px_rgba(37,99,235,0.4)] md:-translate-y-3"
-                  : "bg-white border-slate-200 shadow-sm hover:border-blue-500"
-              }`}
-            >
-              {plan.highlighted && (
-                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-full tracking-tight shadow-md">
-                  Más elegido
-                </span>
-              )}
-
-              <h3 className={`text-xl font-bold mb-2 font-montserrat ${plan.highlighted ? "text-white" : "text-slate-900"}`}>
-                {plan.name}
-              </h3>
-              <p className={`text-sm mb-6 leading-relaxed ${plan.highlighted ? "text-slate-300" : "text-slate-500"}`}>
-                {plan.description}
-              </p>
-
-              <div className="mb-8">
-                <span className={`text-4xl font-black tracking-tight ${plan.highlighted ? "text-white" : "text-slate-900"}`}>
-                  $ {plan.price}
-                </span>
-                <span className={`text-sm font-medium ${plan.highlighted ? "text-slate-400" : "text-slate-500"}`}>
-                  {" "}ARS {plan.period}
-                </span>
-              </div>
-
-              <ul className="flex flex-col gap-3 mb-8 flex-1">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2.5 text-sm">
-                    <Check className={`w-4 h-4 mt-0.5 shrink-0 ${plan.highlighted ? "text-blue-400" : "text-blue-600"}`} />
-                    <span className={plan.highlighted ? "text-slate-200" : "text-slate-600"}>{feature}</span>
-                  </li>
-                ))}
+        <div className="mt-14 grid items-start gap-4 lg:grid-cols-3">
+          {landingPlans.map((plan) => (
+            <article key={plan.name} className={`relative flex h-full flex-col rounded-3xl border p-7 ${plan.highlighted ? "border-slate-950 bg-slate-950 text-white shadow-[0_24px_60px_-22px_rgba(17,19,21,0.7)] lg:-translate-y-3" : "border-slate-300 bg-[#fffef9]"}`}>
+              {plan.highlighted ? <span className="absolute -top-3 left-7 rounded-full bg-[#d7ef62] px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-slate-950">Más elegido</span> : null}
+              <h3 className="text-xl font-black tracking-[-0.04em]">{plan.name}</h3>
+              <p className={`mt-3 min-h-12 text-sm leading-6 ${plan.highlighted ? "text-slate-300" : "text-slate-500"}`}>{plan.description}</p>
+              <div className="mt-7 flex items-baseline gap-2"><strong className="text-4xl font-black tracking-[-0.07em]">$ {plan.price}</strong><span className={plan.highlighted ? "text-slate-400" : "text-slate-500"}>ARS {plan.period}</span></div>
+              <ul className="mt-8 flex flex-1 flex-col gap-3">
+                {plan.features.map((feature) => <li key={feature} className={`flex items-start gap-2 text-sm leading-5 ${plan.highlighted ? "text-slate-200" : "text-slate-600"}`}><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.highlighted ? "text-[#d7ef62]" : "text-[#3158e8]"}`} aria-hidden="true" />{feature}</li>)}
               </ul>
-
-              <Link
-                href={plan.cta === "Hablar con Ventas" ? "/contact" : "/register"}
-                className={`inline-flex items-center justify-center px-6 py-3.5 rounded-xl font-bold text-sm transition-colors ${
-                  plan.highlighted
-                    ? "bg-blue-600 text-white hover:bg-blue-700"
-                    : "bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-slate-300"
-                }`}
-              >
-                {plan.cta}
-              </Link>
-            </motion.div>
+              <Link href={plan.cta === "Hablar con ventas" ? "/contact" : "/register"} className={`mt-8 inline-flex min-h-12 items-center justify-center rounded-xl px-5 text-sm font-black transition hover:-translate-y-0.5 ${plan.highlighted ? "bg-[#d7ef62] text-slate-950 hover:bg-white" : "border border-slate-950 bg-slate-950 text-white hover:bg-[#3158e8]"}`}>{plan.cta}</Link>
+            </article>
           ))}
         </div>
-
-        <p className="text-center text-sm text-slate-500 mt-10">
-          Todos los planes incluyen 14 días de prueba gratis. Sin tarjeta de crédito.
-        </p>
       </div>
     </section>
   );

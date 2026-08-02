@@ -1,102 +1,35 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Mail, MessageCircle, Phone } from "lucide-react";
-import { Navbar } from "@/components/landing/Navbar";
+
 import { Footer } from "@/components/landing/footer";
+import { Navbar } from "@/components/landing/Navbar";
 
 export const metadata: Metadata = {
   title: "Contacto — Bills",
-  description:
-    "Escribinos por WhatsApp, mail o teléfono. Te ayudamos a poner en marcha Bills en tu negocio.",
+  description: "Escribinos por WhatsApp, mail o teléfono. Te ayudamos a poner en marcha Bills en tu negocio.",
 };
 
 const faqs = [
-  {
-    q: "¿Necesito comprar algún hardware especial?",
-    a: "No. Bills funciona desde el celular o la tablet que ya tenés. No hace falta un lector de tarjetas ni una caja registradora nueva.",
-  },
-  {
-    q: "¿Cuánto tarda en estar funcionando?",
-    a: "La mayoría de las negocios cargan sus sucursales, servicios y empleados, y empiezan a vender el mismo día. Si tenés varias sucursales, te ayudamos con la carga inicial.",
-  },
-  {
-    q: "¿Dan soporte en español?",
-    a: "Sí, todo el soporte es en español y por WhatsApp, para que no tengas que esperar un mail para resolver algo urgente.",
-  },
-  {
-    q: "¿Puedo cambiar de plan más adelante?",
-    a: "Sí, podés subir o bajar de plan cuando quieras desde tu cuenta, sin perder tu historial de ventas ni comisiones.",
-  },
+  { q: "¿Necesito comprar hardware especial?", a: "No. Bills funciona desde el celular, tablet o computadora que ya tenés. Los lectores y terminales son opcionales." },
+  { q: "¿Cuánto tarda en estar funcionando?", a: "Podés elegir tu rubro, crear la sucursal y empezar a cargar ventas en minutos. Después ajustás los módulos a tu forma de trabajar." },
+  { q: "¿Dan soporte en español?", a: "Sí, todo el soporte es en español y por WhatsApp." },
+  { q: "¿Puedo cambiar de plan más adelante?", a: "Sí, podés subir o bajar de plan sin perder tu historial de ventas, clientes ni reportes." },
 ];
 
 export default function ContactPage() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+    <div className="min-h-screen bg-[#f5f4ef] text-slate-950">
       <Navbar />
-
-      <main className="pt-32 pb-24">
-        <section className="max-w-3xl mx-auto px-6 text-center">
-          <p className="text-sm font-black uppercase tracking-[0.24em] text-blue-600 mb-4">
-            Contacto
-          </p>
-          <h1 className="text-4xl lg:text-5xl font-bold font-montserrat mb-6 leading-tight">
-            Hablemos de tu negocio
-          </h1>
-          <p className="text-lg text-slate-600 leading-relaxed max-w-xl mx-auto">
-            Contanos cuántas sucursales tenés y qué te está costando más hoy. Te respondemos
-            directo, sin formularios eternos.
-          </p>
+      <main className="mx-auto max-w-4xl px-5 pb-24 pt-36 sm:px-8">
+        <section className="text-center"><p className="mb-5 text-xs font-black uppercase tracking-[0.18em] text-[#3158e8]">Contacto</p><h1 className="text-5xl font-black leading-[0.94] tracking-[-0.08em] sm:text-7xl">Hablemos de tu negocio.</h1><p className="mx-auto mt-7 max-w-xl text-lg leading-8 text-slate-600">Contanos qué vendés, cuántas sucursales tenés y qué te está costando más hoy.</p></section>
+        <section className="mt-12 grid gap-4 sm:grid-cols-3">
+          <a href="https://wa.me/5491159804610?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Bills" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-3 rounded-3xl bg-slate-950 p-6 text-center text-white transition hover:bg-[#3158e8]"><MessageCircle className="h-6 w-6 text-[#d7ef62]" /><span className="font-black">WhatsApp</span><span className="text-sm text-slate-300">+54 9 11 5980-4610</span></a>
+          <a href="tel:+5491159804610" className="flex flex-col items-center gap-3 rounded-3xl border border-slate-300 bg-[#fffef9] p-6 text-center transition hover:border-[#3158e8]"><Phone className="h-6 w-6 text-[#3158e8]" /><span className="font-black">Llamanos</span><span className="text-sm text-slate-500">+54 9 11 5980-4610</span></a>
+          <a href="mailto:wmatias1009@gmail.com" className="flex flex-col items-center gap-3 rounded-3xl border border-slate-300 bg-[#fffef9] p-6 text-center transition hover:border-[#3158e8]"><Mail className="h-6 w-6 text-[#3158e8]" /><span className="font-black">Escribinos</span><span className="break-all text-sm text-slate-500">wmatias1009@gmail.com</span></a>
         </section>
-
-        <section className="max-w-3xl mx-auto px-6 mt-12">
-          <div className="grid sm:grid-cols-3 gap-4">
-            <a
-              href="https://wa.me/5491159804610?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Staff%20Bills"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-blue-600 text-white shadow-[0_12px_24px_-8px_rgba(37,99,235,0.5)] hover:bg-blue-700 transition-colors"
-            >
-              <MessageCircle className="w-6 h-6" />
-              <span className="font-bold">WhatsApp</span>
-              <span className="text-sm text-blue-100">+54 9 11 5980-4610</span>
-            </a>
-            <a
-              href="tel:+5491159804610"
-              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white border border-slate-200 hover:border-blue-300 transition-colors"
-            >
-              <Phone className="w-6 h-6 text-blue-600" />
-              <span className="font-bold text-slate-900">Llamanos</span>
-              <span className="text-sm text-slate-500">+54 9 11 5980-4610</span>
-            </a>
-            <a
-              href="mailto:wmatias1009@gmail.com"
-              className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white border border-slate-200 hover:border-blue-300 transition-colors"
-            >
-              <Mail className="w-6 h-6 text-blue-600" />
-              <span className="font-bold text-slate-900">Escribinos</span>
-              <span className="text-sm text-slate-500 break-all">wmatias1009@gmail.com</span>
-            </a>
-          </div>
-        </section>
-
-        <section className="max-w-3xl mx-auto px-6 mt-20">
-          <h2 className="text-2xl lg:text-3xl font-bold font-montserrat mb-8 text-center">
-            Preguntas frecuentes
-          </h2>
-          <div className="flex flex-col gap-4">
-            {faqs.map((faq) => (
-              <div key={faq.q} className="p-6 rounded-2xl bg-white border border-slate-200">
-                <h3 className="font-bold text-slate-900 mb-2">{faq.q}</h3>
-                <p className="text-slate-600 text-sm leading-relaxed">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-sm text-slate-500 mt-10">
-            ¿Ya te decidiste? <Link href="/register" className="font-bold text-blue-600 hover:underline">Creá tu cuenta gratis</Link>.
-          </p>
-        </section>
+        <section className="mt-20"><h2 className="text-center text-3xl font-black tracking-[-0.06em]">Preguntas frecuentes</h2><div className="mt-8 space-y-2">{faqs.map((faq) => <div key={faq.q} className="border-b border-slate-300 py-5"><h3 className="font-black">{faq.q}</h3><p className="mt-2 text-sm leading-6 text-slate-600">{faq.a}</p></div>)}</div><p className="mt-10 text-center text-sm text-slate-500">¿Ya te decidiste? <Link href="/register" className="font-black text-[#3158e8]">Creá tu cuenta gratis</Link>.</p></section>
       </main>
-
       <Footer />
     </div>
   );

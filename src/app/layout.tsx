@@ -29,7 +29,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://barber-bills-tawny.vercel.app"),
   title: "Bills",
-  description: "Ventas, stock, caja y proveedores para tu negocio",
+  description: "Ventas, caja, stock, clientes y proveedores para tu negocio",
   applicationName: "Bills",
   // Habilita "Agregar a inicio" en iOS a pantalla completa (modo standalone).
   appleWebApp: {

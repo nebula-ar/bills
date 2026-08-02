@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Bills",
     short_name: "Bills",
-    description: "Administración de ventas para negocios",
+    description: "Gestión de ventas, caja, stock y clientes para negocios",
     lang: "es-AR",
     dir: "ltr",
     start_url: "/",

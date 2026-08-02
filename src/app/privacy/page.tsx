@@ -22,8 +22,7 @@ export default function PrivacyPage() {
             <div>
               <h2 className="text-xl font-bold font-montserrat text-slate-900 mb-3">1. Responsable</h2>
               <p>
-                Bills es el sistema de gestión operado para administrar negocios y
-                peluquerías. Ante cualquier consulta sobre esta política o tus datos, podés
+                Bills es el sistema de gestión operado para administrar negocios de productos y servicios. Ante cualquier consulta sobre esta política o tus datos, podés
                 escribirnos a{" "}
                 <a href="mailto:wmatias1009@gmail.com" className="text-blue-600 font-medium hover:underline">
                   wmatias1009@gmail.com
