@@ -81,7 +81,7 @@ function DashboardPreview({ example }: { example: RubroExample }) {
 
             <div className="mt-5 flex items-end justify-between rounded-2xl bg-slate-950 p-4 text-white">
               <div>
-                <p className="mb-1 text-[10px] font-bold text-slate-400">Ventas del período</p>
+                <p className="mb-1 text-[10px] font-bold text-slate-500">{example.metricLabel} del período</p>
                 <p className="text-2xl font-black tracking-[-0.07em] sm:text-3xl">{example.metricValue}</p>
                 <p className="mt-1 text-[9px] font-extrabold text-[#d7ef62]">{example.metricChange}</p>
               </div>
@@ -131,6 +131,8 @@ function DashboardPreview({ example }: { example: RubroExample }) {
 export function HeroSection() {
   const [selectedId, setSelectedId] = useState<RubroExample["id"]>("kiosco");
   const selected = rubroExamples.find((example) => example.id === selectedId) ?? rubroExamples[0];
+  const [titleStart, titleAccent] = landingHero.title.split(", ");
+  const descriptionId = "hero-rubro-description";
 
   return (
     <section id="hero" className="relative overflow-hidden bg-[#f5f4ef] text-slate-950">
@@ -141,18 +143,18 @@ export function HeroSection() {
             {landingHero.eyebrow}
           </div>
           <h1 className="mt-6 max-w-2xl text-[clamp(3.25rem,7vw,5.9rem)] font-black leading-[0.94] tracking-[-0.08em] text-slate-950">
-            Gestioná tu negocio, <span className="text-[#3158e8]">no un Excel.</span>
+            {titleStart}, <span className="text-[#3158e8]">{titleAccent}</span>
           </h1>
-          <p className="mt-7 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
-            {landingHero.description}
+          <p id={descriptionId} data-testid="hero-rubro-description" aria-live="polite" className="mt-7 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
+            {selected.description}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/register" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[#3158e8]">
               Empezar gratis <ArrowUpRight className="h-4 w-4" />
             </Link>
-            <a href="#producto" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 px-5 text-sm font-black text-slate-700 transition hover:-translate-y-0.5 hover:bg-white">
+            <Link href="/#producto" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 px-5 text-sm font-black text-slate-700 transition hover:-translate-y-0.5 hover:bg-white">
               Ver cómo funciona
-            </a>
+            </Link>
           </div>
           <p className="mt-4 text-xs font-semibold text-slate-400">{landingHero.finePrint}</p>
 
@@ -166,8 +168,9 @@ export function HeroSection() {
                     key={example.id}
                     type="button"
                     aria-pressed={active}
+                    aria-controls={descriptionId}
                     onClick={() => setSelectedId(example.id)}
-                    className={`inline-flex min-h-10 items-center gap-2 rounded-full border px-3.5 text-xs font-extrabold transition ${active ? "border-[#3158e8] bg-[#3158e8] text-white" : "border-slate-300 text-slate-600 hover:border-[#3158e8] hover:text-[#3158e8]"}`}
+                    className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 text-xs font-extrabold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3158e8] focus-visible:ring-offset-2 ${active ? "border-[#3158e8] bg-[#3158e8] text-white" : "border-slate-300 text-slate-600 hover:border-[#3158e8] hover:text-[#3158e8]"}`}
                   >
                     <ExampleIcon example={example} />
                     {example.label}
@@ -178,7 +181,7 @@ export function HeroSection() {
           </div>
         </div>
 
-        <div className="relative flex items-center justify-center lg:pt-4">
+        <div className="relative z-20 flex items-center justify-center lg:pt-4">
           <div className="absolute h-[min(70vw,34rem)] w-[min(70vw,34rem)] rounded-full bg-[#dfe7ff]" aria-hidden="true" />
           <DashboardPreview example={selected} />
         </div>

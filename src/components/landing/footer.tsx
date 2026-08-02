@@ -14,9 +14,9 @@ export function Footer() {
         <div>
           <p className="mb-4 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Producto</p>
           <div className="space-y-2 text-sm font-semibold text-slate-300">
-            <Link className="block transition hover:text-[#d7ef62]" href="#producto">Funciones</Link>
-            <Link className="block transition hover:text-[#d7ef62]" href="#rubros">Rubros</Link>
-            <Link className="block transition hover:text-[#d7ef62]" href="#precios">Precios</Link>
+            <Link className="block transition hover:text-[#d7ef62]" href="/#producto">Funciones</Link>
+            <Link className="block transition hover:text-[#d7ef62]" href="/#rubros">Rubros</Link>
+            <Link className="block transition hover:text-[#d7ef62]" href="/#precios">Precios</Link>
           </div>
         </div>
         <div>

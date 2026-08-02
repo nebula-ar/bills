@@ -57,7 +57,11 @@ describe("ejemplos de rubro", () => {
 
     expect(kiosco?.catalogLabel).toBe("Productos");
     expect(tienda?.catalogLabel).toBe("Catálogo");
+    expect(kiosco?.metricLabel).toBe("Productos");
+    expect(tienda?.metricLabel).toBe("Pedidos");
     expect(kiosco?.metricValue).not.toBe(tienda?.metricValue);
+    expect(kiosco?.description).toContain("stock");
+    expect(tienda?.description).toContain("Catálogo");
   });
 });
 

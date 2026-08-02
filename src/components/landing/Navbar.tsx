@@ -9,10 +9,10 @@ export function Navbar() {
           Bills
         </Link>
         <div className="hidden items-center gap-7 text-sm font-bold text-slate-500 md:flex">
-          <Link href="#producto" className="transition hover:text-slate-950">Producto</Link>
-          <Link href="#rubros" className="transition hover:text-slate-950">Rubros</Link>
-          <Link href="#precios" className="transition hover:text-slate-950">Precios</Link>
-          <Link href="#testimonios" className="transition hover:text-slate-950">Historias</Link>
+          <Link href="/#producto" className="transition hover:text-slate-950">Producto</Link>
+          <Link href="/#rubros" className="transition hover:text-slate-950">Rubros</Link>
+          <Link href="/#precios" className="transition hover:text-slate-950">Precios</Link>
+          <Link href="/#testimonios" className="transition hover:text-slate-950">Historias</Link>
         </div>
         <div className="flex items-center gap-4 text-sm font-extrabold">
           <Link href="/login" className="hidden text-slate-600 transition hover:text-[#3158e8] sm:inline">Iniciar sesión</Link>
