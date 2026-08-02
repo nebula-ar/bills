@@ -80,7 +80,7 @@ export function InstallPrompt() {
     dismiss();
   }
 
-  if (!mode) return null;
+  if (!mode || !visible) return null;
 
   return (
     <div

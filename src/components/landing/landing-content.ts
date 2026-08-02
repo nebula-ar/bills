@@ -4,7 +4,6 @@ export type RubroExample = {
   businessName: string;
   description: string;
   catalogLabel: string;
-  metricLabel: string;
   metricValue: string;
   metricChange: string;
   secondaryMetrics: [
@@ -36,7 +35,6 @@ export const rubroExamples: RubroExample[] = [
     description:
       "Turnos, cobros, comisiones y caja en un solo lugar. Bills se adapta a cómo trabajás, desde el primer día.",
     catalogLabel: "Servicios",
-    metricLabel: "Turnos",
     metricValue: "$ 482.600",
     metricChange: "↑ 18,4% vs. período anterior",
     secondaryMetrics: [
@@ -58,7 +56,6 @@ export const rubroExamples: RubroExample[] = [
     description:
       "Ventas rápidas, stock y proveedores conectados. Sabé qué salió, qué falta y cuánto te deja cada día.",
     catalogLabel: "Productos",
-    metricLabel: "Productos",
     metricValue: "$ 1.284.900",
     metricChange: "↑ 12,1% vs. período anterior",
     secondaryMetrics: [
@@ -80,7 +77,6 @@ export const rubroExamples: RubroExample[] = [
     description:
       "Catálogo, variantes, promos y caja para vender con orden, tanto en el local como por tu página pública.",
     catalogLabel: "Catálogo",
-    metricLabel: "Pedidos",
     metricValue: "$ 864.300",
     metricChange: "↑ 21,6% vs. período anterior",
     secondaryMetrics: [
@@ -102,7 +98,6 @@ export const rubroExamples: RubroExample[] = [
     description:
       "Agenda, clientes y cobros para profesionales independientes y equipos de servicios que quieren crecer sin perder el control.",
     catalogLabel: "Servicios",
-    metricLabel: "Reservas",
     metricValue: "$ 638.400",
     metricChange: "↑ 15,8% vs. período anterior",
     secondaryMetrics: [

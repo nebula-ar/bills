@@ -81,7 +81,7 @@ function DashboardPreview({ example }: { example: RubroExample }) {
 
             <div className="mt-5 flex items-end justify-between rounded-2xl bg-slate-950 p-4 text-white">
               <div>
-                <p className="mb-1 text-[10px] font-bold text-slate-500">{example.metricLabel} del período</p>
+                <p className="mb-1 text-[10px] font-bold text-slate-500">Ventas del período</p>
                 <p className="text-2xl font-black tracking-[-0.07em] sm:text-3xl">{example.metricValue}</p>
                 <p className="mt-1 text-[9px] font-extrabold text-[#d7ef62]">{example.metricChange}</p>
               </div>
@@ -129,10 +129,11 @@ function DashboardPreview({ example }: { example: RubroExample }) {
 }
 
 export function HeroSection() {
-  const [selectedId, setSelectedId] = useState<RubroExample["id"]>("kiosco");
+  const [selectedId, setSelectedId] = useState<RubroExample["id"] | null>(null);
   const selected = rubroExamples.find((example) => example.id === selectedId) ?? rubroExamples[0];
   const [titleStart, titleAccent] = landingHero.title.split(", ");
   const descriptionId = "hero-rubro-description";
+  const heroDescription = selectedId ? selected.description : landingHero.description;
 
   return (
     <section id="hero" className="relative overflow-hidden bg-[#f5f4ef] text-slate-950">
@@ -146,7 +147,7 @@ export function HeroSection() {
             {titleStart}, <span className="text-[#3158e8]">{titleAccent}</span>
           </h1>
           <p id={descriptionId} data-testid="hero-rubro-description" aria-live="polite" className="mt-7 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
-            {selected.description}
+            {heroDescription}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/register" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[#3158e8]">
@@ -162,7 +163,7 @@ export function HeroSection() {
             <p className="mb-3 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">Elegí un ejemplo</p>
             <div className="flex flex-wrap gap-2" role="group" aria-label="Ejemplos por rubro">
               {rubroExamples.map((example) => {
-                const active = example.id === selected.id;
+                const active = example.id === selectedId;
                 return (
                   <button
                     key={example.id}
