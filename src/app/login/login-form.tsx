@@ -60,9 +60,9 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
   return (
     <form className="grid gap-5" noValidate onSubmit={handleSubmit}>
       <div className="grid gap-4">
-        <label className="grid gap-2 text-sm font-black text-slate-700" htmlFor="email">
+        <label className="grid gap-2 text-xs font-black uppercase tracking-[0.08em] text-slate-500" htmlFor="email">
           Email o usuario
-          <span className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm transition focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
+          <span className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 transition focus-within:border-[#3158e8] focus-within:ring-4 focus-within:ring-[#3158e8]/12">
             <Mail aria-hidden="true" className="shrink-0 text-slate-400" size={20} />
             <input
               aria-describedby={error ? "login-error" : undefined}
@@ -83,9 +83,9 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
           </span>
         </label>
 
-        <label className="grid gap-2 text-sm font-black text-slate-700" htmlFor="password">
+        <label className="grid gap-2 text-xs font-black uppercase tracking-[0.08em] text-slate-500" htmlFor="password">
           Contraseña
-          <span className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm transition focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
+          <span className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 transition focus-within:border-[#3158e8] focus-within:ring-4 focus-within:ring-[#3158e8]/12">
             <Lock aria-hidden="true" className="shrink-0 text-slate-400" size={20} />
             <input
               aria-describedby={error ? "login-error" : undefined}
@@ -129,7 +129,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
 
         {error ? (
           <p
-            className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 duration-300 animate-in fade-in slide-in-from-top-1"
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 duration-300 animate-in fade-in slide-in-from-top-1"
             id="login-error"
             role="alert"
           >
@@ -137,8 +137,11 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
           </p>
         ) : null}
 
+        {/* Mismo botón que el "Empezar gratis" de la landing: negro que pasa a
+            azul y se levanta. Es la acción principal de la app y conviene que se
+            vea igual en los dos lados. */}
         <button
-          className="flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-[0_16px_34px_rgba(37,99,235,0.28)] transition hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+          className="mt-1 flex min-h-[3.25rem] items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-base font-black text-white transition hover:-translate-y-0.5 hover:bg-[#3158e8] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:bg-slate-950"
           disabled={isPending}
           type="submit"
         >

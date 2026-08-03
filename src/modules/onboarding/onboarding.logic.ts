@@ -24,7 +24,6 @@ export type OnboardingStep = {
   icon: string;
   title: string;
   subtitle: string;
-  cheer: string;
   placeholder?: string;
 };
 
@@ -40,8 +39,7 @@ export function onboardingSteps(vertical: Vertical): OnboardingStep[] {
       id: "vertical",
       icon: "solar:shop-2-bold",
       title: "¿De qué es tu negocio?",
-      subtitle: "Con esto armamos el sistema a tu medida.",
-      cheer: "¡Arranquemos!",
+      subtitle: "Prendemos los módulos típicos. Los cambiás cuando quieras.",
     },
     {
       id: "businessName",
@@ -49,7 +47,6 @@ export function onboardingSteps(vertical: Vertical): OnboardingStep[] {
       title: "¿Cómo se llama?",
       // Acá se avisa que no vamos a volver a preguntar por el local.
       subtitle: "Tu primer local se llama igual. Si tenés más, los sumás después.",
-      cheer: "¡Perfecto!",
       placeholder: preset.namePlaceholder,
     },
     {
@@ -57,7 +54,6 @@ export function onboardingSteps(vertical: Vertical): OnboardingStep[] {
       icon: "solar:users-group-rounded-bold",
       title: "¿Cómo te llamás?",
       subtitle: "Así te saludamos en el panel.",
-      cheer: "¡Hola!",
       placeholder: "Ej: Matías",
     },
     {
@@ -65,7 +61,6 @@ export function onboardingSteps(vertical: Vertical): OnboardingStep[] {
       icon: "solar:letter-bold",
       title: "¿Cuál es tu email?",
       subtitle: "Lo vas a usar para entrar.",
-      cheer: "¡Genial!",
       placeholder: "tucorreo@ejemplo.com",
     },
     {
@@ -73,7 +68,6 @@ export function onboardingSteps(vertical: Vertical): OnboardingStep[] {
       icon: "solar:lock-bold",
       title: "Creá tu contraseña",
       subtitle: "Al menos 6 caracteres.",
-      cheer: "¡Seguridad primero!",
       placeholder: "Al menos 6 caracteres",
     },
     {
@@ -81,7 +75,6 @@ export function onboardingSteps(vertical: Vertical): OnboardingStep[] {
       icon: preset.staffIcon,
       title: "¿Quién atiende?",
       subtitle: `Hace falta al menos un ${staffSingular} para poder ${sellAction}.`,
-      cheer: "¡Buena!",
     },
   ];
 }

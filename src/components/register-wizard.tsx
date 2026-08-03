@@ -12,10 +12,10 @@ import { useMemo, useState, useTransition, type KeyboardEvent } from "react";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const inputClass =
-  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center text-lg font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100";
+  "w-full rounded-xl border border-slate-300 bg-white px-4 py-4 text-center text-lg font-semibold text-slate-950 outline-none transition focus:border-[#3158e8] focus:ring-4 focus:ring-[#3158e8]/12";
 // Botón "chunky" con sombra sólida tipo Duolingo (se hunde al apretar).
 const primaryBtn =
-  "flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-[0_4px_0_#1d4ed8] transition active:translate-y-[3px] active:shadow-[0_1px_0_#1d4ed8] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-[0_4px_0_#e2e8f0] disabled:active:translate-y-0 disabled:active:shadow-[0_4px_0_#e2e8f0]";
+  "flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-4 text-base font-black text-white shadow-[0_4px_0_#3158e8] transition active:translate-y-[3px] active:shadow-[0_1px_0_#3158e8] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-[0_4px_0_#e2e8f0] disabled:active:translate-y-0 disabled:active:shadow-[0_4px_0_#e2e8f0]";
 
 const KEYFRAMES =
   "@keyframes bbPop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}" +
@@ -25,7 +25,7 @@ const CONFETTI = Array.from({ length: 18 }, (_, i) => ({
   left: (i * 5.6 + (i % 4) * 3) % 100,
   delay: (i % 6) * 0.12,
   duration: 1.9 + (i % 4) * 0.25,
-  color: ["#2563eb", "#4f46e5", "#10b981", "#f59e0b", "#ec4899"][i % 5],
+  color: ["#3158e8", "#d7ef62", "#0f172a", "#3158e8", "#d7ef62"][i % 5],
   size: 7 + (i % 3) * 4,
 }));
 
@@ -168,22 +168,26 @@ export function RegisterWizard() {
 
   const progress = ((step + 1) / steps.length) * 100;
 
+  // El alto de la tarjeta es FIJO, no mínimo. Con `min-h` crecía con el
+  // contenido y scrolleaba la página entera, así que el `overflow-y-auto` de
+  // adentro no se usaba nunca y el botón terminaba fuera de pantalla. Fijando
+  // el alto, el que scrollea es el contenido y el pie queda anclado abajo.
   return (
-    <main className="flex min-h-[100dvh] flex-col bg-white text-slate-950 sm:items-center sm:justify-center sm:bg-slate-100 sm:p-6">
+    <main className="flex h-[100dvh] flex-col bg-[#fffef9] text-slate-950 sm:h-auto sm:min-h-[100dvh] sm:items-center sm:justify-center sm:bg-[#f5f4ef] sm:p-6">
       <style>{KEYFRAMES}</style>
-      <section className="relative flex w-full flex-1 flex-col overflow-hidden bg-white sm:min-h-[600px] sm:max-w-md sm:flex-none sm:rounded-[2.5rem] sm:shadow-[0_24px_80px_rgba(15,23,42,0.16)] sm:ring-1 sm:ring-slate-200">
+      <section className="relative flex w-full flex-1 flex-col overflow-hidden bg-[#fffef9] sm:max-h-[calc(100dvh-3rem)] sm:min-h-[600px] sm:max-w-md sm:flex-none sm:rounded-[28px] sm:border sm:border-slate-950/10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]">
         {/* Bienvenida */}
         {phase === "welcome" ? (
           <div className="flex flex-1 flex-col px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:px-8 sm:py-10">
             <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
               <div
-                className="grid size-24 place-items-center rounded-[2rem] bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-[0_18px_40px_rgba(37,99,235,0.35)]"
+                className="grid size-24 place-items-center rounded-[2rem] bg-slate-950 text-[#d7ef62]"
                 style={{ animation: "bbPop .6s cubic-bezier(.34,1.56,.64,1) both" }}
               >
                 <DynamicIcon className="size-12" name="solar:shop-2-bold" />
               </div>
               <div className="duration-500 animate-in fade-in slide-in-from-bottom-2" style={stagger(1)}>
-                <h1 className="text-3xl font-black tracking-tight">¡Creá tu negocio!</h1>
+                <h1 className="text-3xl font-black tracking-[-0.06em]">¡Creá tu negocio!</h1>
                 <p className="mx-auto mt-3 max-w-xs text-base font-semibold leading-7 text-slate-500">
                   Unas preguntas rápidas y en un minuto tenés el sistema armado a tu medida.
                 </p>
@@ -195,7 +199,7 @@ export function RegisterWizard() {
                   { icon: "solar:box-bold", label: "Y a vender: el catálogo lo cargás adentro" },
                 ].map((item) => (
                   <li className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700" key={item.label}>
-                    <DynamicIcon className="size-5 text-blue-600" name={item.icon} />
+                    <DynamicIcon className="size-5 text-[#3158e8]" name={item.icon} />
                     {item.label}
                   </li>
                 ))}
@@ -212,7 +216,7 @@ export function RegisterWizard() {
             </div>
             <p className="shrink-0 pt-4 text-center text-xs font-medium text-slate-400">
               ¿Ya tenés cuenta?{" "}
-              <Link className="font-black text-blue-600" href="/login">
+              <Link className="font-black text-[#3158e8]" href="/login">
                 Iniciar sesión
               </Link>
             </p>
@@ -233,7 +237,7 @@ export function RegisterWizard() {
               </button>
               <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-100">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-500 transition-[width] duration-500 ease-out"
+                  className="h-full rounded-full bg-[#3158e8] transition-[width] duration-500 ease-out"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -243,28 +247,34 @@ export function RegisterWizard() {
             </div>
 
             {/* Contenido + botón, centrados como un grupo (botón al alcance del pulgar) */}
-            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 sm:px-8">
+            {/* `overflow-x-hidden` es obligatorio, no cosmético: por
+                especificación, declarar `overflow-y` distinto de `visible`
+                promueve el eje X a `auto`. Como los pasos entran con
+                `slide-in-from-right-8`, cada cambio de paso desplaza el
+                contenido 2rem y aparecía un scrollbar horizontal fantasma. */}
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-6 sm:px-8">
               <div
-                className={`my-auto w-full py-6 duration-300 animate-in fade-in ${dir === 1 ? "slide-in-from-right-8" : "slide-in-from-left-8"}`}
+                className={`my-auto w-full py-4 duration-300 animate-in fade-in ${dir === 1 ? "slide-in-from-right-8" : "slide-in-from-left-8"}`}
                 key={step}
               >
                 <div className="flex flex-col items-center gap-2.5 text-center">
-                  <div
-                    className="grid size-20 place-items-center rounded-[1.75rem] bg-blue-50 text-blue-600"
-                    style={{ animation: "bbPop .5s cubic-bezier(.34,1.56,.64,1) both" }}
-                  >
-                    {/* El icono sale del rubro elegido: una verdulería no se
-                        reconoce en unas tijeras. */}
-                    <DynamicIcon className="size-10" name={meta.icon} />
-                  </div>
-                  <span
-                    className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-600 duration-500 animate-in fade-in slide-in-from-bottom-2"
-                    style={stagger(1)}
-                  >
-                    {meta.cheer}
-                  </span>
+                  {/* En el paso del rubro no va icono: son 80px para mostrar un
+                      local genérico arriba de una grilla con ocho iconos de
+                      local. Es la diferencia entre que el paso entre en
+                      pantalla o haya que scrollear. En el resto sí va: ahí le
+                      da identidad a un paso que si no es solo un input, y sale
+                      del rubro elegido —una verdulería no se reconoce en unas
+                      tijeras—. */}
+                  {meta.id === "vertical" ? null : (
+                    <div
+                      className="grid size-20 place-items-center rounded-[1.75rem] bg-[#eef1ff] text-[#3158e8]"
+                      style={{ animation: "bbPop .5s cubic-bezier(.34,1.56,.64,1) both" }}
+                    >
+                      <DynamicIcon className="size-10" name={meta.icon} />
+                    </div>
+                  )}
                   <h1
-                    className="text-2xl font-black tracking-tight text-slate-950 duration-500 animate-in fade-in slide-in-from-bottom-2"
+                    className="text-2xl font-black tracking-[-0.06em] text-slate-950 duration-500 animate-in fade-in slide-in-from-bottom-2"
                     style={stagger(2)}
                   >
                     {meta.title}
@@ -279,44 +289,45 @@ export function RegisterWizard() {
 
                 <div className="mt-6 duration-500 animate-in fade-in slide-in-from-bottom-2" style={stagger(4)}>
                   {meta.id === "vertical" ? (
-                    <div className="grid gap-2.5">
+                    // Grilla de fichas, no lista: ocho rubros en fila vertical
+                    // no entraban en una pantalla de celular. Las columnas van
+                    // DECLARADAS (`grid-cols-2`, no `grid` a secas); sin
+                    // declararlas la columna se dimensiona a `max-content` y
+                    // basta un texto que no corte para que la grilla se pase de
+                    // ancho y aparezca scroll horizontal.
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                       {VERTICAL_ORDER.map((option) => {
                         const optionPreset = VERTICAL_PRESETS[option];
                         const selected = vertical === option;
 
                         return (
                           <button
-                            className={`flex items-start gap-3 rounded-2xl border-2 p-3.5 text-left transition active:scale-[0.99] ${
-                              selected ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"
+                            aria-pressed={selected}
+                            className={`relative flex min-w-0 flex-col items-center gap-1.5 rounded-xl border-2 p-2.5 text-center transition active:scale-[0.98] ${
+                              selected ? "border-[#3158e8] bg-[#eef1ff]" : "border-slate-300 bg-white"
                             }`}
                             key={option}
                             onClick={() => setVertical(option)}
                             type="button"
                           >
                             <span
-                              className={`grid size-10 shrink-0 place-items-center rounded-xl ${
-                                selected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500"
+                              className={`grid size-9 shrink-0 place-items-center rounded-lg ${
+                                selected ? "bg-[#3158e8] text-white" : "bg-slate-100 text-slate-500"
                               }`}
                             >
                               <DynamicIcon className="size-5" name={optionPreset.icon} />
                             </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block text-sm font-black text-slate-950">{optionPreset.label}</span>
-                              <span className="mt-0.5 block text-xs text-slate-500">{optionPreset.tagline}</span>
+                            <span className="text-xs font-black leading-tight text-balance text-slate-950">
+                              {optionPreset.label}
                             </span>
-                            <span
-                              className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-full transition ${
-                                selected ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-400"
-                              }`}
-                            >
-                              {selected ? <Check className="size-4" /> : null}
-                            </span>
+                            {selected ? (
+                              <span className="absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full bg-[#3158e8] text-white">
+                                <Check className="size-3" />
+                              </span>
+                            ) : null}
                           </button>
                         );
                       })}
-                      <p className="mt-1 text-center text-xs text-slate-500">
-                        Prendemos los módulos típicos del rubro. Después los cambiás cuando quieras.
-                      </p>
                     </div>
                   ) : null}
 
@@ -397,7 +408,7 @@ export function RegisterWizard() {
                             ¿Cómo se llama?
                           </label>
                           <input
-                            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-[#3158e8] focus:ring-4 focus:ring-[#3158e8]/12"
                             enterKeyHint="next"
                             id="firstStaff"
                             onChange={(event) => setFirstStaffName(event.target.value)}
@@ -414,33 +425,41 @@ export function RegisterWizard() {
                   ) : null}
                 </div>
 
-                {error ? (
-                  <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-center text-sm font-semibold text-rose-700">
-                    {error}
-                  </p>
-                ) : null}
-
-                <button
-                  className={`${primaryBtn} mt-7`}
-                  disabled={!stepValid() || isPending || checking}
-                  onClick={() => void goNext()}
-                  type="button"
-                >
-                  {checking ? (
-                    <>
-                      <Loader2 className="size-5 animate-spin" />
-                      Verificando…
-                    </>
-                  ) : step === steps.length - 1 ? (
-                    "Crear mi negocio"
-                  ) : (
-                    <>
-                      Continuar
-                      <ArrowRight className="size-5" />
-                    </>
-                  )}
-                </button>
               </div>
+            </div>
+
+            {/* El botón vive FUERA del área que scrollea.
+                Antes iba adentro, junto al contenido: en los pasos cortos se
+                veía bien, pero el primero tiene ocho rubros y el botón quedaba
+                abajo de todo. Había que scrollear para descubrir que existía, y
+                un botón que no se ve es un paso que no se completa. */}
+            <div className="shrink-0 border-t border-slate-200/70 px-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 sm:px-8 sm:pb-8">
+              {error ? (
+                <p className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-center text-sm font-semibold text-rose-700">
+                  {error}
+                </p>
+              ) : null}
+
+              <button
+                className={primaryBtn}
+                disabled={!stepValid() || isPending || checking}
+                onClick={() => void goNext()}
+                type="button"
+              >
+                {checking ? (
+                  <>
+                    <Loader2 className="size-5 animate-spin" />
+                    Verificando…
+                  </>
+                ) : step === steps.length - 1 ? (
+                  "Crear mi negocio"
+                ) : (
+                  <>
+                    Continuar
+                    <ArrowRight className="size-5" />
+                  </>
+                )}
+              </button>
             </div>
           </>
         ) : null}
@@ -449,14 +468,17 @@ export function RegisterWizard() {
         {phase === "success" ? (
           <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
             <Confetti />
+            {/* Lima sobre negro, no el azul pálido de los pasos: esta es la
+                pantalla de premio y tiene que verse distinta de las diez que
+                vino completando. */}
             <div
-              className="grid size-24 place-items-center rounded-full bg-emerald-100 text-emerald-600"
+              className="grid size-24 place-items-center rounded-full bg-[#d7ef62] text-slate-950"
               style={{ animation: "bbPop .6s cubic-bezier(.34,1.56,.64,1) both" }}
             >
               <DynamicIcon className="size-12" name={preset.icon} />
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tight">¡Tu negocio está listo!</h1>
+              <h1 className="text-3xl font-black tracking-[-0.06em]">¡Tu negocio está listo!</h1>
               <p className="mt-2 flex items-center justify-center gap-2 text-sm font-bold text-slate-500">
                 <Loader2 className="size-4 animate-spin" />
                 Entrando al panel…
@@ -485,14 +507,14 @@ function ChoiceCard({
   return (
     <button
       className={`flex items-center gap-3 rounded-2xl border-2 p-4 text-left transition active:scale-[0.99] ${
-        selected ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-200"
+        selected ? "border-[#3158e8] bg-[#eef1ff]" : "border-slate-300 bg-white hover:border-[#3158e8]/40"
       }`}
       onClick={onClick}
       type="button"
     >
       <span
         className={`grid size-10 shrink-0 place-items-center rounded-xl ${
-          selected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500"
+          selected ? "bg-[#3158e8] text-white" : "bg-slate-100 text-slate-500"
         }`}
       >
         <DynamicIcon className="size-5" name={icon} />
@@ -501,7 +523,7 @@ function ChoiceCard({
         <span className="block text-sm font-black text-slate-950">{title}</span>
         <span className="block text-xs text-slate-500">{hint}</span>
       </span>
-      <span className={`grid size-6 shrink-0 place-items-center rounded-full text-white transition ${selected ? "bg-blue-600" : "bg-slate-200"}`}>
+      <span className={`grid size-6 shrink-0 place-items-center rounded-full text-white transition ${selected ? "bg-[#3158e8]" : "bg-slate-200"}`}>
         {selected ? <Check className="size-4" /> : null}
       </span>
     </button>
