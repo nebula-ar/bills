@@ -79,7 +79,7 @@ export const MODULE_INFO: Record<AppModule, ModuleInfo> = {
   [AppModule.APPOINTMENTS]: {
     module: AppModule.APPOINTMENTS,
     label: "Turnos",
-    hint: "Agenda del día y cobro en la silla",
+    hint: "Agenda del día y cobro de servicios",
     icon: "solar:calendar-bold",
     tint: "violet",
   },

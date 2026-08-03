@@ -80,18 +80,18 @@ export function InstallPrompt() {
     dismiss();
   }
 
-  if (!mode) return null;
+  if (!mode || !visible) return null;
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-[70] flex justify-center px-3 transition-all duration-300 ${
+      className={`pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex justify-center px-3 transition-all duration-300 ${
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-full opacity-0"
       }`}
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}
       role="dialog"
       aria-label="Instalar Bills"
     >
-      <div className="relative w-full max-w-[440px] rounded-3xl bg-white p-4 shadow-2xl shadow-slate-950/20 ring-1 ring-slate-950/5">
+      <div className="pointer-events-auto relative w-full max-w-[440px] rounded-3xl bg-white p-4 shadow-2xl shadow-slate-950/20 ring-1 ring-slate-950/5">
         <button
           type="button"
           onClick={dismiss}

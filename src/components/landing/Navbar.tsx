@@ -1,69 +1,22 @@
-"use client";
-
-import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { Store } from "lucide-react";
-import gsap from "gsap";
-import { MagneticButton } from "./MagneticButton";
 
 export function Navbar() {
-  const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const navRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY > lastScrollY && currentScrollY > 100) {
-        // Scrolling down & past 100px
-        setIsVisible(false);
-      } else {
-        // Scrolling up
-        setIsVisible(true);
-      }
-      
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
-
-  useEffect(() => {
-    if (navRef.current) {
-      gsap.to(navRef.current, {
-        y: isVisible ? 0 : -100,
-        opacity: isVisible ? 1 : 0,
-        duration: 0.3,
-        ease: "power2.out"
-      });
-    }
-  }, [isVisible]);
-
   return (
-    <nav ref={navRef} className="fixed top-0 inset-x-0 z-50 bg-white/70 backdrop-blur-md border-b border-slate-200 shadow-sm">
-      <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-        {/* Placeholder for the logo (Preloader will animate its logo to this exact spot and fade this one in) */}
-        <div id="navbar-logo-placeholder" className="flex items-center gap-3 opacity-0">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-md">
-            <Store className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-bold tracking-tight text-slate-900 font-montserrat">Bills</span>
+    <nav className="fixed inset-x-0 top-0 z-50 border-b border-slate-300/70 bg-[#f5f4ef]/90 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
+        <Link href="/" className="inline-flex items-center gap-2.5 text-[22px] font-black tracking-[-0.06em] text-slate-950">
+          <span className="grid h-8 w-8 -rotate-3 place-items-center rounded-[10px] bg-slate-950 text-sm font-black text-[#d7ef62]">B</span>
+          Bills
+        </Link>
+        <div className="hidden items-center gap-7 text-sm font-bold text-slate-500 md:flex">
+          <Link href="/#producto" className="transition hover:text-slate-950">Producto</Link>
+          <Link href="/#rubros" className="transition hover:text-slate-950">Rubros</Link>
+          <Link href="/#precios" className="transition hover:text-slate-950">Precios</Link>
+          <Link href="/#testimonios" className="transition hover:text-slate-950">Historias</Link>
         </div>
-        
-        <div className="flex items-center gap-4 sm:gap-6">
-          <Link href="/login" className="group relative hidden sm:flex items-center justify-center h-5 overflow-hidden">
-            <span className="flex items-center font-medium text-sm tracking-tight text-slate-500 transition-transform duration-500 ease-[cubic-bezier(0.19,1,0.22,1)] group-hover:-translate-y-full">
-              Iniciar sesión
-            </span>
-            <span className="absolute top-0 left-0 flex items-center justify-center w-full font-medium text-sm tracking-tight text-blue-600 transition-transform duration-500 ease-[cubic-bezier(0.19,1,0.22,1)] translate-y-full group-hover:translate-y-0">
-              Iniciar sesión
-            </span>
-          </Link>
-          <MagneticButton href="/register" className="px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm">
-            Prueba Gratis
-          </MagneticButton>
+        <div className="flex items-center gap-4 text-sm font-extrabold">
+          <Link href="/login" className="hidden text-slate-600 transition hover:text-[#3158e8] sm:inline">Iniciar sesión</Link>
+          <Link href="/register" className="rounded-full bg-slate-950 px-4 py-2.5 text-xs text-white transition hover:bg-[#3158e8] sm:px-5 sm:text-sm">Probá gratis</Link>
         </div>
       </div>
     </nav>

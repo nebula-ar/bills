@@ -1,38 +1,25 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { CurvedDivider } from "./CurvedDivider";
+import { ArrowUpRight } from "lucide-react";
 
 export function CTASection() {
   return (
-    <section id="cta" className="pt-24 pb-32 lg:pb-48 relative overflow-hidden bg-white border-t border-slate-200 snap-start">
-      <div className="absolute inset-0 bg-blue-50/50" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-blue-400/20 blur-[100px] rounded-full pointer-events-none" />
-      
-      <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
-        <h2 className="text-4xl lg:text-6xl font-bold text-slate-900 mb-6 font-montserrat tracking-tight">
-          ¿Listo para subir de nivel?
-        </h2>
-        <p className="text-xl text-slate-600 mb-10 max-w-2xl mx-auto">
-          Únete a las negocios modernas que dejaron los Excel y empezaron a crecer su negocio de verdad.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            href="/register"
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 hover:shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-all text-lg"
-          >
-            Crea tu Cuenta
-            <ArrowRight className="w-5 h-5" />
-          </Link>
-          <Link
-            href="/contact"
-            className="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-700 rounded-xl font-bold hover:bg-blue-50 border-2 border-blue-100 hover:border-blue-200 transition-colors text-lg shadow-sm"
-          >
-            Habla con Ventas
+    <section id="cta" className="border-t border-slate-200 bg-[#d7ef62] py-24 text-slate-950 lg:py-32">
+      <div className="mx-auto flex max-w-7xl flex-col justify-between gap-10 px-5 sm:px-8 md:flex-row md:items-end lg:px-12">
+        <div>
+          <p className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-[#3158e8]">Menos administración</p>
+          <h2 className="max-w-3xl text-5xl font-black leading-[0.92] tracking-[-0.08em] sm:text-6xl lg:text-7xl">
+            Tu negocio tiene mucho para hacer.
+            <br />
+            <span className="text-[#3158e8]">La planilla no.</span>
+          </h2>
+        </div>
+        <div className="max-w-xs text-sm font-semibold leading-6 text-slate-700">
+          Probá Bills gratis y armá tu primera sucursal en minutos.
+          <Link href="/register" className="mt-5 inline-flex min-h-12 items-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[#3158e8]">
+            Crear mi cuenta <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
       </div>
-      
-      <CurvedDivider />
     </section>
   );
 }
