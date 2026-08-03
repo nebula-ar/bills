@@ -242,6 +242,7 @@ export async function getPublicCatalog(businessId: string, branchId: string) {
           name: true,
           unit: true,
           imageUpdatedAt: true,
+          catalogSlug: true,
           category: { select: { name: true } },
         },
       },
@@ -255,6 +256,7 @@ export async function getPublicCatalog(businessId: string, branchId: string) {
     unit: row.product.unit,
     categoryName: row.product.category?.name ?? null,
     imageVersion: row.product.imageUpdatedAt?.getTime() ?? null,
+    catalogSlug: row.product.catalogSlug,
   }));
 }
 

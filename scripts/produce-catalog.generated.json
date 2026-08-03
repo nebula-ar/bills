@@ -1,0 +1,1085 @@
+{
+  "source": "https://verdepuro.com.ar",
+  "catalog": [
+    {
+      "slug": "acelga",
+      "name": "Acelga",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "aji-picante",
+      "name": "Ají picante",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "ajo",
+      "name": "Ajo",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "albahaca-comun",
+      "name": "Albahaca común",
+      "unit": "UNIT",
+      "category": "Aromáticas"
+    },
+    {
+      "slug": "alcaucil",
+      "name": "Alcaucil",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "anana",
+      "name": "Ananá",
+      "unit": "UNIT",
+      "category": "Frutas"
+    },
+    {
+      "slug": "anco",
+      "name": "Anco",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "apio",
+      "name": "Apio",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "banana",
+      "name": "Banana",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "batata",
+      "name": "Batata",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "berenjena",
+      "name": "Berenjena",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "boniato",
+      "name": "Boniato",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "brocoli",
+      "name": "Brócoli",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "brotes-de-alfalfa",
+      "name": "Brotes de alfalfa",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "brotes-de-rabanito",
+      "name": "Brotes de rabanito",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "brotes-de-soja",
+      "name": "Brotes de soja",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "cabutia",
+      "name": "Cabutiá",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "cebolla",
+      "name": "Cebolla",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "cebolla-morada",
+      "name": "Cebolla morada",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "cebollita-de-verdeo",
+      "name": "Cebollita de verdeo",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "champignones",
+      "name": "Champiñones",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "chaucha",
+      "name": "Chaucha",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "choclo",
+      "name": "Choclo",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "ciboulette-hidroponico",
+      "name": "Ciboulette",
+      "unit": "UNIT",
+      "category": "Aromáticas"
+    },
+    {
+      "slug": "cilantro",
+      "name": "Cilantro",
+      "unit": "UNIT",
+      "category": "Aromáticas"
+    },
+    {
+      "slug": "ciruela",
+      "name": "Ciruela",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "coliflor",
+      "name": "Coliflor",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "espinaca",
+      "name": "Espinaca",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "frutilla",
+      "name": "Frutilla",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "granada",
+      "name": "Granada",
+      "unit": "UNIT",
+      "category": "Frutas"
+    },
+    {
+      "slug": "hinojo",
+      "name": "Hinojo",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "jengibre",
+      "name": "Jengibre",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "kale",
+      "name": "Kale",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "kiwi",
+      "name": "Kiwi",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "lechuga-capuchina",
+      "name": "Lechuga capuchina",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "lechuga-criolla",
+      "name": "Lechuga criolla",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "lechuga-francesa",
+      "name": "Lechuga francesa",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "lechuga-mantecosa",
+      "name": "Lechuga mantecosa",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "lechuga-morada",
+      "name": "Lechuga morada",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "lechugas-mix",
+      "name": "Lechugas mix",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "lima",
+      "name": "Lima",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "limon",
+      "name": "Limón",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "mandarina",
+      "name": "Mandarina",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "mango",
+      "name": "Mango",
+      "unit": "UNIT",
+      "category": "Frutas"
+    },
+    {
+      "slug": "manzana-roja",
+      "name": "Manzana roja",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "manzana-verde",
+      "name": "Manzana verde",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "maple-de-huevos-blanco",
+      "name": "Maple de huevos blanco",
+      "unit": "UNIT",
+      "category": "Huevos y lácteos"
+    },
+    {
+      "slug": "melon-amarillo",
+      "name": "Melón amarillo",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "melon-blanco",
+      "name": "Melón blanco",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "membrillo",
+      "name": "Membrillo",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "menta",
+      "name": "Menta",
+      "unit": "UNIT",
+      "category": "Aromáticas"
+    },
+    {
+      "slug": "morron-amarillo",
+      "name": "Morrón amarillo",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "morron-rojo",
+      "name": "Morrón rojo",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "morron-verde",
+      "name": "Morrón verde",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "naranja",
+      "name": "Naranja",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "palta",
+      "name": "Palta",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "papa-lavada",
+      "name": "Papa lavada",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "papa-negra",
+      "name": "Papa negra",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "papines-andinos",
+      "name": "Papines andinos",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "pepino",
+      "name": "Pepino",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "pera",
+      "name": "Pera",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "perejil",
+      "name": "Perejil",
+      "unit": "UNIT",
+      "category": "Aromáticas"
+    },
+    {
+      "slug": "pomelo",
+      "name": "Pomelo",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "portobellos",
+      "name": "Portobellos",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "puerro",
+      "name": "Puerro",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "rabanito",
+      "name": "Rabanito",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "radicheta",
+      "name": "Radicheta",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "remolacha",
+      "name": "Remolacha",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "repollitos-de-bruselas",
+      "name": "Repollitos de Bruselas",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "repollo-blanco",
+      "name": "Repollo blanco",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "repollo-colorado",
+      "name": "Repollo colorado",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "romero",
+      "name": "Romero",
+      "unit": "UNIT",
+      "category": "Aromáticas"
+    },
+    {
+      "slug": "rucula",
+      "name": "Rúcula",
+      "unit": "UNIT",
+      "category": "Verduras"
+    },
+    {
+      "slug": "sandia",
+      "name": "Sandía",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "sandia-baby-entera",
+      "name": "Sandía baby",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "tomate",
+      "name": "Tomate",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "tomate-cherry",
+      "name": "Tomate cherry",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "tomate-perita",
+      "name": "Tomate perita",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "tomillo",
+      "name": "Tomillo",
+      "unit": "UNIT",
+      "category": "Aromáticas"
+    },
+    {
+      "slug": "uvas-negras",
+      "name": "Uvas negras",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "uvas-rosadas",
+      "name": "Uvas rosadas",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "uvas-verdes",
+      "name": "Uvas verdes",
+      "unit": "KG",
+      "category": "Frutas"
+    },
+    {
+      "slug": "zanahoria",
+      "name": "Zanahoria",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "zapallito",
+      "name": "Zapallito",
+      "unit": "KG",
+      "category": "Verduras"
+    },
+    {
+      "slug": "zucchini",
+      "name": "Zucchini",
+      "unit": "KG",
+      "category": "Verduras"
+    }
+  ],
+  "skipped": [
+    {
+      "name": "Barra Proteica B3ST Naranja x 10 Barritas",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Barra Proteica B3ST Frutos Rojos x 10 Barritas",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Barra Proteica B3ST Salted Caramel x 10 Barritas",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Barra Proteica B3ST Coco x 10 Barritas",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Combo Pecán",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Nueces Pecán Garrapiñadas 150g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Nueces Pecán Bañadas en Chocolate Blanco 150g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Nueces Pecán Bañadas en Chocolate Negro 150g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Aceite de Oliva Virgen Extra &#8211; Oliovita Blend Gourmet Lata x 500ml",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Bebida de Aloe Vera Sin Azucar Pureplus 500 ml",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Agua de Coco QualiCoco 200mL",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Vainilla Liquida Alicante 100cc",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Ají Triturado Alicante 25 Gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Pimienta Negra Molida Alicante 25 Gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Pimienta Blanca Molida Alicante 25 Gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Condimento para Carnes Alicante 25 Gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Condimento para Pizza Alicante 50 Gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Tomillo Alicante 10Gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Romero Alicante 15 Gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Provenzal Alicante 25 Gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Perejil Deshidratado Alicante 25 Gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Orégano Alicante 25 Gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Pimenton Dulce 70 gr Frasco",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Café Cappuccino Instantáneo La Virginia x 210g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Café Selección Granulado Instantáneo La Virginia x 170g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Café Suave Instantáneo La Virginia x 170g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Café Clásico Instantáneo La Virginia x 170g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Stevia Sucra Tuy x 200cc.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Stevia Líquido Tuy x 200cc.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Stevia Tuy x 50u.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Té de Mezcla de Hierbas Naturales Herboristería La Virginia x 25u.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Té de Tilo Herboristería La Virginia x 25u.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Té de Manzanilla con Anís Herboristería  La Virginia x 25u.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Té de Manzanilla Herboristería  La Virginia x 25u.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Té de Cedrón Herboristería  La Virginia x 25u.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Té de Boldo Herboristería  La Virginia x 25u.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Té Clásico Virgin Islands x 25u.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Té Negro Clásico La Virginia x 25u.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Café Expresso Molido Tostado La Virginia 500g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Filtros De Papel Para Café Nº4 La Virginia x 40U",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Café La Morenita Capsulas Blend Italiano x 10 Cap.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Café La Morenita Capsulas Colombia x 10 Cap.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Café La Morenita Capsulas Etiopia x 10 Cap.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Café La Morenita Capsulas Brasil x 10 Cap.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Café La Morenita Capsulas Honduras x 10 Cap.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Café Tostado Sutil Lv x 10 Cap.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Café Tostado Intenso Lv x 10 Cap.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Café Tostado Equilibrado Lv x 10 Cap.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Café Tostado Extra Intenso Lv x 10 Cap.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Mix Cappuccino Espuma De Vainilla La Virginia Dp 155g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Mix Latte La Virginia Dp 125g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Mix Cortado La Virginia Dp 125g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Mix Cappuccino La Virginia Dulce De Leche Dp 155g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Capsulas La Virginia Dgc Cappuccino x 8 Cap.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Capsulas La Virginia Dgc Cortado x 10 Cap.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Capsulas La Virginia Dgc Espresso x 10 Cap.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Papel film rollo 10 m",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Aceitunas Verdes Descarozadas Doypack Oliovita  x 220gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Aceitunas Verdes Enteras Doypack Oliovita x 220gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Couscous R&amp;C x 500 g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Aceite de Coco Neutro Chennai 360 ml",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Jengibre para Sushi Rosa en laminas Gari 250g Yuan Yuan",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Panko Tassya Rebozador x 200 g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Leche de Coco Kerala x 400 gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Aceto Oliovita Reducción 500 ml",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Aceto Tradicional Oliovita 500 ml",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Aceite de Oliva Extra Virgen &#8211; Oliovita Clasico 500 ml",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Aceite de Oliva Extra Virgen, Oliovita Clasico de 250 ML",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Aceite de Oliva Extra Virgen, Oliovita Clasico 5L",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Sal gruesa de Himalaya 175 gr Frasco",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Pimenton español ahumado 70 gr Frasco",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Sal rosada fina 135 gr Frasco",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Perejil deshidratado 15 gr Frasco",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Oregano 15 gr Frasco",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Curry en polvo 65 gr Frasco",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Lemon Pepper Garlic 135 gr Frasco",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Aji molido dulce 70 gr Frasco",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Mix de Pimientas x 70 gr Frasco",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Barra De Cereal Chocolate y Caju Vitalgy x 10u",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Barra De Cereal Manzana y Arandanos Vitalgy x 10u",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Yerba Larga Vida Orgánica x 500gr",
+      "reason": "Es un envasado de marca, no producto de verdulería"
+    },
+    {
+      "name": "Barra De Cereal Arandanos y Almendras Vitalgy x 10u",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Granola Tradicional x 1 Kg",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Barra De Cereal Cacao Y Almendras Vitalgy x 10u",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Servilletas Descartables Sussex Clásica 80u",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Cucharon con Apoyo Rubber Antiadherente &#8211; Krea",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Cuchara Con Apoyo Rubber Antiadherente &#8211; Krea",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Set 6 Cucharas Medidoras &#8211; Krea",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Servidor De Pasta Con Apoyo Rubber antiadherente &#8211; Krea",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Aceto Balsámico Glazé Casalta 250ml",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Chimichurri 100g",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Té Dilmah Gourmet Earl Grey x 10 Saq.",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Semillas de Amaranto 100 gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Castañas de Caju al natural",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Mix de semillas 200 gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Aji Picante Triturado frasco grande BADIA",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Pimienta negra molida 100 gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Cacao Amargo en polvo 100 gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Promo 2at. ruculas 2at. espinacas",
+      "reason": "Es una promo del local, no un producto del rubro"
+    },
+    {
+      "name": "Orange Pepper frasco BADIA",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Comino molido frasco BADIA",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Mani tostado y salado",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Pimienta blanca en grano 100 gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Comino en grano 100 gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Rollo Cocina Sussex Doble Hoja",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "PROMO Zanahoria bolsa chica",
+      "reason": "Es una promo del local, no un producto del rubro"
+    },
+    {
+      "name": "PROMO 3kg de papa negra",
+      "reason": "Es una promo del local, no un producto del rubro"
+    },
+    {
+      "name": "Pasas de Uva",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Perejil en Frasco BADIA",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Promo Cilantro y Perejil",
+      "reason": "Es una promo del local, no un producto del rubro"
+    },
+    {
+      "name": "Promo 3 atados de Acelga",
+      "reason": "Es una promo del local, no un producto del rubro"
+    },
+    {
+      "name": "Promo 3 Ruculas y 2 Radichetas-",
+      "reason": "Es una promo del local, no un producto del rubro"
+    },
+    {
+      "name": "PROMO 3 atados de espinacas",
+      "reason": "Es una promo del local, no un producto del rubro"
+    },
+    {
+      "name": "Hojas de Laurel 50 gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Mix Tradicional Frutos Secos",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Almendras caramel",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Mostaza amarilla en grano 100 gr",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Pasta de Mani Oddi&#8217;s Natural",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Nueces peladas extra light",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Chips de Banana",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Pimienta roja cayenne BADIA",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Verdura para sopa (bandejita)",
+      "reason": "Es un preparado propio del local"
+    },
+    {
+      "name": "Papel film rollo 20m",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Anco cortado en bandeja 250g aprox.",
+      "reason": "Es un preparado propio del local"
+    },
+    {
+      "name": "Papel aluminio 4m",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "PROMO 1/2 cajón de limón",
+      "reason": "Es una promo del local, no un producto del rubro"
+    },
+    {
+      "name": "Salsa de Soja Sakanashi x 450 cc",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "PROMO cajón de naranjas",
+      "reason": "Es una promo del local, no un producto del rubro"
+    },
+    {
+      "name": "Paprika Ahumada frasco BADIA",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Paprika frasco BADIA",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Pack ASADO",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Pack Leña",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Nuez Moscada por unidad",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Pack Carbón",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Leña Espinillo",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Sazón para pollo frasco grande BADIA",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Maderitas",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Leña Quebracho Colorado",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Carbón bolsa grande papel 8 kg",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Pack FRUTA",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Pack FAMILIAR",
+      "reason": "No cae en ninguna categoría de verdulería"
+    },
+    {
+      "name": "Pack DUO",
+      "reason": "No cae en ninguna categoría de verdulería"
+    }
+  ]
+}

@@ -63,6 +63,9 @@ export type SeedProduct = {
   unit?: Unit;
   cost?: number;
   stock?: number;
+  // Qué producto del catálogo de rubro es. Le da la foto compartida sin que el
+  // negocio suba nada. Ver `productImageSrc`.
+  catalogSlug?: string;
 };
 
 export type VerticalPreset = {
@@ -245,7 +248,7 @@ export const VERTICAL_PRESETS: Record<Vertical, VerticalPreset> = {
     modules: RETAIL_MODULES,
     features: RESTOCK_FEATURES,
     labels: RETAIL_LABELS,
-    categories: ["Frutas", "Verduras", "Almacén", "Huevos y lácteos"],
+    categories: ["Frutas", "Verduras", "Aromáticas", "Almacén", "Huevos y lácteos"],
     catalog: [
       { name: "Banana", price: 2400, category: "Frutas", kind: ProductKind.GOOD, unit: Unit.KG, cost: 1500, stock: 30 },
       { name: "Manzana roja", price: 3200, category: "Frutas", kind: ProductKind.GOOD, unit: Unit.KG, cost: 2000, stock: 25 },

@@ -72,6 +72,7 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
         ? stockLevels.get(`${branch.id}:${productPrice.productId}`) ?? 0
         : null,
       imageVersion: productPrice.product.imageUpdatedAt?.getTime() ?? null,
+      catalogSlug: productPrice.product.catalogSlug,
       packSize: productPrice.product.packSize,
       packLabel: productPrice.product.packLabel,
       familyId: productPrice.product.familyId,

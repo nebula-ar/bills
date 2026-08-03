@@ -28,6 +28,7 @@ export type ScanLookup =
         unit: string;
         stock: number | null;
         imageVersion: number | null;
+        catalogSlug: string | null;
         packSize: number | null;
         packLabel: string | null;
       };
@@ -85,6 +86,7 @@ export async function findProductToSell(input: { code: string; branchId: string 
         unit: found.unit,
         stock: found.stock,
         imageVersion: found.imageVersion,
+        catalogSlug: found.catalogSlug,
         packSize: extra?.packSize ?? null,
         packLabel: extra?.packLabel ?? null,
       },

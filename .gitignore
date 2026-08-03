@@ -55,3 +55,9 @@ e2e.db-journal
 
 # Capturas de pantalla generadas (no son código fuente)
 /capturas
+
+# Planchas de imágenes generadas por IA: son material de origen, no producto.
+# Pesan ~2 MB cada una y las 14 del catálogo de verdulería serían 30 MB al pedo.
+# Lo que se commitea es el resultado: los .webp de 512 en public/catalog/.
+/sheets
+/.sheet-preview

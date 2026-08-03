@@ -16,6 +16,7 @@ export type ScannedProduct = {
   price: number | null;
   stock: number | null;
   imageVersion: number | null;
+  catalogSlug: string | null;
   active: boolean;
 };
 
@@ -44,6 +45,7 @@ export async function findProductByCode(input: {
       unit: true,
       active: true,
       imageUpdatedAt: true,
+      catalogSlug: true,
       branchPrices: input.branchId
         ? { where: { branchId: input.branchId, deleted: false, active: true }, select: { price: true } }
         : false,
@@ -63,6 +65,7 @@ export async function findProductByCode(input: {
     price: product.branchPrices?.[0]?.price ?? null,
     stock: product.stockLevels?.[0]?.quantity ?? null,
     imageVersion: product.imageUpdatedAt?.getTime() ?? null,
+    catalogSlug: product.catalogSlug,
   };
 }
 

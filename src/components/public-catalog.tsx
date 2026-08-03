@@ -3,6 +3,7 @@
 import { DynamicIcon, Minus, Plus } from "@/components/icons";
 import type { Unit } from "@/generated/prisma/enums";
 import { formatQuantity, lineTotal, ONE, unitShort } from "@/lib/quantity";
+import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import { useMemo, useState } from "react";
 
 // Catálogo público del negocio: lo que se comparte por Instagram o WhatsApp.
@@ -18,6 +19,7 @@ export type PublicCatalogProduct = {
   unit: Unit;
   categoryName: string | null;
   imageVersion: number | null;
+  catalogSlug: string | null;
 };
 
 export type PublicCatalogProps = {
@@ -110,16 +112,18 @@ export function PublicCatalog(props: PublicCatalogProps) {
         <ul className="mt-4 grid grid-cols-2 gap-3">
           {filtered.map((product) => {
             const quantity = cart[product.id] ?? 0;
+            // Acá no hay sesión: la foto propia se pide por la ruta del token.
+            const imageSrc = productImageSrc(product, { publicToken: props.token });
 
             return (
               <li className="flex flex-col rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-950/5" key={product.id}>
-                {product.imageVersion ? (
+                {imageSrc ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     alt=""
                     className="mb-2 aspect-square w-full rounded-xl bg-slate-100 object-cover"
                     loading="lazy"
-                    src={`/api/public/${props.token}/products/${product.id}/image?v=${product.imageVersion}`}
+                    src={imageSrc}
                   />
                 ) : (
                   <span className="mb-2 flex aspect-square w-full items-center justify-center rounded-xl bg-slate-100">

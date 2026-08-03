@@ -306,6 +306,11 @@ model Product {
   // Cuándo se cargó la foto. Vive acá (y no en ProductImage) para que un
   // listado sepa si hay foto y pueda cachearla sin traerse los bytes.
   imageUpdatedAt DateTime?
+  // Qué producto del catálogo de rubro es ("banana", "tomate-perita"). Sirve
+  // para mostrar la foto genérica sin que el negocio suba nada: una verdulería
+  // no tiene por qué fotografiar una banana, y las 300 leen el mismo archivo.
+  // La foto propia, si la hay, siempre le gana. null = producto cargado a mano.
+  catalogSlug String?
   // Si es true, vender descuenta de StockLevel y se avisa cuando falta.
   trackStock  Boolean     @default(false)
   // Punto de reposición: por debajo de esto la app avisa. En milésimas.
@@ -698,6 +703,19 @@ model StockLevel {
   productId String
   // En milésimas. Puede ser negativo si se permite vender sin stock.
   quantity  Int      @default(0)
+  // Costo promedio ponderado (PPP) de lo que hay acá, en pesos por unidad de
+  // medida. Se recalcula en cada entrada: (valor que había + valor que entra) /
+  // (cantidad que había + cantidad que entra).
+  //
+  // No es lo mismo que `Product.cost`, que es el costo de REPOSICIÓN (lo último
+  // que se pagó, sirve para fijar precio). Este es a cuánto está valuado lo que
+  // hay en la góndola. Con inflación los dos se separan rápido: valuar 100
+  // unidades viejas al precio de las 10 que compraste ayer infla el patrimonio
+  // y el costo de lo vendido.
+  //
+  // Es por sucursal porque el stock es por sucursal: dos locales que le compran
+  // al mismo proveedor a distinto precio no tienen por qué valuar igual.
+  avgCost   Int?
   updatedAt DateTime @updatedAt
 
   branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
@@ -737,6 +755,7 @@ model StockMovement {
 enum StockMovementType {
   INITIAL // carga inicial de inventario
   PURCHASE // ingreso por compra a proveedor
+  PURCHASE_CANCELLED // salida por compra anulada o borrada
   SALE // salida por venta
   SALE_CANCELLED // reposición por venta anulada
   ADJUSTMENT // ajuste manual tras un conteo
@@ -770,6 +789,7 @@ model Supplier {
 
   business  Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
   purchases Purchase[]
+  expenses  Expense[]
 
   @@index([businessId])
   @@index([deletedAt])
@@ -784,7 +804,21 @@ model Purchase {
   supplierId  String
   // Número de comprobante del proveedor (ej: "0001-00012345").
   number      String?
+  // Suma de los renglones. Es la deuda que se registra.
   total       Int
+  // Lo que dice el papel. Una factura argentina trae percepciones, flete y
+  // redondeos que no están en los renglones: si no cierra contra `total`, se
+  // avisa en vez de dejar una deuda silenciosamente mal cargada.
+  declaredTotal Int?
+  // IVA discriminado. Para un Responsable Inscripto es crédito fiscal, o sea
+  // que NO es costo: se recupera. Para un monotributista es null y el costo de
+  // los renglones ya lo incluye.
+  taxAmount   Int?
+  // Qué se compró. null = mercadería: entra al stock y se vuelve costo recién
+  // cuando se vende. Cualquier otra categoría es un gasto operativo (el service
+  // del freezer, el flete, el contador) y baja la ganancia del período en que
+  // se emitió la factura.
+  expenseCategory ExpenseCategory?
   status      PurchaseStatus @default(PENDING)
   issuedAt    DateTime       @default(now())
   // Vencimiento del pago. Vencida = dueAt en el pasado y status != PAID.
@@ -805,6 +839,7 @@ model Purchase {
   supplier       Supplier          @relation(fields: [supplierId], references: [id], onDelete: Restrict)
   items          PurchaseItem[]
   payments       PurchasePayment[]
+  credits        PurchaseCredit[]
   stockMovements StockMovement[]
 
   @@index([businessId, issuedAt])
@@ -836,6 +871,30 @@ model PurchaseItem {
 
   @@index([purchaseId])
   @@index([productId])
+}
+
+// Nota de crédito del proveedor: te bonifica, te devolvés mercadería fallada o
+// te facturó de más. Baja lo que le debés SIN mover plata, así que no toca la
+// caja — a diferencia de un pago. Sin esto, el único arreglo era pagar de menos
+// y dejar la factura en "pago parcial" para siempre.
+model PurchaseCredit {
+  id          String   @id @default(cuid())
+  purchaseId  String
+  amount      Int
+  // Número de la nota de crédito del proveedor.
+  number      String?
+  reason      String?
+  issuedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+  createdById String?
+  deleted     Boolean  @default(false)
+  deletedAt   DateTime?
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseId])
+  @@index([issuedAt])
+  @@index([deletedAt])
 }
 
 // Pago (total o parcial) de una factura de compra. Sale de una cuenta, así que
@@ -935,10 +994,16 @@ enum CustomerAccountEntryType {
 // Gastos y caja
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Plata que salió y ya está paga. Lo que se le compra a un proveedor a pagar
+// después no es un gasto sino una `Purchase`: es deuda, y recién impacta en la
+// caja cuando se paga (igual que el fiado del lado de las ventas). Un gasto
+// puede igual nombrar al proveedor —"le pagué $30.000 al verdulero"— sin
+// arrastrar factura, vencimiento ni mercadería.
 model Expense {
   id            String          @id @default(cuid())
   businessId    String
   branchId      String?
+  supplierId    String?
   category      ExpenseCategory
   // Cuenta de la que salió la plata (para conciliar con los ingresos por método en el cierre de caja).
   paymentMethod PaymentMethod   @default(CASH)
@@ -953,11 +1018,13 @@ model Expense {
   deletedAt     DateTime?
   deletedById   String?
 
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  branch   Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  supplier Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
 
   @@index([businessId, spentAt])
   @@index([branchId])
+  @@index([supplierId])
   @@index([deletedAt])
 }
 

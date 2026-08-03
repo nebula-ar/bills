@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ONE } from "@/lib/quantity";
 import { verticalPreset } from "@/lib/vertical";
 
+import { presetCatalogFor } from "./preset-catalog";
 import { ProductError, ProductErrorCode } from "./product.errors";
 
 // Carga el catálogo típico del rubro de una.
@@ -36,8 +37,9 @@ export async function seedPresetCatalog(input: { businessId: string; branchId: s
   }
 
   const preset = verticalPreset(business.vertical);
+  const catalog = presetCatalogFor(business.vertical);
 
-  if (preset.catalog.length === 0) {
+  if (catalog.length === 0) {
     return { created: 0 };
   }
 
@@ -47,11 +49,17 @@ export async function seedPresetCatalog(input: { businessId: string; branchId: s
   });
   const taken = new Set(existing.map((product) => product.name.toLowerCase()));
 
-  const pending = preset.catalog.filter((seed) => !taken.has(seed.name.toLowerCase()));
+  const pending = catalog.filter((seed) => !taken.has(seed.name.toLowerCase()));
 
   if (pending.length === 0) {
     return { created: 0 };
   }
+
+  // El catálogo de verdulería son 122 productos, o sea ~244 escrituras seguidas
+  // acá adentro. El timeout por defecto de una transacción interactiva de Prisma
+  // es de 5 segundos: contra la base de producción (con la latencia del pooler)
+  // eso se pasa y REVIERTE la carga entera. Con seis productos no se notaba.
+  const TRANSACTION_TIMEOUT_MS = 60_000;
 
   await prisma.$transaction(async (tx) => {
     const categories = await tx.productCategory.findMany({
@@ -78,6 +86,7 @@ export async function seedPresetCatalog(input: { businessId: string; branchId: s
           kind,
           unit: seed.unit ?? Unit.UNIT,
           cost: seed.cost ?? null,
+          catalogSlug: seed.catalogSlug ?? null,
           trackStock: tracksStock,
           active: true,
           createdById: input.userId,
@@ -109,7 +118,7 @@ export async function seedPresetCatalog(input: { businessId: string; branchId: s
         await tx.stockLevel.create({ data: { branchId: branch.id, productId: product.id, quantity } });
       }
     }
-  });
+  }, { timeout: TRANSACTION_TIMEOUT_MS, maxWait: 10_000 });
 
   await logEvent("catalog.seed-preset", `${pending.length} ítems del rubro cargados`, {
     businessId: input.businessId,

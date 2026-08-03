@@ -9,6 +9,7 @@ import { CatalogOnboarding } from "@/components/catalog-onboarding";
 import { ProductStockPanel } from "@/components/product-stock-panel";
 import { ProductPhotoField } from "@/components/product-photo-field";
 import { formatQuantity } from "@/lib/quantity";
+import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import { Check, ChevronDown, CircleSlash, DynamicIcon, Plus, Search, X } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -48,8 +49,11 @@ export type ProductRow = {
   packLabel: string | null;
   categoryId: string | null;
   // Foto: `imageVersion` es la marca de tiempo que saltea el caché del navegador.
+  // `hasPhoto` es solo la foto propia: lo mira el campo de subida, que no puede
+  // ofrecer "quitar" sobre una imagen del catálogo que el dueño nunca subió.
   hasPhoto: boolean;
   imageVersion: number | null;
+  catalogSlug: string | null;
   // Modelo con talles: se muestra el modelo + la variante.
   familyName: string | null;
   variantLabel: string | null;
@@ -274,7 +278,10 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             ) : null}
 
           <ul className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
-            {visibleProducts.map((product, index) => (
+            {visibleProducts.map((product, index) => {
+              const imageSrc = productImageSrc(product);
+
+              return (
               <li
                 className="duration-500 animate-in fade-in slide-in-from-bottom-2"
                 key={product.id}
@@ -285,14 +292,14 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   onClick={() => openEdit(product.id)}
                   type="button"
                 >
-                  {product.hasPhoto ? (
+                  {imageSrc ? (
                     // Miniatura ya normalizada a 512px por nuestra propia ruta: no
                     // hay nada que `next/image` pueda optimizar.
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       alt=""
                       className="size-11 shrink-0 rounded-2xl object-cover"
-                      src={`/api/products/${product.id}/image?v=${product.imageVersion}`}
+                      src={imageSrc}
                     />
                   ) : (
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
@@ -333,7 +340,8 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   </p>
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ul>
           </>
         )}

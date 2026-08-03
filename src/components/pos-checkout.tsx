@@ -12,6 +12,7 @@ import { formatAmountInput } from "@/lib/money";
 import { allowsFraction, formatQuantity, lineTotal, ONE, parseQuantityInput, unitShort } from "@/lib/quantity";
 import { changeFor, coversTotal, quickCashAmounts } from "@/modules/sales/change.logic";
 import { validateTaxId } from "@/lib/tax-id";
+import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import {
   ArrowLeftRight,
   ArrowRight,
@@ -47,6 +48,8 @@ export type PosProduct = {
   stock: number | null;
   // Marca de tiempo de la foto (null = sin foto). Va en la URL para el caché.
   imageVersion: number | null;
+  // Producto del catálogo del rubro: si no hay foto propia, se usa la genérica.
+  catalogSlug: string | null;
   // Venta por bulto: cuántas unidades trae la caja y cómo se llama.
   packSize: number | null;
   packLabel: string | null;
@@ -114,6 +117,11 @@ const STAFF_MEMORY_KEY = "bills:ultimo-vendedor";
 
 function money(value: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
+}
+
+// Acá el producto se llama `productId`, no `id`.
+function posImageSrc(product: Pick<PosProduct, "productId" | "imageVersion" | "catalogSlug">) {
+  return productImageSrc({ id: product.productId, imageVersion: product.imageVersion, catalogSlug: product.catalogSlug });
 }
 
 function initials(name: string) {
@@ -262,7 +270,7 @@ export function PosCheckout({
   // Con fotos, la grilla tiene que quedar pareja: si al menos un producto tiene,
   // todas las tarjetas reservan el cuadrado. Si ninguno tiene, no se reserva
   // nada y la grilla sigue tan compacta como antes.
-  const showsPhotos = products.some((product) => product.imageVersion !== null);
+  const showsPhotos = products.some((product) => posImageSrc(product) !== null);
 
   // Lo que se pinta en la grilla: los productos sueltos tal cual, y cada familia
   // una sola vez. Escanear sigue yendo al producto exacto (el código es del talle).
@@ -452,6 +460,7 @@ export function PosCheckout({
       unit: match.unit,
       stock: match.stock,
       imageVersion: match.imageVersion,
+      catalogSlug: match.catalogSlug,
       packSize: match.packSize,
       packLabel: match.packLabel,
     });
@@ -475,6 +484,7 @@ export function PosCheckout({
         barcode: code,
         stock: result.product.stock,
         imageVersion: result.product.imageVersion,
+        catalogSlug: result.product.catalogSlug,
         packSize: result.product.packSize,
         packLabel: result.product.packLabel,
         familyId: null,
@@ -491,6 +501,7 @@ export function PosCheckout({
         unit: encontrado.unit,
         stock: encontrado.stock,
         imageVersion: encontrado.imageVersion,
+        catalogSlug: encontrado.catalogSlug,
         packSize: encontrado.packSize,
         packLabel: encontrado.packLabel,
       });
@@ -718,6 +729,7 @@ export function PosCheckout({
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {gridEntries.map((entry) => {
             const product = entry.product;
+            const imageSrc = posImageSrc(product);
 
             // Modelo con talles: una tarjeta que abre el selector.
             if (entry.kind === "family") {
@@ -733,13 +745,13 @@ export function PosCheckout({
                   type="button"
                 >
                   {showsPhotos ? (
-                    product.imageVersion ? (
+                    imageSrc ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         alt=""
                         className="mb-2 aspect-square w-full rounded-xl bg-slate-100 object-cover"
                         loading="lazy"
-                        src={`/api/products/${product.productId}/image?v=${product.imageVersion}`}
+                        src={imageSrc}
                       />
                     ) : (
                       <span className="mb-2 flex aspect-square w-full items-center justify-center rounded-xl bg-slate-100">
@@ -777,14 +789,14 @@ export function PosCheckout({
               >
                 <button className="text-left active:scale-[0.99]" onClick={() => addProduct(product.productId)} type="button">
                   {showsPhotos ? (
-                    product.imageVersion ? (
+                    imageSrc ? (
                       // Miniatura ya normalizada por el servidor.
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         alt=""
                         className="mb-2 aspect-square w-full rounded-xl bg-slate-100 object-cover"
                         loading="lazy"
-                        src={`/api/products/${product.productId}/image?v=${product.imageVersion}`}
+                        src={imageSrc}
                       />
                     ) : (
                       <span className="mb-2 flex aspect-square w-full items-center justify-center rounded-xl bg-slate-100">
@@ -1005,6 +1017,7 @@ export function PosCheckout({
               {hasItems ? (
                 cartItems.map((item) => {
                   const sinStock = item.stock !== null && item.quantity > item.stock;
+                  const imageSrc = posImageSrc(item);
 
                   return (
                     <div
@@ -1013,12 +1026,12 @@ export function PosCheckout({
                       }`}
                       key={item.productId}
                     >
-                      {item.imageVersion !== null ? (
+                      {imageSrc ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           alt=""
                           className="size-11 shrink-0 rounded-xl bg-white object-cover"
-                          src={`/api/products/${item.productId}/image?v=${item.imageVersion}`}
+                          src={imageSrc}
                         />
                       ) : (
                         <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600">
@@ -1207,14 +1220,17 @@ export function PosCheckout({
             <section>
               <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">Tu pedido</p>
               <div className="space-y-2">
-                {cartItems.map((item) => (
+                {cartItems.map((item) => {
+                  const imageSrc = posImageSrc(item);
+
+                  return (
                   <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-2.5" key={item.productId}>
-                    {item.imageVersion ? (
+                    {imageSrc ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         alt=""
                         className="size-10 shrink-0 rounded-xl object-cover"
-                        src={`/api/products/${item.productId}/image?v=${item.imageVersion}`}
+                        src={imageSrc}
                       />
                     ) : null}
                     <div className="min-w-0 flex-1">
@@ -1267,7 +1283,8 @@ export function PosCheckout({
                       <Trash2 className="size-4" />
                     </button>
                   </div>
-                ))}
+                  );
+                })}
                 {!hasItems ? (
                   <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
                     El pedido está vacío.

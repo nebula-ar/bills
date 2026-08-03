@@ -3,6 +3,7 @@ import { requireBusinessContext } from "@/lib/business-context";
 import { formatQuantity, unitLabel } from "@/lib/quantity";
 import { verticalFeatures, verticalPreset } from "@/lib/vertical";
 import { getBranchProductConfiguration } from "@/modules/catalog/get-branch-catalog-configuration.use-case";
+import { presetCatalogFor } from "@/modules/catalog/preset-catalog";
 import { ProductsManager, type ProductRow, type ProductsData } from "@/components/catalog-manager";
 
 const moneyFormatter = new Intl.NumberFormat("es-AR", {
@@ -83,6 +84,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       categoryId: product.categoryId,
       hasPhoto: product.imageUpdatedAt !== null,
       imageVersion: product.imageUpdatedAt?.getTime() ?? null,
+      catalogSlug: product.catalogSlug,
       stockQuantity: product.stockQuantity,
       minStockRaw: product.minStock,
       packSize: product.packSize,
@@ -93,6 +95,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   });
 
   const preset = verticalPreset(business.vertical);
+  const presetCatalog = presetCatalogFor(business.vertical);
 
   const data: ProductsData = {
     businessName: selectedBranch.business.name,
@@ -106,9 +109,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     selectedBranchName: selectedBranch.name,
     verticalLabel: preset.label,
     // Muestra de lo que se cargaría de una, para que se vea antes de tocar.
-    presetSample: preset.catalog.slice(0, 4).map((item) => item.name),
-    presetCount: preset.catalog.length,
-    presetHasStock: preset.catalog.some((item) => (item.stock ?? 0) > 0),
+    presetSample: presetCatalog.slice(0, 4).map((item) => item.name),
+    presetCount: presetCatalog.length,
+    presetHasStock: presetCatalog.some((item) => (item.stock ?? 0) > 0),
     catalogSingular: business.labels.catalogSingular,
     catalogPlural: business.labels.catalogPlural,
     flash,

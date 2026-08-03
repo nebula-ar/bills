@@ -3,6 +3,7 @@
 import { Check, DynamicIcon, Minus, Plus, TriangleAlert, X } from "@/components/icons";
 import type { Unit } from "@/generated/prisma/enums";
 import { allowsFraction, formatQuantity, lineTotal, ONE, parseQuantityInput, unitShort } from "@/lib/quantity";
+import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -24,6 +25,7 @@ export type ScannedProduct = {
   unit: Unit;
   stock: number | null;
   imageVersion: number | null;
+  catalogSlug: string | null;
   packSize: number | null;
   packLabel: string | null;
 };
@@ -60,6 +62,7 @@ export function ScanConfirmSheet({
   const totalConCarrito = alreadyInCart + quantity;
   const sinStock = product.stock !== null && totalConCarrito > product.stock;
   const puedeAgregar = quantity > 0;
+  const imageSrc = productImageSrc({ id: product.productId, imageVersion: product.imageVersion, catalogSlug: product.catalogSlug });
 
   function step(delta: number) {
     setQuantity((current) => Math.max(ONE, current + delta * ONE));
@@ -73,12 +76,12 @@ export function ScanConfirmSheet({
 
       <div className="relative flex w-full max-w-[460px] flex-col rounded-t-[2rem] bg-white pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-12px_50px_rgba(15,23,42,0.35)] duration-200 animate-in slide-in-from-bottom-4">
         <div className="flex items-start gap-3 px-5 pt-5">
-          {product.imageVersion ? (
+          {imageSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               alt=""
               className="size-20 shrink-0 rounded-2xl bg-slate-100 object-cover"
-              src={`/api/products/${product.productId}/image?v=${product.imageVersion}`}
+              src={imageSrc}
             />
           ) : (
             <span className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">

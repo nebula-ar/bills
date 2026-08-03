@@ -302,6 +302,11 @@ model Product {
   // Cuándo se cargó la foto. Vive acá (y no en ProductImage) para que un
   // listado sepa si hay foto y pueda cachearla sin traerse los bytes.
   imageUpdatedAt DateTime?
+  // Qué producto del catálogo de rubro es ("banana", "tomate-perita"). Sirve
+  // para mostrar la foto genérica sin que el negocio suba nada: una verdulería
+  // no tiene por qué fotografiar una banana, y las 300 leen el mismo archivo.
+  // La foto propia, si la hay, siempre le gana. null = producto cargado a mano.
+  catalogSlug String?
   // Si es true, vender descuenta de StockLevel y se avisa cuando falta.
   trackStock  Boolean     @default(false)
   // Punto de reposición: por debajo de esto la app avisa. En milésimas.
