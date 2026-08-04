@@ -17,7 +17,7 @@ jobs:
 
       - name: Pack release
         run: |
-          tar --exclude=.git --exclude=.env --exclude='*.db' --exclude=node_modules -czf release.tgz .
+          tar --exclude=.git --exclude=.env --exclude='*.db' --exclude=node_modules --exclude=release.tgz -czf release.tgz .
 
       - name: Configure SSH
         env:
