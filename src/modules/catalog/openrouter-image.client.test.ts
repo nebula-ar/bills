@@ -19,7 +19,7 @@ describe("requestOpenRouterImages", () => {
 
     const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
     const body = JSON.parse(String(request.body));
-    expect(body).toMatchObject({ model: "recraft/recraft-v4.1", prompt: "tomate", n: 1, aspect_ratio: "1:1" });
+    expect(body).toMatchObject({ model: "recraft/recraft-v4.1-utility", prompt: "tomate", n: 1, aspect_ratio: "1:1" });
     expect(body.input_references).toBeUndefined();
     expect(result.images).toHaveLength(1);
     expect(result.cost).toBe(0.105);

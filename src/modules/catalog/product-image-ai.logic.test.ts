@@ -41,7 +41,7 @@ describe("parseProductImageAiRequest", () => {
 });
 
 describe("buildProductImagePrompt", () => {
-  it("protege la identidad al mejorar una foto", () => {
+  it("protege el producto físico al mejorar una foto", () => {
     const prompt = buildProductImagePrompt({
       mode: "enhance",
       productName: "Tomate perita",
@@ -51,9 +51,26 @@ describe("buildProductImagePrompt", () => {
     });
 
     expect(prompt).toContain("Tomate perita");
-    expect(prompt).toContain("Conservá exactamente la identidad visual");
+    expect(prompt).toContain("especificación visual obligatoria");
+    expect(prompt).toContain("comida preparada");
+    expect(prompt).toContain("cantidad, disposición");
     expect(prompt).toContain("No inventes marcas");
     expect(prompt).toContain("fondo limpio");
+  });
+
+  it("no permite reinterpretar tallarines como un plato servido", () => {
+    const prompt = buildProductImagePrompt({
+      mode: "enhance",
+      productName: "Tallarines secos",
+      productDescription: "Pasta larga seca, sin salsa",
+      instruction: "Fondo claro y más luz",
+      touches: ["clean_background", "natural_light"],
+    });
+
+    expect(prompt).toContain("Tallarines secos");
+    expect(prompt).toContain("Pasta larga seca, sin salsa");
+    expect(prompt).toContain("plato servido");
+    expect(prompt).toContain("No agregues ni quites objetos");
   });
 
   it("arma una foto de catálogo desde la descripción", () => {
