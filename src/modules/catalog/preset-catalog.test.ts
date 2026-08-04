@@ -12,10 +12,33 @@ describe("presetCatalogFor — verdulería", () => {
     expect(catalog.length).toBeGreaterThan(100);
   });
 
-  // Decisión del dueño: se siembra sin precio. Inventar un precio de referencia
-  // es plata perdida en cada venta, y con la inflación queda viejo en un mes.
-  it("todos entran sin precio, para que los ponga el negocio", () => {
-    expect(catalog.every((item) => item.price === 0)).toBe(true);
+  // Sin precio el producto no llega al mostrador: la lista de venta se arma
+  // desde los precios de la sucursal. Uno solo sin precio es un producto que el
+  // negocio cree tener cargado y no puede vender.
+  it("todos tienen precio de referencia", () => {
+    const sinPrecio = catalog.filter((item) => item.price <= 0);
+
+    expect(sinPrecio.map((item) => item.catalogSlug)).toEqual([]);
+  });
+
+  // Los seis que ya vivían en el preset son el ancla de la que se derivó el
+  // resto: si alguien los mueve, el resto queda desalineado.
+  it("respeta los precios que ya existían", () => {
+    expect(catalog.find((item) => item.catalogSlug === "banana")).toMatchObject({ price: 2400 });
+    expect(catalog.find((item) => item.catalogSlug === "tomate")).toMatchObject({ price: 2900 });
+    expect(catalog.find((item) => item.catalogSlug === "huevos-por-docena")).toMatchObject({ price: 5200 });
+  });
+
+  // Un precio en pesos enteros: la app no maneja centavos (ver src/lib/money.ts).
+  it("los precios son enteros en pesos", () => {
+    expect(catalog.every((item) => Number.isInteger(item.price))).toBe(true);
+  });
+
+  // Existencia inventada NO. Sembrarla asienta un movimiento INITIAL: el libro
+  // diciendo que entró mercadería que nunca entró. Infla el patrimonio del
+  // dashboard y el primer conteo real aparece como faltante, que es pérdida.
+  it("no siembra existencia", () => {
+    expect(catalog.every((item) => !item.stock)).toBe(true);
   });
 
   // Sin esto el sembrado los crea como SERVICE y no descuentan stock: una

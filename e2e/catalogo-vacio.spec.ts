@@ -24,7 +24,8 @@ test("un negocio nuevo carga su catálogo desde adentro de la app", async ({ pag
   await continuar.click();
   await page.getByRole("button", { name: /Crear mi negocio/ }).click();
 
-  // Cae en el panel, que avisa que falta el catálogo.
+  // Cae en el desvío (panel o mostrador). El aviso del catálogo vive en el panel.
+  await page.getByRole("link", { name: /^Panel/ }).click({ timeout: 20_000 });
   const aviso = page.getByRole("link", { name: /Cargá tus productos/ });
   await expect(aviso).toBeVisible({ timeout: 20_000 });
   await aviso.click();
@@ -41,13 +42,55 @@ test("un negocio nuevo carga su catálogo desde adentro de la app", async ({ pag
   await page.getByRole("button", { name: "Cargar y revisar precios" }).click();
 
   // Los productos quedan cargados con su unidad de venta (la banana va por kg).
-  await expect(page.getByText("Banana")).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText("Tomate")).toBeVisible();
+  // `exact` porque el catálogo de verdulería trae variantes del mismo nombre
+  // (Tomate, Tomate cherry, Tomate perita) y sin eso el locator matchea tres.
+  await expect(page.getByText("Banana", { exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("Tomate", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Tu catálogo está vacío" })).toHaveCount(0);
 
+  // Entran con precio de referencia, no en cero. El cero se vería como
+  // "Disponible · $ 0" y se podrían vender tomates a cero pesos sin que nada
+  // avise; sin precio directamente no se podrían vender. Un valor real, que el
+  // dueño revisa, es lo único que sirve el mismo día.
+  await expect(page.getByText("Sin precio")).toHaveCount(0);
+  await expect(page.getByText("$ 0", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Disponible").first()).toBeVisible();
+
   // Y el panel deja de avisar.
-  await page.goto("/");
+  await page.goto("/dashboard");
   await expect(page.getByRole("link", { name: /Cargá tus productos/ })).toHaveCount(0);
+});
+
+// La contracara: lo que se siembra tiene que poder venderse el mismo día. El
+// mostrador arma su lista desde los precios de la sucursal, así que esto prueba
+// de punta a punta que el precio de referencia llegó hasta la venta.
+test("lo que se siembra se puede vender el mismo día", async ({ page }) => {
+  const unique = Date.now();
+
+  await page.goto("/register");
+  await page.getByRole("button", { name: "Empezar" }).click();
+  const continuar = page.getByRole("button", { name: "Continuar" });
+  await page.getByRole("button", { name: /Verdulería o fiambrería/ }).click();
+  await continuar.click();
+  await page.getByPlaceholder("Ej: Verdulería La Huerta").fill(`Verdulería sin precios ${unique}`);
+  await continuar.click();
+  await page.getByPlaceholder("Ej: Matías").fill("Dueño E2E");
+  await continuar.click();
+  await page.getByPlaceholder("tucorreo@ejemplo.com").fill(`e2e-sinprecio-${unique}@test.local`);
+  await continuar.click();
+  await page.getByPlaceholder("Al menos 6 caracteres").fill("secret123");
+  await continuar.click();
+  await page.getByRole("button", { name: /Crear mi negocio/ }).click();
+  await page.waitForURL(/\/entrar$|dashboard/, { timeout: 20_000 });
+
+  await page.goto("/catalog");
+  await page.getByRole("button", { name: "Cargar y revisar precios" }).click();
+  await expect(page.getByText("Banana", { exact: true })).toBeVisible({ timeout: 20_000 });
+
+  // Y llegan al mostrador con su precio, listos para cobrar.
+  await page.goto("/sales/new");
+  await expect(page.getByText("Banana", { exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("$ 2.400").first()).toBeVisible();
 });
 
 test("el catálogo sugerido habla el idioma del rubro y no se duplica", async ({ page }) => {
@@ -68,7 +111,7 @@ test("el catálogo sugerido habla el idioma del rubro y no se duplica", async ({
   await continuar.click();
   await page.getByRole("button", { name: /Crear mi negocio/ }).click();
 
-  await page.waitForURL(/\/$|dashboard/, { timeout: 20_000 });
+  await page.waitForURL(/\/entrar$|dashboard/, { timeout: 20_000 });
   await page.goto("/catalog");
 
   // Una barbería cotiza servicios: el texto lo dice.
@@ -103,7 +146,7 @@ test("una barbería no muestra el escáner ni en el catálogo ni en el mostrador
   await page.getByPlaceholder("Al menos 6 caracteres").fill("secret123");
   await continuar.click();
   await page.getByRole("button", { name: /Crear mi negocio/ }).click();
-  await page.waitForURL(/\/$|dashboard/, { timeout: 20_000 });
+  await page.waitForURL(/\/entrar$|dashboard/, { timeout: 20_000 });
 
   await page.goto("/catalog");
   // Ni el botón del header, ni la opción de escanear del catálogo vacío, ni el

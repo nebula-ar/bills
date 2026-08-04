@@ -17,13 +17,14 @@ import { ProductKind, Vertical } from "@/generated/prisma/enums";
 import { type SeedProduct, verticalPreset } from "@/lib/vertical";
 
 import { PRODUCE_CATALOG } from "./produce-catalog.data";
+import { PRODUCE_REFERENCE_PRICES } from "./produce-prices";
 
-// Se siembra sin precio a propósito.
-//
-// Inventar un precio de referencia para 122 productos es peligroso: un precio
-// equivocado es plata perdida en cada venta, y con la inflación de acá queda
-// viejo en un mes. Mejor que el negocio los ponga y que lo que no tiene precio
-// se vea que no lo tiene.
+// Si un producto se quedara sin precio de referencia, entra al catálogo sin
+// precio en vez de entrar con cero: `seedPresetCatalog` lee este centinela y NO
+// crea la fila de `BranchProductPrice`. Una fila en cero se vería como
+// "Disponible · $ 0" y se podría vender a cero pesos; sin fila, el producto
+// queda esperando precio y fuera de la pantalla de venta, que es como el resto
+// de la app representa "sin precio".
 const NO_PRICE = 0;
 
 export function presetCatalogFor(vertical: Vertical): SeedProduct[] {
@@ -33,7 +34,9 @@ export function presetCatalogFor(vertical: Vertical): SeedProduct[] {
 
   return PRODUCE_CATALOG.map((item) => ({
     name: item.name,
-    price: NO_PRICE,
+    // De referencia, para que se pueda vender el mismo día. El botón dice
+    // "Cargar y revisar precios" y el segundo verbo es parte del trato.
+    price: PRODUCE_REFERENCE_PRICES[item.slug] ?? NO_PRICE,
     category: item.category,
     // Sin GOOD el sembrado los crea como servicio y no descuentan existencia:
     // se venderían tomates sin que el stock baje nunca.

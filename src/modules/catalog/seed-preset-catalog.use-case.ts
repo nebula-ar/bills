@@ -94,9 +94,19 @@ export async function seedPresetCatalog(input: { businessId: string; branchId: s
         },
       });
 
-      await tx.branchProductPrice.create({
-        data: { branchId: branch.id, productId: product.id, price: seed.price, active: true },
-      });
+      // "Sin precio" en esta app se dice NO CREANDO la fila, no poniéndola en
+      // cero. Todos los casos de uso de catálogo rechazan un precio <= 0, así
+      // que una fila en cero es un estado que el resto del código considera
+      // imposible: el catálogo lo muestra como "Disponible · $ 0", el POS lo
+      // deja vender, y en `scan-product` el `price ?? null` devuelve 0 en vez
+      // de null, con lo cual el aviso de "está cargado pero sin precio" nunca
+      // se dispara. Sin la fila, todo eso funciona como fue diseñado: el
+      // producto está en el catálogo esperando precio y no aparece en la venta.
+      if (seed.price > 0) {
+        await tx.branchProductPrice.create({
+          data: { branchId: branch.id, productId: product.id, price: seed.price, active: true },
+        });
+      }
 
       // La existencia inicial va con su movimiento: el stock siempre se explica
       // por el libro, nunca aparece de la nada.
