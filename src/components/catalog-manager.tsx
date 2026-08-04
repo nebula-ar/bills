@@ -82,6 +82,7 @@ export type ProductsData = {
   presetCount: number;
   presetHasStock: boolean;
   flash: { status: "success" | "error"; message: string } | null;
+  aiImagesEnabled: boolean;
 };
 
 const sheetInput =
@@ -150,7 +151,14 @@ function AvailabilityToggle({ defaultOn }: { defaultOn: boolean }) {
 export function ProductsManager({ data }: { data: ProductsData }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isCreating, startCreating] = useTransition();
   const [newOpen, setNewOpen] = useState(false);
+  const [newError, setNewError] = useState<string | null>(null);
+  const [createdProduct, setCreatedProduct] = useState<{
+    id: string;
+    name: string;
+    description: string | null;
+  } | null>(null);
   // El catálogo es la puerta de entrada a cambiar un precio y a corregir stock.
   // Con 60 productos, sin buscador es scroll puro — y el mostrador ya tenía uno.
   const [search, setSearch] = useState("");
@@ -181,7 +189,30 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 
   function openNew() {
     setNewBranchId(data.selectedBranchId);
+    setNewError(null);
+    setCreatedProduct(null);
     setNewOpen(true);
+  }
+
+  function closeNew() {
+    setNewOpen(false);
+    setNewError(null);
+    setCreatedProduct(null);
+    router.refresh();
+  }
+
+  function submitNewProduct(formData: FormData) {
+    setNewError(null);
+    startCreating(async () => {
+      const result = await createProduct(formData);
+      if (!result.ok) {
+        setNewError(result.error);
+        return;
+      }
+
+      setCreatedProduct({ id: result.productId, name: result.name, description: result.description });
+      router.refresh();
+    });
   }
 
   function openEdit(id: string) {
@@ -348,15 +379,55 @@ export function ProductsManager({ data }: { data: ProductsData }) {
       </div>
 
       {/* Alta de un ítem del catálogo */}
-      <BottomSheet onClose={() => setNewOpen(false)} open={newOpen}>
-        <form action={createProduct} className="flex min-h-0 flex-1 flex-col">
+      <BottomSheet onClose={closeNew} open={newOpen}>
+        {createdProduct ? (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex items-start justify-between gap-3 px-5 pt-6">
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-wide text-emerald-600">Producto creado</p>
+                <h3 className="truncate text-xl font-black tracking-tight text-slate-950">Foto de {createdProduct.name}</h3>
+              </div>
+              <button
+                aria-label="Cerrar"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-95"
+                onClick={closeNew}
+                type="button"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5">
+              <ProductPhotoField
+                aiEnabled={data.aiImagesEnabled}
+                hasPhoto={false}
+                productDescription={createdProduct.description}
+                productId={createdProduct.id}
+                productName={createdProduct.name}
+                version={null}
+              />
+              <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
+                La foto es opcional. Podés cargarla ahora o hacerlo más adelante desde la ficha del producto.
+              </p>
+            </div>
+            <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
+              <button
+                className="w-full rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+                onClick={closeNew}
+                type="button"
+              >
+                Listo
+              </button>
+            </div>
+          </div>
+        ) : (
+        <form action={submitNewProduct} className="flex min-h-0 flex-1 flex-col">
           <input name="branchId" type="hidden" value={newBranchId} />
           <div className="flex items-center justify-between px-5 pt-6">
             <h3 className="text-xl font-black tracking-tight text-slate-950">Nuevo {data.catalogSingular.toLowerCase()}</h3>
             <button
               aria-label="Cerrar"
               className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
-              onClick={() => setNewOpen(false)}
+              onClick={closeNew}
               type="button"
             >
               <X className="size-5" />
@@ -443,14 +514,19 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             </p>
           </div>
           <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
+            {newError ? (
+              <p className="mb-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">{newError}</p>
+            ) : null}
             <button
               className="w-full rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+              disabled={isCreating}
               type="submit"
             >
-              Crear {data.catalogSingular.toLowerCase()}
+              {isCreating ? "Creando…" : `Crear y agregar foto`}
             </button>
           </div>
         </form>
+        )}
       </BottomSheet>
 
       {/* Configurar precio/disponibilidad */}
@@ -520,8 +596,11 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               ) : null}
 
               <ProductPhotoField
+                aiEnabled={data.aiImagesEnabled}
                 hasPhoto={editing.hasPhoto}
+                productDescription={editing.description}
                 productId={editing.id}
+                productName={editing.name}
                 version={editing.imageVersion}
               />
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">

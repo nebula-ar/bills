@@ -44,6 +44,8 @@ export default defineConfig({
       DATABASE_URL: "file:./e2e.db",
       NEXTAUTH_SECRET: "e2e-secret-not-for-prod",
       NEXTAUTH_URL: BASE_URL,
+      // Habilita la interfaz IA; las pruebas nunca llaman al proveedor pago.
+      OPENROUTER_API_KEY: "e2e-key-not-real",
     },
   },
 });

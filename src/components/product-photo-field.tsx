@@ -1,7 +1,8 @@
 "use client";
 
 import { deleteProductImage, uploadProductImage } from "@/app/catalog/actions";
-import { Check, Loader2, Plus, Trash2 } from "@/components/icons";
+import { Check, Loader2, Plus, Sparkles, Trash2 } from "@/components/icons";
+import { ProductPhotoAiSheet } from "@/components/product-photo-ai-sheet";
 import { resizeImageForUpload } from "@/lib/image-resize";
 import { useRef, useState, useTransition } from "react";
 
@@ -12,16 +13,25 @@ export function ProductPhotoField({
   productId,
   hasPhoto,
   version,
+  productName,
+  productDescription,
+  aiEnabled,
 }: {
   productId: string;
   hasPhoto: boolean;
   // Marca de tiempo de la última foto: va en la URL para saltear el caché.
   version: number | null;
+  productName: string;
+  productDescription: string | null;
+  aiEnabled: boolean;
 }) {
   const [photoVersion, setPhotoVersion] = useState<number | null>(hasPhoto ? version : null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiInitialMode, setAiInitialMode] = useState<"origin" | "enhance">("origin");
+  const [aiSession, setAiSession] = useState(0);
 
   const src = photoVersion ? `/api/products/${productId}/image?v=${photoVersion}` : null;
 
@@ -62,15 +72,29 @@ export function ProductPhotoField({
     });
   }
 
+  function openAi(mode: "origin" | "enhance") {
+    setAiInitialMode(mode);
+    setAiSession((value) => value + 1);
+    setAiOpen(true);
+  }
+
+  function usePhoto() {
+    // Tiene que ocurrir dentro del mismo gesto: iOS bloquea el selector de
+    // archivos si se difiere con timeout después del tap.
+    inputRef.current?.click();
+    setAiOpen(false);
+  }
+
   return (
     <div className="grid gap-2">
       <span className="text-xs font-black uppercase tracking-wide text-slate-500">Foto</span>
 
       <div className="flex items-center gap-3">
         <button
+          aria-label={src ? "Cambiar foto del producto" : aiEnabled ? "Agregar foto al producto" : "Elegir foto del producto"}
           className="relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 transition active:scale-95"
           disabled={isPending}
-          onClick={() => inputRef.current?.click()}
+          onClick={() => src || !aiEnabled ? inputRef.current?.click() : openAi("origin")}
           type="button"
         >
           {src ? (
@@ -89,22 +113,35 @@ export function ProductPhotoField({
 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-slate-700">
-            {src ? "Foto cargada" : "Sacá o elegí una foto"}
+            {src ? "Foto cargada" : aiEnabled ? "Sacá, elegí o generá una foto" : "Sacá o elegí una foto"}
           </p>
           <p className="mt-0.5 text-xs text-slate-500">
             Se ve en el listado y al vender. La guardamos chica para que el mostrador vaya rápido.
           </p>
-          {src ? (
-            <button
-              className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-bold text-rose-600 transition active:scale-95"
-              disabled={isPending}
-              onClick={remove}
-              type="button"
-            >
-              <Trash2 className="size-3.5" />
-              Quitar
-            </button>
-          ) : null}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {src && aiEnabled ? (
+              <button
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-blue-50 px-3 text-xs font-black text-blue-600 transition active:scale-95"
+                disabled={isPending}
+                onClick={() => openAi("enhance")}
+                type="button"
+              >
+                <Sparkles className="size-4" />
+                Mejorar con IA
+              </button>
+            ) : null}
+            {src ? (
+              <button
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 text-xs font-bold text-rose-600 transition active:scale-95"
+                disabled={isPending}
+                onClick={remove}
+                type="button"
+              >
+                <Trash2 className="size-3.5" />
+                Quitar
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -123,6 +160,21 @@ export function ProductPhotoField({
           <Check className="size-3.5" />
           Guardada
         </p>
+      ) : null}
+
+      {aiEnabled ? (
+        <ProductPhotoAiSheet
+          initialMode={aiInitialMode}
+          key={aiSession}
+          onClose={() => setAiOpen(false)}
+          onSaved={setPhotoVersion}
+          onUsePhoto={usePhoto}
+          open={aiOpen}
+          productDescription={productDescription}
+          productId={productId}
+          productName={productName}
+          sourceSrc={src}
+        />
       ) : null}
     </div>
   );
