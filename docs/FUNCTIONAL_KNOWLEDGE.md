@@ -2,6 +2,7 @@
 
 > Fuente de conocimiento del producto para diseño, desarrollo y futuras sesiones de IA.
 > Última revisión: 2026-08-03.
+> Fuente editable de Pencil: `docs/design/bills-design-system.pen`.
 
 ## 1. Propósito y criterio de cobertura
 
