@@ -210,6 +210,17 @@ model User {
   // Comisión sobre lo que vende, en puntos porcentuales (0-100). Solo se usa
   // con el módulo STAFF_COMMISSIONS prendido.
   commissionRate Int     @default(0)
+  // Con qué fila vende este usuario.
+  //
+  // En un comercio chico el dueño atiende, y termina siendo DOS usuarios: el que
+  // loguea (OWNER, sin sucursal, con contraseña) y el que vende (STAFF, atado a
+  // una sucursal, con PIN). Tienen que ser dos porque `Sale.staffId` exige rol
+  // STAFF y sucursal —de ahí salen las comisiones y el cierre—, y el dueño no
+  // tiene ninguna de las dos cosas.
+  //
+  // Esto las une, para que al entrar a vender la app sepa que ese empleado es él
+  // y no se lo pregunte. null = este usuario no vende (o todavía no se vinculó).
+  sellsAsId    String?
   createdAt    DateTime  @default(now())
   createdById  String?
   updatedAt    DateTime  @updatedAt
@@ -220,6 +231,10 @@ model User {
 
   business  Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
   branch    Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  // SetNull y no Cascade: si se borra al empleado, el dueño se queda sin
+  // identidad de venta, no sin cuenta.
+  sellsAs   User?      @relation("UserSellsAs", fields: [sellsAsId], references: [id], onDelete: SetNull)
+  sellsFor  User[]     @relation("UserSellsAs")
   sales        Sale[]        @relation("StaffSales")
   terminals    Terminal[]    @relation("StaffTerminals")
   appointments Appointment[] @relation("StaffAppointments")

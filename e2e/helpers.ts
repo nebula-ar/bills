@@ -9,7 +9,7 @@ export const STAFFS = {
   lucas: { name: "Lucas Gómez", pin: "2222", branch: "Sucursal Centro" },
 };
 
-// Loguea como admin por la UI y espera el dashboard.
+// Loguea como admin por la UI y espera la app adentro (el desvío de /entrar).
 export async function loginAsAdmin(page: Page) {
   await page.goto("/login");
   await page.locator("#email").fill(ADMIN.email);

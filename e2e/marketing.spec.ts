@@ -126,7 +126,7 @@ test.describe("Página pública del negocio", () => {
     await page.getByPlaceholder("Al menos 6 caracteres").fill("secret123");
     await continuar.click();
     await page.getByRole("button", { name: /Crear mi negocio/ }).click();
-    await page.waitForURL(/\/$|dashboard/, { timeout: 20_000 });
+    await page.waitForURL(/\/entrar$|dashboard/, { timeout: 20_000 });
   }
 
   async function prenderPagina(page: import("@playwright/test").Page) {

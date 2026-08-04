@@ -41,7 +41,10 @@ const softwareJsonLd = {
 
 export default async function LandingPage() {
   const adminSession = await getCurrentSession();
-  if (adminSession?.user) redirect("/dashboard");
+  // Con sesión, la home no es la landing sino el desvío: panel o mostrador. No
+  // se cae más derecho al panel, porque el dueño que entra a cobrar tenía que
+  // saber de antemano por dónde se iba a vender.
+  if (adminSession?.user) redirect("/entrar");
 
   const staffSession = await getStaffSession();
   if (staffSession) redirect("/terminal");

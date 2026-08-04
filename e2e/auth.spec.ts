@@ -3,11 +3,12 @@ import { expect, test } from "@playwright/test";
 import { ADMIN, loginAsAdmin } from "./helpers";
 
 test.describe("Autenticación admin", () => {
-  test("login con credenciales válidas entra al dashboard", async ({ page }) => {
+  test("login con credenciales válidas entra al desvío", async ({ page }) => {
     await loginAsAdmin(page);
-    await expect(page).toHaveURL("/dashboard");
-    // Elementos propios del panel de admin.
-    await expect(page.getByRole("link", { name: "Vender" })).toBeVisible();
+    // Entrar ya no cae derecho al panel: primero se elige panel o mostrador.
+    await expect(page).toHaveURL("/entrar");
+    await expect(page.getByRole("link", { name: /^Panel/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /mostrador/ })).toBeVisible();
   });
 
   test("login con contraseña incorrecta muestra error", async ({ page }) => {

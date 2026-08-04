@@ -191,9 +191,10 @@ test.describe("Módulos del sistema", () => {
     const fila = page.locator("li", { hasText: "Descuentos, 2x1 y combos" });
     await fila.getByRole("button", { name: "Apagar" }).click();
 
-    // Ya no se puede entrar por URL.
+    // Ya no se puede entrar por URL: requireModule manda a "/", que con sesión
+    // es el desvío entre panel y mostrador.
     await page.goto("/promotions");
-    await expect(page).toHaveURL("/dashboard");
+    await expect(page).toHaveURL("/entrar");
 
     // Lo dejamos como estaba para no ensuciar el resto de la suite. La prueba de
     // que volvió a estar prendido es que la pantalla vuelve a ser accesible.

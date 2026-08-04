@@ -90,6 +90,10 @@ type PosCheckoutProps = {
   // el que atiende busca casi siempre lo mismo, y tenerlo alfabético lo obliga a
   // scrollear cada vez.
   salesRank?: Record<string, number>;
+  // Con qué empleado vende el que está logueado. El dueño de un comercio chico
+  // es dos filas (ver registerBusiness): entra como OWNER y vende como su
+  // gemelo STAFF. null = no tiene gemelo, así que hay que preguntar.
+  sellsAsStaffId?: string | null;
   // Turno que se está cobrando: precarga el pedido y queda enlazado a la venta.
   appointment?: { id: string; staffId: string | null; customerId: string | null; productId: string | null } | null;
   // Presupuesto que se está cobrando: precarga el pedido completo y, al cobrar,
@@ -124,6 +128,15 @@ function posImageSrc(product: Pick<PosProduct, "productId" | "imageVersion" | "c
   return productImageSrc({ id: product.productId, imageVersion: product.imageVersion, catalogSlug: product.catalogSlug });
 }
 
+// A quién le queda atribuida la venta al abrir el mostrador en esta sucursal.
+// El gemelo del que está logueado manda, pero solo si trabaja acá: en otra
+// sucursal ese empleado no existe y elegirlo sería atribuir una venta imposible.
+function initialStaffId(branch: PosBranch | undefined, sellsAsStaffId: string | null) {
+  if (!branch) return "";
+  if (sellsAsStaffId && branch.staffs.some((staff) => staff.id === sellsAsStaffId)) return sellsAsStaffId;
+  return branch.staffs.length === 1 ? branch.staffs[0].id : "";
+}
+
 function initials(name: string) {
   return name
     .split(" ")
@@ -143,6 +156,7 @@ export function PosCheckout({
   catalogIcon = "solar:box-bold",
   appointment = null,
   quote = null,
+  sellsAsStaffId = null,
   features = { barcodes: true, packs: true },
   salesRank = {},
 }: PosCheckoutProps) {
@@ -155,12 +169,20 @@ export function PosCheckout({
   // mal repartida. Pero tampoco se pregunta en cada venta: se recuerda al
   // último que cobró en este teléfono, que es el que va a seguir cobrando toda
   // la tarde. Con un solo empleado no hay nada que elegir.
+  //
+  // El orden es: el turno que se está cobrando (ahí ya está dicho quién
+  // atiende), después el gemelo del que está logueado —si el dueño atiende, la
+  // venta es suya y no hay nada que suponer—, y recién después la regla del
+  // único empleado. Lo recordado en el teléfono va último y NO pisa nada de lo
+  // anterior: es una conjetura, y las tres de arriba son datos.
   const [staffId, setStaffId] = useState(
-    appointment?.staffId ?? (branch?.staffs.length === 1 ? branch.staffs[0].id : ""),
+    appointment?.staffId ?? initialStaffId(branch, sellsAsStaffId),
   );
 
   // Se lee después del primer render: `localStorage` no existe en el servidor.
   useEffect(() => {
+    // El `staffId` de arriba corta acá: si ya quedó resuelto (turno, gemelo o
+    // único empleado) lo recordado no se toca.
     if (staffId || !branch || branch.staffs.length <= 1) return;
 
     const remembered = window.localStorage.getItem(`${STAFF_MEMORY_KEY}:${branch.id}`);
@@ -382,7 +404,7 @@ export function PosCheckout({
   function selectBranch(nextId: string) {
     const nextBranch = branches.find((item) => item.id === nextId);
     setBranchId(nextId);
-    setStaffId(nextBranch?.staffs.length === 1 ? nextBranch.staffs[0].id : "");
+    setStaffId(initialStaffId(nextBranch, sellsAsStaffId));
     setCart({});
     setError(null);
   }

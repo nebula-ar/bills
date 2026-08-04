@@ -17,6 +17,12 @@ export type RegisterBusinessInput = {
   username?: string;
   password: string;
   branches: RegisterBranchInput[];
+  // "Yo atiendo" del onboarding. En un comercio chico el dueño es DOS filas:
+  // con la que entra (OWNER, sin sucursal) y con la que vende (STAFF, con
+  // sucursal), porque `Sale.staffId` exige un STAFF de la sucursal. Esta bandera
+  // es lo único que las ata (`sellsAsId`); sin el lazo son dos personas
+  // distintas para el sistema y la app no puede saber que la venta es suya.
+  ownerSells?: boolean;
 };
 
 export type RegisterResult = { ok: true } | { ok: false; error: string };
@@ -108,7 +114,7 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
       data: preset.modules.map((module) => ({ businessId: business.id, module })),
     });
 
-    await tx.user.create({
+    const owner = await tx.user.create({
       data: {
         businessId: business.id,
         name: ownerName,
@@ -120,13 +126,17 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
       },
     });
 
+    // El primer empleado creado. Con "Yo atiendo" ese empleado ES el dueño (el
+    // wizard lo carga con su propio nombre), y es con el que va a vender.
+    let firstStaffId: string | null = null;
+
     for (const branch of branchesWithHashes) {
       const createdBranch = await tx.branch.create({
         data: { businessId: business.id, name: branch.name, address: branch.address, active: true },
       });
 
       for (const staff of branch.staffs) {
-        await tx.user.create({
+        const createdStaff = await tx.user.create({
           data: {
             businessId: business.id,
             branchId: createdBranch.id,
@@ -136,7 +146,16 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
             active: true,
           },
         });
+
+        firstStaffId ??= createdStaff.id;
       }
+    }
+
+    // Acá se ata la fila con la que entra a la fila con la que vende. Va dentro
+    // de la misma transacción que las dos: un dueño creado a medias —que entra
+    // pero no puede cobrar— no es un alta válida.
+    if (input.ownerSells && firstStaffId) {
+      await tx.user.update({ where: { id: owner.id }, data: { sellsAsId: firstStaffId } });
     }
 
     // Categorías del rubro: el catálogo todavía está vacío, pero cuando el

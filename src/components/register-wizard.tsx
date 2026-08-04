@@ -151,6 +151,10 @@ export function RegisterWizard() {
         username: "",
         password,
         branches,
+        // Con "Yo atiendo", el empleado que se acaba de armar es el dueño: el
+        // alta deja las dos filas atadas para que el mostrador ya sepa quién
+        // cobra (ver registerBusiness).
+        ownerSells,
       });
 
       if (!result.ok) {

@@ -146,6 +146,10 @@ async function main() {
 
   const branchByName = new Map(branches.map((branch) => [branch.name, branch]));
 
+  // El dueño de este negocio demo NO atiende: es un kiosco con tres sucursales
+  // y sus propios empleados, así que se queda sin `sellsAsId`. Atarlo a alguno
+  // sería un dato falso —diría que Matías vende como Nico— y este seed también
+  // se usa para mirar la app.
   await prisma.user.create({
     data: {
       businessId: business.id,

@@ -5,6 +5,7 @@ import { paymentMethodOptions, salePaymentMethods } from "@/lib/payment-labels";
 import { getCustomersForSale } from "@/modules/customers/customer.use-cases";
 import { getAppointmentForCheckout } from "@/modules/appointments/appointment.use-cases";
 import { getQuoteForCheckout } from "@/modules/quotes/quote.use-cases";
+import { findUserWithSellsAs } from "@/modules/auth/user.repository";
 import { getSaleEntryBranches } from "@/modules/sales/get-sale-entry-options.use-case";
 import { findTopSellingProductIds } from "@/modules/sales/sale.repository";
 import { findStockLevelsForBranches } from "@/modules/stock/stock.repository";
@@ -15,7 +16,7 @@ type NewSalePageProps = {
 };
 
 export default async function NewSalePage({ searchParams }: NewSalePageProps) {
-  const { business } = await requireBusinessContext();
+  const { business, session } = await requireBusinessContext();
 
   const params = await searchParams;
   const rawBranchId = Array.isArray(params.branchId) ? params.branchId[0] : params.branchId;
@@ -42,6 +43,11 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
   const usesStock = business.has(AppModule.STOCK);
 
   const branches = await getSaleEntryBranches(business.id);
+
+  // Si el que entró atiende, el mostrador arranca con él elegido en vez de
+  // preguntar quién atiende en cada venta (ver registerBusiness: el dueño que
+  // atiende tiene un gemelo empleado).
+  const currentUser = await findUserWithSellsAs(session.user.id);
 
   // Ranking de los últimos 30 días para ordenar la grilla por lo que más sale.
   const rankFrom = new Date();
@@ -114,6 +120,7 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
       features={verticalFeatures(business.vertical)}
       salesRank={Object.fromEntries(salesRank)}
       paymentOptions={paymentOptions}
+      sellsAsStaffId={currentUser?.sellsAsId ?? null}
       staffIcon={verticalPreset(business.vertical).staffIcon}
     />
   );

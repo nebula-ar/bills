@@ -175,7 +175,10 @@ export function buildNav(
   const has = (module: AppModule) => modules.has(module);
 
   const primary: NavPrimary[] = [
-    { href: "/", label: "Inicio", icon: "solar:home-2-bold" },
+    // Apunta al panel, no a "/". La raíz desvía al "¿panel o vender?", que es
+    // una pregunta DE ENTRADA: quien ya está trabajando y toca Inicio quiere
+    // ver su día, no que le vuelvan a preguntar a dónde iba.
+    { href: "/dashboard", label: "Inicio", icon: "solar:home-2-bold", exact: true },
     // Vender arranca en /pos (elegir caja) y sigue en /sales/new (el checkout):
     // las dos son "vender", así que el ítem queda marcado en ambas.
     { href: "/pos", label: labels.sellAction, icon: "solar:bag-4-bold", alsoMatches: ["/sales/new"] },
