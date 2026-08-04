@@ -2,9 +2,9 @@
 
 import { seedPresetCatalogAction } from "@/app/catalog/seed-actions";
 import { CatalogScanButton } from "@/components/catalog-scan-button";
-import { Check, DynamicIcon, Loader2, Plus } from "@/components/icons";
+import { ArrowRight, Check, DynamicIcon, Loader2, Plus } from "@/components/icons";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 
 // Primer paso adentro de la app: el catálogo está vacío y hay que llenarlo.
@@ -69,100 +69,117 @@ export function CatalogOnboarding({
 
   return (
     <div className="mt-6 duration-500 animate-in fade-in slide-in-from-bottom-2">
-      <div className="flex flex-col items-center text-center">
-        <div className="flex size-20 items-center justify-center rounded-[1.75rem] bg-white text-blue-600 shadow-sm ring-1 ring-slate-950/5">
-          <DynamicIcon className="size-9" name={catalogIcon} />
-        </div>
-        <h2 className="mt-4 text-xl font-black tracking-tight text-slate-950">
-          Tu catálogo está vacío
+      {/* Se habla el idioma del rubro, no el de la app: acá dice "productos" en
+          una verdulería y "servicios" en una barbería, igual que el título de la
+          pantalla. "Catálogo" es palabra nuestra, no del que atiende. */}
+      <div className="max-w-md">
+        <h2 className="text-xl font-black tracking-tight text-slate-950">
+          Todavía no cargaste tus {catalogPlural.toLowerCase()}
         </h2>
-        <p className="mt-1.5 max-w-sm text-sm font-semibold leading-6 text-slate-500">
-          Sin {catalogPlural.toLowerCase()} no podés vender. Elegí por dónde arrancar: después cambiás todo lo que
-          quieras.
+        <p className="mt-1 text-sm text-slate-500">
+          Sin esto no se puede vender. La forma más rápida es traer los de tu rubro y después ajustar.
         </p>
       </div>
 
-      <div className="mt-6 space-y-2.5">
-        {presetCount > 0 ? (
-          <div className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-950/5">
-            <div className="flex items-start gap-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-600 text-white">
-                <DynamicIcon className="size-5" name={catalogIcon} />
+      {/* Las tres salidas NO pesan igual. Para una verdulería, traer los 122 de
+          una es la respuesta correcta casi siempre; las otras dos son para el
+          que ya tiene su propia lista. Ponerlas como tres pares obliga a
+          deliberar sobre algo que tiene respuesta obvia, y el que abre esto por
+          primera vez se queda mirando. Así que una manda y las otras esperan. */}
+      {presetCount > 0 ? (
+        <button
+          className="mt-4 flex w-full flex-col gap-3 rounded-2xl bg-white p-5 text-left ring-2 ring-blue-600 transition active:scale-[0.99] disabled:opacity-60"
+          disabled={isPending}
+          onClick={seedPreset}
+          type="button"
+        >
+          <span className="flex items-center gap-3.5">
+            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-blue-600 text-white">
+              {isPending ? <Loader2 className="size-6 animate-spin" /> : <DynamicIcon className="size-6" name={catalogIcon} />}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-base font-black leading-tight text-slate-950">
+                Traer los {catalogPlural.toLowerCase()} de {verticalLabel.toLowerCase()}
               </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-black text-slate-950">Cargar los típicos de {verticalLabel.toLowerCase()}</p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {presetCount} {presetCount === 1 ? catalogSingular.toLowerCase() : catalogPlural.toLowerCase()} con
-                  precio de referencia
-                  {presetHasStock ? ", unidad de venta y existencia inicial" : ""}.
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {presetSample.map((name) => (
-                    <span
-                      className="rounded-lg bg-slate-50 px-2 py-1 text-xs font-bold text-slate-600"
-                      key={name}
-                    >
-                      {name}
-                    </span>
-                  ))}
-                  {presetCount > presetSample.length ? (
-                    <span className="px-1 py-1 text-xs font-bold text-slate-400">
-                      y {presetCount - presetSample.length} más
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
+              <span className="mt-1 block text-sm leading-5 text-slate-500">
+                {isPending
+                  ? "Cargando…"
+                  : `${presetCount} ${presetCount === 1 ? catalogSingular.toLowerCase() : catalogPlural.toLowerCase()} con precios sugeridos${presetHasStock ? " y existencia inicial" : ""}.`}
+              </span>
+            </span>
+            <ArrowRight className="size-5 shrink-0 text-blue-600" />
+          </span>
 
-            <button
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3.5 text-sm font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
-              disabled={isPending}
-              onClick={seedPreset}
-              type="button"
-            >
-              {isPending ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-              Cargar y revisar precios
-            </button>
-          </div>
-        ) : null}
+          {presetSample.length > 0 ? (
+            <span className="block truncate text-xs text-slate-400">
+              {presetSample.join(" · ")}
+              {presetCount > presetSample.length ? ` · y ${presetCount - presetSample.length} más` : ""}
+            </span>
+          ) : null}
 
+          {/* Lo que necesita alguien que nunca usó un sistema: saber que no se
+              rompe nada. Sin esto, el botón grande da miedo y no lo toca. */}
+          <span className="flex items-start gap-2 rounded-xl bg-blue-50 px-3 py-2 text-xs leading-5 text-blue-900">
+            <Check className="mt-0.5 size-3.5 shrink-0" />
+            Podés cambiar los precios, borrar lo que no vendas y agregar lo tuyo cuando quieras.
+          </span>
+        </button>
+      ) : null}
+
+      <p className="mt-5 text-xs font-black uppercase tracking-[0.08em] text-slate-400">O cargalos vos</p>
+
+      <div className="mt-2 space-y-2">
         {/* Escanear solo tiene sentido donde hay códigos que leer: un corte de
             pelo no viene con código de barras. */}
         {features.barcodes ? (
-          <div className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-950/5">
-            <div className="flex items-start gap-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-slate-900 text-white">
-                <DynamicIcon className="size-5" name="solar:qr-code-bold" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-black text-slate-950">Escanear lo que tenés en el mostrador</p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Apuntás al código de barras y te preguntamos precio, costo y stock. Guarda la foto de paso.
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 [&>button]:w-full [&>button]:justify-center [&>button]:rounded-2xl [&>button]:py-3.5">
-              <CatalogScanButton branchId={branchId} categories={categories} units={units} />
-            </div>
-          </div>
+          <CatalogScanButton
+            branchId={branchId}
+            categories={categories}
+            renderTrigger={(open) => (
+              <OptionCard
+                icon={<DynamicIcon className="size-5" name="solar:qr-code-bold" />}
+                onClick={open}
+                subtitle="Apuntás la cámara al código y completás el resto"
+                title="Escanear códigos de barras"
+              />
+            )}
+            units={units}
+          />
         ) : null}
 
-        <button
-          className="flex w-full items-center gap-3 rounded-[1.5rem] bg-white p-4 text-left shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.99]"
+        <OptionCard
+          icon={<Plus className="size-5" />}
           onClick={onCreateManually}
-          type="button"
-        >
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600">
-            <Plus className="size-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-black text-slate-950">Cargar uno a mano</span>
-            <span className="block text-xs text-slate-500">
-              Nombre y precio, y listo. Es lo más rápido si tenés pocos {catalogPlural.toLowerCase()}.
-            </span>
-          </span>
-        </button>
+          subtitle="Uno por uno, con su nombre y su precio"
+          title="Cargar a mano"
+        />
       </div>
     </div>
+  );
+}
+
+type OptionCardProps = {
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+  onClick: () => void;
+};
+
+// Las opciones secundarias: mismo alto, sin relleno de color, sin aro. Se leen
+// como alternativas, no como tres caminos equivalentes.
+function OptionCard({ icon, title, subtitle, onClick }: OptionCardProps) {
+  return (
+    <button
+      className="flex w-full items-center gap-3.5 rounded-2xl bg-white p-4 text-left ring-1 ring-slate-950/5 transition hover:ring-slate-950/15 active:scale-[0.99]"
+      onClick={onClick}
+      type="button"
+    >
+      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-500">{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-black text-slate-950">{title}</span>
+        <span className="mt-0.5 block text-xs leading-5 text-slate-500">{subtitle}</span>
+      </span>
+      <ArrowRight className="size-4 shrink-0 text-slate-300" />
+    </button>
   );
 }

@@ -1,5 +1,5 @@
 import { PosTerminals } from "@/components/pos-terminals";
-import { requireAdminSession } from "@/lib/auth";
+import { requireBusinessContext } from "@/lib/business-context";
 import { getSaleEntryBranches } from "@/modules/sales/get-sale-entry-options.use-case";
 import { diagnoseNoSaleBranches } from "@/modules/sales/sale.repository";
 import { getTerminalsByBranchIds } from "@/modules/terminals/terminal.use-cases";
@@ -8,7 +8,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export default async function PosLauncherPage() {
-  const session = await requireAdminSession();
+  // Con el contexto del negocio y no solo la sesión: los mensajes de "todavía
+  // no cargaste nada" tienen que hablar del rubro. En una barbería son
+  // servicios, no productos, igual que en el resto de la app.
+  const { session, business } = await requireBusinessContext();
 
   const branches = await getSaleEntryBranches(session.user.businessId);
 
@@ -26,11 +29,15 @@ export default async function PosLauncherPage() {
   const gap = !missing
     ? null
     : !missing.hasBranch
-      ? { text: "Todavía no tenés ninguna sucursal. Cargá una para poder vender.", href: "/branches", cta: "Ir a Sucursales" }
+      ? { text: "Todavía no cargaste ninguna sucursal.", href: "/branches", cta: "Cargar una sucursal" }
       : !missing.hasStaff
-        ? { text: "Falta alguien que atienda. Cargá al menos un empleado en tu sucursal.", href: "/staff", cta: "Ir a Empleados" }
+        ? { text: "Falta cargar a quién atiende.", href: "/staff", cta: "Cargar un empleado" }
         : !missing.hasPricedProduct
-          ? { text: "Todavía no cargaste lo que vendés. En un toque podés traer el catálogo típico de tu rubro.", href: "/catalog", cta: "Cargar mi catálogo" }
+          ? {
+              text: `Todavía no cargaste tus ${business.labels.catalogPlural.toLowerCase()}. Sin eso no hay nada para vender.`,
+              href: "/catalog",
+              cta: `Cargar mis ${business.labels.catalogPlural.toLowerCase()}`,
+            }
           : { text: "No hay sucursales listas para vender.", href: "/branches", cta: "Ir a Sucursales" };
 
   const terminalsByBranch = await getTerminalsByBranchIds(branches.map((branch) => branch.id));

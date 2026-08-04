@@ -31,22 +31,22 @@ test("un negocio nuevo carga su catálogo desde adentro de la app", async ({ pag
   await aviso.click();
 
   // El catálogo vacío ofrece las tres salidas.
-  await expect(page.getByRole("heading", { name: "Tu catálogo está vacío" })).toBeVisible();
-  await expect(page.getByText(/Cargar los típicos de verdulería o fiambrería/i)).toBeVisible();
-  await expect(page.getByText("Escanear lo que tenés en el mostrador")).toBeVisible();
-  await expect(page.getByText("Cargar uno a mano")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Todavía no cargaste tus productos/i })).toBeVisible();
+  await expect(page.getByText(/Traer los productos de verdulería o fiambrería/i)).toBeVisible();
+  await expect(page.getByText("Escanear códigos de barras")).toBeVisible();
+  await expect(page.getByText("Cargar a mano")).toBeVisible();
 
   // Muestra qué se va a crear antes de tocar nada.
   await expect(page.getByText("Banana")).toBeVisible();
 
-  await page.getByRole("button", { name: "Cargar y revisar precios" }).click();
+  await page.getByRole("button", { name: /^Traer los/ }).click();
 
   // Los productos quedan cargados con su unidad de venta (la banana va por kg).
   // `exact` porque el catálogo de verdulería trae variantes del mismo nombre
   // (Tomate, Tomate cherry, Tomate perita) y sin eso el locator matchea tres.
   await expect(page.getByText("Banana", { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText("Tomate", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Tu catálogo está vacío" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Todavía no cargaste tus/i })).toHaveCount(0);
 
   // Entran con precio de referencia, no en cero. El cero se vería como
   // "Disponible · $ 0" y se podrían vender tomates a cero pesos sin que nada
@@ -84,7 +84,7 @@ test("lo que se siembra se puede vender el mismo día", async ({ page }) => {
   await page.waitForURL(/\/entrar$|dashboard/, { timeout: 20_000 });
 
   await page.goto("/catalog");
-  await page.getByRole("button", { name: "Cargar y revisar precios" }).click();
+  await page.getByRole("button", { name: /^Traer los/ }).click();
   await expect(page.getByText("Banana", { exact: true })).toBeVisible({ timeout: 20_000 });
 
   // Y llegan al mostrador con su precio, listos para cobrar.
@@ -115,14 +115,14 @@ test("el catálogo sugerido habla el idioma del rubro y no se duplica", async ({
   await page.goto("/catalog");
 
   // Una barbería cotiza servicios: el texto lo dice.
-  await expect(page.getByText(/Cargar los típicos de barbería o peluquería/i)).toBeVisible();
-  await page.getByRole("button", { name: "Cargar y revisar precios" }).click();
+  await expect(page.getByText(/Traer los servicios de barbería o peluquería/i)).toBeVisible();
+  await page.getByRole("button", { name: /^Traer los/ }).click();
   await expect(page.getByText("Corte clásico")).toBeVisible({ timeout: 20_000 });
 
   // Cada servicio aparece una sola vez (el alta es idempotente por nombre) y el
   // onboarding ya no se muestra, porque el catálogo dejó de estar vacío.
   await expect(page.getByRole("button").filter({ hasText: "Corte clásico" })).toHaveCount(1);
-  await expect(page.getByRole("heading", { name: "Tu catálogo está vacío" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Todavía no cargaste tus/i })).toHaveCount(0);
 
   await page.goto("/catalog");
   await expect(page.getByRole("button").filter({ hasText: "Corte clásico" })).toHaveCount(1);
@@ -153,11 +153,11 @@ test("una barbería no muestra el escáner ni en el catálogo ni en el mostrador
   // botón de talles.
   await expect(page.getByRole("button", { name: "Escanear" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Con talles" })).toHaveCount(0);
-  await expect(page.getByText("Escanear lo que tenés en el mostrador")).toHaveCount(0);
+  await expect(page.getByText("Escanear códigos de barras")).toHaveCount(0);
   // Pero sí ofrece lo que le sirve.
-  await expect(page.getByText(/Cargar los típicos de barbería/i)).toBeVisible();
+  await expect(page.getByText(/Traer los servicios de barbería/i)).toBeVisible();
 
-  await page.getByRole("button", { name: "Cargar y revisar precios" }).click();
+  await page.getByRole("button", { name: /^Traer los/ }).click();
   await expect(page.getByText("Corte clásico")).toBeVisible({ timeout: 20_000 });
 
   await page.goto("/sales/new");
