@@ -11,6 +11,7 @@ export type CreateFullProductInput = {
   // Código de barras o SKU. Vacío = alta a mano, sin código.
   code?: string;
   name: string;
+  description?: string | null;
   // null = todavía no le puso precio. El producto igual se crea con todo lo
   // demás; sin precio no se puede vender, pero el stock que ya contó no se tira.
   price: number | null;
@@ -85,6 +86,7 @@ export async function createFullProduct(input: CreateFullProductInput) {
       data: {
         businessId: input.businessId,
         name,
+        description: input.description?.trim() || null,
         barcode: code || null,
         kind: input.kind ?? ProductKind.GOOD,
         unit: input.unit ?? Unit.UNIT,

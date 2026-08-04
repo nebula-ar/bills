@@ -15,7 +15,11 @@ import { redirect } from "next/navigation";
 
 const genericErrorMessage = "No pudimos guardar el ítem. Intentá de nuevo.";
 
-export async function createProduct(formData: FormData) {
+export type CreateProductResult =
+  | { ok: true; productId: string; name: string; description: string | null }
+  | { ok: false; error: string };
+
+export async function createProduct(formData: FormData): Promise<CreateProductResult> {
   const session = await requireAdminSession();
 
   const branchId = parseRequiredString(formData, "branchId");
@@ -25,13 +29,14 @@ export async function createProduct(formData: FormData) {
   const priceEntered = typeof priceRaw === "string" && priceRaw.trim().length > 0;
 
   if (!branchId || !name) {
-    redirectWithMessage("error", "Completá el nombre del ítem.", branchId ?? undefined);
+    return { ok: false, error: "Completá el nombre del ítem." };
   }
 
   if (priceEntered && !price) {
-    redirectWithMessage("error", "Poné un precio válido para la sucursal.", branchId);
+    return { ok: false, error: "Poné un precio válido para la sucursal." };
   }
 
+  const description = parseOptionalString(formData, "description") ?? null;
   const costRaw = parseOptionalString(formData, "cost");
   const stockRaw = parseOptionalString(formData, "stock");
   // La cantidad se tipea en unidades y se guarda en milésimas, igual que todo
@@ -42,10 +47,11 @@ export async function createProduct(formData: FormData) {
     // Un solo camino: el ítem, su precio (si lo puso) y la existencia inicial
     // con su movimiento, todo en una transacción. Es lo que evita que después
     // tenga que ir a Stock a cargar producto por producto lo que ya sabía.
-    await createFullProduct({
+    const product = await createFullProduct({
       businessId: session.user.businessId,
       branchId,
       name,
+      description,
       price,
       cost: costRaw ? parseWholeAmount(costRaw) : null,
       stock,
@@ -55,15 +61,21 @@ export async function createProduct(formData: FormData) {
       reason: "Carga inicial",
       userId: session.user.id,
     });
-  } catch (error) {
-    await handleProductActionError(error, branchId, { businessId: session.user.businessId, userId: session.user.id });
-  }
 
-  redirectWithMessage(
-    "success",
-    price ? "Ítem creado y habilitado en la sucursal." : "Ítem creado en el catálogo.",
-    branchId,
-  );
+    revalidatePath("/catalog");
+    return { ok: true, productId: product.id, name: product.name, description };
+  } catch (error) {
+    if (error instanceof ProductError) {
+      return { ok: false, error: getProductErrorMessage(error.code) };
+    }
+
+    await logError("product.create", error, {
+      businessId: session.user.businessId,
+      userId: session.user.id,
+      context: { branchId },
+    });
+    return { ok: false, error: genericErrorMessage };
+  }
 }
 
 export async function saveBranchProductConfig(formData: FormData) {
