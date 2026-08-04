@@ -1,7 +1,10 @@
 export const PRODUCT_IMAGE_AI_LIMIT = 5;
 export const PRODUCT_IMAGE_AI_LEASE_MS = 90_000;
 export const PRODUCT_IMAGE_AI_TIMEOUT_MS = 45_000;
-export const PRODUCT_IMAGE_AI_MODEL = "recraft/recraft-v4.1";
+// La variante Utility prioriza composiciones controladas de producto por sobre
+// una interpretación estética. Para una edición desde foto, eso reduce que la
+// IA convierta el producto real en otra cosa (por ejemplo, pasta seca en un plato).
+export const PRODUCT_IMAGE_AI_MODEL = "recraft/recraft-v4.1-utility";
 export const PRODUCT_IMAGE_AI_MAX_TEXT = 300;
 export const PRODUCT_IMAGE_AI_MAX_CANDIDATE_BYTES = 220 * 1024;
 
@@ -63,7 +66,10 @@ export function buildProductImagePrompt(input: ProductImageAiRequest & {
     return [
       common,
       `Producto: ${input.productName}.${description}`,
-      "Editá la foto de referencia. Conservá exactamente la identidad visual, forma, color, variedad y presentación real del producto.",
+      "La foto de referencia es la especificación visual obligatoria del producto. Hacé un retoque conservador, no una reinterpretación ni una imagen nueva.",
+      "Conservá sin cambios el producto visible: tipo, forma, material, color, textura, tamaño relativo, cantidad, disposición, presentación y envase si existe.",
+      "No cambies el producto por una comida preparada, receta, ingrediente, plato servido, marca, etiqueta, envase o variante diferente. No agregues ni quites objetos del producto.",
+      "Solo modificá el fondo, la iluminación o el encuadre cuando el pedido o los ajustes lo indiquen. Si no podés conservar fielmente el producto, mantenelo igual que en la referencia.",
       `Pedido del comercio: ${input.instruction}.`,
       touches ? `Ajustes: ${touches}.` : "",
     ].filter(Boolean).join(" ");

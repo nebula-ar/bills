@@ -47,7 +47,7 @@ export function ProductPhotoAiSheet({
   const [style, setStyle] = useState<ProductImageAiStyle>("clean_catalog");
   const [touches, setTouches] = useState<ProductImageAiTouch[]>(
     initialRequestMode === "enhance"
-      ? ["clean_background", "natural_light", "close_up"]
+      ? ["clean_background", "natural_light"]
       : ["clean_background", "natural_light"],
   );
   const [candidates, setCandidates] = useState<string[]>([]);
