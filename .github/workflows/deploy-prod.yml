@@ -17,7 +17,7 @@ jobs:
 
       - name: Pack release
         run: |
-          tar --exclude=.git --exclude=.env --exclude='*.db' --exclude=node_modules --exclude=release.tgz -czf release.tgz .
+          tar --exclude=.git --exclude=.env --exclude='*.db' --exclude=node_modules --exclude=release.tgz -czf "$RUNNER_TEMP/release.tgz" .
 
       - name: Configure SSH
         env:
@@ -38,7 +38,7 @@ jobs:
           set -euo pipefail
           release="/opt/bills/releases/${GITHUB_SHA}"
           ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "mkdir -p '$release'"
-          scp -P "$VPS_PORT" release.tgz "$VPS_USER@$VPS_HOST:$release/release.tgz"
+          scp -P "$VPS_PORT" "$RUNNER_TEMP/release.tgz" "$VPS_USER@$VPS_HOST:$release/release.tgz"
           ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "bash -se" <<REMOTE
           set -euo pipefail
           release="$release"
