@@ -36,8 +36,10 @@ test("onboarding: crear un negocio nuevo eligiendo rubro", async ({ page }) => {
   await expect(page.getByText("Yo atiendo")).toBeVisible();
   await page.getByRole("button", { name: /Crear mi negocio/ }).click();
 
-  // Tras crear + login, cae en el panel de admin.
-  await expect(page.getByRole("link", { name: "Historial" })).toBeVisible({ timeout: 20_000 });
+  // Tras crear + login, cae en el desvío: panel o mostrador. No se espera la
+  // barra de navegación porque esa pantalla no la muestra a propósito.
+  await expect(page.getByRole("link", { name: /^Panel/ })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("link", { name: /^Vender/ })).toBeVisible();
 });
 
 test("onboarding: habla el idioma del rubro y no pregunta dos veces por el local", async ({ page }) => {

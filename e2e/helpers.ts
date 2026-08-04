@@ -15,8 +15,11 @@ export async function loginAsAdmin(page: Page) {
   await page.locator("#email").fill(ADMIN.email);
   await page.locator("#password").fill(ADMIN.password);
   await page.getByRole("button", { name: "Ingresar" }).click();
-  // La nav de admin (Historial) solo aparece con sesión de administrador.
-  await expect(page.getByRole("link", { name: "Historial" })).toBeVisible({ timeout: 15_000 });
+  // Cae en el desvío (/entrar), que a propósito NO muestra la barra de
+  // navegación: preguntar a dónde va y ofrecer un atajo al lado se contradice.
+  // Así que se espera lo que sí hay ahí. Esperar "Historial" —el link de la
+  // nav— dejaba a los 90 tests que loguean colgados 15 segundos cada uno.
+  await expect(page.getByRole("link", { name: /^Panel/ })).toBeVisible({ timeout: 15_000 });
 }
 
 // Elige quién atiende en el mostrador. Con más de un empleado ya no hay

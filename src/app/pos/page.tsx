@@ -1,6 +1,7 @@
 import { PosTerminals } from "@/components/pos-terminals";
 import { requireAdminSession } from "@/lib/auth";
 import { getSaleEntryBranches } from "@/modules/sales/get-sale-entry-options.use-case";
+import { diagnoseNoSaleBranches } from "@/modules/sales/sale.repository";
 import { getTerminalsByBranchIds } from "@/modules/terminals/terminal.use-cases";
 import { ArrowRight, MapPin, ShoppingBag, Store, Users } from "@/components/icons";
 import Link from "next/link";
@@ -18,6 +19,20 @@ export default async function PosLauncherPage() {
     redirect(`/sales/new?branchId=${branches[0].id}`);
   }
 
+  // Cuando no hay nada que ofrecer hay que decir QUÉ falta. Recién después del
+  // alta lo que falta es el catálogo, no la sucursal: el mensaje viejo mandaba
+  // a Sucursales, que es justo lo único que ya estaba hecho.
+  const missing = branches.length === 0 ? await diagnoseNoSaleBranches(session.user.businessId) : null;
+  const gap = !missing
+    ? null
+    : !missing.hasBranch
+      ? { text: "Todavía no tenés ninguna sucursal. Cargá una para poder vender.", href: "/branches", cta: "Ir a Sucursales" }
+      : !missing.hasStaff
+        ? { text: "Falta alguien que atienda. Cargá al menos un empleado en tu sucursal.", href: "/staff", cta: "Ir a Empleados" }
+        : !missing.hasPricedProduct
+          ? { text: "Todavía no cargaste lo que vendés. En un toque podés traer el catálogo típico de tu rubro.", href: "/catalog", cta: "Cargar mi catálogo" }
+          : { text: "No hay sucursales listas para vender.", href: "/branches", cta: "Ir a Sucursales" };
+
   const terminalsByBranch = await getTerminalsByBranchIds(branches.map((branch) => branch.id));
   const businessName = branches[0]?.business.name ?? "Bills";
 
@@ -29,11 +44,11 @@ export default async function PosLauncherPage() {
         <p className="mt-1 text-sm text-slate-500">Tocá una caja para vender, o copiá su link para que los empleados carguen ventas con su PIN.</p>
       </header>
 
-      {branches.length === 0 ? (
-        <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-          No hay sucursales listas para vender. Cargá una sucursal con al menos un empleado y un servicio activos.
-          <Link className="mt-4 inline-flex rounded-full bg-blue-600 px-4 py-2.5 text-sm font-black text-white" href="/branches">
-            Ir a Sucursales
+      {gap ? (
+        <div className="mt-6 grid justify-items-center gap-4 rounded-[1.5rem] border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+          <p className="max-w-sm">{gap.text}</p>
+          <Link className="inline-flex rounded-full bg-blue-600 px-4 py-2.5 text-sm font-black text-white" href={gap.href}>
+            {gap.cta}
           </Link>
         </div>
       ) : (

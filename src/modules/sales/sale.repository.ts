@@ -189,6 +189,30 @@ export function findSaleEntryOptionsBranch(branchId?: string) {
 }
 
 // Todas las sucursales activas con empleados y servicios, para el checkout del POS.
+// Por qué el mostrador no tiene ninguna sucursal para ofrecer.
+//
+// `findSaleEntryBranches` pide tres cosas a la vez —sucursal activa, con algún
+// empleado, con algún producto con precio— y devuelve vacío si falta cualquiera.
+// Sin esto la pantalla tenía que adivinar y siempre culpaba a la sucursal, que
+// después del alta es justamente lo único que YA está: lo que falta es el
+// catálogo, y mandarlo a Sucursales lo deja dando vueltas.
+export async function diagnoseNoSaleBranches(businessId: string) {
+  const [branches, staffs, pricedProducts] = await Promise.all([
+    prisma.branch.count({ where: { businessId, deleted: false, active: true } }),
+    prisma.user.count({ where: { businessId, deleted: false, active: true, role: UserRole.STAFF } }),
+    prisma.branchProductPrice.count({
+      where: {
+        deleted: false,
+        active: true,
+        branch: { businessId, deleted: false, active: true },
+        product: { deleted: false, active: true },
+      },
+    }),
+  ]);
+
+  return { hasBranch: branches > 0, hasStaff: staffs > 0, hasPricedProduct: pricedProducts > 0 };
+}
+
 export function findSaleEntryBranches(businessId: string) {
   return prisma.branch.findMany({
     where: {

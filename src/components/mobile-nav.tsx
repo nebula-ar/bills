@@ -22,9 +22,13 @@ const TINTS: Record<string, string> = {
   indigo: "bg-indigo-500 text-white",
 };
 
-// Rutas donde NO se muestra la nav admin (login y la terminal del empleado,
-// que tiene la suya).
-const HIDDEN_PREFIXES = ["/login", "/terminal"];
+// Rutas donde NO se muestra la nav admin: el login, la terminal del empleado
+// (que tiene la suya) y el desvío de entrada.
+//
+// En /entrar la nav se contradice con la pantalla: se pregunta a dónde va y
+// abajo hay un atajo para ir igual. Y encima "Vender" quedaba dos veces, una
+// como tarjeta y otra en la barra.
+const HIDDEN_PREFIXES = ["/login", "/terminal", "/entrar"];
 
 function matchesPrefix(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
