@@ -11,13 +11,31 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Notify deploy started
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          curl --fail --silent --show-error \
+            --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
+            --data-urlencode "text=🚀 Deploy iniciado%0ARepositorio: $GITHUB_REPOSITORY%0ACommit: $GITHUB_SHA" \
+            "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage"
+
       - name: Pack release
         run: |
-          tar --exclude=.git --exclude=.env --exclude='*.db' --exclude=node_modules --exclude=release.tgz -czf "$RUNNER_TEMP/release.tgz" .
+          tar \
+            --exclude=.git \
+            --exclude=.env \
+            --exclude='*.db' \
+            --exclude=node_modules \
+            --exclude=release.tgz \
+            -czf "$RUNNER_TEMP/release.tgz" .
 
       - name: Configure SSH
         env:
@@ -36,24 +54,69 @@ jobs:
           VPS_PORT: ${{ secrets.VPS_PORT }}
         run: |
           set -euo pipefail
+
           release="/opt/bills/releases/${GITHUB_SHA}"
-          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "mkdir -p '$release'"
-          scp -P "$VPS_PORT" "$RUNNER_TEMP/release.tgz" "$VPS_USER@$VPS_HOST:$release/release.tgz"
+
+          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
+            "mkdir -p '$release'"
+
+          scp -P "$VPS_PORT" \
+            "$RUNNER_TEMP/release.tgz" \
+            "$VPS_USER@$VPS_HOST:$release/release.tgz"
+
           ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "bash -se" <<REMOTE
           set -euo pipefail
+
           release="$release"
-          tar -xzf "$release/release.tgz" -C "$release"
-          rm -f "$release/release.tgz"
-          cd "$release"
+
+          tar -xzf "\$release/release.tgz" -C "\$release"
+          rm -f "\$release/release.tgz"
+
+          cd "\$release"
+
           set -a
           . /etc/bills.env
           set +a
+
           npm ci
           npm run db:generate
           npx prisma migrate deploy
           npm run build
-          ln -sfn "$release" /opt/bills/current
+
+          ln -sfn "\$release" /opt/bills/current
+
           systemctl restart bills.service
           systemctl is-active --quiet bills.service
-          curl --fail --silent --show-error http://127.0.0.1:3000/ >/dev/null
+
+          curl --fail --silent --show-error \
+            http://127.0.0.1:3000/ >/dev/null
           REMOTE
+
+      - name: Notify deploy result
+        if: always()
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPLOY_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          case "$DEPLOY_STATUS" in
+            success)
+              message="✅ Deploy exitoso"
+              ;;
+            failure)
+              message="❌ Deploy fallido"
+              ;;
+            cancelled)
+              message="⛔ Deploy cancelado"
+              ;;
+            *)
+              message="⚠️ Deploy finalizado: $DEPLOY_STATUS"
+              ;;
+          esac
+
+          curl --fail --silent --show-error \
+            --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
+            --data-urlencode "text=$message%0ARepositorio: $GITHUB_REPOSITORY%0ARun: $RUN_URL" \
+            "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage"
