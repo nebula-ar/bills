@@ -22,9 +22,13 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
+          message=$(printf '🚀 <b>Deploy iniciado</b>\n📦 <b>Repositorio:</b> %s\n🔖 <b>Commit:</b> <code>%s</code>' \
+            "$GITHUB_REPOSITORY" "$GITHUB_SHA")
+
           curl --fail --silent --show-error \
             --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
-            --data-urlencode "text=🚀 Deploy iniciado%0ARepositorio: $GITHUB_REPOSITORY%0ACommit: $GITHUB_SHA" \
+            --data-urlencode "parse_mode=HTML" \
+            --data-urlencode "text=$message" \
             "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage"
 
       - name: Pack release
@@ -78,6 +82,10 @@ jobs:
           . /etc/bills.env
           set +a
 
+          npm config set fetch-retries 5
+          npm config set fetch-retry-maxtimeout 120000
+          npm config set fetch-timeout 120000
+
           npm ci --include=dev
           npm run db:generate
           npx prisma migrate deploy
@@ -88,8 +96,19 @@ jobs:
           systemctl restart bills.service
           systemctl is-active --quiet bills.service
 
-          curl --fail --silent --show-error \
-            http://127.0.0.1:3000/ >/dev/null
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error \
+              http://127.0.0.1:3000/ >/dev/null; then
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo "La aplicación no respondió en el puerto 3000 después de 60 segundos"
+          systemctl status bills.service --no-pager -l
+          journalctl -u bills.service -n 80 --no-pager
+          exit 1
           REMOTE
 
       - name: Notify deploy result
@@ -103,20 +122,24 @@ jobs:
         run: |
           case "$DEPLOY_STATUS" in
             success)
-              message="✅ Deploy exitoso"
+              title="✅ <b>Deploy exitoso</b>"
               ;;
             failure)
-              message="❌ Deploy fallido"
+              title="❌ <b>Deploy fallido</b>"
               ;;
             cancelled)
-              message="⛔ Deploy cancelado"
+              title="⛔ <b>Deploy cancelado</b>"
               ;;
             *)
-              message="⚠️ Deploy finalizado: $DEPLOY_STATUS"
+              title="⚠️ <b>Deploy finalizado</b>"
               ;;
           esac
 
+          message=$(printf '%s\n📦 <b>Repositorio:</b> %s\n🔗 <a href="%s">Ver ejecución en GitHub</a>' \
+            "$title" "$GITHUB_REPOSITORY" "$RUN_URL")
+
           curl --fail --silent --show-error \
             --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
-            --data-urlencode "text=$message%0ARepositorio: $GITHUB_REPOSITORY%0ARun: $RUN_URL" \
+            --data-urlencode "parse_mode=HTML" \
+            --data-urlencode "text=$message" \
             "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage"
