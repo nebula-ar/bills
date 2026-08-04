@@ -78,7 +78,7 @@ jobs:
           . /etc/bills.env
           set +a
 
-          npm ci
+          npm ci --include=dev
           npm run db:generate
           npx prisma migrate deploy
           npm run build
