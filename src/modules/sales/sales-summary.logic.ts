@@ -22,6 +22,29 @@ export type Totales = {
   canceladas: number;
 };
 
+/**
+ * Resumen del período, con el filtro por medio de pago ya aplicado.
+ *
+ * Los medios disponibles salen del período SIN filtrar. Si salieran de lo
+ * filtrado, al elegir "Efectivo" desaparecerían los demás chips y no habría
+ * forma de cambiar de filtro sin volver atrás: un filtro que se borra a sí
+ * mismo deja al usuario encerrado.
+ */
+export function resumenDelPeriodo(
+  ventas: VentaParaTotalizar[],
+  metodo?: string,
+): { totales: Totales; metodosDisponibles: string[] } {
+  const vigentes = ventas.filter((venta) => venta.status !== SaleStatus.CANCELLED);
+  const metodosDisponibles = [...new Set(vigentes.flatMap((v) => v.payments.map((p) => p.method)))].sort();
+
+  return {
+    // Una venta con pago dividido aparece en los DOS medios: se pagó con los
+    // dos, y esconderla de uno haría que el filtro mienta.
+    totales: totalizar(metodo ? ventas.filter((v) => v.payments.some((p) => p.method === metodo)) : ventas),
+    metodosDisponibles,
+  };
+}
+
 export function totalizar(ventas: VentaParaTotalizar[]): Totales {
   // Las canceladas se cuentan aparte y NO suman: si sumaran, la caja del día
   // cerraría con plata que nadie tiene.

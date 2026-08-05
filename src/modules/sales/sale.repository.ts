@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { SaleChannel, SaleStatus, StockMovementType, TaxCondition, Unit, UserRole } from "@/generated/prisma/client";
+import { PaymentMethod, SaleChannel, SaleStatus, StockMovementType, TaxCondition, Unit, UserRole } from "@/generated/prisma/client";
 import { chargeCustomerAccount, reverseCustomerCharge } from "@/modules/customers/customer.repository";
 import { applyStockMovement } from "@/modules/stock/stock.repository";
 
@@ -342,11 +342,15 @@ export function findRecentSales(
   limit = 10,
   cursor?: string,
   rango?: RangoDeVentas,
+  metodo?: PaymentMethod,
 ) {
   return prisma.sale.findMany({
     where: {
       deleted: false,
       ...(rango ? { soldAt: { gte: rango.desde, lt: rango.hasta } } : {}),
+      // `some` y no `every`: una venta con pago dividido en efectivo y QR se
+      // pagó con los dos, y tiene que salir en los dos filtros.
+      ...(metodo ? { payments: { some: { method: metodo } } } : {}),
       branch: {
         businessId,
         deleted: false,

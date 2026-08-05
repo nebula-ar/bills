@@ -23,9 +23,31 @@ type Props = {
   totales: Totales;
   /** Etiquetas lindas de los medios de pago; la lógica trabaja con el enum. */
   etiquetasDePago: Record<string, string>;
+  /** Medio de pago filtrado, si hay alguno. */
+  metodo?: string;
+  /** Medios presentes en el período, sin el filtro aplicado. */
+  metodosDisponibles: string[];
 };
 
-export function SalesSummaryBar({ periodo, totales, etiquetasDePago }: Props) {
+export function SalesSummaryBar({
+  periodo,
+  totales,
+  etiquetasDePago,
+  metodo,
+  metodosDisponibles,
+}: Props) {
+  // El período manda y el medio lo acompaña: cambiar de período conserva el
+  // medio elegido, para poder seguir la misma pregunta a través del tiempo.
+  const url = (cambios: { periodo?: Periodo; metodo?: string | null }) => {
+    const p = cambios.periodo ?? periodo;
+    const m = cambios.metodo === undefined ? metodo : cambios.metodo;
+    const query = new URLSearchParams();
+    if (p !== "hoy") query.set("periodo", p);
+    if (m) query.set("metodo", m);
+    const cadena = query.toString();
+    return cadena ? `/sales?${cadena}` : "/sales";
+  };
+
   return (
     <div className="mt-4 space-y-3">
       <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -36,7 +58,7 @@ export function SalesSummaryBar({ periodo, totales, etiquetasDePago }: Props) {
                 ? "bg-primary text-white shadow-sm shadow-primary/25"
                 : "bg-white text-slate-600 ring-1 ring-slate-950/5"
             }`}
-            href={opcion === "hoy" ? "/sales" : `/sales?periodo=${opcion}`}
+            href={url({ periodo: opcion })}
             key={opcion}
             // `scroll={false}`: cambiar de período no es navegar a otra
             // pantalla, y saltar al tope aleja los números de donde estabas.
@@ -46,6 +68,35 @@ export function SalesSummaryBar({ periodo, totales, etiquetasDePago }: Props) {
           </Link>
         ))}
       </div>
+
+      {/* Filtro por medio de pago. Solo se ofrecen los que HAY en el período:
+          un chip que devuelve una lista vacía es prometer algo que no está.
+          Con un solo medio no hay nada que filtrar y la fila no aparece. */}
+      {metodosDisponibles.length > 1 ? (
+        <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <Link
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-black transition ${
+              metodo ? "bg-white text-slate-600 ring-1 ring-slate-950/5" : "bg-slate-900 text-white"
+            }`}
+            href={url({ metodo: null })}
+            scroll={false}
+          >
+            Todos los pagos
+          </Link>
+          {metodosDisponibles.map((opcion) => (
+            <Link
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-black transition ${
+                opcion === metodo ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
+              }`}
+              href={url({ metodo: opcion === metodo ? null : opcion })}
+              key={opcion}
+              scroll={false}
+            >
+              {etiquetasDePago[opcion] ?? opcion}
+            </Link>
+          ))}
+        </div>
+      ) : null}
 
       {/* En escritorio, los números a la izquierda y el desglose por medio de
           pago a la derecha, en la misma fila. Estirar tres tarjetas a lo ancho

@@ -68,6 +68,9 @@ type SalesListProps = {
   loadMore?: (cursor: string) => Promise<{ sales: SalesListSale[]; nextCursor: string | null }>;
   /** Qué decir cuando no hay nada: con filtros, "no hay ventas" es ambiguo. */
   emptyHint?: string;
+  /** Totales del período completo, para el pie de la tabla. */
+  totalDelPeriodo?: number;
+  ventasDelPeriodo?: number;
 };
 
 export function SalesList({
@@ -76,6 +79,8 @@ export function SalesList({
   initialCursor = null,
   loadMore,
   emptyHint = "Tocá el botón «+» abajo para cargar la primera.",
+  totalDelPeriodo,
+  ventasDelPeriodo,
 }: SalesListProps) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -88,6 +93,16 @@ export function SalesList({
   const [invoicing, startInvoicing] = useTransition();
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const selected = items.find((sale) => sale.id === selectedId) ?? null;
+
+  // Lo que suma lo que está a la vista. Las canceladas no entran: si sumaran,
+  // el pie diría más plata de la que entró, igual que en las tarjetas de arriba.
+  const enPantalla = items.reduce(
+    (acumulado, sale) =>
+      sale.status === "CANCELLED"
+        ? acumulado
+        : { cantidad: acumulado.cantidad + 1, total: acumulado.total + sale.total },
+    { cantidad: 0, total: 0 },
+  );
 
   // Sincroniza con la data fresca del server tras un router.refresh() (p.ej.
   // después de emitir una factura), sin perder páginas ya cargadas con "más".
@@ -199,6 +214,31 @@ export function SalesList({
               );
             })}
           </tbody>
+
+          {/* Totalizador al pie. Suma lo que ESTÁ EN PANTALLA y lo dice: la
+              tabla muestra una página y el período puede tener más. Un pie que
+              dijera el total del período mientras las filas son otras haría
+              dudar de los dos números; poniendo los dos, la diferencia se
+              entiende sola. */}
+          <tfoot>
+            <tr className="border-t-2 border-slate-100 bg-slate-50">
+              <td className="px-4 py-3 text-sm font-black text-slate-600" colSpan={4}>
+                {enPantalla.cantidad === ventasDelPeriodo
+                  ? `${enPantalla.cantidad} ${enPantalla.cantidad === 1 ? "venta" : "ventas"}`
+                  : `${enPantalla.cantidad} de ${ventasDelPeriodo} en pantalla`}
+              </td>
+              <td className="whitespace-nowrap px-4 py-3 text-right text-xs font-black uppercase tracking-wide text-slate-500">
+                {enPantalla.total === totalDelPeriodo ? "Total" : "En pantalla"}
+              </td>
+              <td
+                className="whitespace-nowrap px-4 py-3 text-right text-lg font-black text-slate-950"
+                data-testid="total-tabla"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {money(enPantalla.total)}
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
 

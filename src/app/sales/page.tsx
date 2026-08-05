@@ -1,3 +1,4 @@
+import { PaymentMethod } from "@/generated/prisma/client";
 import { requireAdminSession } from "@/lib/auth";
 import { requireBusinessContext } from "@/lib/business-context";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payment-labels";
@@ -12,22 +13,28 @@ import { Plus } from "@/components/icons";
 import Link from "next/link";
 
 type SalesPageProps = {
-  searchParams: Promise<{ periodo?: string | string[] }>;
+  searchParams: Promise<{ periodo?: string | string[]; metodo?: string | string[] }>;
 };
+
+/** La URL la escribe cualquiera: un medio desconocido se ignora, no rompe. */
+function parseMetodo(valor: string | undefined): PaymentMethod | undefined {
+  return valor && valor in PaymentMethod ? (valor as PaymentMethod) : undefined;
+}
 
 export default async function SalesPage({ searchParams }: SalesPageProps) {
   const session = await requireAdminSession();
 
   const params = await searchParams;
-  const crudo = Array.isArray(params.periodo) ? params.periodo[0] : params.periodo;
-  const periodo = parsePeriodo(crudo);
+  const unico = (valor: string | string[] | undefined) => (Array.isArray(valor) ? valor[0] : valor);
+  const periodo = parsePeriodo(unico(params.periodo));
+  const metodo = parseMetodo(unico(params.metodo));
   // El "hoy" se toma acá, en el borde, y se le pasa a la lógica: así el cálculo
   // del rango se puede probar sin depender del reloj.
   const rango = rangoDelPeriodo(periodo, new Date());
 
-  const [{ sales, nextCursor }, totales, business, context] = await Promise.all([
-    getRecentSales(session.user.businessId, 20, undefined, rango),
-    getSalesSummary(session.user.businessId, rango),
+  const [{ sales, nextCursor }, { totales, metodosDisponibles }, business, context] = await Promise.all([
+    getRecentSales(session.user.businessId, 20, undefined, rango, metodo),
+    getSalesSummary(session.user.businessId, rango, metodo),
     findBusinessForInvoicing(session.user.businessId),
     requireBusinessContext(),
   ]);
@@ -46,14 +53,28 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
         </div>
       </header>
 
-      <SalesSummaryBar etiquetasDePago={PAYMENT_METHOD_LABELS} periodo={periodo} totales={totales} />
+      <SalesSummaryBar
+        etiquetasDePago={PAYMENT_METHOD_LABELS}
+        metodo={metodo}
+        metodosDisponibles={metodosDisponibles}
+        periodo={periodo}
+        totales={totales}
+      />
 
       <SalesList
         businessName={context.business.name}
-        emptyHint={`No hay ventas en «${PERIODO_LABELS[periodo].toLowerCase()}». Probá con otro período.`}
+        emptyHint={
+          metodo
+            ? `No hay ventas con ${PAYMENT_METHOD_LABELS[metodo].toLowerCase()} en «${PERIODO_LABELS[periodo].toLowerCase()}».`
+            : `No hay ventas en «${PERIODO_LABELS[periodo].toLowerCase()}». Probá con otro período.`
+        }
         initialCursor={nextCursor}
         loadMore={loadMoreSalesAction}
         sales={viewSales}
+        // El total del período completo, para poder decir si lo que está en
+        // pantalla es todo o una parte.
+        totalDelPeriodo={totales.facturado}
+        ventasDelPeriodo={totales.cantidad}
       />
 
       <Link
