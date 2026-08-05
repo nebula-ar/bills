@@ -131,6 +131,9 @@ export function findSaleEntryOptionsBranch(branchId?: string) {
       business: {
         select: {
           name: true,
+          // El rubro define cómo se llama lo que se vende. La terminal decía
+          // "servicio" en una panadería porque no lo tenía.
+          vertical: true,
         },
       },
       users: {

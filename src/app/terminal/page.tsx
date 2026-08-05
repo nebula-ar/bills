@@ -1,7 +1,9 @@
 import { PaymentMethod } from "@/generated/prisma/client";
 import { StaffSaleTerminal } from "@/components/staff-sale-terminal";
 import { readStaffFlash } from "@/lib/terminal-flash";
+import { Vertical } from "@/generated/prisma/client";
 import { getStaffSession } from "@/lib/terminal-session";
+import { verticalPreset } from "@/lib/vertical";
 import { getSaleEntryOptions } from "@/modules/sales/get-sale-entry-options.use-case";
 import { getActiveTerminal } from "@/modules/terminals/terminal.use-cases";
 import { LogOut } from "@/components/icons";
@@ -55,6 +57,10 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
       : "/terminal";
 
   // Turno abierto: el empleado ya se identificó con PIN y hay sesión firmada vigente.
+  // Cómo llama el rubro a lo que vende. Sin esto la terminal de una panadería
+  // hablaba de "servicios", que es de donde viene Bills y no de dónde va.
+  const etiquetas = verticalPreset(branch?.business.vertical ?? Vertical.GENERAL).labels;
+
   const session = await getStaffSession();
   const sessionStaff =
     branch && session && session.branchId === branch.id && (!lockedStaffId || session.staffId === lockedStaffId)
@@ -110,6 +116,8 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
             </div>
           ) : sessionStaff ? (
             <StaffSaleTerminal
+              catalogPlural={etiquetas.catalogPlural}
+              catalogSingular={etiquetas.catalogSingular}
               staffName={sessionStaff.name ?? "Empleado"}
               branchName={branch.name}
               paymentOptions={paymentOptions}

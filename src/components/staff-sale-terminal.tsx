@@ -56,12 +56,18 @@ export function StaffSaleTerminal({
   staffName,
   branchName,
   terminalName,
+  // Cómo llama el rubro a lo que vende. Sin esto la pantalla decía "servicio"
+  // en una panadería, que es de donde viene Bills y no de donde va.
+  catalogSingular = "producto",
+  catalogPlural = "productos",
 }: {
   products: SaleProduct[];
   paymentOptions: SalePaymentOption[];
   staffName: string;
   branchName: string;
   terminalName: string | null;
+  catalogSingular?: string;
+  catalogPlural?: string;
 }) {
   const [cart, setCart] = useState<Record<string, number>>({});
   const [search, setSearch] = useState("");
@@ -130,7 +136,7 @@ export function StaffSaleTerminal({
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
         <IdentityLine staffName={staffName} branchName={branchName} terminalName={terminalName} />
         <div className="mt-4 rounded-3xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
-          Todavía no hay servicios cargados en esta sucursal. Pedile al administrador que los agregue.
+          Todavía no hay {catalogPlural.toLowerCase()} cargados en esta sucursal. Pedile al administrador que los agregue.
         </div>
       </div>
     );
@@ -148,7 +154,7 @@ export function StaffSaleTerminal({
             <input
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar servicio…"
+              placeholder={`Buscar ${catalogSingular.toLowerCase()}…`}
               value={search}
             />
           </div>
@@ -207,7 +213,7 @@ export function StaffSaleTerminal({
           })}
           {filtered.length === 0 ? (
             <p className="col-span-full rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm text-slate-500">
-              No hay servicios que coincidan.
+              No hay {catalogPlural.toLowerCase()} que coincidan.
             </p>
           ) : null}
         </div>
@@ -236,7 +242,7 @@ export function StaffSaleTerminal({
           </span>
           <span className="min-w-0 flex-1">
             <span className={`block text-xs font-bold ${hasItems ? "text-white/80" : "text-slate-500"}`}>
-              {hasItems ? "Total" : "Tocá un servicio para empezar"}
+              {hasItems ? "Total" : `Tocá un ${catalogSingular.toLowerCase()} para empezar`}
             </span>
             <span className={`block text-2xl font-black ${hasItems ? "text-white" : "text-slate-400"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
               {money(total)}

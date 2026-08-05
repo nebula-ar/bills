@@ -1014,7 +1014,10 @@ export function PosCheckout({
               </>
             ) : (
               <p className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
-                Tocá un servicio para empezar.
+                {/* El rubro pone la palabra: en una panadería no se vende un
+                    "servicio". El label ya existía y este texto se había
+                    quedado con el de la barbería. */}
+                Tocá un {catalogSingular.toLowerCase()} para empezar.
               </p>
             )}
           </div>
