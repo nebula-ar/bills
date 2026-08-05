@@ -10,7 +10,7 @@ import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import { findOpenOrder, findProductosVendibles, findTable } from "@/modules/tables/orders.repository";
 import { totalesDe } from "@/modules/tables/orders.use-cases";
 
-import { agregarProductoAction, cancelarComandaAction, quitarProductoAction } from "./actions";
+import { agregarProductoAction, cancelarComandaAction, cobrarAction, quitarProductoAction } from "./actions";
 
 /**
  * La comanda de una mesa: tocar el producto lo agrega.
@@ -194,12 +194,28 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
           </div>
 
           {items.length > 0 && puedeCobrar ? (
-            <Link
-              className="grid h-12 place-items-center rounded-full bg-primary text-base font-black text-primary-foreground transition hover:bg-primary-strong"
-              href={`/sales/new?branchId=${mesa.branchId}`}
-            >
-              Cobrar {formatMoney(totales.total)}
-            </Link>
+            <form action={cobrarAction} className="flex flex-col gap-2">
+              <input name="tableId" type="hidden" value={tableId} />
+              {/* La propina es del mozo y va aparte del subtotal: sumarla a lo
+                  facturado infla la contabilidad del negocio con plata ajena. */}
+              <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                Propina
+                <input
+                  className="h-10 w-28 rounded-xl border border-slate-200 px-3 text-right font-bold text-slate-950"
+                  defaultValue={0}
+                  min={0}
+                  name="propina"
+                  step={100}
+                  type="number"
+                />
+              </label>
+              <button
+                className="grid h-12 place-items-center rounded-full bg-primary text-base font-black text-primary-foreground transition hover:bg-primary-strong"
+                type="submit"
+              >
+                Cobrar {formatMoney(totales.total)}
+              </button>
+            </form>
           ) : null}
 
           {items.length > 0 && !puedeCobrar ? (

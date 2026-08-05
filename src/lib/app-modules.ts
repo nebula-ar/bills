@@ -247,6 +247,7 @@ export function buildNav(
   // Los módulos operativos primero; los ABM de configuración, al final.
   push(AppModule.STOCK, "/stock", "manageStock", { hint: "Faltantes, movimientos y traspasos" });
   push(AppModule.TABLES, "/salon", "waitTables");
+  push(AppModule.KITCHEN, "/cocina", "kitchen");
   push(AppModule.APPOINTMENTS, "/turnos", "sell");
   push(AppModule.PROMOTIONS, "/promotions", "manageCatalog");
   push(AppModule.MARKETING, "/marketing", "manageBusiness");

@@ -446,6 +446,10 @@ model Product {
   // llevando en unidades sueltas (una caja abierta se vende de a uno), así que
   // esto es solo un atajo de carga: "+1 caja" agrega packSize unidades.
   packSize    Int?
+  // Cuántos minutos tarda la cocina en prepararlo. Alimenta el semáforo de
+  // demora del KDS: sin esto el reloj corre pero no hay contra qué compararlo.
+  // Nullable porque la mayoría no lo carga (en Migas, 6 de 56).
+  prepMinutes Int?
   // Cómo lo llama el rubro: "caja", "bulto", "docena", "plancha".
   packLabel   String?
   active      Boolean     @default(true)
