@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import {
   Badge,
@@ -43,26 +44,30 @@ function Mesa({ mesa, branchId, sectorId }: { mesa: MesaEnTablero; branchId: str
         ocupada ? "border-primary/40 bg-primary/10" : "border-slate-200 bg-white"
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          {/* Sin `truncate`: el nombre es lo que el mozo canta en voz alta, y
-              "Vere…" no le sirve a nadie. Que ocupe dos renglones. */}
-          <p className="text-lg font-black leading-tight tracking-tight text-slate-950">{mesa.name}</p>
-          <p className="text-xs text-slate-500">{mesa.seats} lugares</p>
+      {/* La tarjeta entera lleva a la comanda: el mozo toca la mesa, no busca
+          un botón. "Sentar gente" queda aparte, abajo. */}
+      <Link className="flex flex-col gap-2" href={`/salon/${mesa.id}`}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            {/* Sin `truncate`: el nombre es lo que el mozo canta en voz alta, y
+                "Vere…" no le sirve a nadie. Que ocupe dos renglones. */}
+            <p className="text-lg font-black leading-tight tracking-tight text-slate-950">{mesa.name}</p>
+            <p className="text-xs text-slate-500">{mesa.seats} lugares</p>
+          </div>
+          <Badge tone={ocupada ? "info" : "positive"}>{ocupada ? "Ocupada" : "Libre"}</Badge>
         </div>
-        <Badge tone={ocupada ? "info" : "positive"}>{ocupada ? "Ocupada" : "Libre"}</Badge>
-      </div>
 
-      {mesa.comanda ? (
-        <div className="rounded-xl bg-white/70 px-3 py-2">
-          <p className="text-xl font-black text-primary">{formatMoney(mesa.comanda.total)}</p>
-          <p className="text-xs text-slate-500">
-            {mesa.comanda.items} {mesa.comanda.items === 1 ? "ítem" : "ítems"} · hace {espera} min
-          </p>
-        </div>
-      ) : (
-        <p className="text-sm text-slate-400">Sin consumo</p>
-      )}
+        {mesa.comanda ? (
+          <div className="rounded-xl bg-white/70 px-3 py-2">
+            <p className="text-xl font-black text-primary">{formatMoney(mesa.comanda.total)}</p>
+            <p className="text-xs text-slate-500">
+              {mesa.comanda.items} {mesa.comanda.items === 1 ? "ítem" : "ítems"} · hace {espera} min
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400">Sin consumo</p>
+        )}
+      </Link>
 
       <form action={alternarOcupacionAction} className="mt-auto">
         <input name="tableId" type="hidden" value={mesa.id} />
