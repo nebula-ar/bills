@@ -245,10 +245,18 @@ model User {
   @@index([deletedAt])
 }
 
+// Roles por TAREA, no por jerarquía lineal. Un mozo y un cocinero comparten
+// rango pero hacen cosas ajenas entre sí: no hay uno "más arriba" que el otro.
+// Qué puede cada uno se define en src/lib/capabilities.ts, que es la única
+// fuente de verdad para la nav y para los guards del servidor.
 enum UserRole {
-  OWNER
-  ADMIN
-  STAFF
+  OWNER // dueño
+  ADMIN // socio o encargado general
+  MANAGER // encargado de local: la operación completa, sin equipo ni fiscal
+  CASHIER // caja: cobra y arquea, no anula
+  WAITER // mozo: toma pedidos en el salón, no toca la plata
+  COOK // cocina: solo la pantalla de preparación
+  STAFF // empleado de mostrador (vende por terminal)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

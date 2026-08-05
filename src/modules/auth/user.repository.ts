@@ -1,7 +1,10 @@
-import { UserRole } from "@/generated/prisma/client";
+import { APP_ROLES } from "@/lib/capabilities";
 import { prisma } from "@/lib/prisma";
 
-const adminRoles: UserRole[] = [UserRole.OWNER, UserRole.ADMIN];
+// Quién puede entrar con contraseña. Antes eran solo OWNER y ADMIN; con los
+// roles operativos (encargado, cajero, mozo, cocinero) la lista vive en
+// capabilities.ts, que es la única fuente de verdad del modelo de roles.
+// STAFF sigue afuera: vende por terminal con PIN, no con contraseña.
 
 // Con qué nombre entra y con qué empleado vende. En un comercio chico el dueño
 // es dos filas —OWNER para el panel, STAFF para el mostrador— y `sellsAsId` es
@@ -21,7 +24,7 @@ export function findActiveAdminUserByIdentifier(identifier: string) {
       active: true,
       deleted: false,
       role: {
-        in: adminRoles,
+        in: APP_ROLES,
       },
     },
     select: {

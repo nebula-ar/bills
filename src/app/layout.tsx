@@ -5,9 +5,10 @@ import { Toaster } from "sonner";
 import { FlashToaster } from "@/components/flash-toaster";
 import { InstallPrompt } from "@/components/install-prompt";
 import { MobileNav } from "@/components/mobile-nav";
+import { capabilitiesOf } from "@/lib/capabilities";
 import { buildNav } from "@/lib/app-modules";
 import { verticalPreset } from "@/lib/vertical";
-import { getCurrentSession, isAdminRole } from "@/lib/auth";
+import { getCurrentSession, usesAppNav } from "@/lib/auth";
 import { findBusinessContext } from "@/lib/business-context";
 import "./globals.css";
 
@@ -61,12 +62,21 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await getCurrentSession();
-  const showNav = isAdminRole(session?.user.role);
+  // Los roles operativos (mozo, cocinero, cajero, encargado) también navegan
+  // la app; el empleado de mostrador sigue trabajando por terminal.
+  const showNav = usesAppNav(session?.user.role);
 
   // La navegación depende del negocio (rubro + módulos prendidos), así que se
   // arma acá con los datos ya resueltos y viaja al cliente lista para pintar.
   const business = showNav && session ? await findBusinessContext(session.user.businessId) : null;
-  const nav = business ? buildNav(business.labels, business.modules, verticalPreset(business.vertical).catalogIcon) : null;
+  const nav = business
+    ? buildNav(
+        business.labels,
+        business.modules,
+        verticalPreset(business.vertical).catalogIcon,
+        capabilitiesOf(session?.user.role),
+      )
+    : null;
 
   return (
     <html
