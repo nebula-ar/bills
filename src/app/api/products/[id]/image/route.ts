@@ -42,7 +42,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 // La foto la miran tanto el admin como el empleado desde su terminal (que se
-// identifica con PIN, no con NextAuth), así que aceptamos las dos sesiones.
+// identifica con PIN, no con Supabase Auth), así que aceptamos las dos sesiones.
 async function resolveBusinessId(): Promise<string | null> {
   const session = await getCurrentSession();
 

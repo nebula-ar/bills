@@ -5,8 +5,8 @@ import { requireModule } from "@/lib/business-context";
 import { logError } from "@/lib/logger";
 import { parsePaymentMethodValue } from "@/lib/payment-labels";
 import { payCommission } from "@/modules/staff/commissions.use-case";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+
+export type PayCommissionActionResult = { ok: boolean; message: string };
 
 function text(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -24,16 +24,15 @@ function date(value: string): Date | null {
   return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
 }
 
-export async function payCommissionAction(formData: FormData) {
+export async function payCommissionAction(formData: FormData): Promise<PayCommissionActionResult> {
   const { session } = await requireModule(AppModule.STAFF_COMMISSIONS);
 
-  const month = text(formData, "month");
   const amount = money(text(formData, "amount"));
   const from = date(text(formData, "from"));
   const to = date(text(formData, "to"));
 
   if (!amount || !from || !to) {
-    back(month, "error", "Ingresá un importe válido.");
+    return { ok: false, message: "Ingresá un importe válido." };
   }
 
   to.setHours(23, 59, 59, 999);
@@ -52,20 +51,8 @@ export async function payCommissionAction(formData: FormData) {
       businessId: session.user.businessId,
       userId: session.user.id,
     });
-    back(month, "error", "No pudimos registrar el pago. Intentá de nuevo.");
+    return { ok: false, message: "No pudimos registrar el pago. Intentá de nuevo." };
   }
 
-  back(month, "success", "Comisión pagada y registrada como gasto.");
-}
-
-function back(month: string, status: "success" | "error", message: string): never {
-  // La acción acabó de mutar datos y el redirect vuelve a la MISMA ruta: sin
-  // invalidarla, el router del cliente puede servir el árbol que ya tenía y el
-  // usuario ve el valor de antes (visto de verdad: un ajuste de stock a 50 que
-  // seguía mostrando 111).
-  revalidatePath("/comisiones");
-
-  const params = new URLSearchParams({ status, message });
-  if (month) params.set("month", month);
-  redirect(`/comisiones?${params.toString()}`);
+  return { ok: true, message: "Comisión pagada y registrada como gasto." };
 }

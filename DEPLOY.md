@@ -1,169 +1,83 @@
-# Deploy a producción (Vercel + Supabase)
+# Deploy a producción (VPS + Supabase self-hosted)
 
-Esta app usa **SQLite en desarrollo local** y **Postgres (Supabase) en producción**.
-El esquema de Postgres se genera automáticamente desde `prisma/schema.prisma`
-(la única fuente de verdad) con `scripts/build-postgres-schema.mjs`.
+La plataforma vive en dos repositorios:
 
-## Resumen de la arquitectura de DB
+- `nebula-ar/bills`: aplicación, schema Prisma y migraciones del dominio.
+- `nebula-ar/supabase-infra`: Compose oficial fijado, Nginx, secretos, roles,
+  backups, restore drills y wrappers de deploy.
 
-| Entorno    | Motor    | `DATABASE_URL`                        | Migraciones                     |
-| ---------- | -------- | ------------------------------------- | ------------------------------- |
-| Local      | SQLite   | `file:./dev.db`                       | `prisma/migrations`             |
-| Producción | Postgres | connection string pooled de Supabase  | `prisma/postgres/migrations`    |
+PostgreSQL 17 es el único motor. No existe un camino SQLite alternativo.
 
-El adapter de Prisma se elige solo en runtime según `DATABASE_URL`
-(`file:` → SQLite, cualquier otra → Postgres). Ver `src/lib/prisma.ts`.
+## Conexiones
 
----
+| Uso | Endpoint en la VPS | Rol |
+| --- | --- | --- |
+| Runtime Prisma | `127.0.0.1:6543` (Supavisor transaction) | `bills_runtime.<tenant>` |
+| Migraciones | `127.0.0.1:54322` (Postgres directo) | `bills_migrator` |
+| Supabase server-side | `127.0.0.1:8000` (Kong) | anon/service-role según operación |
 
-## 1. Crear el proyecto en Supabase
+Ninguno de esos puertos se publica. Nginx expone HTTPS para Bills, el endpoint
+de refresh estrictamente permitido y Studio con Basic Auth + allowlist IP.
 
-1. Entrá a https://supabase.com/dashboard → **New project**.
-2. Elegí una contraseña de base de datos fuerte y **guardala** (la vas a necesitar).
-3. Cuando termine de crearse, andá a **Project Settings → Database → Connection string**
-   y copiá dos strings (modo **Prisma** o **URI**):
-   - **Transaction pooler** (puerto **6543**) → será `DATABASE_URL`. Agregale `?pgbouncer=true` al final.
-   - **Direct connection / Session** (puerto **5432**) → será `DIRECT_URL`.
-
-   Ejemplo:
-   ```
-   DATABASE_URL="postgres://postgres.abcd1234:TU_PASSWORD@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
-   DIRECT_URL="postgres://postgres.abcd1234:TU_PASSWORD@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
-   ```
-
-## 2. Configurar las variables de entorno en Vercel
-
-> **Si usás la integración oficial de Supabase en Vercel** (Storage → Supabase),
-> esta crea sola las variables `POSTGRES_PRISMA_URL` (pooled) y
-> `POSTGRES_URL_NON_POOLING` (directa). La app las lee automáticamente como
-> fallback, así que **no necesitás crear `DATABASE_URL`/`DIRECT_URL` a mano**.
-> Solo te faltan las dos de NextAuth.
-
-En **Vercel → tu proyecto → Settings → Environment Variables** (scope: Production, y Preview si querés):
-
-| Variable          | Valor                                                                    |
-| ----------------- | ----------------------------------------------------------------------- |
-| `DATABASE_URL`    | pooled (6543, `?pgbouncer=true`). *Opcional si ya está `POSTGRES_PRISMA_URL`.* |
-| `DIRECT_URL`      | directa (5432). *Opcional si ya está `POSTGRES_URL_NON_POOLING`.*        |
-| `NEXTAUTH_SECRET` | secreto fuerte → generalo con `openssl rand -base64 32`                  |
-| `NEXTAUTH_URL`    | `https://<tu-app>.vercel.app` (o tu dominio propio)                      |
-
-> **SSL:** el pooler de Supabase usa un certificado que las versiones nuevas de
-> `pg` rechazan si `sslmode=require`. La app fuerza `sslmode=no-verify` en runtime
-> (ver `forcePgSsl` en `src/lib/prisma.ts`) — conexión cifrada, sin validar la
-> cadena. No hace falta tocar nada.
-
-> El build de Vercel corre `npm run vercel-build`, que:
-> 1. genera el schema de Postgres,
-> 2. `prisma generate` (cliente Postgres),
-> 3. `prisma migrate deploy` (aplica las migraciones a Supabase usando `DIRECT_URL`),
-> 4. `next build`.
-
-## 3. Primer deploy
-
-1. Conectá el repo de GitHub a Vercel (framework detectado: Next.js).
-2. Deploy. En el primer build se crean todas las tablas en Supabase.
-
-> ⚠️ **Si esa base ya se usó con una versión anterior a Bills multi-rubro**
-> (cuando la app era solo para barberías), hay que vaciarla antes del deploy.
-> El schema se reescribió de cero —`Service` pasó a `Product`, el rol `BARBER`
-> a `STAFF`, y se sumaron 22 tablas— así que la migración inicial no puede
-> aplicarse sobre las tablas viejas. En Supabase, SQL Editor:
->
-> ```sql
-> DROP SCHEMA public CASCADE;
-> CREATE SCHEMA public;
-> GRANT ALL ON SCHEMA public TO postgres, anon, authenticated, service_role;
-> ```
->
-> Después redeployá: `prisma migrate deploy` crea todo limpio. **Esto borra
-> todos los datos de esa base.**
-
-## 4. Cargar datos de demo (15 días) en Supabase
-
-El seed **no** corre en el build. Corrélo una vez, apuntando a Supabase, desde tu máquina:
+## Desarrollo y CI
 
 ```bash
-# En tu terminal local, con las mismas connection strings de Supabase:
-DATABASE_URL="postgres://...:6543/postgres?pgbouncer=true" \
-DIRECT_URL="postgres://...:5432/postgres" \
-npm run db:pg:generate   # genera el cliente Postgres localmente
-DATABASE_URL="postgres://...:6543/postgres?pgbouncer=true" \
-DIRECT_URL="postgres://...:5432/postgres" \
-npm run db:pg:seed       # borra y carga la data de demo
-```
-
-> En PowerShell (Windows), seteá las variables antes:
-> ```powershell
-> $env:DATABASE_URL="postgres://...:6543/postgres?pgbouncer=true"
-> $env:DIRECT_URL="postgres://...:5432/postgres"
-> npm run db:pg:generate
-> npm run db:pg:seed
-> ```
-
-⚠️ El seed hace `deleteMany()` de todas las tablas antes de cargar. **No lo corras
-sobre datos reales.** Es para dejar la demo lista, no para producción con clientes reales.
-
-Después de sembrar, volvé a generar el cliente SQLite para seguir en local:
-```bash
-npm run db:generate
-```
-
-### Credenciales de la demo
-
-- **Admin:** `owner@bills.local` / `admin123`
-- **PINs de empleados:** Nico 1111 · Lucas 2222 · Fede 3333 · Matías 4444 · Franco 5555 · Nahuel 6666
-
----
-
-## Flujo de desarrollo local (SQLite)
-
-```bash
-npm install            # postinstall genera el cliente SQLite
-npm run db:migrate     # aplica migraciones a dev.db (o `prisma migrate dev`)
-npm run db:seed        # carga la data de demo (15 días) en SQLite
+npm install
+npx supabase start
+cp .env.example .env       # completar las claves de `supabase status -o env`
+npm run db:migrate
+npm run db:seed
 npm run dev
 ```
 
-## Cambios de schema a futuro
+`npm run e2e` crea/resetea un Supabase local aislado, aplica la baseline, siembra
+datos y corre Playwright. Nunca usa Cloud ni producción.
 
-1. Editá **`prisma/schema.prisma`** (SQLite, la fuente de verdad).
-2. Local: `npm run db:migrate` (crea la migración SQLite y actualiza `dev.db`).
-3. Postgres: `npm run db:pg:generate` regenera el schema PG. Para crear la
-   migración de Postgres necesitás una DB Postgres accesible:
-   ```bash
-   npx prisma migrate dev --config prisma.postgres.config.ts --name <nombre>
-   ```
-   (podés apuntar `DIRECT_URL` a una DB de staging o a un Postgres local).
-   Commiteá tanto `prisma/migrations` como `prisma/postgres/migrations`.
+## Cambios de entidades
 
-   **Sin una DB a mano**, la migración se puede generar offline comparando el
-   schema contra el estado que dejan las migraciones ya existentes:
-   ```bash
-   npx prisma migrate diff      --from-migrations prisma/postgres/migrations      --to-schema prisma/postgres/schema.prisma      --shadow-database-url <postgres-de-descarte> --script
-   ```
-   > **No alcanza con crear la migración de SQLite.** Producción aplica
-   > `prisma/postgres/migrations` y nada más: si esa carpeta se queda atrás, el
-   > build pasa igual (`next build` no toca la base) y la app rompe en la
-   > primera consulta contra una tabla que no existe.
+1. Editar `prisma/schema.prisma`.
+2. Levantar Supabase local y ejecutar `npm run db:migrate -- --name <cambio>`.
+3. Revisar el SQL generado y probar unitarios, build y E2E.
+4. Integrar primero la migración compatible; después el código que la consume.
+5. Los cambios de plataforma (imagen, Auth, proxy, backup) van en
+   `supabase-infra`; los cambios de dominio permanecen en Bills.
 
-> ⚠️ Al usar dos motores distintos, un detalle de dialecto SQL podría comportarse
-> distinto entre dev y prod. Si eso se vuelve molesto, considerá mover también el
-> dev local a Postgres y eliminar el andamiaje de doble-provider.
+Las migraciones son expand/contract y roll-forward: un rollback de symlink no
+deshace DDL ya aplicado.
 
-## Troubleshooting
+## Producción
 
-- **`prepared statement "s0" already exists` o errores raros de conexión en prod:**
-  es el pooler de Supabase en modo transacción. Asegurate de que `DATABASE_URL`
-  tenga `?pgbouncer=true` y que `DIRECT_URL` (sin `pgbouncer`) apunte al puerto
-  5432. Las migraciones deben usar siempre `DIRECT_URL`.
-- **Las migraciones no se aplican en el deploy:** revisá que el build de Vercel
-  esté corriendo `npm run vercel-build` (lo fuerza `vercel.json`) y que
-  `DIRECT_URL` esté seteada en las env vars de Vercel.
+El workflow está inhabilitado hasta que la variable de repositorio
+`SUPABASE_CUTOVER_COMPLETE=true` y el archivo root-only
+`/etc/bills-cutover-approved` confirmen el cutover. Después, cada push a
+`master` empaqueta el SHA exacto y el wrapper root inmutable:
 
-## Nota sobre el rate-limit de login
+1. verifica `ops.environment_identity`;
+2. instala dependencias y genera Prisma como usuario `bills`;
+3. aplica migraciones por `DIRECT_URL`;
+4. construye Next.js;
+5. activa el symlink y verifica `/login`;
+6. revierte el symlink si falla el healthcheck.
 
-`src/lib/login-rate-limit.ts` guarda los intentos **en memoria**. En Vercel
-(serverless, múltiples instancias) el límite es por instancia, no global. Alcanza
-para un MVP; si necesitás rate-limiting fuerte, migralo a un store compartido
-(por ej. la misma Postgres o Upstash Redis).
+El procedimiento de instalación inicial limpia, backups y ensayo de restore
+está en el `RUNBOOK.md` de `supabase-infra`.
+
+## Auth
+
+- Signup/password grant públicos de GoTrue están deshabilitados.
+- Login y registro pasan por Server Actions de Bills.
+- Las identidades se crean en Supabase Auth durante el registro; Bills no
+  almacena contraseñas de administradores en sus tablas.
+- Coincidir por email nunca autoriza: UUID, instancia, negocio y metadata deben
+  coincidir.
+- Los intentos y leases de provisión son persistentes y auditables.
+- Las cuentas autoconfirmadas quedan marcadas `UNVERIFIED_AUTOCONFIRM` hasta
+  incorporar SMTP y verificación de propiedad en una fase futura.
+- El PIN del mostrador usa `STAFF_SESSION_SECRET`, separado de Supabase Auth.
+
+## Secretos obligatorios
+
+Ver `.env.example`. En producción `/etc/bills.env` es `root:bills 0640` y lo
+genera `supabase-infra/scripts/render-bills-env.sh`; nunca se commitea.
+
+El seed borra datos de dominio: se usa sólo en entornos descartables.

@@ -8,7 +8,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
 
@@ -26,10 +26,14 @@ jobs:
       - name: Tests unitarios (vitest)
         run: npm test
 
-      - name: Tests E2E (playwright, contra SQLite descartable)
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Tests E2E (Supabase + PostgreSQL 17 descartables)
         run: npm run e2e
         env:
           CI: "true"
+          SUPABASE_TELEMETRY_DISABLED: "1"
 
       - name: Subir reporte de Playwright
         if: ${{ !cancelled() }}

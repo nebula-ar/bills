@@ -9,6 +9,7 @@ import {
   TableWrap,
 } from "@/components/manager-ui";
 import { MoneyInput } from "@/components/money-input";
+import { RefreshActionForm } from "@/components/refresh-action-form";
 import { AppModule } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { PAYMENT_METHOD_OPTIONS } from "@/lib/payment-labels";
@@ -114,7 +115,7 @@ export default async function ComisionesPage({ searchParams }: ComisionesPagePro
                     <td className="py-2.5 pr-3 font-black text-slate-950">{formatMoney(row.commission)}</td>
                     <td className="py-2.5">
                       {row.commission > 0 ? (
-                        <form action={payCommissionAction} className="flex flex-wrap items-center gap-1.5">
+                        <RefreshActionForm action={payCommissionAction} className="flex flex-wrap items-center gap-1.5">
                           <input name="staffId" type="hidden" value={row.staffId} />
                           <input name="month" type="hidden" value={monthKey} />
                           <input name="from" type="hidden" value={toISODate(from)} />
@@ -137,7 +138,7 @@ export default async function ComisionesPage({ searchParams }: ComisionesPagePro
                             ))}
                           </select>
                           <GhostButton>Pagar</GhostButton>
-                        </form>
+                        </RefreshActionForm>
                       ) : null}
                     </td>
                   </tr>

@@ -17,6 +17,7 @@ test.describe("Módulos del sistema", () => {
     await form.locator('select[name="productId"]').selectOption({ label: "Alfajor triple (un)" });
     await form.locator('input[name="counted"]').fill("42");
     await form.getByRole("button", { name: "Guardar ajuste" }).click();
+    await expect(page.getByText("Stock actualizado.")).toBeVisible();
 
     // Lo que importa es el dato: la fila muestra la existencia contada.
     await expect(page.getByRole("row").filter({ hasText: "Alfajor triple" }).getByText("42 un")).toBeVisible();
@@ -31,6 +32,7 @@ test.describe("Módulos del sistema", () => {
     await ajuste.locator('select[name="productId"]').selectOption({ label: "Chicles (un)" });
     await ajuste.locator('input[name="counted"]').fill("100");
     await ajuste.getByRole("button", { name: "Guardar ajuste" }).click();
+    await expect(page.getByText("Stock actualizado.")).toBeVisible();
     await expect(page.getByRole("row").filter({ hasText: "Chicles" }).getByText("100 un")).toBeVisible();
 
     const merma = page.locator("form", { hasText: "Registrar merma" });
@@ -38,6 +40,7 @@ test.describe("Módulos del sistema", () => {
     await merma.locator('input[name="quantity"]').fill("3");
     await merma.locator('input[name="reason"]').fill("Se cayeron al piso");
     await merma.getByRole("button", { name: "Registrar merma" }).click();
+    await expect(page.getByText("Merma registrada.")).toBeVisible();
 
     await expect(page.getByRole("row").filter({ hasText: "Chicles" }).getByText("97 un")).toBeVisible();
   });
@@ -80,7 +83,10 @@ test.describe("Módulos del sistema", () => {
 
     const pago = page.locator("form", { hasText: "Registrar pago" });
     await pago.locator('input[name="amount"]').fill("1800");
-    await pago.getByRole("button", { name: "Registrar pago" }).click();
+    await Promise.all([
+      page.waitForURL((url) => url.searchParams.get("message") === "Pago registrado."),
+      pago.getByRole("button", { name: "Registrar pago" }).click(),
+    ]);
 
     // Recargamos para leer el estado ya persistido, sin depender de cuándo el
     // router aplica la respuesta de la acción.
@@ -112,6 +118,7 @@ test.describe("Módulos del sistema", () => {
     await factura.locator('input[name="itemQuantity"]').first().fill("10");
     await factura.locator('input[name="itemUnitCost"]').first().fill("1000");
     await factura.getByRole("button", { name: "Cargar factura" }).click();
+    await expect(page.getByText("Factura cargada.")).toBeVisible({ timeout: 15_000 });
 
     // Queda en "A pagar" con lo que falta.
     await page.goto("/expenses");
@@ -121,6 +128,7 @@ test.describe("Módulos del sistema", () => {
     // Se paga completa: sale de lo que se debe y entra a lo que salió este mes.
     await deuda.click();
     await page.getByRole("button", { name: "Registrar pago" }).click();
+    await expect(page.getByText("Pago registrado.")).toBeVisible({ timeout: 15_000 });
 
     await page.goto("/expenses");
     await expect(page.getByRole("button", { name: `Factura de Proveedor E2E ${unique}` })).toHaveCount(0, {
@@ -140,6 +148,7 @@ test.describe("Módulos del sistema", () => {
     await ajuste.locator('select[name="productId"]').selectOption({ label: "Chicles (un)" });
     await ajuste.locator('input[name="counted"]').fill("50");
     await ajuste.getByRole("button", { name: "Guardar ajuste" }).click();
+    await expect(page.getByText("Stock actualizado.")).toBeVisible();
     await expect(page.getByRole("row").filter({ hasText: "Chicles" }).getByText("50 un")).toBeVisible({
       timeout: 15_000,
     });
@@ -163,6 +172,7 @@ test.describe("Módulos del sistema", () => {
     await factura.locator('input[name="itemQuantity"]').first().fill("20");
     await factura.locator('input[name="itemUnitCost"]').first().fill("500");
     await factura.getByRole("button", { name: "Cargar factura" }).click();
+    await expect(page.getByText("Factura cargada.")).toBeVisible();
 
     // Entró: 50 + 20.
     await page.goto("/stock");
@@ -178,6 +188,7 @@ test.describe("Módulos del sistema", () => {
     // animando, y el chequeo de estabilidad de Playwright agota los 4 segundos
     // que el propio botón se da para desarmarse solo.
     await page.getByRole("button", { name: "Sí, anularla" }).click({ force: true });
+    await expect(page.getByText("Factura anulada.")).toBeVisible();
 
     await page.goto("/stock");
     await expect(page.getByRole("row").filter({ hasText: "Chicles" }).getByText("50 un")).toBeVisible({
@@ -190,6 +201,7 @@ test.describe("Módulos del sistema", () => {
 
     const fila = page.locator("li", { hasText: "Descuentos, 2x1 y combos" });
     await fila.getByRole("button", { name: "Apagar" }).click();
+    await expect(fila.getByRole("button", { name: "Prender" })).toBeVisible();
 
     // Ya no se puede entrar por URL: requireModule manda a "/", que con sesión
     // es el desvío entre panel y mostrador.
@@ -199,7 +211,9 @@ test.describe("Módulos del sistema", () => {
     // Lo dejamos como estaba para no ensuciar el resto de la suite. La prueba de
     // que volvió a estar prendido es que la pantalla vuelve a ser accesible.
     await page.goto("/settings");
-    await page.locator("li", { hasText: "Descuentos, 2x1 y combos" }).getByRole("button", { name: "Prender" }).click();
+    const restored = page.locator("li", { hasText: "Descuentos, 2x1 y combos" });
+    await restored.getByRole("button", { name: "Prender" }).click();
+    await expect(restored.getByRole("button", { name: "Apagar" })).toBeVisible();
     await page.goto("/promotions");
     await expect(page.getByRole("heading", { level: 1, name: "Promociones" })).toBeVisible();
   });

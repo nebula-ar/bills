@@ -1,7 +1,7 @@
 "use client";
 
 import { LogOut } from "@/components/icons";
-import { signOut } from "next-auth/react";
+import { logoutAction } from "@/app/login/actions";
 import { useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,9 @@ export function LogoutButton({ className, label = "Cerrar sesión" }: LogoutButt
   const [isPending, startTransition] = useTransition();
 
   function handleLogout() {
-    startTransition(() => {
-      void signOut({ callbackUrl: "/login" });
+    startTransition(async () => {
+      await logoutAction();
+      window.location.assign("/login");
     });
   }
 

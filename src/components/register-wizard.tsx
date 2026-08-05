@@ -5,7 +5,6 @@ import { Vertical } from "@/generated/prisma/enums";
 import { VERTICAL_ORDER, VERTICAL_PRESETS, verticalPreset } from "@/lib/vertical";
 import { ArrowLeft, ArrowRight, Check, DynamicIcon, Loader2 } from "@/components/icons";
 import { onboardingSteps } from "@/modules/onboarding/onboarding.logic";
-import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useMemo, useState, useTransition, type KeyboardEvent } from "react";
 
@@ -163,10 +162,9 @@ export function RegisterWizard() {
         return;
       }
 
-      const signInResult = await signIn("credentials", { email: email.trim().toLowerCase(), password, redirect: false });
       // Navegación completa (no router.push): el layout es server component y así
       // se re-ejecuta con la sesión nueva y aparece la barra de navegación.
-      window.location.assign(signInResult?.ok ? "/" : "/login");
+      window.location.assign(result.requiresLogin ? "/login" : "/");
     });
   }
 

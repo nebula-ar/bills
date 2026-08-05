@@ -1,102 +1,80 @@
+import "server-only";
+
 import { UserRole } from "@/generated/prisma/client";
-import { validateAdminCredentials } from "@/modules/auth/validate-admin-credentials.use-case";
-import { LoginErrorCode } from "@/lib/auth-errors";
-import { checkLoginRateLimit, clearLoginAttempts, registerFailedLogin } from "@/lib/login-rate-limit";
-import type { NextAuthOptions } from "next-auth";
-import { getServerSession } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
+import { assertEnvironmentIdentity } from "@/lib/environment-identity";
+import { prisma } from "@/lib/prisma";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
 export const adminRoles = [UserRole.OWNER, UserRole.ADMIN] as const;
 
-export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET,
-  session: {
-    strategy: "jwt",
-  },
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
-  providers: [
-    CredentialsProvider({
-      name: "Email y contraseña",
-      credentials: {
-        email: { label: "Email o usuario", type: "text" },
-        password: { label: "Contraseña", type: "password" },
-      },
-      async authorize(credentials) {
-        const email = credentials?.email;
-        const password = credentials?.password;
-
-        if (typeof email !== "string" || typeof password !== "string") {
-          return null;
-        }
-
-        const rateLimitKey = email.trim().toLowerCase();
-        const rateLimit = checkLoginRateLimit(rateLimitKey);
-
-        if (!rateLimit.allowed) {
-          // NextAuth propaga este mensaje como `error` a la UI (redirect: false).
-          throw new Error(LoginErrorCode.RateLimited);
-        }
-
-        const user = await validateAdminCredentials(email, password);
-
-        if (!user) {
-          registerFailedLogin(rateLimitKey);
-          return null;
-        }
-
-        clearLoginAttempts(rateLimitKey);
-
-        return user;
-      },
-    }),
-  ],
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
-        token.businessId = user.businessId;
-      }
-
-      return token;
-    },
-    session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.businessId = token.businessId;
-      }
-
-      return session;
-    },
-  },
+export type CurrentSession = {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    businessId: string;
+  };
 };
 
 export function isAdminRole(role: UserRole | undefined) {
   return role === UserRole.OWNER || role === UserRole.ADMIN;
 }
 
-// Memoizado por request (React cache): el layout y cada página piden la sesión,
-// y sin esto se decodifica/verifica el JWT varias veces en el mismo request.
-export const getCurrentSession = cache(async () => {
-  return getServerSession(authOptions);
+// Supabase valida/rota el JWT; la autorización de Bills sale siempre de su DB.
+// La metadata sólo se acepta si fue escrita por nuestro cliente service-role y
+// coincide simultáneamente con instancia, UUID de usuario y negocio.
+export const getCurrentSession = cache(async (): Promise<CurrentSession | null> => {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) return null;
+
+  const environment = await assertEnvironmentIdentity();
+  const billsUser = await prisma.user.findUnique({
+    where: { authUserId: data.user.id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      businessId: true,
+      active: true,
+      deleted: true,
+    },
+  });
+  const metadata = data.user.app_metadata ?? {};
+
+  if (
+    !billsUser
+    || !billsUser.email
+    || !billsUser.active
+    || billsUser.deleted
+    || !isAdminRole(billsUser.role)
+    || metadata.environment_instance_id !== environment.instance_id
+    || metadata.bills_user_id !== billsUser.id
+    || metadata.bills_business_id !== billsUser.businessId
+  ) {
+    return null;
+  }
+
+  return {
+    user: {
+      id: billsUser.id,
+      name: billsUser.name,
+      email: billsUser.email,
+      role: billsUser.role,
+      businessId: billsUser.businessId,
+    },
+  };
 });
 
 export async function requireAdminSession() {
   const session = await getCurrentSession();
 
-  if (!session?.user) {
-    redirect("/login");
-  }
-
-  if (!isAdminRole(session.user.role)) {
-    redirect("/");
-  }
+  if (!session?.user) redirect("/login");
+  if (!isAdminRole(session.user.role)) redirect("/");
 
   return session;
 }

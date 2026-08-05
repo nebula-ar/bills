@@ -1,4 +1,5 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { RefreshActionForm } from "@/components/refresh-action-form";
 import { Badge, Field, GhostButton, PrimaryButton, SectionCard, selectClass } from "@/components/manager-ui";
 import { CONFIGURABLE_MODULES, MODULE_INFO } from "@/lib/app-modules";
 import { requireBusinessContext } from "@/lib/business-context";
@@ -40,7 +41,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         title="Tu rubro"
         description={`Hoy es «${preset.label}». El rubro define cómo se llaman las cosas: tu catálogo se muestra como «${business.labels.catalogPlural}» y quien atiende como «${business.labels.staffSingular}».`}
       >
-        <form action={changeVerticalAction} className="grid gap-3 sm:grid-cols-2">
+        <RefreshActionForm action={changeVerticalAction} className="grid gap-3 sm:grid-cols-2">
           <Field label="Cambiar rubro">
             <select className={selectClass} defaultValue={business.vertical} name="vertical">
               {VERTICAL_ORDER.map((vertical) => (
@@ -57,7 +58,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             </label>
             <PrimaryButton className="self-start">Guardar rubro</PrimaryButton>
           </div>
-        </form>
+        </RefreshActionForm>
         <p className="mt-3 text-xs text-slate-400">
           Cambiar de rubro no toca tus datos: el catálogo, las ventas y el stock quedan tal cual.
         </p>
@@ -91,11 +92,11 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   </div>
                   <p className="text-xs text-slate-500">{info.hint}</p>
                 </div>
-                <form action={toggleModuleAction} className="shrink-0">
+                <RefreshActionForm action={toggleModuleAction} className="shrink-0">
                   <input name="module" type="hidden" value={module} />
                   <input name="enabled" type="hidden" value={String(!enabled)} />
                   {enabled ? <GhostButton>Apagar</GhostButton> : <PrimaryButton className="px-3 py-2 text-xs">Prender</PrimaryButton>}
-                </form>
+                </RefreshActionForm>
               </li>
             );
           })}

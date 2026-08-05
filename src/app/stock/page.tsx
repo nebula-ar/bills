@@ -14,6 +14,7 @@ import {
   TableWrap,
 } from "@/components/manager-ui";
 import { MoneyInput } from "@/components/money-input";
+import { RefreshActionForm } from "@/components/refresh-action-form";
 import { AppModule } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { formatQuantity, unitShort } from "@/lib/quantity";
@@ -172,7 +173,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
           title="Ajustar por conteo"
           description="Contá lo que hay de verdad y el sistema asienta la diferencia."
         >
-          <form action={adjustStockAction} className="grid gap-3 sm:grid-cols-2">
+          <RefreshActionForm action={adjustStockAction} className="grid gap-3 sm:grid-cols-2" resetOnSuccess>
             <input name="branchId" type="hidden" value={branch.id} />
             <Field label="Producto" className="sm:col-span-2">
               <select className={selectClass} name="productId" required>
@@ -190,11 +191,11 @@ export default async function StockPage({ searchParams }: StockPageProps) {
               <input className={inputClass} name="reason" placeholder="Conteo de fin de mes" />
             </Field>
             <PrimaryButton className="sm:col-span-2">Guardar ajuste</PrimaryButton>
-          </form>
+          </RefreshActionForm>
         </SectionCard>
 
         <SectionCard title="Ingreso de mercadería" description="Lo que llega sin factura cargada todavía.">
-          <form action={receiveStockAction} className="grid gap-3 sm:grid-cols-2">
+          <RefreshActionForm action={receiveStockAction} className="grid gap-3 sm:grid-cols-2" resetOnSuccess>
             <input name="branchId" type="hidden" value={branch.id} />
             <Field label="Producto" className="sm:col-span-2">
               <select className={selectClass} name="productId" required>
@@ -212,11 +213,11 @@ export default async function StockPage({ searchParams }: StockPageProps) {
               <MoneyInput className={inputClass} name="unitCost" placeholder="$" />
             </Field>
             <PrimaryButton className="sm:col-span-2">Ingresar</PrimaryButton>
-          </form>
+          </RefreshActionForm>
         </SectionCard>
 
         <SectionCard title="Registrar merma" description="Rotura, vencimiento o faltante. Sale del stock con su motivo.">
-          <form action={registerLossAction} className="grid gap-3 sm:grid-cols-2">
+          <RefreshActionForm action={registerLossAction} className="grid gap-3 sm:grid-cols-2" resetOnSuccess>
             <input name="branchId" type="hidden" value={branch.id} />
             <Field label="Producto" className="sm:col-span-2">
               <select className={selectClass} name="productId" required>
@@ -234,12 +235,12 @@ export default async function StockPage({ searchParams }: StockPageProps) {
               <input className={inputClass} name="reason" placeholder="Se pasó de fecha" />
             </Field>
             <PrimaryButton className="sm:col-span-2">Registrar merma</PrimaryButton>
-          </form>
+          </RefreshActionForm>
         </SectionCard>
 
         {activeBranches.length > 1 ? (
           <SectionCard title="Traspaso entre sucursales" description="Sale de una y entra en la otra, en un solo acto.">
-            <form action={transferStockAction} className="grid gap-3 sm:grid-cols-2">
+            <RefreshActionForm action={transferStockAction} className="grid gap-3 sm:grid-cols-2" resetOnSuccess>
               <input name="branchId" type="hidden" value={branch.id} />
               <Field label="Producto" className="sm:col-span-2">
                 <select className={selectClass} name="productId" required>
@@ -265,7 +266,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
                 <input className={inputClass} inputMode="decimal" name="quantity" placeholder="0" required />
               </Field>
               <PrimaryButton className="sm:col-span-2">Traspasar</PrimaryButton>
-            </form>
+            </RefreshActionForm>
           </SectionCard>
         ) : null}
       </div>

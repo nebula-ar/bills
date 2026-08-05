@@ -140,8 +140,9 @@ src/
                   *.use-case.ts    casos de uso (orquestan y validan)
                   *.logic.ts       lógica pura y testeable (sin Prisma ni fechas implícitas)
                   *.errors.ts      códigos de error tipados
-prisma/         schema.prisma (SQLite es la fuente de verdad) + seed
-e2e/            Playwright contra una base descartable ya sembrada
+prisma/         schema PostgreSQL único + migraciones + seed
+supabase/       stack local efímero para desarrollo/CI
+e2e/            Playwright contra Supabase/PostgreSQL 17 descartables
 ```
 
 Los mensajes de error para el usuario **no** viven en el dominio: los casos de uso
@@ -149,9 +150,9 @@ tiran códigos tipados y `src/lib/*-error-messages.ts` los traduce.
 
 ### Base de datos
 
-SQLite en desarrollo, Postgres en producción. El schema de Postgres se **genera**
-desde el de SQLite (`scripts/build-postgres-schema.mjs`) para no mantener dos copias
-que se desincronizan.
+PostgreSQL 17 es el único motor en desarrollo, CI y producción. Supabase Auth
+administra credenciales y refresh tokens; Bills conserva roles, negocio y permisos,
+vinculados exclusivamente por `authUserId` y metadata de servidor.
 
 ---
 
@@ -160,7 +161,8 @@ que se desincronizan.
 ```bash
 npm install
 cp .env.example .env
-npm run db:migrate      # crea la base y aplica migraciones
+npx supabase start      # Supabase local en Docker
+npm run db:migrate      # aplica las migraciones PostgreSQL
 npm run db:seed         # datos de demo (un kiosco con todos los módulos)
 npm run dev
 ```
@@ -174,10 +176,10 @@ PINs de empleados: Nico 1111 · Lucas 2222 · Fede 3333 · Matías 4444 · Franc
 | --- | --- |
 | `npm run dev` | Servidor de desarrollo |
 | `npm test` | Tests unitarios (lógica pura) |
-| `npm run e2e` | Build + Playwright contra una base descartable |
+| `npm run e2e` | Levanta Supabase efímero, migra, siembra, build y Playwright |
 | `npm run e2e:fast` | Playwright sin rebuild (ojo: usa el último build) |
 | `npm run lint` | ESLint |
-| `npm run db:reset` | Recrea la base y la vuelve a sembrar |
+| `npm run db:reset` | Recrea el schema de una base PostgreSQL de desarrollo |
 | `npm run db:studio` | Prisma Studio |
 
 ## Tests
