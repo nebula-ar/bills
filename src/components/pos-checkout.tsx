@@ -684,7 +684,7 @@ export function PosCheckout({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-[560px] flex-col overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:h-screen lg:max-w-none lg:overflow-hidden lg:px-8 lg:pb-6">
+    <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-[560px] flex-col overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:h-screen lg:max-w-none lg:overflow-hidden lg:px-8 lg:pb-28">
       <header className="flex items-center gap-3 duration-500 animate-in fade-in slide-in-from-top-2">
         <Link
           aria-label="Volver"
@@ -699,7 +699,7 @@ export function PosCheckout({
         </div>
       </header>
 
-      <div className="lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_22rem] lg:items-stretch lg:gap-6">
+      <div className="lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_22rem] lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:gap-6">
         <div className="lg:flex lg:min-h-0 lg:min-w-0 lg:flex-col">
       {branches.length > 1 ? (
         <Step icon={Store} step={branchStep} title="Sucursal" delay={80}>
@@ -878,7 +878,7 @@ export function PosCheckout({
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           alt=""
-                          className="aspect-square w-full rounded-xl bg-slate-100 object-cover"
+                          className="aspect-square max-h-40 w-full rounded-xl bg-slate-100 object-cover lg:max-h-32"
                           loading="lazy"
                           src={imageSrc}
                         />

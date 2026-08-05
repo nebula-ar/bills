@@ -66,7 +66,7 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
   return (
     <main className="flex min-h-[100dvh] flex-col bg-background lg:h-screen lg:flex-row">
       {/* ── Productos ─────────────────────────────────────────────────── */}
-      <section className="flex min-w-0 flex-1 flex-col p-4 pb-28 lg:p-6 lg:pb-6">
+      <section className="flex min-w-0 flex-1 flex-col p-4 pb-28 lg:p-6 lg:pb-28">
         <div className="mb-4 flex items-center gap-3">
           <Link
             className="grid size-11 shrink-0 place-items-center rounded-full border border-slate-200 bg-white text-lg font-bold text-slate-600 transition hover:bg-slate-50"
@@ -176,7 +176,7 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
       </section>
 
       {/* ── La comanda ────────────────────────────────────────────────── */}
-      <aside className="flex w-full shrink-0 flex-col gap-3 border-t border-slate-200 bg-white p-4 pb-28 lg:w-[26rem] lg:border-l lg:border-t-0 lg:p-6 lg:pb-6">
+      <aside className="flex w-full shrink-0 flex-col gap-3 border-t border-slate-200 bg-white p-4 pb-28 lg:w-[26rem] lg:border-l lg:border-t-0 lg:p-6 lg:pb-28">
         <h2 className="text-lg font-black tracking-tight text-slate-950">Comanda</h2>
 
         {carrito.length > 0 ? (
