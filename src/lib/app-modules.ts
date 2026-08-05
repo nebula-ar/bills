@@ -249,6 +249,9 @@ export function buildNav(
   push(AppModule.TABLES, "/salon", "waitTables");
   push(AppModule.KITCHEN, "/cocina", "kitchen");
   push(AppModule.TABLES, "/opciones", "manageCatalog", { label: "Opciones", hint: "Los extras que hoy se regalan" });
+  push(AppModule.RECIPES, "/recetas", "manageRecipes");
+  push(AppModule.RECIPES, "/produccion", "manageRecipes", { label: "Producción", hint: "Registrás la tanda y se descuentan los insumos" });
+  push(AppModule.RECIPES, "/mermas", "manageRecipes", { label: "Mermas", hint: "Lo quemado, roto o vencido" });
   push(AppModule.APPOINTMENTS, "/turnos", "sell");
   push(AppModule.PROMOTIONS, "/promotions", "manageCatalog");
   push(AppModule.MARKETING, "/marketing", "manageBusiness");
