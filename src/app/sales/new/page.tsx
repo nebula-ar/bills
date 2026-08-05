@@ -85,6 +85,7 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
       familyName: productPrice.product.family?.name ?? null,
       variantLabel: productPrice.product.variantLabel,
       categoryName: productPrice.product.category?.name ?? null,
+      categoryColor: productPrice.product.category?.color ?? null,
     })),
   }));
 

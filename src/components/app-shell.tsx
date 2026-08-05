@@ -18,7 +18,7 @@ const shellMaxWidth: Record<NonNullable<AppShellProps["maxWidth"]>, string> = {
 // queda debajo de la barra y no se puede tocar.
 export function AppShell({ children, maxWidth = "md" }: AppShellProps) {
   return (
-    <main className="min-h-screen bg-[var(--background)] px-4 pb-40 pt-5 text-slate-950 sm:px-6 sm:pb-40 sm:pt-10">
+    <main className="min-h-screen px-4 pb-40 pt-5 text-slate-950 sm:px-6 sm:pb-40 sm:pt-10">
       <section className={`mx-auto flex w-full ${shellMaxWidth[maxWidth]} flex-col gap-6`}>
         {children}
       </section>

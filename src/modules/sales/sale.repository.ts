@@ -290,7 +290,7 @@ export function findSaleEntryBranches(businessId: string) {
               family: { select: { name: true } },
               // Para los chips de categoría del POS: con muchos productos,
               // buscar por nombre no alcanza.
-              category: { select: { name: true } },
+              category: { select: { name: true, color: true } },
             },
           },
         },

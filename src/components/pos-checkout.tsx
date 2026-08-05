@@ -58,6 +58,7 @@ export type PosProduct = {
   familyName: string | null;
   variantLabel: string | null;
   categoryName: string | null;
+  categoryColor: string | null;
 };
 
 export type PosBranch = {
@@ -267,10 +268,13 @@ export function PosCheckout({
 
   // Las categorías que existen de verdad, en el orden en que vienen. Con pocas
   // no se muestran: dos chips para diez productos son ruido.
-  const categorias = useMemo(
-    () => [...new Set(products.map((p) => p.categoryName).filter((c): c is string => Boolean(c)))],
-    [products],
-  );
+  const categorias = useMemo(() => {
+    const vistas = new Map<string, string | null>();
+    for (const p of products) {
+      if (p.categoryName && !vistas.has(p.categoryName)) vistas.set(p.categoryName, p.categoryColor);
+    }
+    return [...vistas].map(([nombre, color]) => ({ nombre, color }));
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
     // El chip filtra ANTES que el buscador: buscar dentro de una categoría es
@@ -531,6 +535,7 @@ export function PosCheckout({
         variantLabel: null,
         // Lo escaneado no trae categoría: cae en "Todo" y se ve igual.
         categoryName: null,
+        categoryColor: null,
       };
 
       setExtraProducts((current) => [...current, encontrado]);
@@ -679,7 +684,7 @@ export function PosCheckout({
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-40 pt-6 text-slate-950 lg:max-w-[1000px] lg:px-6 lg:pb-10">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:max-w-[1000px] lg:px-6 lg:pb-10">
       <header className="flex items-center gap-3 duration-500 animate-in fade-in slide-in-from-top-2">
         <Link
           aria-label="Volver"
@@ -782,14 +787,22 @@ export function PosCheckout({
             </button>
             {categorias.map((c) => (
               <button
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-black transition ${
-                  categoria === c ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
+                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-black transition ${
+                  categoria === c.nombre ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
                 }`}
-                key={c}
-                onClick={() => setCategoria(c)}
+                key={c.nombre}
+                onClick={() => setCategoria(c.nombre)}
                 type="button"
               >
-                {c}
+                {/* El punto de color es de la categoría: en un catálogo largo se
+                    reconoce antes por color que leyendo. */}
+                {c.color ? (
+                  <span
+                    className="size-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: c.color }}
+                  />
+                ) : null}
+                {c.nombre}
               </button>
             ))}
           </div>
@@ -859,14 +872,23 @@ export function PosCheckout({
                 <button className="text-left active:scale-[0.99]" onClick={() => addProduct(product.productId)} type="button">
                   {showsPhotos ? (
                     imageSrc ? (
-                      // Miniatura ya normalizada por el servidor.
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        alt=""
-                        className="mb-2 aspect-square w-full rounded-xl bg-slate-100 object-cover"
-                        loading="lazy"
-                        src={imageSrc}
-                      />
+                      <span className="relative mb-2 block">
+                        {/* Miniatura ya normalizada por el servidor. */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          alt=""
+                          className="aspect-square w-full rounded-xl bg-slate-100 object-cover"
+                          loading="lazy"
+                          src={imageSrc}
+                        />
+                        {/* Sobre la foto y no debajo del precio: lo que no se
+                            puede vender tiene que verse ANTES de tocarlo. */}
+                        {outOfStock ? (
+                          <span className="absolute left-2 top-2 rounded-full bg-destructive px-2.5 py-1 text-[0.7rem] font-black text-white">
+                            Sin stock
+                          </span>
+                        ) : null}
+                      </span>
                     ) : (
                       <span className="mb-2 flex aspect-square w-full items-center justify-center rounded-xl bg-slate-100">
                         <DynamicIcon className="size-8 text-slate-300" name={catalogIcon} />
@@ -878,7 +900,7 @@ export function PosCheckout({
                     {money(product.price)}
                     {byWeight ? <span className="text-xs font-bold text-primary">/{unitShort(product.unit)}</span> : null}
                   </span>
-                  {product.stock !== null ? (
+                  {product.stock !== null && !(outOfStock && showsPhotos && imageSrc) ? (
                     <span
                       className={`mt-0.5 block text-[0.7rem] font-bold ${
                         outOfStock ? "text-rose-600" : overStock ? "text-rose-600" : "text-slate-400"
@@ -924,17 +946,7 @@ export function PosCheckout({
                       <Plus className="size-4" />
                     </button>
                   </div>
-                ) : (
-                  <button
-                    aria-label={`Agregar ${product.name}`}
-                    className="mt-3 flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 text-sm font-black text-slate-700 transition active:scale-[0.97]"
-                    onClick={() => addProduct(product.productId)}
-                    type="button"
-                  >
-                    <Plus className="size-4" />
-                    Agregar
-                  </button>
-                )}
+                ) : null}
 
                 {features.packs && product.packSize && product.packSize > 1 && !byWeight ? (
                   <button
@@ -1682,7 +1694,13 @@ function Step({
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
     >
       <h2 className="mb-3 flex items-center gap-2.5 text-lg font-black text-slate-950">
-        <span className="flex size-7 items-center justify-center rounded-full bg-primary text-sm font-black text-white">{step}</span>
+        {/* Con un solo paso el número no ordena nada: es ruido en la pantalla
+            que más se mira. */}
+        {step > 1 ? (
+          <span className="flex size-7 items-center justify-center rounded-full bg-primary text-sm font-black text-white">
+            {step}
+          </span>
+        ) : null}
         {iconName ? (
           <DynamicIcon className="size-5 text-primary" name={iconName} />
         ) : Icon ? (

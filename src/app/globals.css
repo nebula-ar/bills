@@ -149,6 +149,14 @@ textarea {
   --primary-strong: oklch(0.64 0.234 357.03); /* brand-strong */
   --accent-brand: oklch(0.939 0.0732 88.45); /* butter */
 
+  /* Los halos pastel del fondo. Es la mitad de la identidad de Migas: sin
+     esto queda rosa sobre gris plano, que no es lo mismo. Vive como token
+     para que otro rubro pueda tener el suyo o ninguno. */
+  --fondo-halos:
+    radial-gradient(circle at 12% 8%, oklch(0.8498 0.0845 4.16 / 0.4), transparent 42%),
+    radial-gradient(circle at 88% 4%, oklch(0.8945 0.0549 327.93 / 0.42), transparent 40%),
+    radial-gradient(circle at 78% 96%, oklch(0.9319 0.0254 11.6 / 0.5), transparent 45%);
+
   /* Acentos del rubro. No tienen ranura estándar en shadcn porque solo los
      usan sus pantallas: el amarillo de fidelidad, los pasteles de variedad. */
   --brand-strong: oklch(0.64 0.234 357.03);
@@ -222,4 +230,12 @@ textarea {
   .hidden-scrollbar::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* El fondo del rubro, si lo definió. Los demás siguen con su color plano.
+   Va en el BODY y no en el html: el body pinta su color de fondo encima y
+   taparía los halos. */
+[data-vertical] body {
+  background-image: var(--fondo-halos, none);
+  background-attachment: fixed;
 }
