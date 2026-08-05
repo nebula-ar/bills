@@ -50,7 +50,13 @@ export function SalesSummaryBar({
 
   return (
     <div className="mt-4 space-y-3">
-      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* Los dos filtros en una sola línea. Apilados en dos filas de píldoras
+          casi iguales se leían como un tartamudeo: misma forma, mismo tamaño,
+          significados distintos. Acá el período va primero y el medio de pago
+          después de un separador, subordinado y en cuerpo más chico, que es la
+          relación real entre los dos: el medio afina lo que el período ya
+          eligió. */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
         {PERIODOS.map((opcion) => (
           <Link
             className={`shrink-0 rounded-full px-4 py-2 text-base font-black transition ${
@@ -67,62 +73,70 @@ export function SalesSummaryBar({
             {PERIODO_LABELS[opcion]}
           </Link>
         ))}
-      </div>
 
-      {/* Filtro por medio de pago. Solo se ofrecen los que HAY en el período:
-          un chip que devuelve una lista vacía es prometer algo que no está.
-          Con un solo medio no hay nada que filtrar y la fila no aparece. */}
-      {metodosDisponibles.length > 1 ? (
-        <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <Link
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-black transition ${
-              metodo ? "bg-white text-slate-600 ring-1 ring-slate-950/5" : "bg-slate-900 text-white"
-            }`}
-            href={url({ metodo: null })}
-            scroll={false}
-          >
-            Todos los pagos
-          </Link>
-          {metodosDisponibles.map((opcion) => (
+        {/* Solo se ofrecen los medios que HAY en el período: un chip que
+            devuelve una lista vacía es prometer algo que no está. Con un solo
+            medio no hay nada que filtrar y no aparece nada. */}
+        {metodosDisponibles.length > 1 ? (
+          <>
+            <span aria-hidden className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
             <Link
               className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-black transition ${
-                opcion === metodo ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
+                metodo ? "text-slate-500 ring-1 ring-slate-950/10" : "bg-slate-900 text-white"
               }`}
-              href={url({ metodo: opcion === metodo ? null : opcion })}
-              key={opcion}
+              href={url({ metodo: null })}
               scroll={false}
             >
-              {etiquetasDePago[opcion] ?? opcion}
+              Todos
             </Link>
-          ))}
-        </div>
-      ) : null}
-
-      {/* En escritorio, los números a la izquierda y el desglose por medio de
-          pago a la derecha, en la misma fila. Estirar tres tarjetas a lo ancho
-          de la pantalla las convierte en carteles con un número en un rincón:
-          el ancho de más se aprovecha poniendo otra información al lado, no
-          inflando la que ya está. */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
-        {/* Tres números, y un cuarto SOLO si hay algo que avisar. Rellenar la
-            cuarta casilla con un dato que ya está en las píldoras es ruido. */}
-        <div className="grid grid-cols-2 gap-3 lg:flex lg:shrink-0">
-          <Dato destacado etiqueta="Facturado" testId="total-facturado" valor={pesos.format(totales.facturado)} />
-          <Dato etiqueta="Ventas" valor={String(totales.cantidad)} />
-          <Dato etiqueta="Ticket promedio" valor={pesos.format(totales.ticketPromedio)} />
-          {totales.canceladas > 0 ? (
-            <Dato etiqueta="Canceladas" tono="alerta" valor={String(totales.canceladas)} />
-          ) : null}
-        </div>
-
-        {totales.porMedio.length > 0 ? (
-          <div className="flex min-w-0 flex-1 flex-wrap gap-2 lg:pt-1">
-            {totales.porMedio.map((fila) => (
-              <span
-                className="rounded-full bg-white px-3.5 py-2 text-sm font-bold text-slate-600 ring-1 ring-slate-950/5"
-                key={fila.metodo}
+            {metodosDisponibles.map((opcion) => (
+              <Link
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-black transition ${
+                  opcion === metodo ? "bg-slate-900 text-white" : "text-slate-500 ring-1 ring-slate-950/10"
+                }`}
+                href={url({ metodo: opcion === metodo ? null : opcion })}
+                key={opcion}
+                scroll={false}
               >
-                {etiquetasDePago[fila.metodo] ?? fila.metodo}{" "}
+                {etiquetasDePago[opcion] ?? opcion}
+              </Link>
+            ))}
+          </>
+        ) : null}
+      </div>
+
+      {/* Un panel y no tarjetas sueltas. Tres cajas flotando dejaban el desglose
+          por medio de pago colgado a un costado, sin nada con qué alinearse, y
+          en un monitor ancho quedaba media pantalla de aire entre ellas y la
+          tabla. Un panel que ocupa el ancho se apoya en la tabla de abajo y los
+          números quedan separados por líneas en vez de por huecos. */}
+      {/* Las líneas divisorias salen del fondo gris asomando por un `gap-px`,
+          no de bordes por casilla: así funcionan igual cuando es una fila en
+          escritorio y una grilla de dos columnas en el celular, sin tener que
+          decidir a qué casilla le toca borde de qué lado. */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-slate-100 shadow-sm ring-1 ring-slate-950/5 lg:flex lg:items-stretch">
+        <Dato destacado etiqueta="Facturado" testId="total-facturado" valor={pesos.format(totales.facturado)} />
+        <Dato etiqueta="Ventas" valor={String(totales.cantidad)} />
+        {/* Con tres casillas en una grilla de dos columnas queda un hueco gris
+            al lado de la última, que parece un error de render. Si no hay
+            canceladas, la tercera ocupa el ancho y la grilla cierra. */}
+        <Dato
+          anchoDobleEnCelular={totales.canceladas === 0}
+          etiqueta="Ticket promedio"
+          valor={pesos.format(totales.ticketPromedio)}
+        />
+        {totales.canceladas > 0 ? (
+          <Dato etiqueta="Canceladas" tono="alerta" valor={String(totales.canceladas)} />
+        ) : null}
+
+        {/* El desglose adentro del mismo panel y contra el borde derecho: es la
+            respuesta a "por dónde entró", que pertenece al mismo bloque que
+            "cuánto entró". */}
+        {totales.porMedio.length > 0 ? (
+          <div className="col-span-2 flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-1 bg-white px-4 py-3 lg:justify-end lg:py-3.5">
+            {totales.porMedio.map((fila) => (
+              <span className="whitespace-nowrap text-sm" key={fila.metodo}>
+                <span className="font-bold text-slate-500">{etiquetasDePago[fila.metodo] ?? fila.metodo}</span>{" "}
                 <span className="font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
                   {pesos.format(fila.monto)}
                 </span>
@@ -141,25 +155,27 @@ function Dato({
   destacado = false,
   tono = "normal",
   testId,
+  anchoDobleEnCelular = false,
 }: {
   etiqueta: string;
   valor: string;
   destacado?: boolean;
   tono?: "normal" | "alerta";
   testId?: string;
+  anchoDobleEnCelular?: boolean;
 }) {
   return (
-    // Ancho mínimo y no automático: si cada tarjeta midiera su contenido, la de
+    // Ancho mínimo y no automático: si cada casilla midiera su contenido, la de
     // "Ventas" sería un cuadradito al lado de la de "Facturado" y la fila
-    // quedaría desprolija. Con el mínimo entran todas parejas.
+    // quedaría despareja. Con el mínimo entran todas parejas.
     <div
-      className={`rounded-2xl p-3.5 shadow-sm ring-1 lg:min-w-[13rem] ${
-        tono === "alerta" ? "bg-rose-50 ring-rose-200" : "bg-white ring-slate-950/5"
+      className={`px-4 py-3.5 lg:min-w-[12rem] ${tono === "alerta" ? "bg-rose-50" : "bg-white"} ${
+        anchoDobleEnCelular ? "col-span-2 lg:col-span-1" : ""
       }`}
     >
       <p className="text-xs font-black uppercase tracking-wide text-slate-500">{etiqueta}</p>
       <p
-        className={`font-display mt-1 font-black tracking-tight ${
+        className={`font-display mt-0.5 font-black tracking-tight ${
           tono === "alerta" ? "text-rose-700" : destacado ? "text-primary" : "text-slate-950"
         } ${destacado ? "text-3xl" : "text-2xl"}`}
         data-testid={testId}
