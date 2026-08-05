@@ -47,15 +47,36 @@ function money(value: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
 }
 
+function Th({ children, alineado = "izquierda" }: { children: React.ReactNode; alineado?: "izquierda" | "derecha" }) {
+  return (
+    <th
+      className={`px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500 ${
+        alineado === "derecha" ? "text-right" : ""
+      }`}
+      scope="col"
+    >
+      {children}
+    </th>
+  );
+}
+
 type SalesListProps = {
   sales: SalesListSale[];
   // Nombre del negocio: encabeza el comprobante que se manda por WhatsApp.
   businessName?: string;
   initialCursor?: string | null;
   loadMore?: (cursor: string) => Promise<{ sales: SalesListSale[]; nextCursor: string | null }>;
+  /** Qué decir cuando no hay nada: con filtros, "no hay ventas" es ambiguo. */
+  emptyHint?: string;
 };
 
-export function SalesList({ sales, businessName = "", initialCursor = null, loadMore }: SalesListProps) {
+export function SalesList({
+  sales,
+  businessName = "",
+  initialCursor = null,
+  loadMore,
+  emptyHint = "Tocá el botón «+» abajo para cargar la primera.",
+}: SalesListProps) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -108,15 +129,77 @@ export function SalesList({ sales, businessName = "", initialCursor = null, load
         <div className="mb-4 flex size-20 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-950/5">
           <ReceiptText className="size-8 text-slate-300" />
         </div>
-        <p className="text-sm font-bold text-slate-600">Todavía no hay ventas</p>
-        <p className="mt-1 text-xs text-slate-400">Tocá el botón «+» abajo para cargar la primera.</p>
+        <p className="text-sm font-bold text-slate-600">No hay ventas para mostrar</p>
+        <p className="mt-1 text-xs text-slate-400">{emptyHint}</p>
       </div>
     );
   }
 
   return (
     <>
-      <ul className="mt-4 space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
+      {/* En escritorio, tabla. Las tarjetas de a dos columnas obligaban a
+          comparar dos ventas leyendo en zigzag: los importes quedaban en
+          posiciones distintas y no se podía barrer la columna con el ojo, que
+          es justo para lo que se abre un historial. En el celular la tabla no
+          entra, así que ahí siguen las tarjetas. */}
+      <div className="mt-4 hidden overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5 lg:block">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-slate-100 text-left">
+              <Th>Hora</Th>
+              <Th>Atendió</Th>
+              <Th>Detalle</Th>
+              <Th>Pago</Th>
+              <Th>Comprobante</Th>
+              <Th alineado="derecha">Total</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((sale) => {
+              const cancelled = sale.status === "CANCELLED";
+              return (
+                <tr
+                  className="cursor-pointer border-b border-slate-50 transition last:border-0 hover:bg-slate-50"
+                  data-testid="sale-row-table"
+                  key={sale.id}
+                  onClick={() => {
+                    setSelectedId(sale.id);
+                    setConfirming(false);
+                  }}
+                >
+                  <td className="px-4 py-3 text-sm font-bold text-slate-500" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    {cancelled ? <span className="font-black text-rose-600">Cancelada</span> : `${sale.timeLabel} hs`}
+                  </td>
+                  <td className={`px-4 py-3 text-sm font-bold ${cancelled ? "text-slate-400" : "text-slate-950"}`}>
+                    {sale.staffName}
+                  </td>
+                  <td className="max-w-[22rem] truncate px-4 py-3 text-sm text-slate-500">{sale.itemSummary}</td>
+                  <td className="px-4 py-3 text-sm font-bold text-slate-600">{sale.paymentSummary}</td>
+                  <td className="px-4 py-3">
+                    {cancelled ? null : (
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${AFIP_BADGE_STYLES[sale.afipStatus]}`}>
+                        {sale.invoiceType ? `Factura ${sale.invoiceType} · ` : ""}
+                        {AFIP_STATUS_LABELS[sale.afipStatus]}
+                      </span>
+                    )}
+                  </td>
+                  {/* Los importes a la derecha y con cifras de ancho fijo: así
+                      las unidades quedan alineadas entre filas y la columna se
+                      puede sumar de un vistazo. */}
+                  <td
+                    className={`px-4 py-3 text-right text-base font-black ${cancelled ? "text-slate-400 line-through" : "text-slate-950"}`}
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {money(sale.total)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <ul className="mt-4 space-y-2.5 lg:hidden">
         {items.map((sale, index) => {
           const cancelled = sale.status === "CANCELLED";
           return (

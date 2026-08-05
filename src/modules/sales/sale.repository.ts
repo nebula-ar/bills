@@ -310,10 +310,43 @@ export function findSaleEntryBranches(businessId: string) {
   });
 }
 
-export function findRecentSales(businessId: string, limit = 10, cursor?: string) {
+/** Desde inclusive, hasta exclusive (ver sales-period.logic). */
+export type RangoDeVentas = { desde: Date; hasta: Date };
+
+/**
+ * Todas las ventas del período, con lo mínimo para totalizar.
+ *
+ * Va aparte de `findRecentSales` porque los totales tienen que cubrir el
+ * período ENTERO, no la primera página: un total que cambia al tocar "cargar
+ * más" no es un total. Por eso también trae solo total, estado y pagos, sin
+ * renglones ni datos fiscales.
+ */
+export function findSalesForSummary(businessId: string, rango: RangoDeVentas) {
   return prisma.sale.findMany({
     where: {
       deleted: false,
+      soldAt: { gte: rango.desde, lt: rango.hasta },
+      branch: { businessId, deleted: false, active: true },
+      staff: { deleted: false },
+    },
+    select: {
+      total: true,
+      status: true,
+      payments: { select: { method: true, amount: true } },
+    },
+  });
+}
+
+export function findRecentSales(
+  businessId: string,
+  limit = 10,
+  cursor?: string,
+  rango?: RangoDeVentas,
+) {
+  return prisma.sale.findMany({
+    where: {
+      deleted: false,
+      ...(rango ? { soldAt: { gte: rango.desde, lt: rango.hasta } } : {}),
       branch: {
         businessId,
         deleted: false,

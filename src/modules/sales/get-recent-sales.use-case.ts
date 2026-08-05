@@ -1,6 +1,7 @@
 import type { AfipStatus, InvoiceType, PaymentMethod, SaleStatus, TaxCondition } from "@/generated/prisma/client";
 
-import { findRecentSales } from "./sale.repository";
+import { findRecentSales, findSalesForSummary, type RangoDeVentas } from "./sale.repository";
+import { totalizar, type Totales } from "./sales-summary.logic";
 
 export type RecentSale = {
   id: string;
@@ -41,9 +42,10 @@ export async function getRecentSales(
   businessId: string,
   limit = 10,
   cursor?: string,
+  rango?: RangoDeVentas,
 ): Promise<RecentSalesPage> {
   const safeLimit = Math.min(Math.max(limit, 1), 50);
-  const rows = await findRecentSales(businessId, safeLimit, cursor);
+  const rows = await findRecentSales(businessId, safeLimit, cursor, rango);
 
   const sales = rows.map((sale) => ({
     id: sale.id,
@@ -70,4 +72,9 @@ export async function getRecentSales(
   const nextCursor = rows.length === safeLimit ? rows[rows.length - 1].id : null;
 
   return { sales, nextCursor };
+}
+
+/** Totales del período completo. La suma la hace lógica pura, con tests. */
+export async function getSalesSummary(businessId: string, rango: RangoDeVentas): Promise<Totales> {
+  return totalizar(await findSalesForSummary(businessId, rango));
 }

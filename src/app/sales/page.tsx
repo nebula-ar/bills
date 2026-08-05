@@ -1,18 +1,33 @@
 import { requireAdminSession } from "@/lib/auth";
 import { requireBusinessContext } from "@/lib/business-context";
-import { getRecentSales } from "@/modules/sales/get-recent-sales.use-case";
+import { PAYMENT_METHOD_LABELS } from "@/lib/payment-labels";
+import { getRecentSales, getSalesSummary } from "@/modules/sales/get-recent-sales.use-case";
 import { toSalesListSale } from "@/modules/sales/recent-sales-view";
+import { parsePeriodo, PERIODO_LABELS, rangoDelPeriodo } from "@/modules/sales/sales-period.logic";
 import { findBusinessForInvoicing } from "@/modules/business/business.repository";
 import { SalesList } from "@/components/sales-list";
+import { SalesSummaryBar } from "@/components/sales-summary-bar";
 import { loadMoreSalesAction } from "@/app/sales/actions";
 import { Plus } from "@/components/icons";
 import Link from "next/link";
 
-export default async function SalesPage() {
+type SalesPageProps = {
+  searchParams: Promise<{ periodo?: string | string[] }>;
+};
+
+export default async function SalesPage({ searchParams }: SalesPageProps) {
   const session = await requireAdminSession();
 
-  const [{ sales, nextCursor }, business, context] = await Promise.all([
-    getRecentSales(session.user.businessId, 20),
+  const params = await searchParams;
+  const crudo = Array.isArray(params.periodo) ? params.periodo[0] : params.periodo;
+  const periodo = parsePeriodo(crudo);
+  // El "hoy" se toma acá, en el borde, y se le pasa a la lógica: así el cálculo
+  // del rango se puede probar sin depender del reloj.
+  const rango = rangoDelPeriodo(periodo, new Date());
+
+  const [{ sales, nextCursor }, totales, business, context] = await Promise.all([
+    getRecentSales(session.user.businessId, 20, undefined, rango),
+    getSalesSummary(session.user.businessId, rango),
     findBusinessForInvoicing(session.user.businessId),
     requireBusinessContext(),
   ]);
@@ -28,7 +43,15 @@ export default async function SalesPage() {
         </div>
       </header>
 
-      <SalesList businessName={context.business.name} sales={viewSales} initialCursor={nextCursor} loadMore={loadMoreSalesAction} />
+      <SalesSummaryBar etiquetasDePago={PAYMENT_METHOD_LABELS} periodo={periodo} totales={totales} />
+
+      <SalesList
+        businessName={context.business.name}
+        emptyHint={`No hay ventas en «${PERIODO_LABELS[periodo].toLowerCase()}». Probá con otro período.`}
+        initialCursor={nextCursor}
+        loadMore={loadMoreSalesAction}
+        sales={viewSales}
+      />
 
       <Link
         aria-label="Nueva venta"
