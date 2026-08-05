@@ -2,7 +2,9 @@ import Link from "next/link";
 
 import { ArrowRight, ShoppingBag, TrendingUp } from "@/components/icons";
 import { LogoutButton } from "@/components/logout-button";
-import { requireAdminSession } from "@/lib/auth";
+import { requireAppSession } from "@/lib/auth";
+import { capabilitiesOf } from "@/lib/capabilities";
+import { destinosDelHub } from "@/modules/auth/hub";
 import { findUserWithSellsAs } from "@/modules/auth/user.repository";
 
 // La primera pantalla después de entrar. El dueño de un comercio chico usa la
@@ -14,7 +16,11 @@ import { findUserWithSellsAs } from "@/modules/auth/user.repository";
 // hueso, tipografía display pesada y el azul #3158e8 como único acento. Entrar
 // no puede sentirse como cambiar de producto.
 export default async function EntrarPage() {
-  const session = await requireAdminSession();
+  // Acepta cualquier rol que trabaje con la app, no solo admin. Cuando esto
+  // exigía admin, `/` mandaba acá a cualquiera con sesión y acá se lo devolvía
+  // a `/`: un cajero rebotaba entre las dos rutas para siempre y la pantalla
+  // quedaba trabada en su esqueleto, sin un error en el log.
+  const session = await requireAppSession();
   const user = await findUserWithSellsAs(session.user.id);
 
   // Solo el nombre de pila: "Hola, María Fernanda Gómez" no lo saluda nadie.
@@ -23,6 +29,7 @@ export default async function EntrarPage() {
   // gemelo la venta también se puede hacer, pero el POS va a preguntar quién
   // atiende: no le prometemos algo que no va a pasar.
   const sellsAsSelf = Boolean(user?.sellsAsId);
+  const destinos = destinosDelHub(capabilitiesOf(session.user.role));
 
   return (
     <main className="flex min-h-[100dvh] flex-col bg-[#f5f4ef] pb-24 text-slate-950 sm:items-center sm:justify-center sm:px-6 sm:py-10 sm:pb-32">
@@ -45,39 +52,42 @@ export default async function EntrarPage() {
           </div>
 
           <div className="grid gap-3">
-            <Link
-              className="group flex items-center gap-4 rounded-[20px] border border-slate-950/10 bg-white p-5 transition hover:border-[#3158e8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3158e8] focus-visible:ring-offset-2 active:scale-[0.99]"
-              href="/dashboard"
-            >
-              <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-slate-950 text-[#d7ef62]">
-                <TrendingUp className="size-6" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-xl font-black tracking-[-0.04em] text-slate-950">Panel</span>
-                <span className="mt-0.5 block text-sm leading-5 text-slate-600">
-                  Ventas, caja, stock y reportes.
+            {destinos.map((destino) => (
+              <Link
+                key={destino.href}
+                className="group flex items-center gap-4 rounded-[20px] border border-slate-950/10 bg-white p-5 transition hover:border-[#3158e8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3158e8] focus-visible:ring-offset-2 active:scale-[0.99]"
+                href={destino.href}
+              >
+                <span
+                  className={
+                    destino.href === "/pos"
+                      ? "grid size-12 shrink-0 place-items-center rounded-2xl bg-[#3158e8] text-white"
+                      : "grid size-12 shrink-0 place-items-center rounded-2xl bg-slate-950 text-[#d7ef62]"
+                  }
+                >
+                  {destino.href === "/pos" ? <ShoppingBag className="size-6" /> : <TrendingUp className="size-6" />}
                 </span>
-              </span>
-              <ArrowRight className="size-5 shrink-0 text-slate-400 transition group-hover:text-[#3158e8]" />
-            </Link>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xl font-black tracking-[-0.04em] text-slate-950">{destino.label}</span>
+                  <span className="mt-0.5 block text-sm leading-5 text-slate-600">
+                    {destino.href === "/pos" && sellsAsSelf
+                      ? "Cobrás en el mostrador y la venta queda a tu nombre."
+                      : destino.hint}
+                  </span>
+                </span>
+                <ArrowRight className="size-5 shrink-0 text-slate-400 transition group-hover:text-[#3158e8]" />
+              </Link>
+            ))}
 
-            <Link
-              className="group flex items-center gap-4 rounded-[20px] border border-slate-950/10 bg-white p-5 transition hover:border-[#3158e8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3158e8] focus-visible:ring-offset-2 active:scale-[0.99]"
-              href="/pos"
-            >
-              <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[#3158e8] text-white">
-                <ShoppingBag className="size-6" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-xl font-black tracking-[-0.04em] text-slate-950">Vender</span>
-                <span className="mt-0.5 block text-sm leading-5 text-slate-600">
-                  {sellsAsSelf
-                    ? "Cobrás en el mostrador y la venta queda a tu nombre."
-                    : "Cobrás en el mostrador, eligiendo quién atiende."}
-                </span>
-              </span>
-              <ArrowRight className="size-5 shrink-0 text-slate-400 transition group-hover:text-[#3158e8]" />
-            </Link>
+            {destinos.length === 0 && (
+              // Pasa con el mozo y el cocinero: sus pantallas todavía no
+              // existen. Decirlo es mejor que dejar la pantalla vacía, y MUCHO
+              // mejor que redirigir, que es como se armó el rebote.
+              <p className="rounded-[20px] border border-slate-950/10 bg-white p-5 text-sm leading-6 text-slate-600">
+                Tu cuenta todavía no tiene pantallas asignadas. Pedile al
+                encargado que revise tu rol.
+              </p>
+            )}
           </div>
         </div>
 

@@ -127,6 +127,27 @@ export async function requireCapability(cap: Capability) {
   return session;
 }
 
+/**
+ * Sesión de cualquier rol que trabaje con la app (no solo admin).
+ *
+ * Existe porque abrir el login a los roles operativos sin abrir también las
+ * pantallas de entrada creó un rebote: `/` mandaba al hub a cualquiera con
+ * sesión y el hub exigía admin, devolviéndolo a `/`.
+ */
+export async function requireAppSession() {
+  const session = await getCurrentSession();
+
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  if (!usesAppNav(session.user.role)) {
+    redirect("/terminal");
+  }
+
+  return session;
+}
+
 export async function requireAdminSession() {
   const session = await getCurrentSession();
 
