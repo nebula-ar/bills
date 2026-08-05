@@ -4,10 +4,11 @@ import { AppModule, KdsStatus } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { formatQuantity } from "@/lib/quantity";
 import { getBranchesForManagement } from "@/modules/branches/get-branches-for-management.use-case";
-import { COLUMNAS_COCINA, nivelDeDemora, textoDeEspera } from "@/modules/tables/kitchen";
+import { COLUMNAS_COCINA } from "@/modules/tables/kitchen";
 import { findRenglonesDeCocina } from "@/modules/tables/kitchen.repository";
 
 import { avanzarAction } from "./actions";
+import { TarjetaDeCocina } from "./reloj";
 
 /**
  * La pantalla que mira el cocinero mientras trabaja.
@@ -36,12 +37,6 @@ const SIGUIENTE: Record<string, string> = {
   [KdsStatus.READY]: "Entregado",
 };
 
-const COLOR_DEMORA: Record<string, string> = {
-  normal: "border-slate-200 bg-white",
-  atencion: "border-amber-300 bg-amber-50",
-  urgente: "border-destructive/40 bg-destructive/10",
-};
-
 type CocinaPageProps = {
   searchParams: Promise<{ branchId?: string | string[] }>;
 };
@@ -53,8 +48,6 @@ export default async function CocinaPage({ searchParams }: CocinaPageProps) {
   const sucursales = await getBranchesForManagement(session.user.businessId);
   const branchId = uno(params.branchId) || sucursales[0]?.id || "";
   const renglones = branchId ? await findRenglonesDeCocina(session.user.businessId, branchId) : [];
-
-  const ahora = Date.now();
 
   return (
     <AppShell maxWidth="lg">
@@ -99,27 +92,13 @@ export default async function CocinaPage({ searchParams }: CocinaPageProps) {
                   </p>
                 ) : (
                   dela.map((r) => {
-                    const espera = textoDeEspera(r.sentToKitchenAt.getTime(), ahora);
-                    const minutos = Math.floor((ahora - r.sentToKitchenAt.getTime()) / 60000);
-                    const nivel = nivelDeDemora(minutos, r.product?.prepMinutes ?? null);
-
                     return (
-                      <article className={`rounded-2xl border p-4 ${COLOR_DEMORA[nivel]}`} key={r.id}>
-                        <div className="flex items-start justify-between gap-2">
-                          {/* La MESA arriba y grande: es lo que el cocinero
-                              canta cuando el plato sale. */}
-                          <p className="text-base font-black tracking-tight text-slate-950">
-                            {r.order.table?.name ?? `Comanda #${r.order.number}`}
-                          </p>
-                          <span
-                            className={`shrink-0 font-mono text-sm font-bold tabular-nums ${
-                              nivel === "urgente" ? "text-destructive" : "text-slate-500"
-                            }`}
-                          >
-                            {espera}
-                          </span>
-                        </div>
-
+                      <TarjetaDeCocina
+                        desde={r.sentToKitchenAt.getTime()}
+                        key={r.id}
+                        prepMinutes={r.product?.prepMinutes ?? null}
+                        titulo={r.order.table?.name ?? `Comanda #${r.order.number}`}
+                      >
                         <p className="mt-2 text-lg font-bold leading-tight text-slate-950">
                           {formatQuantity(r.quantity)} × {r.description}
                         </p>
@@ -139,7 +118,7 @@ export default async function CocinaPage({ searchParams }: CocinaPageProps) {
                             {SIGUIENTE[columna]}
                           </button>
                         </form>
-                      </article>
+                      </TarjetaDeCocina>
                     );
                   })
                 )}
