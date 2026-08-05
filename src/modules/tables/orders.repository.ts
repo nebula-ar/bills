@@ -279,3 +279,29 @@ export function agregarRenglonConOpciones(input: {
     });
   });
 }
+
+/** Manda a cocina lo que el cliente cargó por el QR. */
+export function confirmarCarrito(orderId: string, staffId: string) {
+  return prisma.$transaction(async (tx) => {
+    await tx.orderItem.updateMany({
+      where: { orderId, kdsStatus: KdsStatus.CART },
+      data: { kdsStatus: KdsStatus.PENDING, sentToKitchenAt: new Date() },
+    });
+
+    const renglones = await tx.orderItem.findMany({
+      where: { orderId, kdsStatus: { not: KdsStatus.CART } },
+      select: { total: true },
+    });
+    const subtotal = renglones.reduce((suma, r) => suma + r.total, 0);
+
+    await tx.order.update({
+      where: { id: orderId },
+      data: { subtotal, total: subtotal, version: { increment: 1 }, updatedById: staffId },
+    });
+  });
+}
+
+/** Descarta lo que el cliente cargó y no se va a preparar. */
+export function descartarCarrito(orderId: string) {
+  return prisma.orderItem.deleteMany({ where: { orderId, kdsStatus: KdsStatus.CART } });
+}

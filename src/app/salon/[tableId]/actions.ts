@@ -7,6 +7,7 @@ import { AppModule } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { capabilitiesOf } from "@/lib/capabilities";
 import { cobrarComanda } from "@/modules/tables/cobrar.use-case";
+import { confirmarCarrito, descartarCarrito, findOpenOrder } from "@/modules/tables/orders.repository";
 import { agregarProducto, agregarProductoConOpciones, cancelar, quitarProducto } from "@/modules/tables/orders.use-cases";
 
 function texto(formData: FormData, key: string) {
@@ -130,5 +131,28 @@ export async function agregarConOpcionesAction(formData: FormData) {
     );
   }
 
+  redirect(`/salon/${tableId}`);
+}
+
+export async function confirmarCarritoAction(formData: FormData) {
+  const { session } = await requireModule(AppModule.TABLES);
+  const tableId = texto(formData, "tableId");
+
+  const comanda = await findOpenOrder(tableId);
+  if (comanda) await confirmarCarrito(comanda.id, session.user.id);
+
+  revalidatePath(`/salon/${tableId}`);
+  revalidatePath("/cocina");
+  redirect(`/salon/${tableId}`);
+}
+
+export async function descartarCarritoAction(formData: FormData) {
+  await requireModule(AppModule.TABLES);
+  const tableId = texto(formData, "tableId");
+
+  const comanda = await findOpenOrder(tableId);
+  if (comanda) await descartarCarrito(comanda.id);
+
+  revalidatePath(`/salon/${tableId}`);
   redirect(`/salon/${tableId}`);
 }

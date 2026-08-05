@@ -84,6 +84,7 @@ export async function createTable(input: {
   sectorId: string | null;
   name: string;
   seats: number;
+  publicToken: string;
   userId: string;
 }) {
   const ultima = await prisma.table.findFirst({
@@ -100,6 +101,9 @@ export async function createTable(input: {
       name: input.name,
       seats: input.seats,
       sortOrder: (ultima?.sortOrder ?? 0) + 1,
+      // El QR se genera con la mesa: pedirle al dueño un paso extra para
+      // "activar el QR" es una pantalla más que nadie va a encontrar.
+      publicToken: input.publicToken,
       createdById: input.userId,
     },
     select: { id: true },
@@ -126,5 +130,14 @@ export function setTableStatus(tableId: string, status: TableStatus, userId: str
     where: { id: tableId },
     data: { status, updatedById: userId },
     select: { id: true },
+  });
+}
+
+/** Las mesas con su QR, para imprimirlos. */
+export function findTokensDeMesas(businessId: string, branchId: string) {
+  return prisma.table.findMany({
+    where: { businessId, branchId, deleted: false },
+    orderBy: [{ sector: { sortOrder: "asc" } }, { name: "asc" }],
+    select: { id: true, name: true, publicToken: true, sector: { select: { name: true } } },
   });
 }

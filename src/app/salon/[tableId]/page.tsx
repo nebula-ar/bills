@@ -10,7 +10,14 @@ import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import { findOpenOrder, findProductosVendibles, findTable } from "@/modules/tables/orders.repository";
 import { totalesDe } from "@/modules/tables/orders.use-cases";
 
-import { agregarProductoAction, cancelarComandaAction, cobrarAction, quitarProductoAction } from "./actions";
+import {
+  agregarProductoAction,
+  cancelarComandaAction,
+  cobrarAction,
+  confirmarCarritoAction,
+  descartarCarritoAction,
+  quitarProductoAction,
+} from "./actions";
 
 /**
  * La comanda de una mesa: tocar el producto lo agrega.
@@ -45,7 +52,11 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
   const catActiva = uno(query.cat);
   const visibles = catActiva ? productos.filter((p) => p.categoria === catActiva) : productos;
 
-  const items = comanda?.items ?? [];
+  const todos = comanda?.items ?? [];
+  // Lo que el cliente cargó por el QR y todavía no confirmó nadie. NO cuenta
+  // para el total ni fue a cocina.
+  const carrito = todos.filter((i) => i.kdsStatus === "CART");
+  const items = todos.filter((i) => i.kdsStatus !== "CART");
   const totales = totalesDe(items, comanda?.discount ?? 0, comanda?.tip ?? 0);
   const puedeCobrar = capabilitiesOf(session.user.role).includes("sell");
 
@@ -167,6 +178,43 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
       {/* ── La comanda ────────────────────────────────────────────────── */}
       <aside className="flex w-full shrink-0 flex-col gap-3 border-t border-slate-200 bg-white p-4 pb-28 lg:w-[26rem] lg:border-l lg:border-t-0 lg:p-6 lg:pb-6">
         <h2 className="text-lg font-black tracking-tight text-slate-950">Comanda</h2>
+
+        {carrito.length > 0 ? (
+          <section className="rounded-xl border border-primary/40 bg-primary/10 p-3">
+            <p className="text-sm font-black text-slate-950">
+              La mesa pidió {carrito.length} {carrito.length === 1 ? "cosa" : "cosas"} por el QR
+            </p>
+            <ul className="mt-1 flex flex-col gap-0.5">
+              {carrito.map((i) => (
+                <li className="text-sm font-semibold text-slate-700" key={i.id}>
+                  {i.description}
+                  {i.modifiers.length > 0 ? (
+                    <span className="ml-1 text-xs font-bold text-primary">
+                      {i.modifiers.map((m) => m.name).join(" · ")}
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-2 flex gap-2">
+              <form action={confirmarCarritoAction} className="flex-1">
+                <input name="tableId" type="hidden" value={tableId} />
+                <button
+                  className="h-10 w-full rounded-full bg-primary text-sm font-black text-primary-foreground"
+                  type="submit"
+                >
+                  Mandar a cocina
+                </button>
+              </form>
+              <form action={descartarCarritoAction}>
+                <input name="tableId" type="hidden" value={tableId} />
+                <button className="h-10 rounded-full px-4 text-sm font-bold text-slate-500" type="submit">
+                  Descartar
+                </button>
+              </form>
+            </div>
+          </section>
+        ) : null}
 
         {items.length === 0 ? (
           <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">

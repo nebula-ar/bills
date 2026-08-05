@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { TableStatus } from "@/generated/prisma/enums";
 
 import {
@@ -114,7 +116,13 @@ export async function crearMesa(input: {
     return { ok: false, error: `Ya hay una mesa "${name}" en esta sucursal` };
   }
 
-  await createTable({ ...input, name });
+  await createTable({
+    ...input,
+    name,
+    // Aleatorio y largo: el token ES la credencial de la carta pública, no hay
+    // otra cosa que autentique a quien escanea.
+    publicToken: randomUUID().replace(/-/g, ""),
+  });
 
   return { ok: true };
 }
