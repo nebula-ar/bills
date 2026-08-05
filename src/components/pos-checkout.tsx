@@ -1452,7 +1452,12 @@ export function PosCheckout({
       </BottomSheet>
 
       {/* Hoja: revisar y pagar */}
-      <BottomSheet onClose={() => setCheckoutOpen(false)} open={checkoutOpen} panelClassName="min-h-[70dvh]">
+      {/* `dialog` y no `sheet`: en una caja de mostrador la pantalla es grande y
+          el cobro entraba en una columna de 460px, con los medios de pago
+          apilados de a dos y el vuelto abajo del pliegue. Es la parte de la
+          venta donde menos se puede scrollear, porque el cliente está enfrente
+          esperando el número. */}
+      <BottomSheet onClose={() => setCheckoutOpen(false)} open={checkoutOpen} panelClassName="min-h-[70dvh]" size="dialog">
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex items-center justify-between px-5 pt-6">
             <div>
@@ -1783,7 +1788,10 @@ export function PosCheckout({
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-2.5">
+                // Con el ancho de escritorio entran cuatro por fila: los ocho
+                // medios pasan de cuatro renglones a dos y el vuelto sube a la
+                // vista sin scrollear.
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                   {paymentOptions.map((option) => {
                     const Icon = paymentIcons[option.value] ?? Wallet;
                     const active = singleMethod === option.value;
