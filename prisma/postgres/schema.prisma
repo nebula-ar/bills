@@ -94,6 +94,8 @@ model Business {
   sectors   Sector[]
   tables    Table[]
   orders    Order[]
+  productions Production[]
+  wastes      Waste[]
 }
 
 // Rubro del negocio. Solo define los DEFAULTS del onboarding (qué módulos se
@@ -181,6 +183,8 @@ model Branch {
   sectors Sector[]
   tables  Table[]
   orders  Order[]
+  productions Production[]
+  wastes      Waste[]
 }
 
 model Terminal {
@@ -256,6 +260,8 @@ model User {
   @@index([branchId])
   @@index([deletedAt])
   orders Order[]
+  productions Production[]
+  wastes      Waste[]
 }
 
 // Roles por TAREA, no por jerarquía lineal. Un mozo y un cocinero comparten
@@ -474,11 +480,22 @@ model Product {
   // Qué opciones se le ofrecen (ver src/modules/catalog/modifiers.ts).
   modifierGroups ModifierGroup[]
   orderItems OrderItem[]
+  receta      RecipeItem[] @relation("RecetaDelProducto")
+  usadoEnRecetas RecipeItem[] @relation("InsumoEnRecetas")
+  productions Production[]
+  wastes      Waste[]
 }
 
 enum ProductKind {
   SERVICE // Trabajo/servicio: sin stock ni costo de compra
   GOOD // Producto físico: stock, costo, código de barras
+  // Insumo: se compra, tiene stock y costo, pero NUNCA se vende. La harina de
+  // una panadería. Es un Product y no un modelo aparte porque un ingrediente ES
+  // un producto que no vendés: separarlo obligaba a duplicar stock,
+  // movimientos, compras y proveedores para expresar esa única diferencia.
+  // Todo listado de venta tiene que filtrarlo (ver `seVende` en
+  // src/modules/tables/recipes.ts).
+  INGREDIENT
 }
 
 // Foto del producto, en tabla aparte para que ningún listado arrastre los bytes
@@ -717,6 +734,74 @@ model OrderItemModifier {
   modifier  Modifier? @relation(fields: [modifierId], references: [id], onDelete: SetNull)
 
   @@index([orderItemId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Recetas y producción (módulo RECIPES)
+//
+// Qué insumo consume cada producto, cuánto se produjo y qué se tiró. Los
+// insumos son Product con kind INGREDIENT, así que el stock, las compras y los
+// proveedores ya funcionan para ellos sin escribir nada.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model RecipeItem {
+  id           String @id @default(cuid())
+  // El producto que se elabora.
+  productId    String
+  // El insumo que consume (un Product con kind INGREDIENT).
+  ingredientId String
+  // Cuánto lleva UNA unidad del producto, en milésimas de la unidad del
+  // insumo: 120 = 0,12 kg de harina.
+  quantity     Int
+
+  product    Product @relation("RecetaDelProducto", fields: [productId], references: [id], onDelete: Cascade)
+  ingredient Product @relation("InsumoEnRecetas", fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  @@unique([productId, ingredientId])
+  @@index([productId])
+  @@index([ingredientId])
+}
+
+model Production {
+  id          String   @id @default(cuid())
+  businessId  String
+  branchId    String
+  productId   String
+  // Unidades producidas, en milésimas.
+  quantity    Int
+  staffId     String?
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  staff    User?    @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, createdAt])
+  @@index([branchId])
+}
+
+// Lo que se tiró y por qué. Sirve para producto terminado y para insumo: las
+// dos cosas son un Product, así que alcanza con una relación.
+model Waste {
+  id          String   @id @default(cuid())
+  businessId  String
+  branchId    String
+  productId   String
+  quantity    Int
+  reason      String
+  staffId     String?
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  staff    User?    @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, createdAt])
+  @@index([branchId])
 }
 
 model Sale {
