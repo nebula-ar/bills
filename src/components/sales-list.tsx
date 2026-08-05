@@ -167,15 +167,18 @@ export function SalesList({
                     setConfirming(false);
                   }}
                 >
-                  <td className="px-4 py-3 text-sm font-bold text-slate-500" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-bold text-slate-500" style={{ fontVariantNumeric: "tabular-nums" }}>
                     {cancelled ? <span className="font-black text-rose-600">Cancelada</span> : `${sale.timeLabel} hs`}
                   </td>
-                  <td className={`px-4 py-3 text-sm font-bold ${cancelled ? "text-slate-400" : "text-slate-950"}`}>
+                  <td className={`whitespace-nowrap px-4 py-3 text-sm font-bold ${cancelled ? "text-slate-400" : "text-slate-950"}`}>
                     {sale.staffName}
                   </td>
-                  <td className="max-w-[22rem] truncate px-4 py-3 text-sm text-slate-500">{sale.itemSummary}</td>
-                  <td className="px-4 py-3 text-sm font-bold text-slate-600">{sale.paymentSummary}</td>
-                  <td className="px-4 py-3">
+                  {/* El detalle se queda con el ancho que sobra: las demás
+                      columnas miden lo que miden, y el espacio de más sirve para
+                      leer nombres de producto enteros, no para estirar la hora. */}
+                  <td className="w-full max-w-0 truncate px-4 py-3 text-sm text-slate-500">{sale.itemSummary}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-bold text-slate-600">{sale.paymentSummary}</td>
+                  <td className="whitespace-nowrap px-4 py-3">
                     {cancelled ? null : (
                       <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${AFIP_BADGE_STYLES[sale.afipStatus]}`}>
                         {sale.invoiceType ? `Factura ${sale.invoiceType} · ` : ""}
@@ -187,7 +190,7 @@ export function SalesList({
                       las unidades quedan alineadas entre filas y la columna se
                       puede sumar de un vistazo. */}
                   <td
-                    className={`px-4 py-3 text-right text-base font-black ${cancelled ? "text-slate-400 line-through" : "text-slate-950"}`}
+                    className={`whitespace-nowrap px-4 py-3 text-right text-base font-black ${cancelled ? "text-slate-400 line-through" : "text-slate-950"}`}
                     style={{ fontVariantNumeric: "tabular-nums" }}
                   >
                     {money(sale.total)}

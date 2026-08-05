@@ -47,33 +47,39 @@ export function SalesSummaryBar({ periodo, totales, etiquetasDePago }: Props) {
         ))}
       </div>
 
-      {/* Tres números, y un cuarto SOLO si hay algo que avisar. Rellenar la
-          cuarta casilla con un dato que ya está abajo en las píldoras es ruido:
-          el ojo lo lee igual y no aporta nada. */}
-      <div className={`grid grid-cols-2 gap-3 ${totales.canceladas > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-        <Dato destacado etiqueta="Facturado" testId="total-facturado" valor={pesos.format(totales.facturado)} />
-        <Dato etiqueta="Ventas" valor={String(totales.cantidad)} />
-        <Dato etiqueta="Ticket promedio" valor={pesos.format(totales.ticketPromedio)} />
-        {totales.canceladas > 0 ? (
-          <Dato etiqueta="Canceladas" tono="alerta" valor={String(totales.canceladas)} />
+      {/* En escritorio, los números a la izquierda y el desglose por medio de
+          pago a la derecha, en la misma fila. Estirar tres tarjetas a lo ancho
+          de la pantalla las convierte en carteles con un número en un rincón:
+          el ancho de más se aprovecha poniendo otra información al lado, no
+          inflando la que ya está. */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+        {/* Tres números, y un cuarto SOLO si hay algo que avisar. Rellenar la
+            cuarta casilla con un dato que ya está en las píldoras es ruido. */}
+        <div className="grid grid-cols-2 gap-3 lg:flex lg:shrink-0">
+          <Dato destacado etiqueta="Facturado" testId="total-facturado" valor={pesos.format(totales.facturado)} />
+          <Dato etiqueta="Ventas" valor={String(totales.cantidad)} />
+          <Dato etiqueta="Ticket promedio" valor={pesos.format(totales.ticketPromedio)} />
+          {totales.canceladas > 0 ? (
+            <Dato etiqueta="Canceladas" tono="alerta" valor={String(totales.canceladas)} />
+          ) : null}
+        </div>
+
+        {totales.porMedio.length > 0 ? (
+          <div className="flex min-w-0 flex-1 flex-wrap gap-2 lg:pt-1">
+            {totales.porMedio.map((fila) => (
+              <span
+                className="rounded-full bg-white px-3.5 py-2 text-sm font-bold text-slate-600 ring-1 ring-slate-950/5"
+                key={fila.metodo}
+              >
+                {etiquetasDePago[fila.metodo] ?? fila.metodo}{" "}
+                <span className="font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {pesos.format(fila.monto)}
+                </span>
+              </span>
+            ))}
+          </div>
         ) : null}
       </div>
-
-      {totales.porMedio.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {totales.porMedio.map((fila) => (
-            <span
-              className="rounded-full bg-white px-3.5 py-2 text-sm font-bold text-slate-600 ring-1 ring-slate-950/5"
-              key={fila.metodo}
-            >
-              {etiquetasDePago[fila.metodo] ?? fila.metodo}{" "}
-              <span className="font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
-                {pesos.format(fila.monto)}
-              </span>
-            </span>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -92,8 +98,11 @@ function Dato({
   testId?: string;
 }) {
   return (
+    // Ancho mínimo y no automático: si cada tarjeta midiera su contenido, la de
+    // "Ventas" sería un cuadradito al lado de la de "Facturado" y la fila
+    // quedaría desprolija. Con el mínimo entran todas parejas.
     <div
-      className={`rounded-2xl p-3.5 shadow-sm ring-1 ${
+      className={`rounded-2xl p-3.5 shadow-sm ring-1 lg:min-w-[13rem] ${
         tono === "alerta" ? "bg-rose-50 ring-rose-200" : "bg-white ring-slate-950/5"
       }`}
     >
