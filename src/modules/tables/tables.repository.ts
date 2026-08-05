@@ -33,6 +33,21 @@ export function getSectorsWithTables(businessId: string, branchId: string) {
   });
 }
 
+/**
+ * Mesas para elegir al cobrar en el mostrador: id, nombre y sector, nada más.
+ *
+ * No trae la comanda abierta ni el estado como `getSectorsWithTables`, porque
+ * acá no se está atendiendo la mesa: se está diciendo a qué mesa fue lo que ya
+ * se cobró. Traer la comanda invitaría a confundir los dos flujos.
+ */
+export function findMesasParaCobrar(businessId: string, branchId: string) {
+  return prisma.table.findMany({
+    where: { businessId, branchId, deleted: false },
+    orderBy: [{ sector: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
+    select: { id: true, name: true, sector: { select: { name: true } } },
+  });
+}
+
 /** Mesas sin sector: existen si alguien borró el sector que las contenía. */
 export function getTablesWithoutSector(businessId: string, branchId: string) {
   return prisma.table.findMany({

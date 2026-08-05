@@ -1,4 +1,4 @@
-import type { PaymentMethod, TaxCondition, Unit } from "@/generated/prisma/client";
+import type { PaymentMethod, SaleChannel, TaxCondition, Unit } from "@/generated/prisma/client";
 
 export type CreateSaleItemDto = {
   productId?: string | null;
@@ -38,4 +38,14 @@ export type CreateSaleDto = {
   customerName?: string;
   customerTaxId?: string;
   customerTaxCondition?: TaxCondition;
+  // Por dónde salió la venta: mostrador, para llevar o servida en una mesa.
+  // Sin esto todo el salón y el mostrador se mezclan en el mismo número y no se
+  // puede saber qué canal rinde. El salón ya lo guarda (ver cobrar.use-case);
+  // esto lo habilita también para la venta de mostrador.
+  channel?: SaleChannel;
+  // Nombre, no id: el ticket tiene que seguir diciendo "Mesa 4 · Nico" aunque
+  // después borren la mesa o el empleado se vaya. Un comprobante no se reescribe
+  // porque cambió una ficha.
+  tableName?: string | null;
+  waiterName?: string | null;
 };

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { SaleStatus, StockMovementType, TaxCondition, Unit, UserRole } from "@/generated/prisma/client";
+import { SaleChannel, SaleStatus, StockMovementType, TaxCondition, Unit, UserRole } from "@/generated/prisma/client";
 import { chargeCustomerAccount, reverseCustomerCharge } from "@/modules/customers/customer.repository";
 import { applyStockMovement } from "@/modules/stock/stock.repository";
 
@@ -48,6 +48,9 @@ export type CreateSaleRepositoryInput = {
   customerName?: string;
   customerTaxId?: string;
   customerTaxCondition?: TaxCondition;
+  channel?: SaleChannel;
+  tableName?: string | null;
+  waiterName?: string | null;
   userId?: string | null;
 };
 
@@ -523,6 +526,9 @@ export function createSaleTransaction(input: CreateSaleRepositoryInput) {
         customerName: input.customerName,
         customerTaxId: input.customerTaxId,
         customerTaxCondition: input.customerTaxCondition,
+        channel: input.channel,
+        tableName: input.tableName,
+        waiterName: input.waiterName,
         items: {
           create: input.items.map((item) => ({
             productId: item.productId,

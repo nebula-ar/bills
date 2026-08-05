@@ -2,7 +2,7 @@
 
 import { previewSale, submitSale, type SubmitSaleInput } from "@/app/sales/new/actions";
 import type { PaymentMethod, Unit } from "@/generated/prisma/client";
-import { TaxCondition } from "@/generated/prisma/enums";
+import { SaleChannel, TaxCondition } from "@/generated/prisma/enums";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { ScanConfirmSheet, type ScannedProduct } from "@/components/scan-confirm-sheet";
 import { findProductToSell } from "@/app/sales/new/scan-actions";
@@ -13,6 +13,7 @@ import { allowsFraction, formatQuantity, lineTotal, ONE, parseQuantityInput, uni
 import { changeFor, coversTotal, quickCashAmounts } from "@/modules/sales/change.logic";
 import { validateTaxId } from "@/lib/tax-id";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
+import { pasosDelCobro, puedeAvanzar } from "@/modules/sales/checkout-steps.logic";
 import {
   ArrowLeftRight,
   ArrowRight,
@@ -28,6 +29,7 @@ import {
   Smartphone,
   Split,
   Store,
+  TableService,
   Trash2,
   Wallet,
   X,
@@ -63,6 +65,9 @@ export type PosBranch = {
   id: string;
   name: string;
   staffs: { id: string; name: string }[];
+  // Mesas del salón, para decir a cuál fue lo que se cobró. Vacío en los rubros
+  // que no usan el módulo.
+  tables: { id: string; name: string; sector: string | null }[];
   products: PosProduct[];
 };
 
@@ -89,6 +94,10 @@ type PosCheckoutProps = {
   // el que atiende busca casi siempre lo mismo, y tenerlo alfabético lo obliga a
   // scrollear cada vez.
   salesRank?: Record<string, number>;
+  // Si el negocio usa salón. Habilita el paso "¿Dónde?" del cobro: mostrador,
+  // para llevar o mesa. Apagado, la venta no lleva canal y el cobro tiene un
+  // paso menos, que es lo que corresponde en una barbería.
+  usesTables?: boolean;
   // Con qué empleado vende el que está logueado. El dueño de un comercio chico
   // es dos filas (ver registerBusiness): entra como OWNER y vende como su
   // gemelo STAFF. null = no tiene gemelo, así que hay que preguntar.
@@ -114,6 +123,28 @@ const paymentIcons: Record<string, ComponentType<{ className?: string }>> = {
 };
 
 const ACCOUNT_METHOD = "ACCOUNT";
+
+// Por dónde salió la venta. La pista importa tanto como el nombre: "Mostrador"
+// solo no distingue de "Para llevar" para quien recién arranca con el sistema.
+const CANALES: { key: SaleChannel; label: string; pista: string; icono: ComponentType<{ className?: string }> }[] = [
+  { key: SaleChannel.COUNTER, label: "Mostrador", pista: "Se cobra en la caja", icono: Store },
+  { key: SaleChannel.TAKEAWAY, label: "Para llevar", pista: "Se lo lleva", icono: ShoppingBag },
+  { key: SaleChannel.TABLE, label: "Mesa", pista: "Servido en una mesa", icono: TableService },
+];
+
+// Las mesas se muestran por sector porque así está el salón de verdad: el que
+// cobra ubica "Vereda 3" mirando el patio, no recorriendo una lista alfabética.
+function agruparPorSector(mesas: PosBranch["tables"]) {
+  const porSector = new Map<string, PosBranch["tables"]>();
+  for (const mesa of mesas) {
+    // Las mesas sin sector existen: quedan así si alguien borra el sector.
+    const sector = mesa.sector ?? "Sin sector";
+    const actuales = porSector.get(sector);
+    if (actuales) actuales.push(mesa);
+    else porSector.set(sector, [mesa]);
+  }
+  return [...porSector.entries()];
+}
 
 // Dónde se recuerda quién cobró la última vez en este teléfono.
 const STAFF_MEMORY_KEY = "bills:ultimo-vendedor";
@@ -158,6 +189,7 @@ export function PosCheckout({
   sellsAsStaffId = null,
   features = { barcodes: true, packs: true },
   salesRank = {},
+  usesTables = false,
 }: PosCheckoutProps) {
   const [branchId, setBranchId] = useState(
     initialBranchId && branches.some((item) => item.id === initialBranchId) ? initialBranchId : branches[0]?.id ?? "",
@@ -229,6 +261,11 @@ export function PosCheckout({
   // enfrente, "¿lo tomó?" se contesta mirando, no revisando el total.
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  // El cobro va por pasos: una sola pantalla larga obliga a scrollear con el
+  // cliente enfrente y se cobra con el método que quedó de la venta anterior.
+  const [paso, setPaso] = useState(0);
+  const [channel, setChannel] = useState<SaleChannel>(SaleChannel.COUNTER);
+  const [tableId, setTableId] = useState<string | null>(null);
   const [splitMode, setSplitMode] = useState(false);
   const [singleMethod, setSingleMethod] = useState(paymentOptions[0]?.value ?? "");
   const [splitRows, setSplitRows] = useState<SplitRow[]>([]);
@@ -410,6 +447,20 @@ export function PosCheckout({
     accountReady &&
     total > 0 &&
     !(wantsInvoice && customerTaxIdHasError);
+
+  // Los pasos y sus condiciones viven en checkout-steps.logic, con tests: son
+  // reglas de negocio ("sin salón no se pregunta la mesa"), no maquetado.
+  const mesas = branch?.tables ?? [];
+  const pasos = pasosDelCobro({ usaSalon: usesTables, canal: channel });
+  const pasoIdx = Math.min(paso, pasos.length - 1);
+  const pasoActual = pasos[pasoIdx].key;
+  const esUltimoPaso = pasoIdx === pasos.length - 1;
+  const mesaElegida = mesas.find((mesa) => mesa.id === tableId);
+  const puedeSeguir = puedeAvanzar({
+    paso: pasoActual,
+    tieneMesa: Boolean(tableId),
+    pagoValido: splitValid && accountReady,
+  });
 
   const branchStep = branches.length > 1 ? 1 : 0;
   // Preguntar "¿quién atiende?" cuando hay UNA sola opción es un toque de más
@@ -605,6 +656,11 @@ export function PosCheckout({
     setSplitMode(false);
     setSplitRows([]);
     setError(null);
+    // Siempre desde el primer paso: si quedara donde lo dejó la venta anterior,
+    // la siguiente se cobraría con la mesa de la anterior.
+    setPaso(0);
+    setChannel(SaleChannel.COUNTER);
+    setTableId(null);
     setCheckoutOpen(true);
   }
 
@@ -650,6 +706,17 @@ export function PosCheckout({
         payments,
         ...(wantsInvoice
           ? { customerName: customerName.trim() || undefined, customerTaxId: customerTaxId.trim() || undefined, customerTaxCondition }
+          : {}),
+        ...(usesTables
+          ? {
+              channel,
+              // El mozo es el que atiende, no un dato aparte: la venta ya sabe
+              // quién la hizo. Van los NOMBRES porque el ticket tiene que seguir
+              // diciendo "Mesa 4 · Nico" aunque después borren la mesa.
+              ...(channel === SaleChannel.TABLE
+                ? { tableName: mesaElegida?.name, waiterName: selectedStaff?.name }
+                : {}),
+            }
           : {}),
       });
       if (result.ok) {
@@ -1389,7 +1456,7 @@ export function PosCheckout({
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex items-center justify-between px-5 pt-6">
             <div>
-              <h3 className="text-xl font-black tracking-tight text-slate-950">Confirmar venta</h3>
+              <h3 className="text-xl font-black tracking-tight text-slate-950">{pasos[pasoIdx].titulo}</h3>
               <p className="text-sm text-slate-500">{selectedStaff ? `Atiende ${selectedStaff.name}` : ""}</p>
             </div>
             <button
@@ -1402,8 +1469,101 @@ export function PosCheckout({
             </button>
           </div>
 
+          {/* Barra de progreso: con el cliente enfrente hay que saber cuánto
+              falta sin leer. Un tramo por paso, llenos hasta donde vas. */}
+          {pasos.length > 1 ? (
+            <div className="flex gap-1.5 px-5 pt-3">
+              {pasos.map((p, i) => (
+                <div
+                  className={`h-1.5 flex-1 rounded-full transition-colors ${i <= pasoIdx ? "bg-primary" : "bg-slate-200"}`}
+                  key={p.key}
+                />
+              ))}
+            </div>
+          ) : null}
+
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 pt-5">
+            {/* Paso "¿Dónde?": mostrador, para llevar o mesa. Sin esto todo el
+                salón y el mostrador se suman en el mismo número y no hay forma
+                de saber qué canal rinde. */}
+            {pasoActual === "donde" ? (
+              <div className="space-y-2.5">
+                {CANALES.map((canal) => {
+                  const elegido = channel === canal.key;
+                  const Icono = canal.icono;
+                  return (
+                    <button
+                      className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition ${
+                        elegido ? "border-primary bg-primary/5" : "border-slate-200 bg-white"
+                      }`}
+                      key={canal.key}
+                      onClick={() => {
+                        setChannel(canal.key);
+                        // Cambiar de canal deja la mesa vieja pegada si no se
+                        // limpia, y se cobraría en el mostrador "a la mesa 4".
+                        if (canal.key !== SaleChannel.TABLE) setTableId(null);
+                      }}
+                      type="button"
+                    >
+                      <span
+                        className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${
+                          elegido ? "bg-primary text-white" : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        <Icono className="size-5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-base font-black text-slate-950">{canal.label}</span>
+                        <span className="block text-xs text-slate-500">{canal.pista}</span>
+                      </span>
+                      {elegido ? <Check className="size-5 shrink-0 text-primary" /> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            {/* Paso "¿Qué mesa?": mini plano agrupado por sector, como el salón.
+                Se toca la mesa, no se elige de una lista desplegable: el mozo
+                sabe dónde está sentado el cliente, no en qué posición del
+                combo. */}
+            {pasoActual === "mesa" ? (
+              mesas.length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
+                  No hay mesas cargadas todavía. Cargalas en Salón.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {agruparPorSector(mesas).map(([sector, delSector]) => (
+                    <div key={sector}>
+                      <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">{sector}</p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {delSector.map((mesa) => {
+                          const elegida = tableId === mesa.id;
+                          return (
+                            <button
+                              className={`relative grid aspect-square place-items-center rounded-2xl border-2 text-lg font-black transition ${
+                                elegida
+                                  ? "border-primary bg-primary text-white shadow-sm shadow-primary/25"
+                                  : "border-slate-200 bg-white text-slate-700"
+                              }`}
+                              key={mesa.id}
+                              onClick={() => setTableId(elegida ? null : mesa.id)}
+                              type="button"
+                            >
+                              {mesa.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : null}
+
             {/* Pedido */}
+            {pasoActual === "confirmar" ? (
             <section>
               <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">Tu pedido</p>
               <div className="space-y-2">
@@ -1499,9 +1659,32 @@ export function PosCheckout({
                 </div>
               ) : null}
             </section>
+            ) : null}
+
+            {/* Lo elegido en los pasos previos, a la vista antes de confirmar:
+                el que cobra tiene que poder revisar sin volver atrás. */}
+            {pasoActual === "confirmar" && usesTables ? (
+              <div className="space-y-1.5 rounded-2xl bg-slate-50 p-3.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-500">Dónde</span>
+                  <span className="font-black text-slate-950">
+                    {CANALES.find((canal) => canal.key === channel)?.label}
+                  </span>
+                </div>
+                {channel === SaleChannel.TABLE && mesaElegida ? (
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-500">Mesa</span>
+                    <span className="font-black text-slate-950">
+                      {mesaElegida.name}
+                      {selectedStaff ? ` · ${selectedStaff.name}` : ""}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             {/* Cliente: hace falta para fiar y sirve para el historial de compras. */}
-            {customers.length > 0 ? (
+            {pasoActual === "pago" && customers.length > 0 ? (
               <section>
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">¿Quién compra?</p>
                 <select
@@ -1532,6 +1715,7 @@ export function PosCheckout({
             ) : null}
 
             {/* Pago */}
+            {pasoActual === "pago" ? (
             <section>
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-black uppercase tracking-wide text-slate-500">¿Cómo paga?</p>
@@ -1681,8 +1865,10 @@ export function PosCheckout({
                 </div>
               ) : null}
             </section>
+            ) : null}
 
             {/* Datos fiscales del cliente (opcional) */}
+            {pasoActual === "confirmar" ? (
             <section>
               <button
                 className={`flex w-full items-center justify-between gap-2 rounded-2xl px-4 py-3 text-sm font-black transition active:scale-[0.99] ${
@@ -1735,6 +1921,7 @@ export function PosCheckout({
                 </div>
               ) : null}
             </section>
+            ) : null}
 
             {error ? (
               <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">
@@ -1743,19 +1930,43 @@ export function PosCheckout({
             ) : null}
           </div>
 
-          {/* Footer: confirmar */}
-          <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
+          {/* Footer: volver / seguir / confirmar */}
+          <div className="mt-auto flex gap-2 border-t border-slate-100 px-5 pb-1 pt-4">
+            {/* "Volver" en el primer paso no tiene a dónde volver, así que ahí
+                cancela. Y siempre hay salida: quedarse trabado en un cobro con
+                el cliente enfrente es peor que cualquier paso de más. */}
             <button
-              className="flex w-full items-center justify-between gap-3 rounded-2xl bg-primary px-6 py-4 text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
-              disabled={!canConfirm || isPending}
-              onClick={confirm}
+              className="shrink-0 rounded-2xl bg-slate-100 px-5 py-4 text-base font-black text-slate-600 transition active:scale-[0.98] disabled:opacity-50"
+              disabled={isPending}
+              onClick={() => (pasoIdx === 0 ? setCheckoutOpen(false) : setPaso(pasoIdx - 1))}
               type="button"
             >
-              <span className="text-base font-black">{isPending ? "Registrando…" : "Confirmar venta"}</span>
-              <span className="text-lg font-black" style={{ fontVariantNumeric: "tabular-nums" }}>
-                {money(total)}
-              </span>
+              {pasoIdx === 0 ? "Cancelar" : "Volver"}
             </button>
+
+            {esUltimoPaso ? (
+              <button
+                className="flex flex-1 items-center justify-between gap-3 rounded-2xl bg-primary px-6 py-4 text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                disabled={!canConfirm || isPending}
+                onClick={confirm}
+                type="button"
+              >
+                <span className="text-base font-black">{isPending ? "Registrando…" : "Confirmar venta"}</span>
+                <span className="text-lg font-black" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {money(total)}
+                </span>
+              </button>
+            ) : (
+              <button
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                disabled={!puedeSeguir}
+                onClick={() => setPaso(pasoIdx + 1)}
+                type="button"
+              >
+                Continuar
+                <ArrowRight className="size-4" />
+              </button>
+            )}
           </div>
         </div>
       </BottomSheet>

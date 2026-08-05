@@ -67,6 +67,9 @@ export const Smartphone = solar("solar:smartphone-bold");
 export const Split = solar("solar:card-transfer-bold");
 export const Store = solar("solar:shop-2-bold");
 export const Tag = solar("solar:tag-bold");
+// El mismo que usa el módulo Salón en el nav: si el paso "¿Dónde?" mostrara
+// otro, "Mesa" parecería otra cosa que la pantalla de mesas.
+export const TableService = solar("solar:cup-hot-bold");
 export const Ticket = solar("solar:ticket-bold");
 export const Trash2 = solar("solar:trash-bin-trash-bold");
 export const TrendingDown = solar("solar:graph-down-bold");
