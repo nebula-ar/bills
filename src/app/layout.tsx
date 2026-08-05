@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Inter, Montserrat } from "next/font/google";
+import { Baloo_2, Geist_Mono, Inter, Montserrat, Nunito } from "next/font/google";
 import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { FlashToaster } from "@/components/flash-toaster";
@@ -25,6 +25,22 @@ const montserrat = Montserrat({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Tipografía de la gastronomía: redondeada y cálida. Es la mitad de la
+// identidad de un rubro — con Inter, por más rosa que esté, se lee como una
+// app de banco. Se cargan siempre porque next/font las sirve desde el mismo
+// dominio y solo pesan cuando el rubro las usa.
+const nunito = Nunito({
+  variable: "--font-nunito",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const baloo = Baloo_2({
+  variable: "--font-baloo",
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -85,7 +101,7 @@ export default async function RootLayout({
       // y el bloque [data-vertical] de globals.css las redefine. Sin esto el
       // bloque existe pero nunca aplica.
       data-vertical={business?.vertical}
-      className={`${inter.variable} ${geistMono.variable} ${montserrat.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} ${montserrat.variable} ${nunito.variable} ${baloo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background">
         {children}

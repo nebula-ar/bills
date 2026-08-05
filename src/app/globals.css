@@ -149,6 +149,7 @@ textarea {
   --primary-strong: oklch(0.64 0.234 357.03); /* brand-strong */
   --accent-brand: oklch(0.939 0.0732 88.45); /* butter */
 
+
   /* Los halos pastel del fondo. Es la mitad de la identidad de Migas: sin
      esto queda rosa sobre gris plano, que no es lo mismo. Vive como token
      para que otro rubro pueda tener el suyo o ninguno. */
@@ -238,4 +239,26 @@ textarea {
 [data-vertical] body {
   background-image: var(--fondo-halos, none);
   background-attachment: fixed;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Tipografía del rubro.
+
+   Va como regla y no como token de `@theme`: Tailwind resuelve los valores de
+   `@theme inline` en tiempo de build, así que una variable definida después no
+   los cambia. Con los colores funciona porque ahí el valor ES una referencia
+   (`var(--primary)`), pero con las familias resolvía a Inter y quedaba fijo.
+
+   La tipografía es la mitad de la identidad de un rubro: con Inter, por más
+   rosa que esté, se lee como una app de banco.
+   ───────────────────────────────────────────────────────────────────────────── */
+[data-vertical="BAKERY"] body {
+  font-family: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-vertical="BAKERY"] h1,
+[data-vertical="BAKERY"] h2,
+[data-vertical="BAKERY"] h3 {
+  font-family: var(--font-baloo), var(--font-nunito), ui-sans-serif, sans-serif;
+  font-optical-sizing: auto;
 }
