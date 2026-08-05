@@ -248,6 +248,7 @@ export function buildNav(
   push(AppModule.STOCK, "/stock", "manageStock", { hint: "Faltantes, movimientos y traspasos" });
   push(AppModule.TABLES, "/salon", "waitTables");
   push(AppModule.KITCHEN, "/cocina", "kitchen");
+  push(AppModule.TABLES, "/opciones", "manageCatalog", { label: "Opciones", hint: "Los extras que hoy se regalan" });
   push(AppModule.APPOINTMENTS, "/turnos", "sell");
   push(AppModule.PROMOTIONS, "/promotions", "manageCatalog");
   push(AppModule.MARKETING, "/marketing", "manageBusiness");
