@@ -121,7 +121,7 @@ export function InstallPrompt() {
         {mode === "ios" ? (
           <div className="mt-3 flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2.5 text-[13px] font-semibold text-slate-600">
             <span>Tocá</span>
-            <span className="flex size-6 items-center justify-center rounded-lg bg-blue-600 text-white">
+            <span className="flex size-6 items-center justify-center rounded-lg bg-primary text-white">
               <ShareGlyph />
             </span>
             <span>
@@ -132,7 +132,7 @@ export function InstallPrompt() {
           <button
             type="button"
             onClick={install}
-            className="mt-3 w-full rounded-2xl bg-blue-600 py-3 text-[15px] font-black text-white shadow-[0_4px_0_#1d4ed8] transition active:translate-y-[3px] active:shadow-none"
+            className="mt-3 w-full rounded-2xl bg-primary py-3 text-[15px] font-black text-white shadow-[0_4px_0_#1d4ed8] transition active:translate-y-[3px] active:shadow-none"
           >
             Instalar app
           </button>

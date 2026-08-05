@@ -5,6 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Acción presionada y acento de marca: el rubro los redefine igual que el
+     resto. Sin esto, un hover o un logo quedaban con el color de Bills. */
+  --color-primary-strong: var(--primary-strong);
+  --color-accent-brand: var(--accent-brand);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
@@ -64,14 +68,14 @@ textarea {
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(0.9765 0.0054 274.97);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.5269 0.2215 266.60); /* el azul de Bills */
+  --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -81,13 +85,17 @@ textarea {
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: oklch(0.5269 0.2215 266.60);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
+  /* El azul presionado y el lima de Bills, ahora como token: eran hex sueltos
+     repartidos por 64 archivos. */
+  --primary-strong: oklch(0.4469 0.2 266.60);
+  --accent-brand: oklch(0.9075 0.1667 117.99);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -137,6 +145,9 @@ textarea {
 
   /* Redondeado y blando: el resto de la escala (sm/md/lg/xl/2xl) sale de acá. */
   --radius: 1rem;
+
+  --primary-strong: oklch(0.64 0.234 357.03); /* brand-strong */
+  --accent-brand: oklch(0.939 0.0732 88.45); /* butter */
 
   /* Acentos del rubro. No tienen ranura estándar en shadcn porque solo los
      usan sus pantallas: el amarillo de fidelidad, los pasteles de variedad. */

@@ -85,7 +85,7 @@ export type ProductsData = {
 };
 
 const sheetInput =
-  "w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
+  "w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/15";
 
 const toneClasses: Record<ProductRow["statusTone"], string> = {
   available: "bg-emerald-50 text-emerald-700",
@@ -107,7 +107,7 @@ function BranchSelect({
       Sucursal
       <div className="relative">
         <select
-          className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-11 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+          className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-11 text-base font-bold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
           onChange={(event) => onChange(event.target.value)}
           value={value}
         >
@@ -194,7 +194,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -217,7 +217,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
           {data.branches.map((branch) => (
             <button
               className={`shrink-0 snap-start scroll-ml-1 rounded-full px-4 py-2 text-sm font-bold transition active:scale-95 ${
-                branch.id === data.selectedBranchId ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
+                branch.id === data.selectedBranchId ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
               }`}
               key={branch.id}
               onClick={() => selectBranch(branch.id)}
@@ -263,7 +263,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 <Search className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
                 <input
                   aria-label={`Buscar ${data.catalogPlural.toLowerCase()}`}
-                  className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400"
+                  className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40"
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder={`Buscar ${data.catalogPlural.toLowerCase()}…`}
                   value={search}
@@ -302,7 +302,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                       src={imageSrc}
                     />
                   ) : (
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                       <DynamicIcon className="size-5" name={data.catalogIcon} />
                     </span>
                   )}
@@ -366,7 +366,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               Nombre
               <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                 name="name"
                 placeholder="Ej: Corte clásico"
                 required
@@ -376,7 +376,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               Descripción (opcional)
               <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                 name="description"
                 placeholder="Ej: incluye lavado"
                 type="text"
@@ -387,7 +387,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             ) : null}
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               {newBranchName ? `Precio en ${newBranchName} (opcional)` : "Precio (opcional)"}
-              <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
+              <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
                 <span className="text-lg font-black text-slate-400">$</span>
                 <MoneyInput
                   className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
@@ -403,7 +403,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                   ¿Cuántos tenés? (opcional)
                   <input
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white"
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
                     inputMode="decimal"
                     name="stock"
                     placeholder="Ej: 12"
@@ -412,7 +412,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                   ¿Cuánto te cuesta? (opcional)
                   <MoneyInput
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white"
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
                     name="cost"
                     placeholder="$"
                   />
@@ -424,7 +424,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Categoría (opcional)
                 <select
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
                   name="categoryId"
                 >
                   <option value="">Sin categoría</option>
@@ -444,7 +444,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
           </div>
           <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
             <button
-              className="w-full rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+              className="w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
               type="submit"
             >
               Crear {data.catalogSingular.toLowerCase()}
@@ -492,7 +492,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               ) : null}
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 {editBranchName ? `Precio en ${editBranchName}` : "Precio en esta sucursal"}
-                <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
+                <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
                   <span className="text-lg font-black text-slate-400">$</span>
                   <MoneyInput
                     className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
@@ -508,7 +508,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Nombre
                 <input
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                   defaultValue={editing.name}
                   name="name"
                   required
@@ -527,7 +527,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Descripción (opcional)
                 <input
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                   defaultValue={editing.description ?? ""}
                   name="description"
                   type="text"
@@ -630,7 +630,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             </div>
             <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
               <button
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
                 type="submit"
               >
                 <Check className="size-5" />
@@ -643,7 +643,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 
       <button
         aria-label={`Nuevo ${data.catalogSingular.toLowerCase()}`}
-        className="fixed bottom-[96px] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 transition hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
+        className="fixed bottom-[96px] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 transition hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
         onClick={openNew}
         type="button"
       >

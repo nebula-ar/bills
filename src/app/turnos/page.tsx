@@ -140,7 +140,7 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
                     <div className="flex flex-wrap items-center gap-1.5">
                       {chargeable ? (
                         <Link
-                          className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white transition active:scale-95"
+                          className="rounded-xl bg-primary px-3 py-2 text-xs font-black text-white transition active:scale-95"
                           href={`/sales/new?appointment=${appointment.id}`}
                         >
                           Cobrar

@@ -66,7 +66,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
 
       {/* Lo de un producto puntual se resuelve en su propia ficha: ir y venir
           entre dos pantallas para una cosa que es una sola era el problema. */}
-      <p className="rounded-2xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+      <p className="rounded-2xl bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
         Para cargar, contar o descontar UN producto, tocalo en{" "}
         <Link className="font-black underline" href="/catalog">
           {business.labels.catalogPlural}

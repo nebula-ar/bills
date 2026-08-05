@@ -44,7 +44,7 @@ export default async function PosLauncherPage() {
   const businessName = branches[0]?.business.name ?? "Bills";
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
       <header className="duration-500 animate-in fade-in slide-in-from-top-2">
         <p className="truncate text-sm font-medium text-slate-500">{businessName}</p>
         <h1 className="mt-0.5 text-2xl font-black tracking-tight text-slate-950">Puntos de venta</h1>
@@ -54,7 +54,7 @@ export default async function PosLauncherPage() {
       {gap ? (
         <div className="mt-6 grid justify-items-center gap-4 rounded-[1.5rem] border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
           <p className="max-w-sm">{gap.text}</p>
-          <Link className="inline-flex rounded-full bg-blue-600 px-4 py-2.5 text-sm font-black text-white" href={gap.href}>
+          <Link className="inline-flex rounded-full bg-primary px-4 py-2.5 text-sm font-black text-white" href={gap.href}>
             {gap.cta}
           </Link>
         </div>
@@ -67,7 +67,7 @@ export default async function PosLauncherPage() {
               style={{ animationDelay: `${Math.min(index * 60, 360)}ms`, animationFillMode: "backwards" }}
             >
               <Link className="flex items-center gap-4 transition active:scale-[0.99]" href={`/sales/new?branchId=${branch.id}`}>
-                <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm shadow-blue-600/25">
+                <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-sm shadow-primary/25">
                   <Store className="size-7" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -89,7 +89,7 @@ export default async function PosLauncherPage() {
                     </span>
                   </div>
                 </div>
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <ArrowRight className="size-5" />
                 </span>
               </Link>

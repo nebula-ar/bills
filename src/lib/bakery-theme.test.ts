@@ -111,3 +111,55 @@ describe("los demás rubros", () => {
     expect(RAIZ).toContain("--primary:");
   });
 });
+
+describe("los dos rubros conservan SU identidad", () => {
+  it("la raíz es el azul de Bills, no el gris del framework", () => {
+    // Esto ya se rompió una vez: al mandar el azul de Bills a `--primary`, la
+    // raíz seguía con el default casi-negro de shadcn, así que Bills se volvía
+    // negro. Preservar el mecanismo del tema no sirve si en el camino se pierde
+    // la identidad del producto que ya existía.
+    const primary = RAIZ.match(/--primary:\s*([^;]+);/)?.[1] ?? "";
+
+    // El azul vive alrededor de los 265° de tono.
+    const tono = Number(primary.match(/oklch\([\d.]+\s+[\d.]+\s+([\d.]+)/)?.[1] ?? NaN);
+    expect(tono, `--primary de la raíz: ${primary}`).toBeGreaterThan(240);
+    expect(tono).toBeLessThan(290);
+  });
+
+  it("pastelería es rosa, no el azul heredado", () => {
+    const primary = PASTELERIA.match(/--primary:\s*([^;]+);/)?.[1] ?? "";
+    const tono = Number(primary.match(/oklch\([\d.]+\s+[\d.]+\s+([\d.]+)/)?.[1] ?? NaN);
+
+    // El magenta de Migas cae cerca de 358°.
+    expect(tono, `--primary de pastelería: ${primary}`).toBeGreaterThan(330);
+  });
+
+  it("los dos tienen su acción presionada y su acento propios", () => {
+    // Eran hex sueltos repartidos por 64 archivos; ahora son tokens que el
+    // rubro puede redefinir.
+    for (const token of ["--primary-strong", "--accent-brand"]) {
+      expect(RAIZ, `${token} falta en la raíz`).toContain(`${token}:`);
+      expect(PASTELERIA, `${token} falta en pastelería`).toContain(`${token}:`);
+    }
+  });
+
+  it("ningún componente vuelve a hardcodear el azul de Bills", () => {
+    // La regresión más fácil: alguien copia un botón viejo con bg-blue-600 y
+    // esa pantalla deja de cambiar con el rubro.
+    const src = path.join(process.cwd(), "src");
+    const sospechosos: string[] = [];
+    const recorrer = (dir: string) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) recorrer(p);
+        else if (/\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name)) {
+          const t = fs.readFileSync(p, "utf8");
+          if (/(bg|text|border|ring|shadow)-blue-\d|#3158e8/.test(t)) sospechosos.push(e.name);
+        }
+      }
+    };
+    recorrer(src);
+
+    expect(sospechosos, "estas pantallas no van a cambiar con el rubro").toEqual([]);
+  });
+});

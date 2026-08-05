@@ -18,7 +18,7 @@ const shellMaxWidth: Record<NonNullable<AppShellProps["maxWidth"]>, string> = {
 // queda debajo de la barra y no se puede tocar.
 export function AppShell({ children, maxWidth = "md" }: AppShellProps) {
   return (
-    <main className="min-h-screen bg-[#f6f7fb] px-4 pb-40 pt-5 text-slate-950 sm:px-6 sm:pb-40 sm:pt-10">
+    <main className="min-h-screen bg-[var(--background)] px-4 pb-40 pt-5 text-slate-950 sm:px-6 sm:pb-40 sm:pt-10">
       <section className={`mx-auto flex w-full ${shellMaxWidth[maxWidth]} flex-col gap-6`}>
         {children}
       </section>
@@ -37,7 +37,7 @@ export function PageHeader({ actions, description, eyebrow = "Bills", title }: P
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-600">{eyebrow}</p>
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-primary">{eyebrow}</p>
         <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">{title}</h1>
         {description ? <p className="mt-2 text-sm leading-6 text-slate-500 sm:text-base">{description}</p> : null}
       </div>

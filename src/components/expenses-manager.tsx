@@ -118,7 +118,7 @@ export type ExpensesData = {
 };
 
 const sheetField =
-  "rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100";
+  "rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15";
 
 function SheetHeader({ title, onClose }: { title: string; onClose: () => void }) {
   return (
@@ -140,7 +140,7 @@ function SubmitBar({ label, pending }: { label: string; pending: boolean }) {
   return (
     <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
       <button
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
         disabled={pending}
         type="submit"
       >
@@ -169,7 +169,7 @@ function Chips({
         {options.map((option) => (
           <button
             className={`rounded-full px-3.5 py-2 text-sm font-bold transition active:scale-95 ${
-              option.value === value ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-slate-100 text-slate-600"
+              option.value === value ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-slate-100 text-slate-600"
             }`}
             key={option.value}
             onClick={() => onChange(option.value)}
@@ -227,7 +227,7 @@ function ExpenseFields({
 
       <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
         Monto
-        <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
+        <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
           <span className="text-2xl font-black text-slate-400">$</span>
           <MoneyInput
             className="w-full bg-transparent px-2 py-3.5 text-2xl font-black text-slate-950 outline-none"
@@ -487,7 +487,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -787,7 +787,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
               <form className="grid gap-2" onSubmit={submitter(payPurchaseAction, () => setPayableId(null))}>
                 <input name="purchaseId" type="hidden" value={payable.id} />
                 <span className="text-xs font-black uppercase tracking-wide text-slate-500">Pagar</span>
-                <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white">
+                <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white">
                   <span className="text-xl font-black text-slate-400">$</span>
                   <MoneyInput
                     aria-label="Importe a pagar"
@@ -807,7 +807,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                   <input aria-label="Fecha del pago" className={sheetField} defaultValue={data.todayValue} name="paidAt" type="date" />
                 </div>
                 <button
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3.5 text-sm font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3.5 text-sm font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
                   disabled={isPending}
                   type="submit"
                 >
@@ -927,7 +927,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                           ))}
                         </select>
                         <button
-                          className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+                          className="rounded-2xl bg-primary px-4 py-3 text-sm font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
                           disabled={isPending}
                           type="submit"
                         >
@@ -953,7 +953,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                 <input className={sheetField} name="address" placeholder="Dirección" />
               </div>
               <button
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3.5 text-sm font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3.5 text-sm font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
                 disabled={isPending}
                 type="submit"
               >
@@ -967,7 +967,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
 
       <button
         aria-label="Nuevo gasto"
-        className="fixed bottom-[96px] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 transition hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
+        className="fixed bottom-[96px] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 transition hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
         onClick={openNew}
         type="button"
       >

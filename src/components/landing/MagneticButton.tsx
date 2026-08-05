@@ -91,7 +91,7 @@ export function MagneticButton({ href, children, className = "", roundedClass = 
         className={`group relative overflow-hidden ${roundedClass} bg-slate-900 text-white flex items-center justify-center transition-colors duration-300 ${className}`}
       >
         <div 
-          className={`absolute inset-0 bg-blue-600 ${roundedClass} translate-y-[101%] group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.19,1,0.22,1)]`} 
+          className={`absolute inset-0 bg-primary ${roundedClass} translate-y-[101%] group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.19,1,0.22,1)]`} 
         />
         <div ref={textRef} className="relative overflow-hidden h-5 flex items-center justify-center" style={{ transform: "translateZ(30px)" }}>
           

@@ -196,7 +196,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
   const customInvalid = rangeKey === DashboardRange.Custom && (!customFrom || !customTo || customFrom > customTo);
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
       {/* Header */}
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
@@ -225,7 +225,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
       {/* Sin catálogo no se puede vender: es lo primero que hay que resolver. */}
       {data.catalogEmpty ? (
         <Link
-          className="mt-5 flex items-center gap-3 rounded-[1.5rem] bg-blue-600 p-4 text-white shadow-sm transition active:scale-[0.99] duration-500 animate-in fade-in slide-in-from-bottom-2"
+          className="mt-5 flex items-center gap-3 rounded-[1.5rem] bg-primary p-4 text-white shadow-sm transition active:scale-[0.99] duration-500 animate-in fade-in slide-in-from-bottom-2"
           href="/catalog"
         >
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/15">
@@ -244,7 +244,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
         <div className="-mx-1 flex flex-1 items-center gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {!QUICK_CHIPS.includes(data.range.key) ? (
             <button
-              className="flex shrink-0 items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-blue-600/25 transition active:scale-95"
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-bold text-white shadow-sm shadow-primary/25 transition active:scale-95"
               onClick={openSheet}
               type="button"
             >
@@ -257,7 +257,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
             return (
               <button
                 className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition active:scale-95 ${
-                  active ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
+                  active ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
                 }`}
                 key={key}
                 onClick={() => quickRange(key)}
@@ -272,7 +272,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           aria-label="Filtros"
           className={`relative flex size-10 shrink-0 items-center justify-center rounded-full transition active:scale-95 ${
             activeFilterCount > 0 || !QUICK_CHIPS.includes(data.range.key)
-              ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25"
+              ? "bg-primary text-white shadow-sm shadow-primary/25"
               : "bg-white text-slate-600 ring-1 ring-slate-950/5"
           }`}
           onClick={openSheet}
@@ -280,7 +280,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
         >
           <SlidersHorizontal className="size-4" />
           {activeFilterCount > 0 ? (
-            <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-rose-500 text-[0.6rem] font-black text-white ring-2 ring-[#f6f7fb]">
+            <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-rose-500 text-[0.6rem] font-black text-white ring-2 ring-[var(--background)]">
               {activeFilterCount}
             </span>
           ) : null}
@@ -317,11 +317,11 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
         <div className="mt-4 grid gap-3 lg:grid-cols-12">
         {/* Hero total */}
         <div
-          className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-600 p-6 text-white shadow-lg shadow-blue-600/25 duration-700 animate-in fade-in slide-in-from-bottom-3 lg:col-span-7"
+          className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-primary via-blue-600 to-indigo-600 p-6 text-white shadow-lg shadow-primary/25 duration-700 animate-in fade-in slide-in-from-bottom-3 lg:col-span-7"
           style={{ animationDelay: "60ms", animationFillMode: "backwards" }}
         >
           <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-white/10 blur-xl" />
-          <p className="text-sm font-medium text-blue-100">{heroLabel}</p>
+          <p className="text-sm font-medium text-primary/25">{heroLabel}</p>
           <AnimatedMoney className="mt-2 block text-[2.4rem] font-black leading-none tracking-tight" value={data.totalSold} />
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm font-medium">
             <span className="flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-white">
@@ -340,7 +340,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
               </span>
             ) : null}
           </div>
-          <p className="mt-2 text-xs font-medium text-blue-200">
+          <p className="mt-2 text-xs font-medium text-primary/40">
             {data.range.dateLabel}
             {data.comparison && data.comparison.deltaPct !== null ? " · vs período anterior" : ""}
           </p>
@@ -479,7 +479,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                 <div className="space-y-1.5" key={staff.staffId}>
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="flex min-w-0 items-center gap-2">
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-black text-blue-700">
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-black text-primary">
                         {index + 1}
                       </span>
                       <span className="truncate font-bold text-slate-700">{staff.staffName}</span>
@@ -491,7 +491,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-500 transition-[width] duration-1000 ease-out"
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-indigo-500 transition-[width] duration-1000 ease-out"
                       style={{ width: `${maxStaffTotal > 0 ? Math.max((staff.total / maxStaffTotal) * 100, 6) : 0}%` }}
                     />
                   </div>
@@ -534,7 +534,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           {data.expensesByCategory.length === 0 ? (
             <Empty>
               No hay gastos en este período.{" "}
-              <Link className="font-black text-blue-600" href="/expenses">
+              <Link className="font-black text-primary" href="/expenses">
                 Registrar gasto
               </Link>
             </Empty>
@@ -603,7 +603,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                 <div className="space-y-1.5" key={product.name}>
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="flex min-w-0 items-center gap-2">
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-black text-blue-700">
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-black text-primary">
                         {index + 1}
                       </span>
                       <span className="truncate font-bold text-slate-700">{product.name}</span>
@@ -615,7 +615,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 transition-[width] duration-1000 ease-out"
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-500 transition-[width] duration-1000 ease-out"
                       style={{ width: `${maxProductTotal > 0 ? Math.max((product.total / maxProductTotal) * 100, 6) : 0}%` }}
                     />
                   </div>
@@ -636,7 +636,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
         <div className="mb-4 break-inside-avoid duration-500 animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: "620ms", animationFillMode: "backwards" }}>
           <div className="flex items-center justify-between px-1">
             <h2 className="text-base font-black text-slate-950">Últimas ventas</h2>
-            <Link className="flex items-center gap-0.5 text-xs font-bold text-blue-600" href="/sales">
+            <Link className="flex items-center gap-0.5 text-xs font-bold text-primary" href="/sales">
               Ver todas
               <ArrowUpRight className="size-3.5" />
             </Link>
@@ -692,7 +692,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
             {/* Período */}
             <section>
               <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                <Calendar className="size-4 text-blue-600" />
+                <Calendar className="size-4 text-primary" />
                 Período
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -701,7 +701,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                   return (
                     <button
                       className={`rounded-full px-3.5 py-2 text-sm font-bold transition active:scale-95 ${
-                        active ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
+                        active ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
                       }`}
                       key={key}
                       onClick={() => setRangeKey(key)}
@@ -717,7 +717,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                   <label className="grid gap-1.5 text-xs font-bold text-slate-500">
                     Desde
                     <input
-                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                       max={customTo || undefined}
                       onChange={(event) => setCustomFrom(event.target.value)}
                       type="date"
@@ -727,7 +727,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                   <label className="grid gap-1.5 text-xs font-bold text-slate-500">
                     Hasta
                     <input
-                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                       min={customFrom || undefined}
                       onChange={(event) => setCustomTo(event.target.value)}
                       type="date"
@@ -741,11 +741,11 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
             {/* Empleado */}
             <section>
               <label className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500" htmlFor="filter-staff">
-                <Users className="size-4 text-blue-600" />
+                <Users className="size-4 text-primary" />
                 Empleado
               </label>
               <select
-                className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                 id="filter-staff"
                 onChange={(event) => setStaffId(event.target.value)}
                 value={staffId}
@@ -762,11 +762,11 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
             {/* Método de pago */}
             <section>
               <label className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500" htmlFor="filter-payment">
-                <CreditCard className="size-4 text-blue-600" />
+                <CreditCard className="size-4 text-primary" />
                 Método de pago
               </label>
               <select
-                className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                 id="filter-payment"
                 onChange={(event) => setPaymentMethod(event.target.value)}
                 value={paymentMethod}
@@ -791,7 +791,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
               Limpiar
             </button>
             <button
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3.5 text-sm font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99] disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3.5 text-sm font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:opacity-50"
               disabled={customInvalid || isPending}
               onClick={applyFilters}
               type="button"
@@ -822,7 +822,7 @@ function StatCard({
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
     >
       <p className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
-        <Icon className="size-3.5 text-blue-600" />
+        <Icon className="size-3.5 text-primary" />
         {label}
       </p>
       {children}
@@ -847,7 +847,7 @@ function Panel({
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
     >
       <h2 className="flex items-center gap-2 text-base font-black text-slate-950">
-        <Icon className="size-4 text-blue-600" />
+        <Icon className="size-4 text-primary" />
         {title}
       </h2>
       <div className="mt-4">{children}</div>
@@ -865,12 +865,12 @@ function FilterPill({
   onClear: () => void;
 }) {
   return (
-    <span className="flex items-center gap-1.5 rounded-full bg-blue-50 py-1.5 pl-3 pr-1.5 text-sm font-bold text-blue-700 ring-1 ring-blue-100">
+    <span className="flex items-center gap-1.5 rounded-full bg-primary/10 py-1.5 pl-3 pr-1.5 text-sm font-bold text-primary ring-1 ring-primary/15">
       <Icon className="size-3.5" />
       <span className="max-w-[10rem] truncate">{label}</span>
       <button
         aria-label={`Quitar filtro ${label}`}
-        className="flex size-5 items-center justify-center rounded-full bg-blue-100 text-blue-700 transition active:scale-90"
+        className="flex size-5 items-center justify-center rounded-full bg-primary/15 text-primary transition active:scale-90"
         onClick={onClear}
         type="button"
       >

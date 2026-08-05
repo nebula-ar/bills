@@ -41,7 +41,7 @@ function money(value: number) {
 function IdentityLine({ staffName, branchName, terminalName }: { staffName: string; branchName: string; terminalName: string | null }) {
   return (
     <div className="flex items-center gap-2 text-sm font-bold text-slate-500">
-      <ShoppingBag aria-hidden="true" className="shrink-0 text-blue-600" size={15} />
+      <ShoppingBag aria-hidden="true" className="shrink-0 text-primary" size={15} />
       <span className="truncate">
         {staffName} · {branchName}
         {terminalName ? ` · ${terminalName}` : ""}
@@ -146,7 +146,7 @@ export function StaffSaleTerminal({
           <div className="relative mb-3 mt-3">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
             <input
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar servicio…"
               value={search}
@@ -161,16 +161,16 @@ export function StaffSaleTerminal({
             return (
               <div
                 className={`flex min-h-[7.5rem] flex-col justify-between rounded-2xl border-2 p-3.5 transition ${
-                  active ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"
+                  active ? "border-primary bg-primary/10" : "border-slate-200 bg-white"
                 }`}
                 key={product.productId}
               >
                 <button className="text-left active:scale-[0.99]" onClick={() => add(product.productId)} type="button">
                   <span className="block text-base font-black leading-tight text-slate-950">{product.name}</span>
-                  <span className="mt-1.5 block text-lg font-black text-blue-700">{money(product.price)}</span>
+                  <span className="mt-1.5 block text-lg font-black text-primary">{money(product.price)}</span>
                 </button>
                 {active ? (
-                  <div className="mt-3 flex items-center justify-between rounded-full bg-white p-1 ring-1 ring-blue-200">
+                  <div className="mt-3 flex items-center justify-between rounded-full bg-white p-1 ring-1 ring-primary/20">
                     <button
                       aria-label={`Restar ${product.name}`}
                       className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition active:scale-90"
@@ -184,7 +184,7 @@ export function StaffSaleTerminal({
                     </span>
                     <button
                       aria-label={`Sumar ${product.name}`}
-                      className="flex size-9 items-center justify-center rounded-full bg-blue-600 text-white transition active:scale-90"
+                      className="flex size-9 items-center justify-center rounded-full bg-primary text-white transition active:scale-90"
                       onClick={() => add(product.productId)}
                       type="button"
                     >
@@ -217,7 +217,7 @@ export function StaffSaleTerminal({
       <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-3">
         <button
           className={`flex w-full items-center gap-3 rounded-[1.5rem] p-2 pl-5 text-left transition active:scale-[0.99] ${
-            hasItems ? "bg-blue-600" : "pointer-events-none bg-slate-200"
+            hasItems ? "bg-primary" : "pointer-events-none bg-slate-200"
           }`}
           disabled={!hasItems}
           onClick={() => {
@@ -229,7 +229,7 @@ export function StaffSaleTerminal({
           <span className={`relative flex size-11 shrink-0 items-center justify-center rounded-full ${hasItems ? "bg-white/15 text-white" : "bg-white text-slate-400"}`}>
             <ShoppingBag className="size-5" />
             {itemCount > 0 ? (
-              <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-white text-xs font-black text-blue-700">
+              <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-white text-xs font-black text-primary">
                 {itemCount}
               </span>
             ) : null}
@@ -242,7 +242,7 @@ export function StaffSaleTerminal({
               {money(total)}
             </span>
           </span>
-          <span className={`flex items-center gap-1.5 rounded-2xl px-5 py-4 text-sm font-black ${hasItems ? "bg-white text-blue-700" : "bg-white/70 text-slate-400"}`}>
+          <span className={`flex items-center gap-1.5 rounded-2xl px-5 py-4 text-sm font-black ${hasItems ? "bg-white text-primary" : "bg-white/70 text-slate-400"}`}>
             Cobrar
             <ArrowRight className="size-4" />
           </span>
@@ -320,7 +320,7 @@ export function StaffSaleTerminal({
                   return (
                     <button
                       className={`flex items-center gap-2.5 rounded-2xl px-4 py-4 text-sm font-black transition active:scale-95 ${
-                        active ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-slate-100 text-slate-700"
+                        active ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-slate-100 text-slate-700"
                       }`}
                       key={option.value}
                       onClick={() => setMethod(option.value)}
@@ -343,7 +343,7 @@ export function StaffSaleTerminal({
 
           <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
             <button
-              className="flex w-full items-center justify-between gap-3 rounded-2xl bg-blue-600 px-6 py-4 text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+              className="flex w-full items-center justify-between gap-3 rounded-2xl bg-primary px-6 py-4 text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
               disabled={!hasItems || !method || isPending}
               onClick={confirm}
               type="button"

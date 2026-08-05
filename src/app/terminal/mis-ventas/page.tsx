@@ -51,7 +51,7 @@ export default async function MisVentasPage() {
           <p className="rounded-3xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
             Abrí tu turno con tu PIN para ver tus ventas del día.
           </p>
-          <Link className="mx-auto rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white" href="/terminal">
+          <Link className="mx-auto rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white" href="/terminal">
             Ir a mi terminal
           </Link>
         </div>
@@ -73,7 +73,7 @@ export default async function MisVentasPage() {
       <div className="shrink-0 border-b border-slate-100 px-5 py-4">
         <h1 className="text-xl font-black tracking-tight text-slate-950">Mis ventas de hoy</h1>
         <p className="mt-0.5 flex items-center gap-1.5 text-sm font-bold text-slate-500">
-          <Users aria-hidden="true" className="text-blue-600" size={14} />
+          <Users aria-hidden="true" className="text-primary" size={14} />
           {staffName}
           {branch ? ` · ${branch.name}` : ""}
         </p>
@@ -81,8 +81,8 @@ export default async function MisVentasPage() {
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 pb-5 pt-5">
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-blue-50 p-4">
-            <p className="text-xs font-black uppercase tracking-wide text-blue-700">Ventas</p>
+          <div className="rounded-2xl bg-primary/10 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-primary">Ventas</p>
             <p className="mt-1 text-2xl font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
               {completed.length}
             </p>

@@ -110,7 +110,7 @@ export function SaleReturnSheet({ saleId, onClose, onDone }: SaleReturnSheetProp
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 pt-5">
           {lines === null ? (
             <div className="flex items-center justify-center py-10">
-              <Loader2 className="size-6 animate-spin text-blue-600" />
+              <Loader2 className="size-6 animate-spin text-primary" />
             </div>
           ) : total === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">

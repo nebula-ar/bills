@@ -122,14 +122,14 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
                 <StaffAccessPanel branch={branch} lockedStaffId={lockedStaffId} />
                 {terminalId ? <input name="terminal" type="hidden" value={terminalId} /> : null}
                 <button
-                  className="rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+                  className="rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
                   type="submit"
                 >
                   Empezar turno
                 </button>
               </form>
               <div className="mx-auto mt-5 flex w-full max-w-md flex-wrap gap-4 px-1 text-sm font-semibold text-slate-500">
-                <Link className="hover:text-blue-700" href="/login">
+                <Link className="hover:text-primary" href="/login">
                   Administración
                 </Link>
               </div>

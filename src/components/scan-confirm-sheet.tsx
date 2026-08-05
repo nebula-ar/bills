@@ -84,16 +84,16 @@ export function ScanConfirmSheet({
               src={imageSrc}
             />
           ) : (
-            <span className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+            <span className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <DynamicIcon className="size-9" name={catalogIcon} />
             </span>
           )}
 
           <div className="min-w-0 flex-1">
             <p className="text-xl font-black leading-tight text-slate-950">{product.name}</p>
-            <p className="mt-1 text-lg font-black text-blue-700">
+            <p className="mt-1 text-lg font-black text-primary">
               {money(product.price)}
-              {byWeight ? <span className="text-sm font-bold text-blue-500"> por {unitShort(product.unit)}</span> : null}
+              {byWeight ? <span className="text-sm font-bold text-primary"> por {unitShort(product.unit)}</span> : null}
             </p>
             {product.stock !== null ? (
               <p className={`mt-0.5 text-xs font-bold ${sinStock ? "text-rose-600" : "text-slate-400"}`}>
@@ -119,7 +119,7 @@ export function ScanConfirmSheet({
           {byWeight ? (
             // Por peso o por metro no hay +/- que valga: se escribe lo que dio
             // la balanza.
-            <label className="mt-2 flex items-center rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white">
+            <label className="mt-2 flex items-center rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white">
               <input
                 aria-label={`Cantidad en ${unitShort(product.unit)}`}
                 className="w-full min-w-0 bg-transparent py-4 text-2xl font-black text-slate-950 outline-none"
@@ -147,7 +147,7 @@ export function ScanConfirmSheet({
               <span className="text-4xl font-black tabular-nums text-slate-950">{formatQuantity(quantity)}</span>
               <button
                 aria-label="Sumar"
-                className="flex size-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm transition active:scale-90"
+                className="flex size-14 items-center justify-center rounded-2xl bg-primary text-white shadow-sm transition active:scale-90"
                 onClick={() => step(1)}
                 type="button"
               >
@@ -198,7 +198,7 @@ export function ScanConfirmSheet({
 
         <div className="mt-4 border-t border-slate-100 px-5 pt-4">
           <button
-            className="flex w-full items-center justify-between gap-3 rounded-2xl bg-blue-600 px-5 py-4 text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+            className="flex w-full items-center justify-between gap-3 rounded-2xl bg-primary px-5 py-4 text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
             data-testid="scan-confirm"
             disabled={!puedeAgregar}
             onClick={() => onConfirm(quantity)}

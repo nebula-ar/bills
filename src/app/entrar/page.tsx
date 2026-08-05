@@ -13,7 +13,7 @@ import { findUserWithSellsAs } from "@/modules/auth/user.repository";
 // tenía que aprender por dónde se iba. Acá elige, y la elección alcanza.
 //
 // Mismo sistema visual que el login (y que la landing): fondo crema, tarjeta
-// hueso, tipografía display pesada y el azul #3158e8 como único acento. Entrar
+// hueso, tipografía display pesada y el azul var(--primary) como único acento. Entrar
 // no puede sentirse como cambiar de producto.
 export default async function EntrarPage() {
   // Acepta cualquier rol que trabaje con la app, no solo admin. Cuando esto
@@ -32,14 +32,14 @@ export default async function EntrarPage() {
   const destinos = destinosDelHub(capabilitiesOf(session.user.role));
 
   return (
-    <main className="flex min-h-[100dvh] flex-col bg-[#f5f4ef] pb-24 text-slate-950 sm:items-center sm:justify-center sm:px-6 sm:py-10 sm:pb-32">
+    <main className="flex min-h-[100dvh] flex-col bg-[var(--background)] pb-24 text-slate-950 sm:items-center sm:justify-center sm:px-6 sm:py-10 sm:pb-32">
       {/* En celular ocupa toda la pantalla (es una PWA y esta es la primera
           pantalla real de la sesión); de sm para arriba se vuelve tarjeta. */}
-      <section className="flex w-full flex-1 flex-col bg-[#fffef9] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:min-h-0 sm:max-w-[26rem] sm:flex-none sm:rounded-[28px] sm:border sm:border-slate-950/10 sm:px-8 sm:py-10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]">
+      <section className="flex w-full flex-1 flex-col bg-[var(--card)] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:min-h-0 sm:max-w-[26rem] sm:flex-none sm:rounded-[28px] sm:border sm:border-slate-950/10 sm:px-8 sm:py-10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]">
         <div className="flex flex-1 flex-col justify-center gap-7 sm:flex-none">
           <div className="grid gap-5">
             <span className="inline-flex w-fit items-center gap-2.5 text-lg font-black tracking-[-0.04em] text-slate-950">
-              <span className="grid size-9 place-items-center rounded-xl bg-slate-950 text-base font-black text-[#d7ef62]">B</span>
+              <span className="grid size-9 place-items-center rounded-xl bg-slate-950 text-base font-black text-[var(--accent-brand)]">B</span>
               Bills
             </span>
 
@@ -55,14 +55,14 @@ export default async function EntrarPage() {
             {destinos.map((destino) => (
               <Link
                 key={destino.href}
-                className="group flex items-center gap-4 rounded-[20px] border border-slate-950/10 bg-white p-5 transition hover:border-[#3158e8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3158e8] focus-visible:ring-offset-2 active:scale-[0.99]"
+                className="group flex items-center gap-4 rounded-[20px] border border-slate-950/10 bg-white p-5 transition hover:border-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 active:scale-[0.99]"
                 href={destino.href}
               >
                 <span
                   className={
                     destino.href === "/pos"
-                      ? "grid size-12 shrink-0 place-items-center rounded-2xl bg-[#3158e8] text-white"
-                      : "grid size-12 shrink-0 place-items-center rounded-2xl bg-slate-950 text-[#d7ef62]"
+                      ? "grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--primary)] text-white"
+                      : "grid size-12 shrink-0 place-items-center rounded-2xl bg-slate-950 text-[var(--accent-brand)]"
                   }
                 >
                   {destino.href === "/pos" ? <ShoppingBag className="size-6" /> : <TrendingUp className="size-6" />}
@@ -75,7 +75,7 @@ export default async function EntrarPage() {
                       : destino.hint}
                   </span>
                 </span>
-                <ArrowRight className="size-5 shrink-0 text-slate-400 transition group-hover:text-[#3158e8]" />
+                <ArrowRight className="size-5 shrink-0 text-slate-400 transition group-hover:text-[var(--primary)]" />
               </Link>
             ))}
 

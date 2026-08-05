@@ -660,7 +660,7 @@ export function PosCheckout({
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-40 pt-6 text-slate-950 lg:max-w-[1000px] lg:px-6 lg:pb-10">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-40 pt-6 text-slate-950 lg:max-w-[1000px] lg:px-6 lg:pb-10">
       <header className="flex items-center gap-3 duration-500 animate-in fade-in slide-in-from-top-2">
         <Link
           aria-label="Volver"
@@ -683,7 +683,7 @@ export function PosCheckout({
             {branches.map((item) => (
               <button
                 className={`shrink-0 rounded-2xl px-5 py-4 text-base font-black transition active:scale-95 ${
-                  item.id === branchId ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-white text-slate-700 ring-1 ring-slate-950/5"
+                  item.id === branchId ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-white text-slate-700 ring-1 ring-slate-950/5"
                 }`}
                 key={item.id}
                 onClick={() => selectBranch(item.id)}
@@ -703,7 +703,7 @@ export function PosCheckout({
             return (
               <button
                 className={`flex items-center gap-3 rounded-2xl p-3 text-left transition active:scale-[0.98] ${
-                  active ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-white text-slate-700 ring-1 ring-slate-950/5"
+                  active ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-white text-slate-700 ring-1 ring-slate-950/5"
                 }`}
                 data-testid="staff-option"
                 key={staff.id}
@@ -712,7 +712,7 @@ export function PosCheckout({
               >
                 <span
                   className={`flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-black ${
-                    active ? "bg-white/20 text-white" : "bg-blue-50 text-blue-700"
+                    active ? "bg-white/20 text-white" : "bg-primary/10 text-primary"
                   }`}
                 >
                   {initials(staff.name)}
@@ -729,7 +729,7 @@ export function PosCheckout({
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
             <input
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
               onChange={(event) => setSearch(event.target.value)}
               placeholder={features.barcodes ? "Buscar por nombre o código…" : `Buscar ${catalogSingular.toLowerCase()}…`}
               value={search}
@@ -760,7 +760,7 @@ export function PosCheckout({
               return (
                 <button
                   className={`flex min-h-[7.5rem] flex-col justify-between rounded-2xl border-2 p-3.5 text-left transition active:scale-[0.99] ${
-                    inCart > 0 ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"
+                    inCart > 0 ? "border-primary bg-primary/10" : "border-slate-200 bg-white"
                   }`}
                   key={`family-${product.familyId}`}
                   onClick={() => setOpenFamily(product.familyId)}
@@ -784,7 +784,7 @@ export function PosCheckout({
                   <span className="block text-base font-black leading-tight text-slate-950">
                     {product.familyName ?? product.name}
                   </span>
-                  <span className="mt-1.5 block text-lg font-black text-blue-700">{money(product.price)}</span>
+                  <span className="mt-1.5 block text-lg font-black text-primary">{money(product.price)}</span>
                   <span className="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 text-sm font-black text-slate-700">
                     {inCart > 0 ? `${formatQuantity(inCart)} en el pedido` : `${entry.variants.length} talles`}
                   </span>
@@ -804,7 +804,7 @@ export function PosCheckout({
                   overStock
                     ? "border-rose-400 bg-rose-50"
                     : active
-                      ? "border-blue-600 bg-blue-50"
+                      ? "border-primary bg-primary/10"
                       : "border-slate-200 bg-white"
                 }`}
                 key={product.productId}
@@ -827,9 +827,9 @@ export function PosCheckout({
                     )
                   ) : null}
                   <span className="block text-base font-black leading-tight text-slate-950">{product.name}</span>
-                  <span className="mt-1.5 block text-lg font-black text-blue-700">
+                  <span className="mt-1.5 block text-lg font-black text-primary">
                     {money(product.price)}
-                    {byWeight ? <span className="text-xs font-bold text-blue-500">/{unitShort(product.unit)}</span> : null}
+                    {byWeight ? <span className="text-xs font-bold text-primary">/{unitShort(product.unit)}</span> : null}
                   </span>
                   {product.stock !== null ? (
                     <span
@@ -844,7 +844,7 @@ export function PosCheckout({
 
                 {byWeight ? (
                   // Por peso o por metro no tiene sentido el +/-: se tipea.
-                  <label className="mt-3 flex items-center gap-2 rounded-full bg-white px-3 py-1.5 ring-1 ring-blue-200">
+                  <label className="mt-3 flex items-center gap-2 rounded-full bg-white px-3 py-1.5 ring-1 ring-primary/20">
                     <input
                       aria-label={`Cantidad de ${product.name} en ${unitShort(product.unit)}`}
                       className="w-full min-w-0 bg-transparent text-base font-black text-slate-950 outline-none"
@@ -856,7 +856,7 @@ export function PosCheckout({
                     <span className="shrink-0 text-xs font-black text-slate-400">{unitShort(product.unit)}</span>
                   </label>
                 ) : active ? (
-                  <div className="mt-3 flex items-center justify-between rounded-full bg-white p-1 ring-1 ring-blue-200">
+                  <div className="mt-3 flex items-center justify-between rounded-full bg-white p-1 ring-1 ring-primary/20">
                     <button
                       aria-label={`Restar ${product.name}`}
                       className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition active:scale-90"
@@ -870,7 +870,7 @@ export function PosCheckout({
                     </span>
                     <button
                       aria-label={`Sumar ${product.name}`}
-                      className="flex size-9 items-center justify-center rounded-full bg-blue-600 text-white transition active:scale-90"
+                      className="flex size-9 items-center justify-center rounded-full bg-primary text-white transition active:scale-90"
                       onClick={() => addProduct(product.productId)}
                       type="button"
                     >
@@ -915,7 +915,7 @@ export function PosCheckout({
         <aside className="hidden lg:sticky lg:top-6 lg:block">
           <div className="rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5">
             <h2 className="flex items-center gap-2 text-base font-black text-slate-950">
-              <ShoppingBag className="size-4 text-blue-600" />
+              <ShoppingBag className="size-4 text-primary" />
               Pedido
             </h2>
             {hasItems ? (
@@ -957,7 +957,7 @@ export function PosCheckout({
                   </span>
                 </div>
                 <button
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
                   onClick={openCheckout}
                   type="button"
                 >
@@ -978,7 +978,7 @@ export function PosCheckout({
       <div className="fixed inset-x-0 bottom-[4.75rem] z-30 mx-auto max-w-[560px] px-4 sm:bottom-[7rem] lg:hidden">
         <button
           className={`flex w-full items-center gap-3 rounded-[1.5rem] p-2.5 pl-5 text-left shadow-[0_-8px_40px_rgba(15,23,42,0.16)] transition active:scale-[0.99] ${
-            hasItems ? "bg-blue-600" : "pointer-events-none bg-slate-300"
+            hasItems ? "bg-primary" : "pointer-events-none bg-slate-300"
           }`}
           disabled={!hasItems}
           onClick={openCheckout}
@@ -987,7 +987,7 @@ export function PosCheckout({
           <span className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-white/15 text-white">
             <ShoppingBag className="size-5" />
             {itemCount > 0 ? (
-              <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-white text-xs font-black text-blue-700">
+              <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-white text-xs font-black text-primary">
                 {itemCount}
               </span>
             ) : null}
@@ -998,7 +998,7 @@ export function PosCheckout({
               {money(total)}
             </span>
           </span>
-          <span className="flex items-center gap-1.5 rounded-2xl bg-white px-5 py-4 text-sm font-black text-blue-700">
+          <span className="flex items-center gap-1.5 rounded-2xl bg-white px-5 py-4 text-sm font-black text-primary">
             Continuar
             <ArrowRight className="size-4" />
           </span>
@@ -1044,7 +1044,7 @@ export function PosCheckout({
                   return (
                     <div
                       className={`flex items-center gap-2.5 rounded-2xl p-2.5 transition ${
-                        item.productId === lastAddedId ? "bg-blue-50 ring-2 ring-blue-500" : "bg-slate-50"
+                        item.productId === lastAddedId ? "bg-primary/10 ring-2 ring-primary" : "bg-slate-50"
                       }`}
                       key={item.productId}
                     >
@@ -1056,7 +1056,7 @@ export function PosCheckout({
                           src={imageSrc}
                         />
                       ) : (
-                        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600">
+                        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-primary">
                           <DynamicIcon className="size-5" name={catalogIcon} />
                         </span>
                       )}
@@ -1101,7 +1101,7 @@ export function PosCheckout({
                           </span>
                           <button
                             aria-label={`Sumar ${item.name}`}
-                            className="flex size-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm transition active:scale-90"
+                            className="flex size-10 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition active:scale-90"
                             onClick={() => addProduct(item.productId)}
                             type="button"
                           >
@@ -1126,7 +1126,7 @@ export function PosCheckout({
 
             <div className="border-t border-slate-100 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
               <button
-                className="flex w-full items-center justify-between gap-3 rounded-2xl bg-blue-600 px-5 py-4 text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+                className="flex w-full items-center justify-between gap-3 rounded-2xl bg-primary px-5 py-4 text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
                 data-testid="scan-review"
                 disabled={!hasItems}
                 onClick={() => {
@@ -1171,7 +1171,7 @@ export function PosCheckout({
 
               return (
                 <div
-                  className={`flex items-center gap-3 rounded-2xl p-3 ${quantity > 0 ? "bg-blue-50" : "bg-slate-50"}`}
+                  className={`flex items-center gap-3 rounded-2xl p-3 ${quantity > 0 ? "bg-primary/10" : "bg-slate-50"}`}
                   key={variant.productId}
                 >
                   <div className="min-w-0 flex-1">
@@ -1196,7 +1196,7 @@ export function PosCheckout({
                     <span className="w-8 text-center text-base font-black">{formatQuantity(quantity)}</span>
                     <button
                       aria-label={`Sumar ${variant.name}`}
-                      className="flex size-9 items-center justify-center rounded-full bg-blue-600 text-white transition active:scale-90"
+                      className="flex size-9 items-center justify-center rounded-full bg-primary text-white transition active:scale-90"
                       onClick={() => addProduct(variant.productId)}
                       type="button"
                     >
@@ -1341,7 +1341,7 @@ export function PosCheckout({
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">¿Quién compra?</p>
                 <select
                   aria-label="Cliente"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
                   onChange={(event) => setCustomerId(event.target.value)}
                   value={customerId}
                 >
@@ -1372,7 +1372,7 @@ export function PosCheckout({
                 <p className="text-xs font-black uppercase tracking-wide text-slate-500">¿Cómo paga?</p>
                 <button
                   className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black transition active:scale-95 ${
-                    splitMode ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
+                    splitMode ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
                   }`}
                   onClick={toggleSplit}
                   type="button"
@@ -1387,7 +1387,7 @@ export function PosCheckout({
                   {splitRows.map((row) => (
                     <div className="flex items-center gap-2" key={row.id}>
                       <select
-                        className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-950 outline-none focus:border-blue-400 focus:bg-white"
+                        className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-950 outline-none focus:border-primary/40 focus:bg-white"
                         onChange={(event) => updateSplitRow(row.id, { method: event.target.value })}
                         value={row.method}
                       >
@@ -1397,7 +1397,7 @@ export function PosCheckout({
                           </option>
                         ))}
                       </select>
-                      <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 px-2 focus-within:border-blue-400 focus-within:bg-white">
+                      <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 px-2 focus-within:border-primary/40 focus-within:bg-white">
                         <span className="text-sm font-bold text-slate-400">$</span>
                         <input
                           aria-label="Monto del pago"
@@ -1422,7 +1422,7 @@ export function PosCheckout({
                   ))}
                   <div className="flex items-center justify-between pt-1">
                     {splitRows.length < paymentOptions.length ? (
-                      <button className="text-sm font-black text-blue-600" onClick={addSplitRow} type="button">
+                      <button className="text-sm font-black text-primary" onClick={addSplitRow} type="button">
                         + Agregar método
                       </button>
                     ) : (
@@ -1441,7 +1441,7 @@ export function PosCheckout({
                     return (
                       <button
                         className={`flex items-center gap-2.5 rounded-2xl px-4 py-4 text-sm font-black transition active:scale-95 ${
-                          active ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-slate-100 text-slate-700"
+                          active ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-slate-100 text-slate-700"
                         }`}
                         key={option.value}
                         onClick={() => setSingleMethod(option.value)}
@@ -1521,7 +1521,7 @@ export function PosCheckout({
             <section>
               <button
                 className={`flex w-full items-center justify-between gap-2 rounded-2xl px-4 py-3 text-sm font-black transition active:scale-[0.99] ${
-                  wantsInvoice ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200" : "bg-slate-100 text-slate-600"
+                  wantsInvoice ? "bg-primary/10 text-primary ring-1 ring-primary/20" : "bg-slate-100 text-slate-600"
                 }`}
                 onClick={() => setWantsInvoice((value) => !value)}
                 type="button"
@@ -1536,7 +1536,7 @@ export function PosCheckout({
               {wantsInvoice ? (
                 <div className="mt-2.5 space-y-2.5 rounded-2xl bg-slate-50 p-3.5">
                   <input
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:ring-4 focus:ring-primary/15"
                     onChange={(event) => setCustomerName(event.target.value)}
                     placeholder="Nombre o razón social"
                     type="text"
@@ -1544,7 +1544,7 @@ export function PosCheckout({
                   />
                   <input
                     className={`w-full rounded-xl border bg-white px-3.5 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:ring-4 ${
-                      customerTaxIdHasError ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100" : "border-slate-200 focus:border-blue-400 focus:ring-blue-100"
+                      customerTaxIdHasError ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100" : "border-slate-200 focus:border-primary/40 focus:ring-primary/15"
                     }`}
                     inputMode="numeric"
                     onChange={(event) => setCustomerTaxId(event.target.value)}
@@ -1555,7 +1555,7 @@ export function PosCheckout({
                   {customerTaxIdHasError ? <p className="text-xs font-semibold text-rose-600">CUIT/DNI inválido.</p> : null}
                   {customerTaxIdCheck?.kind === "CUIT" && customerTaxIdCheck.valid ? (
                     <select
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:ring-4 focus:ring-primary/15"
                       onChange={(event) => setCustomerTaxCondition(event.target.value as TaxCondition)}
                       value={customerTaxCondition}
                     >
@@ -1581,7 +1581,7 @@ export function PosCheckout({
           {/* Footer: confirmar */}
           <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
             <button
-              className="flex w-full items-center justify-between gap-3 rounded-2xl bg-blue-600 px-6 py-4 text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+              className="flex w-full items-center justify-between gap-3 rounded-2xl bg-primary px-6 py-4 text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
               disabled={!canConfirm || isPending}
               onClick={confirm}
               type="button"
@@ -1632,11 +1632,11 @@ function Step({
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
     >
       <h2 className="mb-3 flex items-center gap-2.5 text-lg font-black text-slate-950">
-        <span className="flex size-7 items-center justify-center rounded-full bg-blue-600 text-sm font-black text-white">{step}</span>
+        <span className="flex size-7 items-center justify-center rounded-full bg-primary text-sm font-black text-white">{step}</span>
         {iconName ? (
-          <DynamicIcon className="size-5 text-blue-600" name={iconName} />
+          <DynamicIcon className="size-5 text-primary" name={iconName} />
         ) : Icon ? (
-          <Icon className="size-5 text-blue-600" />
+          <Icon className="size-5 text-primary" />
         ) : null}
         {title}
       </h2>

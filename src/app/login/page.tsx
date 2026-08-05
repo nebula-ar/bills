@@ -10,7 +10,7 @@ type LoginPageProps = {
 };
 
 // El login usa el mismo sistema visual que la landing (hero.tsx): fondo crema,
-// tipografía display bien pesada, el logo negro con la B lima y el azul #3158e8
+// tipografía display bien pesada, el logo negro con la B lima y el azul var(--primary)
 // como único acento. Antes era otra marca —logo violeta "BB", fondo lavanda,
 // botón azul con glow— y se notaba el salto al entrar desde la home.
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -19,19 +19,19 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const hasError = Boolean(getSingleParam(params.error));
 
   return (
-    <main className="flex min-h-[100dvh] flex-col bg-[#f5f4ef] text-slate-950 sm:items-center sm:justify-center sm:px-6 sm:py-10">
+    <main className="flex min-h-[100dvh] flex-col bg-[var(--background)] text-slate-950 sm:items-center sm:justify-center sm:px-6 sm:py-10">
       {/* En celular ocupa toda la pantalla (es una PWA y el login es la primera
           pantalla real); de sm para arriba se convierte en tarjeta centrada. */}
-      <section className="flex w-full flex-1 flex-col bg-[#fffef9] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:min-h-0 sm:max-w-[26rem] sm:flex-none sm:rounded-[28px] sm:border sm:border-slate-950/10 sm:px-8 sm:py-10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]">
+      <section className="flex w-full flex-1 flex-col bg-[var(--card)] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:min-h-0 sm:max-w-[26rem] sm:flex-none sm:rounded-[28px] sm:border sm:border-slate-950/10 sm:px-8 sm:py-10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]">
         <div className="flex flex-1 flex-col justify-center gap-7 sm:flex-none">
           <div className="grid gap-5">
             {/* El logo vuelve a la home: sin esto el login es un callejón sin
                 salida para quien entró a mirar y todavía no tiene cuenta. */}
             <Link
-              className="inline-flex w-fit items-center gap-2.5 rounded-xl text-lg font-black tracking-[-0.04em] text-slate-950 transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3158e8] focus-visible:ring-offset-2"
+              className="inline-flex w-fit items-center gap-2.5 rounded-xl text-lg font-black tracking-[-0.04em] text-slate-950 transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
               href="/"
             >
-              <span className="grid size-9 place-items-center rounded-xl bg-slate-950 text-base font-black text-[#d7ef62]">B</span>
+              <span className="grid size-9 place-items-center rounded-xl bg-slate-950 text-base font-black text-[var(--accent-brand)]">B</span>
               Bills
             </Link>
 
@@ -55,7 +55,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <p className="border-t border-slate-200 pt-6 text-sm text-slate-600">
             ¿No tenés cuenta?{" "}
-            <Link className="font-black text-[#3158e8] hover:underline" href="/register">
+            <Link className="font-black text-[var(--primary)] hover:underline" href="/register">
               Registrá tu negocio
             </Link>
           </p>

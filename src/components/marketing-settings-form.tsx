@@ -98,7 +98,7 @@ export function MarketingSettingsForm({
       </Field>
 
       <button
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3.5 text-sm font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400 sm:col-span-2"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3.5 text-sm font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400 sm:col-span-2"
         disabled={isPending}
         type="submit"
       >

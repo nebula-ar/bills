@@ -41,7 +41,7 @@ export function ExportPanel({
           <a
             aria-disabled={invalid}
             className={`flex flex-col gap-1 rounded-2xl border border-slate-200 p-3.5 transition active:scale-[0.99] ${
-              invalid ? "pointer-events-none opacity-40" : "hover:border-blue-300"
+              invalid ? "pointer-events-none opacity-40" : "hover:border-primary/30"
             }`}
             download
             href={`/api/export?dataset=${dataset.value}&from=${from}&to=${to}`}
@@ -49,7 +49,7 @@ export function ExportPanel({
           >
             <span className="flex items-center gap-1.5 text-sm font-black text-slate-950">
               {dataset.label}
-              <ArrowUpRight className="size-3.5 text-blue-600" />
+              <ArrowUpRight className="size-3.5 text-primary" />
             </span>
             <span className="text-xs text-slate-500">{dataset.hint}</span>
           </a>

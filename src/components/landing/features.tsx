@@ -4,10 +4,10 @@ import { landingFeatures } from "./landing-content";
 
 export function FeaturesSection() {
   return (
-    <section id="producto" className="border-t border-slate-200 bg-[#fffef9] py-24 text-slate-950 lg:py-32">
+    <section id="producto" className="border-t border-slate-200 bg-[var(--card)] py-24 text-slate-950 lg:py-32">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div className="max-w-3xl">
-          <p className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-[#3158e8]">El método Bills</p>
+          <p className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-[var(--primary)]">El método Bills</p>
           <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.07em] sm:text-5xl lg:text-6xl">
             De vender a decidir, sin saltar entre cinco herramientas.
           </h2>
@@ -19,15 +19,15 @@ export function FeaturesSection() {
         <div className="mt-16 grid border-t border-slate-300 md:grid-cols-3">
           {landingFeatures.map((feature, index) => (
             <article key={feature.kicker} className={`min-h-[245px] py-6 md:pr-8 ${index > 0 ? "border-t border-slate-300 md:border-l md:border-t-0 md:pl-8" : ""}`}>
-              <p className="text-xs font-black text-[#3158e8]">{feature.kicker}</p>
+              <p className="text-xs font-black text-[var(--primary)]">{feature.kicker}</p>
               <h3 className="mt-10 max-w-xs text-2xl font-black tracking-[-0.05em]">{feature.title}</h3>
               <p className="mt-3 max-w-xs text-sm leading-6 text-slate-600">{feature.description}</p>
-              <div className="mt-6 h-1 w-10 bg-[#d7ef62]" aria-hidden="true" />
+              <div className="mt-6 h-1 w-10 bg-[var(--accent-brand)]" aria-hidden="true" />
             </article>
           ))}
         </div>
 
-        <div className="mt-12 flex items-center gap-2 text-sm font-black text-[#3158e8]">
+        <div className="mt-12 flex items-center gap-2 text-sm font-black text-[var(--primary)]">
           <span>Una app que crece con tu negocio</span>
           <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
         </div>
@@ -41,7 +41,7 @@ export function AdaptableSection() {
     <section id="rubros" className="border-t border-slate-200 bg-[#e8e9ff] py-24 text-slate-950 lg:py-32">
       <div className="mx-auto grid max-w-7xl gap-12 px-5 sm:px-8 lg:grid-cols-[0.75fr_1.25fr] lg:gap-20 lg:px-12">
         <div>
-          <p className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-[#3158e8]">Un producto, varios mundos</p>
+          <p className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-[var(--primary)]">Un producto, varios mundos</p>
           <h2 className="max-w-lg text-4xl font-black leading-[0.98] tracking-[-0.07em] sm:text-5xl">
             La app cambia de vocabulario. La lógica sigue siendo tuya.
           </h2>

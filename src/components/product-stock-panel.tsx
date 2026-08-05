@@ -129,7 +129,7 @@ export function ProductStockPanel({
               <span className="shrink-0 text-xs font-black text-slate-400">{unitShort(unit)}</span>
             </span>
             <button
-              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white transition active:scale-95 disabled:bg-slate-200 disabled:text-slate-400"
+              className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white transition active:scale-95 disabled:bg-slate-200 disabled:text-slate-400"
               disabled={isPending}
               onClick={submit}
               type="button"

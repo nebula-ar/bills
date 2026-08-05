@@ -82,7 +82,7 @@ export function ProductPhotoField({
           )}
           {isPending ? (
             <span className="absolute inset-0 flex items-center justify-center bg-white/70">
-              <Loader2 className="size-5 animate-spin text-blue-600" />
+              <Loader2 className="size-5 animate-spin text-primary" />
             </span>
           ) : null}
         </button>

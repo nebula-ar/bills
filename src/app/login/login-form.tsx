@@ -62,7 +62,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
       <div className="grid gap-4">
         <label className="grid gap-2 text-xs font-black uppercase tracking-[0.08em] text-slate-500" htmlFor="email">
           Email o usuario
-          <span className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 transition focus-within:border-[#3158e8] focus-within:ring-4 focus-within:ring-[#3158e8]/12">
+          <span className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 transition focus-within:border-[var(--primary)] focus-within:ring-4 focus-within:ring-[var(--primary)]/12">
             <Mail aria-hidden="true" className="shrink-0 text-slate-400" size={20} />
             <input
               aria-describedby={error ? "login-error" : undefined}
@@ -85,7 +85,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
 
         <label className="grid gap-2 text-xs font-black uppercase tracking-[0.08em] text-slate-500" htmlFor="password">
           Contraseña
-          <span className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 transition focus-within:border-[#3158e8] focus-within:ring-4 focus-within:ring-[#3158e8]/12">
+          <span className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 transition focus-within:border-[var(--primary)] focus-within:ring-4 focus-within:ring-[var(--primary)]/12">
             <Lock aria-hidden="true" className="shrink-0 text-slate-400" size={20} />
             <input
               aria-describedby={error ? "login-error" : undefined}
@@ -141,7 +141,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
             azul y se levanta. Es la acción principal de la app y conviene que se
             vea igual en los dos lados. */}
         <button
-          className="mt-1 flex min-h-[3.25rem] items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-base font-black text-white transition hover:-translate-y-0.5 hover:bg-[#3158e8] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:bg-slate-950"
+          className="mt-1 flex min-h-[3.25rem] items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-base font-black text-white transition hover:-translate-y-0.5 hover:bg-[var(--primary)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:bg-slate-950"
           disabled={isPending}
           type="submit"
         >

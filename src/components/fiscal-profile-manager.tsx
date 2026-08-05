@@ -30,7 +30,7 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
   const fiscallyConfigured = Boolean(data.cuit && data.taxCondition && data.salesPointNumber != null);
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[720px] lg:px-8">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[720px] lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -54,7 +54,7 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
         className="mt-4 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-2"
       >
         <div className="mb-4 flex items-center gap-2.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
             <ReceiptText className="size-4" />
           </span>
           <div className="min-w-0 flex-1">
@@ -74,7 +74,7 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
             CUIT
             <input
               className={`rounded-2xl border bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:bg-white focus:ring-4 ${
-                cuitHasError ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100" : "border-slate-200 focus:border-blue-400 focus:ring-blue-100"
+                cuitHasError ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100" : "border-slate-200 focus:border-primary/40 focus:ring-primary/15"
               }`}
               inputMode="numeric"
               name="cuit"
@@ -88,7 +88,7 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
           <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
             Condición frente al IVA
             <select
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
               defaultValue={data.taxCondition ?? ""}
               name="taxCondition"
             >
@@ -104,7 +104,7 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
           <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
             Punto de venta AFIP
             <input
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
               defaultValue={data.salesPointNumber ?? ""}
               inputMode="numeric"
               max={9999}
@@ -121,7 +121,7 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
         </div>
 
         <button
-          className="mt-4 w-full rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+          className="mt-4 w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
           type="submit"
         >
           Guardar datos fiscales
@@ -157,7 +157,7 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               Usuario de Clave Fiscal
               <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                 name="claveFiscalUsername"
                 placeholder="Tu CUIT o usuario de AFIP"
                 required
@@ -168,7 +168,7 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
               Contraseña de Clave Fiscal
               <div className="relative">
                 <input
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-12 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-12 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                   name="claveFiscalPassword"
                   required
                   type={showPassword ? "text" : "password"}

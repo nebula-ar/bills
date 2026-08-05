@@ -36,7 +36,7 @@ const dayFormatter = new Intl.DateTimeFormat("es-AR", { weekday: "short", day: "
 const timeFormatter = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
 
 const input =
-  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white";
+  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white";
 
 export function PublicBooking(props: PublicBookingProps) {
   const router = useRouter();
@@ -171,7 +171,7 @@ export function PublicBooking(props: PublicBookingProps) {
                 return (
                   <button
                     className={`shrink-0 rounded-2xl px-4 py-2.5 text-sm font-bold capitalize transition ${
-                      selected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
+                      selected ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
                     }`}
                     key={day}
                     onClick={() => pickDay(day)}
@@ -195,7 +195,7 @@ export function PublicBooking(props: PublicBookingProps) {
                 {props.slots.map((iso) => (
                   <button
                     className={`rounded-xl py-2.5 text-sm font-black transition ${
-                      slot === iso ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+                      slot === iso ? "bg-primary text-white" : "bg-slate-100 text-slate-700"
                     }`}
                     key={iso}
                     onClick={() => setSlot(iso)}
@@ -251,7 +251,7 @@ export function PublicBooking(props: PublicBookingProps) {
           ) : null}
 
           <button
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
             disabled={!canBook || isPending}
             onClick={submit}
             type="button"

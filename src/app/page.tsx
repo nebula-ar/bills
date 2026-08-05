@@ -50,7 +50,7 @@ export default async function LandingPage() {
   if (staffSession) redirect("/terminal");
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#f5f4ef] font-sans text-slate-950 selection:bg-[#d7ef62]">
+    <div className="min-h-screen overflow-x-hidden bg-[var(--background)] font-sans text-slate-950 selection:bg-[var(--accent-brand)]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <Navbar />

@@ -339,7 +339,7 @@ export function QuoteBuilder({
       </div>
 
       <button
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
         disabled={isPending || totals.total <= 0}
         onClick={submit}
         type="button"

@@ -45,7 +45,7 @@ function CopyButton({ copied, onClick }: { copied: boolean; onClick: () => void 
   return (
     <button
       className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-black transition active:scale-95 ${
-        copied ? "bg-emerald-100 text-emerald-700" : "bg-blue-600 text-white"
+        copied ? "bg-emerald-100 text-emerald-700" : "bg-primary text-white"
       }`}
       onClick={onClick}
       type="button"
@@ -70,7 +70,7 @@ function AutoRow({ icon: Icon, name, hint, path }: { icon: ComponentType<{ class
   return (
     <div className="rounded-2xl bg-slate-50 p-3">
       <div className="flex items-center gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-blue-700 ring-1 ring-slate-950/5">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-primary ring-1 ring-slate-950/5">
           <Icon className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
@@ -89,7 +89,7 @@ function CustomRow({ terminal, onEdit }: { terminal: CustomTerminal; onEdit: () 
   return (
     <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-950/5">
       <div className="flex items-center gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
           <Tag className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
@@ -131,7 +131,7 @@ function Select({
       {label}
       <div className="relative">
         <select
-          className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-11 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+          className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-11 text-base font-bold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
           name={name}
           onChange={(event) => onChange(event.target.value)}
           value={value}
@@ -169,7 +169,7 @@ function TerminalForm({
       <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
         Nombre
         <input
-          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
           defaultValue={defaultName}
           maxLength={40}
           name="name"
@@ -231,7 +231,7 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -244,7 +244,7 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
           {data.branches.map((item) => (
             <button
               className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition active:scale-95 ${
-                item.id === data.selectedBranchId ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
+                item.id === data.selectedBranchId ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
               }`}
               key={item.id}
               onClick={() => selectBranch(item.id)}
@@ -277,7 +277,7 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
             <p className="mb-2 px-1 text-xs font-black uppercase tracking-wide text-slate-500">Terminales propias</p>
             {branch.customTerminals.length === 0 ? (
               <button
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-sm font-black text-blue-600 transition active:scale-[0.99]"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-sm font-black text-primary transition active:scale-[0.99]"
                 onClick={() => setNewOpen(true)}
                 type="button"
               >
@@ -344,7 +344,7 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
             </div>
             <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
               <button
-                className="w-full rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+                className="w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
                 type="submit"
               >
                 Crear terminal
@@ -382,7 +382,7 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
               </div>
               <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
                 <button
-                  className="w-full rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+                  className="w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
                   type="submit"
                 >
                   Guardar cambios
@@ -409,7 +409,7 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
       {branch ? (
         <button
           aria-label="Nueva terminal"
-          className="fixed bottom-[96px] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 transition hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
+          className="fixed bottom-[96px] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 transition hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
           onClick={() => setNewOpen(true)}
           type="button"
         >

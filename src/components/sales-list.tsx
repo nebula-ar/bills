@@ -307,7 +307,7 @@ export function SalesList({ sales, businessName = "", initialCursor = null, load
                         </p>
                       ) : null}
                       <button
-                        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3.5 text-sm font-black text-blue-700 transition active:scale-[0.99] disabled:opacity-60"
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3.5 text-sm font-black text-primary transition active:scale-[0.99] disabled:opacity-60"
                         disabled={invoicing}
                         onClick={() => handleEmitInvoice(selected.id)}
                         type="button"
@@ -332,7 +332,7 @@ export function SalesList({ sales, businessName = "", initialCursor = null, load
                   <form action={cancelSaleAction} className="space-y-3">
                     <input name="saleId" type="hidden" value={selected.id} />
                     <textarea
-                      className="min-h-20 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      className="min-h-20 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                       maxLength={500}
                       name="reason"
                       placeholder="Motivo de la cancelación (opcional)"
