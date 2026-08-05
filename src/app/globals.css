@@ -98,6 +98,55 @@ textarea {
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Pastelería / panadería
+ 
+   El rubro no cambia solo qué módulos vienen prendidos: también cómo se ve.
+   Una panadería no se reconoce en el azul de una barbería.
+ 
+   Esto alcanza para que TODA la app cambie de cara porque los componentes
+   pintan con ranuras semánticas (bg-primary, bg-destructive, var(--radius-md))
+   y nunca con un color propio. Redefinir las ranuras acá los alcanza a todos,
+   sin forkear ninguno.
+ 
+   El radio más grande no es un detalle: la identidad es rosa Y redondeada.
+   Solo el color deja una app bancaria pintada de rosa.
+   ───────────────────────────────────────────────────────────────────────────── */
+[data-vertical="BAKERY"] {
+  --background: oklch(0.9731 0 89.88); /* canvas */
+  --foreground: oklch(0.2347 0.0081 308.08); /* ink */
+  --card: oklch(1 0 89.88); /* surface */
+  --card-foreground: oklch(0.2347 0.0081 308.08);
+  --popover: oklch(1 0 89.88);
+  --popover-foreground: oklch(0.2347 0.0081 308.08);
+
+  --primary: oklch(0.7368 0.1778 358.63); /* brand */
+  --primary-foreground: oklch(1 0 89.88);
+  --secondary: oklch(0.9319 0.0254 11.6); /* blush */
+  --secondary-foreground: oklch(0.2347 0.0081 308.08);
+
+  --muted: oklch(0.934 0 89.88); /* mist */
+  --muted-foreground: oklch(0.5059 0.0013 197.12); /* ink-soft */
+  --accent: oklch(0.9319 0.0254 11.6); /* blush */
+  --accent-foreground: oklch(0.2347 0.0081 308.08);
+
+  --destructive: oklch(0.6241 0.1986 10.26); /* danger */
+  --border: oklch(0.934 0 89.88); /* line */
+  --input: oklch(0.934 0 89.88);
+  --ring: oklch(0.7368 0.1778 358.63); /* brand */
+
+  /* Redondeado y blando: el resto de la escala (sm/md/lg/xl/2xl) sale de acá. */
+  --radius: 1rem;
+
+  /* Acentos del rubro. No tienen ranura estándar en shadcn porque solo los
+     usan sus pantallas: el amarillo de fidelidad, los pasteles de variedad. */
+  --brand-strong: oklch(0.64 0.234 357.03);
+  --butter: oklch(0.939 0.0732 88.45);
+  --pink: oklch(0.8498 0.0845 4.16);
+  --lilac: oklch(0.8945 0.0549 327.93);
+  --success: oklch(0.6528 0.124 155.08);
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

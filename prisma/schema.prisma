@@ -98,6 +98,7 @@ enum Vertical {
   GROCERY // Verdulería / fiambrería / dietética
   HABERDASHERY // Mercería / bazar
   HARDWARE // Ferretería / corralón
+  BAKERY // Panadería / pastelería / confitería
   GENERAL // Cualquier otro comercio
 }
 
@@ -116,6 +117,9 @@ enum AppModule {
   APPOINTMENTS // Agenda de turnos (barbería, estética)
   QUOTES // Presupuestos: cotizar antes de vender (ferretería, mercería, corralón)
   MARKETING // Recuperar clientes, cumpleaños, puntos y la página pública del negocio
+  TABLES // Salón: sectores, mesas y comandas (gastronomía)
+  KITCHEN // Pantalla de cocina: qué preparar y en qué orden (gastronomía)
+  RECIPES // Recetas, producción y mermas: qué ingrediente consume cada producto
 }
 
 // Un módulo prendido para un negocio. La ausencia de fila = módulo apagado.

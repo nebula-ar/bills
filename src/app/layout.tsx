@@ -71,9 +71,13 @@ export default async function RootLayout({
   return (
     <html
       lang="es-AR"
+      // El rubro pinta la app entera: los componentes usan ranuras semánticas
+      // y el bloque [data-vertical] de globals.css las redefine. Sin esto el
+      // bloque existe pero nunca aplica.
+      data-vertical={business?.vertical}
       className={`${inter.variable} ${geistMono.variable} ${montserrat.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#f6f7fb]">
+      <body className="min-h-full flex flex-col bg-background">
         {children}
         {nav ? <MobileNav nav={nav} /> : null}
         <InstallPrompt />

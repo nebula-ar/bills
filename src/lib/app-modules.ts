@@ -104,6 +104,29 @@ export const MODULE_INFO: Record<AppModule, ModuleInfo> = {
     icon: "solar:hand-money-bold",
     tint: "emerald",
   },
+  [AppModule.TABLES]: {
+    module: AppModule.TABLES,
+    label: "Salón",
+    hint: "Sectores, mesas y comandas",
+    icon: "solar:cup-hot-bold",
+    tint: "orange",
+  },
+  [AppModule.KITCHEN]: {
+    module: AppModule.KITCHEN,
+    label: "Cocina",
+    // No es una pantalla de gestión: es la que mira el cocinero mientras
+    // trabaja, con lo que falta preparar y hace cuánto que espera.
+    hint: "Qué preparar y en qué orden",
+    icon: "solar:chef-hat-bold",
+    tint: "rose",
+  },
+  [AppModule.RECIPES]: {
+    module: AppModule.RECIPES,
+    label: "Recetas",
+    hint: "Qué ingrediente consume cada producto, producción y mermas",
+    icon: "solar:cookbook-bold",
+    tint: "amber",
+  },
 };
 
 // Los módulos que el dueño puede prender y apagar desde configuración, en el
@@ -121,6 +144,9 @@ export const CONFIGURABLE_MODULES: AppModule[] = [
   AppModule.INVOICING,
   AppModule.TERMINALS,
   AppModule.STAFF_COMMISSIONS,
+  AppModule.TABLES,
+  AppModule.KITCHEN,
+  AppModule.RECIPES,
 ];
 
 export function isAppModule(value: string): value is AppModule {
@@ -132,6 +158,11 @@ export function isAppModule(value: string): value is AppModule {
 // prenderlo dejaría un módulo activo sin puerta.
 export const MODULE_REQUIRES: Partial<Record<AppModule, AppModule>> = {
   [AppModule.SUPPLIERS]: AppModule.EXPENSES,
+  // La cocina muestra comandas: sin mesas no hay comanda que mostrar y la
+  // pantalla quedaría vacía para siempre.
+  [AppModule.KITCHEN]: AppModule.TABLES,
+  // Una receta descuenta ingredientes del stock. Sin stock no hay de dónde.
+  [AppModule.RECIPES]: AppModule.STOCK,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
