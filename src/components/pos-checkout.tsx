@@ -829,10 +829,8 @@ export function PosCheckout({
                 // se distinguen a simple vista, y dos estilos para lo mismo
                 // hacen dudar de si son cosas distintas.
                 <button
-                  className={`flex min-h-[7.5rem] flex-col overflow-hidden rounded-2xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] ${
-                    inCart > 0
-                      ? "bg-white shadow-md shadow-primary/20 ring-2 ring-primary"
-                      : "bg-white shadow-sm ring-1 ring-slate-950/5"
+                  className={`flex min-h-[7.5rem] flex-col overflow-hidden rounded-lg border-2 bg-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] ${
+                    inCart > 0 ? "border-primary shadow-md shadow-primary/20" : "border-slate-950/5 shadow-sm"
                   }`}
                   key={`family-${product.familyId}`}
                   onClick={() => setOpenFamily(product.familyId)}
@@ -880,12 +878,24 @@ export function PosCheckout({
               // Elegido: anillo y sombra en vez de relleno rosa, para que la
               // foto siga siendo lo que se ve.
               <div
-                className={`flex min-h-[7.5rem] flex-col overflow-hidden rounded-2xl bg-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+                // `rounded-lg` = `var(--radius)`, el radio base del rubro: 16px
+                // en panadería, que es exactamente el de la tarjeta de Migas.
+                // Con `rounded-2xl` la escala lo multiplica por 1.8 y quedaba en
+                // 28.8px: la esquina se comía la foto.
+                //
+                // Y borde de verdad, no `ring`: el anillo es un box-shadow que
+                // se dibuja AFUERA, mientras el `overflow-hidden` recorta la
+                // foto adentro. Los dos bordes caen en curvas distintas y en la
+                // esquina queda una franja sucia. El borde lo pinta el propio
+                // elemento sobre el recorte, así que el filo sale limpio. Los
+                // 2px están siempre y solo cambia el color: si aparecieran al
+                // elegir, la tarjeta saltaría 4px.
+                className={`flex min-h-[7.5rem] flex-col overflow-hidden rounded-lg border-2 bg-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
                   overStock
-                    ? "shadow-sm ring-2 ring-destructive"
+                    ? "border-destructive shadow-sm"
                     : active
-                      ? "shadow-md shadow-primary/20 ring-2 ring-primary"
-                      : "shadow-sm ring-1 ring-slate-950/5"
+                      ? "border-primary shadow-md shadow-primary/20"
+                      : "border-slate-950/5 shadow-sm"
                 }`}
                 key={product.productId}
               >
