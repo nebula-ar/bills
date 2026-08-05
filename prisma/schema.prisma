@@ -1107,6 +1107,10 @@ model StockLevel {
   productId String
   // En milésimas. Puede ser negativo si se permite vender sin stock.
   quantity  Int      @default(0)
+  // Cuándo vence lo que hay. Nullable porque la mayoría no vence: una bolsa de
+  // harina sí, un corte de pelo no. Un vencimiento es un DÍA y no un instante
+  // (ver src/modules/stock/vencimientos.ts).
+  expiresAt DateTime?
   // Costo promedio ponderado (PPP) de lo que hay acá, en pesos por unidad de
   // medida. Se recalcula en cada entrada: (valor que había + valor que entra) /
   // (cantidad que había + cantidad que entra).

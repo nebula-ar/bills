@@ -12,6 +12,7 @@ import {
   findReceta,
   findStockDeInsumos,
   ponerEnReceta,
+  ponerVencimiento,
   registrarProduccion,
   sacarDeReceta,
 } from "@/modules/tables/recipes.repository";
@@ -130,4 +131,21 @@ export async function producirAction(formData: FormData) {
   revalidatePath("/produccion");
   revalidatePath("/stock");
   volver("/produccion", "ok", `Producción registrada: ${unidades} unidades`);
+}
+
+export async function ponerVencimientoAction(formData: FormData) {
+  await requireModule(AppModule.RECIPES);
+
+  const crudo = texto(formData, "expiresAt");
+
+  await ponerVencimiento({
+    branchId: texto(formData, "branchId"),
+    productId: texto(formData, "productId"),
+    // Vacío = se limpia. Cargar una fecha por error y no poder sacarla es peor
+    // que no tener el campo.
+    expiresAt: crudo ? new Date(`${crudo}T00:00:00Z`) : null,
+  });
+
+  revalidatePath("/recetas");
+  volver("/recetas", "ok", crudo ? "Vencimiento guardado" : "Vencimiento borrado");
 }

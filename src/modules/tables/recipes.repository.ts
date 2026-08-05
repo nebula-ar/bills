@@ -21,7 +21,7 @@ export function findInsumos(businessId: string, branchId: string) {
       minStock: true,
       stockLevels: {
         where: { branchId },
-        select: { quantity: true },
+        select: { quantity: true, expiresAt: true },
         take: 1,
       },
     },
@@ -199,5 +199,19 @@ export function findTodoLoQueSePuedeTirar(businessId: string) {
     where: { businessId, deleted: false, trackStock: true },
     orderBy: [{ kind: "asc" }, { name: "asc" }],
     select: { id: true, name: true, unit: true, kind: true },
+  });
+}
+
+/** Carga o limpia el vencimiento de lo que hay en la sucursal. */
+export function ponerVencimiento(input: {
+  branchId: string;
+  productId: string;
+  expiresAt: Date | null;
+}) {
+  return prisma.stockLevel.upsert({
+    where: { branchId_productId: { branchId: input.branchId, productId: input.productId } },
+    create: { branchId: input.branchId, productId: input.productId, expiresAt: input.expiresAt },
+    update: { expiresAt: input.expiresAt },
+    select: { id: true },
   });
 }

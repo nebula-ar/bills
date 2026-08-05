@@ -14,9 +14,21 @@ import { requireModule } from "@/lib/business-context";
 import { formatQuantity, unitShort } from "@/lib/quantity";
 import { getBranchesForManagement } from "@/modules/branches/get-branches-for-management.use-case";
 import { costoDeReceta } from "@/modules/tables/recipes";
+import {
+  estadoDeVencimiento,
+  ordenarPorUrgencia,
+  textoDeVencimiento,
+} from "@/modules/stock/vencimientos";
 import { findElaborables, findInsumos } from "@/modules/tables/recipes.repository";
 
-import { crearInsumoAction, ponerEnRecetaAction, sacarDeRecetaAction } from "./actions";
+import {
+  crearInsumoAction,
+  ponerEnRecetaAction,
+  ponerVencimientoAction,
+  sacarDeRecetaAction,
+} from "./actions";
+
+const fechaCorta = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" });
 
 /**
  * Insumos y recetas: cuánto cuesta de verdad cada budín.
@@ -61,6 +73,9 @@ export default async function RecetasPage({ searchParams }: RecetasPageProps) {
 
   const mensaje = uno(params.mensaje);
   const estado = uno(params.estado);
+  // Una sola referencia para toda la pantalla: si cada fila preguntara la hora
+  // por su cuenta, dos filas podrían caer en días distintos.
+  const hoy = new Date();
 
   return (
     <AppShell>
@@ -84,9 +99,14 @@ export default async function RecetasPage({ searchParams }: RecetasPageProps) {
           <EmptyState title="Todavía no hay insumos" hint="Cargá harina, manteca, azúcar… acá abajo." />
         ) : (
           <ul className="mb-4 flex flex-col gap-2">
-            {insumos.map((i) => {
+            {/* Lo que vence primero, arriba: quien abre esto quiere ver lo que
+                tiene que resolver hoy, no buscarlo entre lo que está bien. */}
+            {ordenarPorUrgencia(
+              insumos.map((i) => ({ ...i, expiresAt: i.stockLevels[0]?.expiresAt ?? null })),
+            ).map((i) => {
               const stock = i.stockLevels[0]?.quantity ?? 0;
               const bajo = i.minStock !== null && stock < i.minStock;
+              const vencimiento = estadoDeVencimiento(i.expiresAt, hoy);
 
               return (
                 <li className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-3" key={i.id}>
@@ -102,6 +122,27 @@ export default async function RecetasPage({ searchParams }: RecetasPageProps) {
                     <Badge tone="warning">sin costo</Badge>
                   )}
                   {bajo ? <Badge tone="danger">falta</Badge> : null}
+                  {vencimiento === "vencido" || vencimiento === "hoy" ? (
+                    <Badge tone="danger">{textoDeVencimiento(vencimiento)}</Badge>
+                  ) : vencimiento === "pronto" ? (
+                    <Badge tone="warning">
+                      {textoDeVencimiento(vencimiento)} {i.expiresAt ? fechaCorta.format(i.expiresAt) : ""}
+                    </Badge>
+                  ) : null}
+                  <form action={ponerVencimientoAction} className="flex items-center gap-1">
+                    <input name="branchId" type="hidden" value={branchId} />
+                    <input name="productId" type="hidden" value={i.id} />
+                    <input
+                      aria-label={`Vencimiento de ${i.name}`}
+                      className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                      defaultValue={i.expiresAt ? i.expiresAt.toISOString().slice(0, 10) : ""}
+                      name="expiresAt"
+                      type="date"
+                    />
+                    <button className="text-xs font-bold text-slate-500 hover:text-primary" type="submit">
+                      Guardar
+                    </button>
+                  </form>
                 </li>
               );
             })}
