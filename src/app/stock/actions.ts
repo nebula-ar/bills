@@ -7,8 +7,8 @@ import { parseQuantityInput } from "@/lib/quantity";
 import { getStockErrorMessageFor } from "@/lib/stock-error-messages";
 import { StockError } from "@/modules/stock/stock.errors";
 import { adjustStock, receiveStock, registerStockLoss, transferStock } from "@/modules/stock/stock.use-cases";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+
+export type StockActionResult = { ok: boolean; message: string };
 
 function text(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -20,7 +20,7 @@ function amount(value: string) {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
-export async function adjustStockAction(formData: FormData) {
+export async function adjustStockAction(formData: FormData): Promise<StockActionResult> {
   const { session } = await requireModule(AppModule.STOCK);
 
   const branchId = text(formData, "branchId");
@@ -28,7 +28,7 @@ export async function adjustStockAction(formData: FormData) {
   const counted = parseQuantityInput(text(formData, "counted"));
 
   if (counted === null && text(formData, "counted") !== "0") {
-    back(branchId, "error", "Ingresá una cantidad válida.");
+    return { ok: false, message: "Ingresá una cantidad válida." };
   }
 
   try {
@@ -43,20 +43,20 @@ export async function adjustStockAction(formData: FormData) {
       userId: session.user.id,
     });
   } catch (error) {
-    handle(error, branchId, "stock.adjust", session.user.businessId, session.user.id);
+    return handle(error, "stock.adjust", session.user.businessId, session.user.id);
   }
 
-  back(branchId, "success", "Stock actualizado.");
+  return { ok: true, message: "Stock actualizado." };
 }
 
-export async function registerLossAction(formData: FormData) {
+export async function registerLossAction(formData: FormData): Promise<StockActionResult> {
   const { session } = await requireModule(AppModule.STOCK);
 
   const branchId = text(formData, "branchId");
   const quantity = parseQuantityInput(text(formData, "quantity"));
 
   if (quantity === null) {
-    back(branchId, "error", "Ingresá una cantidad válida.");
+    return { ok: false, message: "Ingresá una cantidad válida." };
   }
 
   try {
@@ -69,13 +69,13 @@ export async function registerLossAction(formData: FormData) {
       userId: session.user.id,
     });
   } catch (error) {
-    handle(error, branchId, "stock.loss", session.user.businessId, session.user.id);
+    return handle(error, "stock.loss", session.user.businessId, session.user.id);
   }
 
-  back(branchId, "success", "Merma registrada.");
+  return { ok: true, message: "Merma registrada." };
 }
 
-export async function receiveStockAction(formData: FormData) {
+export async function receiveStockAction(formData: FormData): Promise<StockActionResult> {
   const { session } = await requireModule(AppModule.STOCK);
 
   const branchId = text(formData, "branchId");
@@ -83,7 +83,7 @@ export async function receiveStockAction(formData: FormData) {
   const unitCost = text(formData, "unitCost") ? amount(text(formData, "unitCost")) : null;
 
   if (quantity === null) {
-    back(branchId, "error", "Ingresá una cantidad válida.");
+    return { ok: false, message: "Ingresá una cantidad válida." };
   }
 
   try {
@@ -97,20 +97,20 @@ export async function receiveStockAction(formData: FormData) {
       userId: session.user.id,
     });
   } catch (error) {
-    handle(error, branchId, "stock.receive", session.user.businessId, session.user.id);
+    return handle(error, "stock.receive", session.user.businessId, session.user.id);
   }
 
-  back(branchId, "success", "Mercadería ingresada.");
+  return { ok: true, message: "Mercadería ingresada." };
 }
 
-export async function transferStockAction(formData: FormData) {
+export async function transferStockAction(formData: FormData): Promise<StockActionResult> {
   const { session } = await requireModule(AppModule.STOCK);
 
   const branchId = text(formData, "branchId");
   const quantity = parseQuantityInput(text(formData, "quantity"));
 
   if (quantity === null) {
-    back(branchId, "error", "Ingresá una cantidad válida.");
+    return { ok: false, message: "Ingresá una cantidad válida." };
   }
 
   try {
@@ -123,29 +123,17 @@ export async function transferStockAction(formData: FormData) {
       userId: session.user.id,
     });
   } catch (error) {
-    handle(error, branchId, "stock.transfer", session.user.businessId, session.user.id);
+    return handle(error, "stock.transfer", session.user.businessId, session.user.id);
   }
 
-  back(branchId, "success", "Traspaso registrado.");
+  return { ok: true, message: "Traspaso registrado." };
 }
 
-function handle(error: unknown, branchId: string, event: string, businessId: string, userId: string): never {
+function handle(error: unknown, event: string, businessId: string, userId: string): StockActionResult {
   if (error instanceof StockError) {
-    back(branchId, "error", getStockErrorMessageFor(error));
+    return { ok: false, message: getStockErrorMessageFor(error) };
   }
 
   void logError(event, error, { businessId, userId });
-  back(branchId, "error", "No pudimos completar la operación. Intentá de nuevo.");
-}
-
-function back(branchId: string, status: "success" | "error", message: string): never {
-  // La acción acabó de mutar datos y el redirect vuelve a la MISMA ruta: sin
-  // invalidarla, el router del cliente puede servir el árbol que ya tenía y el
-  // usuario ve el valor de antes (visto de verdad: un ajuste de stock a 50 que
-  // seguía mostrando 111).
-  revalidatePath("/stock");
-
-  const params = new URLSearchParams({ status, message });
-  if (branchId) params.set("branchId", branchId);
-  redirect(`/stock?${params.toString()}`);
+  return { ok: false, message: "No pudimos completar la operación. Intentá de nuevo." };
 }

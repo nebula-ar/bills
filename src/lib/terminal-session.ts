@@ -13,7 +13,11 @@ export type StaffSession = {
 };
 
 function getSecret() {
-  return process.env.NEXTAUTH_SECRET ?? "staff-session-dev-secret";
+  const secret = process.env.STAFF_SESSION_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("STAFF_SESSION_SECRET debe tener al menos 32 caracteres.");
+  }
+  return secret;
 }
 
 function sign(payload: string) {

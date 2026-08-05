@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatedMoney, AnimatedNumber } from "@/components/animated-number";
+import { AnimatedMoney } from "@/components/animated-number";
 import { PAYMENT_DONUT_COLORS } from "@/components/reports-charts-colors";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { DASHBOARD_RANGE_LABELS, DashboardRange, type DashboardRangeKey } from "@/lib/dashboard-range";
@@ -23,7 +23,7 @@ import {
   Wallet,
   X,
 } from "@/components/icons";
-import { signOut } from "next-auth/react";
+import { logoutAction } from "@/app/login/actions";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -214,7 +214,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           <button
             aria-label="Cerrar sesión"
             className="flex size-11 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-950/5 transition active:scale-95"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => void logoutAction().then(() => window.location.assign("/login"))}
             type="button"
           >
             <LogOut className="size-5" />

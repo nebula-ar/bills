@@ -165,6 +165,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const [newBranchId, setNewBranchId] = useState(data.selectedBranchId);
   const [editId, setEditId] = useState<string | null>(null);
   const [editBranchId, setEditBranchId] = useState(data.selectedBranchId);
+  const [editStockChanged, setEditStockChanged] = useState(false);
   const editing = data.products.find((product) => product.id === editId) ?? null;
   const newBranchName = data.branches.find((branch) => branch.id === newBranchId)?.name ?? "";
   const editConfig = editing?.branchConfigs.find((config) => config.branchId === editBranchId) ?? null;
@@ -217,7 +218,16 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 
   function openEdit(id: string) {
     setEditBranchId(data.selectedBranchId);
+    setEditStockChanged(false);
     setEditId(id);
+  }
+
+  function closeEdit() {
+    setEditId(null);
+    if (editStockChanged) {
+      setEditStockChanged(false);
+      router.refresh();
+    }
   }
 
   function selectBranch(id: string) {
@@ -530,7 +540,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
       </BottomSheet>
 
       {/* Configurar precio/disponibilidad */}
-      <BottomSheet onClose={() => setEditId(null)} open={editing !== null} size="dialog">
+      <BottomSheet onClose={closeEdit} open={editing !== null} size="dialog">
         {editing ? (
           <form action={updateProduct} className="flex min-h-0 flex-1 flex-col" key={editing.id}>
             <input name="branchId" type="hidden" value={editBranchId} />
@@ -541,7 +551,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               <button
                 aria-label="Cerrar"
                 className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
-                onClick={() => setEditId(null)}
+                onClick={closeEdit}
                 type="button"
               >
                 <X className="size-5" />
@@ -554,6 +564,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   branchId={data.selectedBranchId}
                   branchName={data.selectedBranchName}
                   minStock={editing.minStockRaw}
+                  onChanged={() => setEditStockChanged(true)}
                   productId={editing.id}
                   quantity={editing.stockQuantity}
                   unit={editing.unit as never}

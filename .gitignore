@@ -42,16 +42,13 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
-dev.db
-dev.db-journal
-
 # e2e
-e2e.db
-e2e.db-journal
 /test-results
 /playwright-report
 /e2e/.auth
 /e2e/seed-ids.json
+/supabase/.branches
+/supabase/.temp
 
 # Capturas de pantalla generadas (no son código fuente)
 /capturas

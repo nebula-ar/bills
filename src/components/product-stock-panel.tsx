@@ -4,7 +4,6 @@ import { applyProductStockAction, type StockOp } from "@/app/catalog/stock-actio
 import { Check, Loader2, Package } from "@/components/icons";
 import type { Unit } from "@/generated/prisma/enums";
 import { formatQuantity, parseQuantityInput, unitShort } from "@/lib/quantity";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -28,6 +27,7 @@ export function ProductStockPanel({
   unit,
   quantity,
   minStock,
+  onChanged,
 }: {
   productId: string;
   branchId: string;
@@ -36,18 +36,19 @@ export function ProductStockPanel({
   // Existencia actual en milésimas. null = el producto no lleva control.
   quantity: number | null;
   minStock: number | null;
+  onChanged?: () => void;
 }) {
-  const router = useRouter();
   const [op, setOp] = useState<StockOp | null>(null);
   const [value, setValue] = useState("");
   const [reason, setReason] = useState("");
+  const [displayQuantity, setDisplayQuantity] = useState(quantity);
   const [isPending, startTransition] = useTransition();
 
-  if (quantity === null) {
+  if (displayQuantity === null) {
     return null;
   }
 
-  const low = minStock !== null && quantity <= minStock;
+  const low = minStock !== null && displayQuantity <= minStock;
   const active = OPS.find((item) => item.op === op) ?? null;
 
   function open(next: StockOp) {
@@ -73,10 +74,11 @@ export function ProductStockPanel({
 
       if (result.ok) {
         toast.success("Stock actualizado.");
+        setDisplayQuantity(result.quantity);
         setOp(null);
         setValue("");
         setReason("");
-        router.refresh();
+        onChanged?.();
       } else {
         toast.error(result.error);
       }
@@ -91,7 +93,7 @@ export function ProductStockPanel({
           <div>
             <p className="text-xs font-black uppercase tracking-wide text-slate-500">En {branchName}</p>
             <p className={`text-lg font-black ${low ? "text-amber-600" : "text-slate-950"}`}>
-              {formatQuantity(quantity, unit)}
+              {formatQuantity(displayQuantity, unit)}
               {low ? <span className="ml-2 text-xs font-bold">hay que reponer</span> : null}
             </p>
           </div>
@@ -102,7 +104,8 @@ export function ProductStockPanel({
             <button
               className={`rounded-xl px-3 py-2 text-xs font-black transition active:scale-95 ${
                 op === item.op ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"
-              }`}
+              } disabled:cursor-wait disabled:opacity-50`}
+              disabled={isPending}
               key={item.op}
               onClick={() => open(item.op)}
               type="button"

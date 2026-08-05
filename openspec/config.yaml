@@ -3,8 +3,8 @@ schema: spec-driven
 context: |
   Tech stack: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Prisma 7.
   Architecture: Server-component routes with actions.ts; domain modules split into repository/use-case/logic/errors.
-  Data: SQLite is the development source of truth; generated PostgreSQL schema is used in production.
-  Testing: Vitest unit tests and Playwright E2E against a disposable seeded SQLite database.
+  Data: PostgreSQL 17 is the single source of truth; Supabase Auth owns credentials and sessions.
+  Testing: Vitest unit tests and Playwright E2E against a disposable local Supabase/PostgreSQL stack.
   Style: ESLint with Next core-web-vitals + TypeScript; strict TypeScript; @/ path alias.
 
 strict_tdd: true
@@ -17,7 +17,7 @@ testing:
     command: npm test
   layers:
     unit: { available: true, tool: Vitest }
-    integration: { available: false, tool: null }
+    integration: { available: true, tool: Supabase CLI + PostgreSQL 17 }
     e2e: { available: true, tool: Playwright }
   coverage:
     available: false

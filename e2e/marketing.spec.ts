@@ -57,7 +57,9 @@ test.describe("Marketing", () => {
 
   test("los puntos del cliente se ven en su ficha y se pueden canjear", async ({ page }) => {
     await page.goto("/customers");
-    await page.getByRole("link", { name: "Rodrigo Pérez" }).click();
+    const rodrigoUrl = await page.getByRole("link", { name: "Rodrigo Pérez" }).getAttribute("href");
+    expect(rodrigoUrl).toBeTruthy();
+    await page.goto(rodrigoUrl!);
 
     // El programa viene configurado en el seed: $1.000 = 1 punto, $50 el punto.
     await expect(page.getByText("Puntos", { exact: true })).toBeVisible();
@@ -67,10 +69,12 @@ test.describe("Marketing", () => {
     await canjear.click();
 
     await expect(page.getByText(/Canjeaste \d+ puntos por \$/)).toBeVisible();
+    // El toast confirma la escritura; esperamos además que termine el
+    // router.refresh() antes de iniciar otra navegación.
+    await expect(canjear).toBeHidden();
 
     // El canje deja crédito en la cuenta: la deuda del cliente bajó.
-    await page.goto("/customers");
-    await page.getByRole("link", { name: "Rodrigo Pérez" }).click();
+    await page.goto(rodrigoUrl!);
     await expect(page.getByRole("listitem").filter({ hasText: "Canje de" }).first()).toBeVisible();
   });
 

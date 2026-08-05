@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 // accede desde otro dispositivo por IP de LAN. Se toma del entorno para no
 // hardcodear la IP (que es DHCP y cambia):
 //   - ALLOWED_DEV_ORIGINS: lista de hosts separada por comas (override explícito).
-//   - por defecto se deriva del host de NEXTAUTH_URL (única fuente de verdad).
+//   - por defecto se deriva del host de APP_URL (única fuente de verdad).
 function resolveAllowedDevOrigins(): string[] {
   const explicit = process.env.ALLOWED_DEV_ORIGINS;
 
@@ -15,7 +15,7 @@ function resolveAllowedDevOrigins(): string[] {
       .filter(Boolean);
   }
 
-  const authUrl = process.env.NEXTAUTH_URL;
+  const authUrl = process.env.APP_URL;
 
   if (authUrl) {
     try {
@@ -30,15 +30,8 @@ function resolveAllowedDevOrigins(): string[] {
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: resolveAllowedDevOrigins(),
-  // Los driver adapters de Prisma y sus drivers nativos no deben bundlearse: se
-  // resuelven en runtime desde node_modules. better-sqlite3 es un binario nativo
-  // (solo dev) y pg trae dependencias que rompen si se empaquetan.
-  serverExternalPackages: [
-    "@prisma/adapter-better-sqlite3",
-    "better-sqlite3",
-    "@prisma/adapter-pg",
-    "pg",
-  ],
+  // El adapter PostgreSQL se resuelve en runtime desde node_modules.
+  serverExternalPackages: ["@prisma/adapter-pg", "pg"],
   // En desarrollo forzamos no-store para que iOS Safari (que cachea fuerte por HTTP
   // en LAN) no sirva un bundle viejo al probar desde el celular. En producción se
   // deja el comportamiento por defecto.

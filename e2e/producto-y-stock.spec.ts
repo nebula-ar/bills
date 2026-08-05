@@ -52,24 +52,39 @@ test.describe("El producto y su stock, en un solo lugar", () => {
     await page.goto("/catalog");
     await page.getByRole("button").filter({ hasText: "Chicles" }).first().click();
 
+    // La lista queda visible debajo del modal y también muestra la existencia.
+    // Acotamos la aserción al resumen de la ficha: cuando cambia, el
+    // router.refresh() del ajuste ya terminó y el formulario no puede ser
+    // reemplazado a mitad de la siguiente operación.
+    const stockSummary = page.getByText("En Sucursal Centro", { exact: true }).locator("..");
+
     await page.getByRole("button", { name: "Conté", exact: true }).click();
     await page.getByLabel("Lo que hay").fill("50");
     await page.getByRole("button", { name: "Guardar", exact: true }).click();
-    await expect(page.getByText("50 un").first()).toBeVisible({ timeout: 20_000 });
+    await expect(stockSummary.getByText("50 un", { exact: true })).toBeVisible({ timeout: 20_000 });
 
     await page.getByRole("button", { name: "Se perdió" }).click();
     await page.getByLabel("Lo que se perdió").fill("3");
     await page.getByLabel("Motivo").fill("Se cayeron al piso");
     await page.getByRole("button", { name: "Guardar", exact: true }).click();
 
-    await expect(page.getByText("47 un").first()).toBeVisible({ timeout: 20_000 });
+    await expect(stockSummary.getByText("47 un", { exact: true })).toBeVisible({ timeout: 20_000 });
   });
 
   test("un rubro sin stock no muestra existencias en el producto", async ({ page }) => {
     async function toggleStock() {
       await page.goto("/settings");
-      await page.locator("li").filter({ hasText: "Faltantes, movimientos y traspasos" }).getByRole("button").click();
-      await expect(page.getByRole("heading", { name: "Módulos del sistema" })).toBeVisible();
+      const row = page.locator("li").filter({ hasText: "Faltantes, movimientos y traspasos" });
+      const current = await row.getByRole("button").getAttribute("type");
+      if (current !== "submit") throw new Error("El control de Stock no está disponible.");
+      const wasEnabled = await row.getByRole("button", { name: "Apagar" }).count();
+      await row.getByRole("button").click();
+      await expect(
+        page
+          .locator("li")
+          .filter({ hasText: "Faltantes, movimientos y traspasos" })
+          .getByRole("button", { name: wasEnabled ? "Prender" : "Apagar" }),
+      ).toBeVisible();
     }
 
     await toggleStock();

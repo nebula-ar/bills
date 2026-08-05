@@ -2,9 +2,10 @@
 
 import { Eye, EyeOff, Loader2, Lock, Mail } from "@/components/icons";
 import { LoginErrorCode } from "@/lib/auth-errors";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
+
+import { loginAction } from "./actions";
 
 type LoginFormProps = { callbackUrl: string };
 
@@ -31,15 +32,13 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
 
     startTransition(async () => {
       try {
-        const result = await signIn("credentials", {
-          email: formData.get("email"),
-          password: formData.get("password"),
-          redirect: false,
-          callbackUrl,
+        const result = await loginAction({
+          identifier: String(formData.get("email") ?? ""),
+          password: String(formData.get("password") ?? ""),
         });
 
-        if (!result?.ok) {
-          setError(resolveErrorMessage(result?.error));
+        if (!result.ok) {
+          setError(resolveErrorMessage(result.error));
           return;
         }
 

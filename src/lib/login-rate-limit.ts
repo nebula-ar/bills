@@ -1,59 +1,91 @@
-// Rate limiting en memoria para el login de administradores.
-// Alcanza para un despliegue de un solo proceso (SQLite + Next server). Si en el
-// futuro se corre en varias instancias, migrar a un store compartido (Redis, DB).
+import "server-only";
 
-type Attempt = {
-  count: number;
-  firstAt: number;
-  blockedUntil: number;
-};
+import { createHmac } from "node:crypto";
 
-const attempts = new Map<string, Attempt>();
+import { AuthRateLimitScope, Prisma } from "@/generated/prisma/client";
+import { prisma } from "@/lib/prisma";
+import { authRateLimitSecret } from "@/lib/supabase/config";
 
-const WINDOW_MS = 15 * 60 * 1000; // ventana de conteo: 15 minutos
-const MAX_ATTEMPTS = 8; // intentos fallidos permitidos dentro de la ventana
-const BLOCK_MS = 5 * 60 * 1000; // bloqueo tras superar el máximo: 5 minutos
+type Policy = { windowMs: number; maxAttempts: number; blockMs: number };
 
-export type RateLimitStatus = {
-  allowed: boolean;
-  retryAfterMs: number;
-};
-
-export function checkLoginRateLimit(key: string): RateLimitStatus {
-  const now = Date.now();
-  const entry = attempts.get(key);
-
-  if (!entry) {
-    return { allowed: true, retryAfterMs: 0 };
-  }
-
-  if (entry.blockedUntil > now) {
-    return { allowed: false, retryAfterMs: entry.blockedUntil - now };
-  }
-
-  if (now - entry.firstAt > WINDOW_MS) {
-    attempts.delete(key);
-  }
-
-  return { allowed: true, retryAfterMs: 0 };
+function positiveIntEnv(name: string, fallback: number): number {
+  const parsed = Number(process.env[name]);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-export function registerFailedLogin(key: string): void {
-  const now = Date.now();
-  const entry = attempts.get(key);
+const POLICIES: Record<AuthRateLimitScope, Policy> = {
+  [AuthRateLimitScope.LOGIN_EMAIL]: { windowMs: 15 * 60_000, maxAttempts: 8, blockMs: 5 * 60_000 },
+  [AuthRateLimitScope.LOGIN_IP]: { windowMs: 15 * 60_000, maxAttempts: 40, blockMs: 10 * 60_000 },
+  [AuthRateLimitScope.REGISTER_IP]: {
+    windowMs: 60 * 60_000,
+    // Producción conserva un límite estricto. CI registra varios negocios
+    // desde loopback y puede elevarlo explícitamente sin debilitar producción.
+    maxAttempts: positiveIntEnv("AUTH_REGISTER_IP_MAX_ATTEMPTS", 6),
+    blockMs: 60 * 60_000,
+  },
+  [AuthRateLimitScope.VERIFY_EMAIL]: { windowMs: 60 * 60_000, maxAttempts: 5, blockMs: 60 * 60_000 },
+  [AuthRateLimitScope.VERIFY_IP]: { windowMs: 60 * 60_000, maxAttempts: 20, blockMs: 60 * 60_000 },
+};
 
-  if (!entry || now - entry.firstAt > WINDOW_MS) {
-    attempts.set(key, { count: 1, firstAt: now, blockedUntil: 0 });
-    return;
+export type AuthRateLimitKey = { scope: AuthRateLimitScope; value: string };
+export type RateLimitStatus = { allowed: boolean; retryAfterMs: number };
+
+function digest(value: string): string {
+  return createHmac("sha256", authRateLimitSecret()).update(value).digest("hex");
+}
+
+async function lock(tx: Prisma.TransactionClient, scope: AuthRateLimitScope, keyHash: string) {
+  await tx.$queryRaw`SELECT 1::int AS locked FROM pg_advisory_xact_lock(hashtext(${`${scope}:${keyHash}`}))`;
+}
+
+export async function checkAuthRateLimits(keys: AuthRateLimitKey[]): Promise<RateLimitStatus> {
+  const now = new Date();
+  let retryAfterMs = 0;
+
+  for (const key of keys) {
+    const keyHash = digest(key.value);
+    const bucket = await prisma.authRateLimitBucket.findUnique({
+      where: { scope_keyHash: { scope: key.scope, keyHash } },
+    });
+    if (bucket?.blockedUntil && bucket.blockedUntil > now) {
+      retryAfterMs = Math.max(retryAfterMs, bucket.blockedUntil.getTime() - now.getTime());
+    }
   }
 
-  entry.count += 1;
+  return { allowed: retryAfterMs === 0, retryAfterMs };
+}
 
-  if (entry.count >= MAX_ATTEMPTS) {
-    entry.blockedUntil = now + BLOCK_MS;
+export async function registerFailedAuthAttempt(keys: AuthRateLimitKey[]): Promise<void> {
+  const now = new Date();
+
+  for (const key of keys) {
+    const policy = POLICIES[key.scope];
+    const keyHash = digest(key.value);
+
+    await prisma.$transaction(async (tx) => {
+      await lock(tx, key.scope, keyHash);
+      const current = await tx.authRateLimitBucket.findUnique({
+        where: { scope_keyHash: { scope: key.scope, keyHash } },
+      });
+      const expired = !current || now.getTime() - current.windowStartedAt.getTime() > policy.windowMs;
+      const attemptCount = expired ? 1 : current.attemptCount + 1;
+      const blockedUntil = attemptCount >= policy.maxAttempts ? new Date(now.getTime() + policy.blockMs) : null;
+
+      await tx.authRateLimitBucket.upsert({
+        where: { scope_keyHash: { scope: key.scope, keyHash } },
+        create: { scope: key.scope, keyHash, windowStartedAt: now, attemptCount, blockedUntil },
+        update: {
+          windowStartedAt: expired ? now : current.windowStartedAt,
+          attemptCount,
+          blockedUntil,
+        },
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 }
 
-export function clearLoginAttempts(key: string): void {
-  attempts.delete(key);
+export async function clearAuthAttempts(key: AuthRateLimitKey): Promise<void> {
+  await prisma.authRateLimitBucket.deleteMany({
+    where: { scope: key.scope, keyHash: digest(key.value) },
+  });
 }
