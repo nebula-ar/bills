@@ -1,4 +1,5 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { AppointmentFormHandler } from "@/components/appointment-form-handler";
 import {
   Badge,
   EmptyState,
@@ -20,7 +21,7 @@ import { getCustomersForSale } from "@/modules/customers/customer.use-cases";
 import { getStaffsForManagement } from "@/modules/staff/get-staff-for-management.use-case";
 import Link from "next/link";
 
-import { createAppointmentAction, deleteAppointmentAction, setStatusAction } from "./actions";
+import { deleteAppointmentFormAction, setStatusFormAction } from "./actions";
 
 const timeFormatter = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
 const dayFormatter = new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "numeric", month: "long" });
@@ -148,7 +149,7 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
                       ) : null}
 
                       {appointment.status === AppointmentStatus.SCHEDULED ? (
-                        <form action={setStatusAction}>
+                        <form action={setStatusFormAction}>
                           <input name="appointmentId" type="hidden" value={appointment.id} />
                           <input name="day" type="hidden" value={toISODate(day)} />
                           <input name="status" type="hidden" value={AppointmentStatus.CONFIRMED} />
@@ -157,7 +158,7 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
                       ) : null}
 
                       {chargeable ? (
-                        <form action={setStatusAction}>
+                        <form action={setStatusFormAction}>
                           <input name="appointmentId" type="hidden" value={appointment.id} />
                           <input name="day" type="hidden" value={toISODate(day)} />
                           <input name="status" type="hidden" value={AppointmentStatus.NO_SHOW} />
@@ -165,7 +166,7 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
                         </form>
                       ) : null}
 
-                      <form action={deleteAppointmentAction}>
+                      <form action={deleteAppointmentFormAction}>
                         <input name="appointmentId" type="hidden" value={appointment.id} />
                         <input name="day" type="hidden" value={toISODate(day)} />
                         <GhostButton>Borrar</GhostButton>
@@ -180,7 +181,8 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
       </SectionCard>
 
       <SectionCard title="Agendar un turno" description="Si el horario se pisa con otro, te avisamos antes de guardar.">
-        <form action={createAppointmentAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <AppointmentFormHandler>
+          <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <input name="day" type="hidden" value={toISODate(day)} />
 
           <Field label="Hora">
@@ -259,7 +261,8 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
           </Field>
 
           <PrimaryButton className="sm:col-span-2 lg:col-span-3">Agendar</PrimaryButton>
-        </form>
+          </form>
+        </AppointmentFormHandler>
       </SectionCard>
     </AppShell>
   );

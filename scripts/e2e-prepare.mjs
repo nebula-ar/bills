@@ -16,6 +16,10 @@ for (const file of ["e2e.db", "e2e.db-journal"]) {
   }
 }
 
+// Prisma 7.8's schema engine requires that the SQLite file already exists
+// before `migrate deploy`; the empty file is still a disposable E2E database.
+writeFileSync("e2e.db", "");
+
 function run(command) {
   console.log(`> ${command}`);
   execSync(command, { stdio: "inherit", env });

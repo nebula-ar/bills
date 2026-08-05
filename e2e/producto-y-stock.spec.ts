@@ -20,6 +20,8 @@ test.describe("El producto y su stock, en un solo lugar", () => {
     await page.locator('input[name="stock"]').fill("12");
     await page.locator('input[name="cost"]').fill("3000");
     await page.getByRole("button", { name: /Crear/ }).click();
+    await expect(page.getByRole("heading", { name: `Foto de ${nombre}` })).toBeVisible();
+    await page.getByRole("button", { name: "Listo" }).click();
 
     // La existencia queda cargada de una: la lista ya la muestra.
     const fila = page.getByRole("button").filter({ hasText: nombre });
@@ -96,6 +98,8 @@ test("cargar un producto sin precio conserva el stock y el costo", async ({ page
   await page.locator('input[name="stock"]').fill("9");
   await page.locator('input[name="cost"]').fill("500");
   await page.getByRole("button", { name: /Crear/ }).click();
+  await expect(page.getByRole("heading", { name: `Foto de ${nombre}` })).toBeVisible();
+  await page.getByRole("button", { name: "Listo" }).click();
 
   const fila = page.getByRole("button").filter({ hasText: nombre });
   await expect(fila).toBeVisible({ timeout: 20_000 });

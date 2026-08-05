@@ -26,4 +26,39 @@ test.describe("Autenticación admin", () => {
     await page.goto("/sales");
     await expect(page).toHaveURL(/\/login/);
   });
+
+  test("login muestra la nueva entrada publica y conserva sus accesos", async ({ page }) => {
+    await page.goto("/login");
+
+    await expect(page.getByRole("img", { name: "Marca Bills" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Bienvenido de nuevo" })).toBeVisible();
+    await expect(page.getByLabel("Email o usuario")).toBeVisible();
+    await expect(page.locator("#password")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Registrá tu negocio" })).toHaveAttribute("href", "/register");
+    await expect(page.getByRole("link", { name: "Ir a la terminal" })).toHaveAttribute("href", "/terminal");
+  });
+
+  test("login permite alternar la visibilidad de la contraseña", async ({ page }) => {
+    await page.goto("/login");
+    const password = page.locator("#password");
+    const toggle = page.getByRole("button", { name: "Mostrar contraseña" });
+
+    await expect(password).toHaveAttribute("type", "password");
+    await toggle.click();
+    await expect(password).toHaveAttribute("type", "text");
+    await expect(page.getByRole("button", { name: "Ocultar contraseña" })).toBeVisible();
+  });
+
+  test("login móvil no desborda y permite alternar la contraseña con teclado", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/login");
+
+    await expect(page.locator("#password")).toBeVisible();
+    await expect(page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).resolves.toBe(true);
+
+    await page.locator("#password").focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#password")).toHaveAttribute("type", "text");
+  });
 });
