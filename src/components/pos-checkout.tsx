@@ -684,7 +684,7 @@ export function PosCheckout({
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:max-w-none lg:px-8 lg:pb-10">
+    <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-[560px] flex-col overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:h-screen lg:max-w-none lg:overflow-hidden lg:px-8 lg:pb-6">
       <header className="flex items-center gap-3 duration-500 animate-in fade-in slide-in-from-top-2">
         <Link
           aria-label="Volver"
@@ -699,8 +699,8 @@ export function PosCheckout({
         </div>
       </header>
 
-      <div className="lg:grid lg:grid-cols-[1fr_22rem] lg:items-stretch lg:gap-6">
-        <div className="lg:min-w-0">
+      <div className="lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_22rem] lg:items-stretch lg:gap-6">
+        <div className="lg:flex lg:min-h-0 lg:min-w-0 lg:flex-col">
       {branches.length > 1 ? (
         <Step icon={Store} step={branchStep} title="Sucursal" delay={80}>
           <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -750,7 +750,7 @@ export function PosCheckout({
       </Step>
       ) : null}
 
-      <Step iconName={catalogIcon} step={productStep} title="¿Qué se llevó?" delay={200}>
+      <Step crece iconName={catalogIcon} step={productStep} title="¿Qué se llevó?" delay={200}>
         <div className="mb-3 flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
@@ -808,6 +808,7 @@ export function PosCheckout({
           </div>
         ) : null}
 
+        <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {gridEntries.map((entry) => {
             const product = entry.product;
@@ -967,6 +968,7 @@ export function PosCheckout({
               No encontramos ningún {catalogSingular.toLowerCase()} con eso.
             </p>
           ) : null}
+        </div>
         </div>
       </Step>
         </div>
@@ -1709,6 +1711,7 @@ function Step({
   title,
   delay,
   children,
+  crece = false,
 }: {
   icon?: ComponentType<{ className?: string }>;
   // Icono elegido por el rubro (nombre) en vez de un componente fijo.
@@ -1717,10 +1720,15 @@ function Step({
   title: string;
   delay: number;
   children: React.ReactNode;
+  // Este paso ocupa el alto que sobra y scrollea por dentro. En una caja la
+  // pantalla es fija: lo único que se mueve es la grilla de productos.
+  crece?: boolean;
 }) {
   return (
     <section
-      className="mt-4 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3"
+      className={`mt-4 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3 ${
+        crece ? "lg:flex lg:min-h-0 lg:flex-1 lg:flex-col" : ""
+      }`}
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
     >
       <h2 className="mb-3 flex items-center gap-2.5 text-lg font-black text-slate-950">
@@ -1738,7 +1746,7 @@ function Step({
         ) : null}
         {title}
       </h2>
-      {children}
+      {crece ? <div className="flex min-h-0 flex-1 flex-col">{children}</div> : children}
     </section>
   );
 }
