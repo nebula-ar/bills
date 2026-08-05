@@ -985,8 +985,11 @@ export function PosCheckout({
               abierta todo el día, y el número que se canta tiene que estar
               siempre en el mismo lugar. */}
           <div className="flex h-full flex-col rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5">
-            <h2 className="flex items-center gap-2 text-base font-black text-slate-950">
-              <ShoppingBag className="size-4 text-primary" />
+            {/* Mismo tamaño e icono que el título de las tarjetas de la
+                izquierda: son dos encabezados de la misma fila, y si uno es más
+                chico la fila se ve torcida aunque las cajas estén alineadas. */}
+            <h2 className="flex items-center gap-2.5 text-lg font-black text-slate-950">
+              <ShoppingBag className="size-5 text-primary" />
               Pedido
             </h2>
             {hasItems ? (
@@ -1733,7 +1736,11 @@ function Step({
 }) {
   return (
     <section
-      className={`mt-4 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3 ${
+      // `first:mt-0`: la separación es ENTRE tarjetas, no arriba de la primera.
+      // Sin esto la primera arrancaba 16px más abajo que el panel del carrito y
+      // las dos columnas no leían como una sola fila. El `p-5` es el mismo del
+      // carrito, para que los dos títulos caigan a la misma altura.
+      className={`mt-4 rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3 first:mt-0 ${
         crece ? "lg:flex lg:min-h-0 lg:flex-1 lg:flex-col" : ""
       }`}
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
