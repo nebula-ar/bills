@@ -7,7 +7,7 @@ import { AppModule } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { capabilitiesOf } from "@/lib/capabilities";
 import { cobrarComanda } from "@/modules/tables/cobrar.use-case";
-import { agregarProducto, cancelar, quitarProducto } from "@/modules/tables/orders.use-cases";
+import { agregarProducto, agregarProductoConOpciones, cancelar, quitarProducto } from "@/modules/tables/orders.use-cases";
 
 function texto(formData: FormData, key: string) {
   const valor = formData.get(key);
@@ -100,4 +100,35 @@ export async function cobrarAction(formData: FormData) {
 
   if (!resultado.ok) volver(tableId, "error", resultado.error);
   redirect("/salon?estado=ok&mensaje=Mesa+cobrada");
+}
+
+export async function agregarConOpcionesAction(formData: FormData) {
+  const { session } = await requireModule(AppModule.TABLES);
+
+  const tableId = texto(formData, "tableId");
+  const productId = texto(formData, "productId");
+  const modifierIds = formData.getAll("modifierIds").filter((v): v is string => typeof v === "string");
+
+  const resultado = await agregarProductoConOpciones({
+    businessId: session.user.businessId,
+    branchId: texto(formData, "branchId"),
+    tableId,
+    productId,
+    modifierIds,
+    note: texto(formData, "note") || null,
+    staffId: session.user.id,
+  });
+
+  revalidatePath(`/salon/${tableId}`);
+  revalidatePath("/salon");
+
+  if (!resultado.ok) {
+    // Se vuelve a la pantalla de opciones con el motivo: mandarlo a la comanda
+    // le esconde qué eligió mal.
+    redirect(
+      `/salon/${tableId}/opciones/${productId}?${new URLSearchParams({ estado: "error", mensaje: resultado.error })}`,
+    );
+  }
+
+  redirect(`/salon/${tableId}`);
 }

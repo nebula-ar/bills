@@ -30,6 +30,9 @@ export function findRenglonesDeCocina(businessId: string, branchId: string) {
         },
       },
       product: { select: { prepMinutes: true } },
+      // La cocina TIENE que ver con qué prepararlo: "Capuccino" a secas y
+      // "Capuccino con leche de almendras" son dos tazas distintas.
+      modifiers: { select: { id: true, name: true } },
     },
   });
 }

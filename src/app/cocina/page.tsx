@@ -102,6 +102,11 @@ export default async function CocinaPage({ searchParams }: CocinaPageProps) {
                         <p className="mt-2 text-lg font-bold leading-tight text-slate-950">
                           {formatQuantity(r.quantity)} × {r.description}
                         </p>
+                        {r.modifiers.length > 0 ? (
+                          <p className="mt-1 text-sm font-bold text-primary">
+                            {r.modifiers.map((m) => m.name).join(" · ")}
+                          </p>
+                        ) : null}
                         {r.note ? (
                           <p className="mt-1 rounded-lg bg-white/70 px-2 py-1 text-sm font-semibold italic text-slate-700">
                             {r.note}

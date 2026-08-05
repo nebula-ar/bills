@@ -120,16 +120,8 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
                   catalogSlug: p.catalogSlug,
                 });
 
-                return (
-                  <form action={agregarProductoAction} key={p.id}>
-                    <input name="tableId" type="hidden" value={tableId} />
-                    <input name="branchId" type="hidden" value={mesa.branchId} />
-                    <input name="productId" type="hidden" value={p.id} />
-                    <input name="unidades" type="hidden" value={1} />
-                    <button
-                      className="group flex w-full flex-col overflow-hidden rounded-2xl bg-white text-center shadow-sm ring-1 ring-slate-200 transition active:scale-[0.98]"
-                      type="submit"
-                    >
+                const tarjeta = (
+                  <>
                       <span className="block aspect-square w-full overflow-hidden bg-slate-100">
                         {foto ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -138,10 +130,31 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
                           <span className="grid size-full place-items-center text-3xl">🍞</span>
                         )}
                       </span>
-                      <span className="flex flex-1 flex-col gap-1 p-3">
-                        <span className="text-sm font-bold leading-tight text-slate-950">{p.name}</span>
-                        <span className="text-base font-black text-primary">{formatMoney(p.price)}</span>
-                      </span>
+                    <span className="flex flex-1 flex-col gap-1 p-3">
+                      <span className="text-sm font-bold leading-tight text-slate-950">{p.name}</span>
+                      <span className="text-base font-black text-primary">{formatMoney(p.price)}</span>
+                    </span>
+                  </>
+                );
+
+                const clase =
+                  "group flex w-full flex-col overflow-hidden rounded-2xl bg-white text-center shadow-sm ring-1 ring-slate-200 transition active:scale-[0.98]";
+
+                // Con opciones se va a elegirlas; sin opciones se agrega de una.
+                // Meter un diálogo para "sin azúcar" cuando no hay nada que
+                // elegir sería un toque de más en la pantalla que más se toca.
+                return p.tieneOpciones ? (
+                  <Link className={clase} href={`/salon/${tableId}/opciones/${p.id}`} key={p.id}>
+                    {tarjeta}
+                  </Link>
+                ) : (
+                  <form action={agregarProductoAction} key={p.id}>
+                    <input name="tableId" type="hidden" value={tableId} />
+                    <input name="branchId" type="hidden" value={mesa.branchId} />
+                    <input name="productId" type="hidden" value={p.id} />
+                    <input name="unidades" type="hidden" value={1} />
+                    <button className={clase} type="submit">
+                      {tarjeta}
                     </button>
                   </form>
                 );
@@ -168,6 +181,11 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
                   <p className="text-xs text-slate-500">
                     {formatQuantity(i.quantity)} × {formatMoney(i.unitPrice)}
                   </p>
+                  {i.modifiers.length > 0 ? (
+                    <p className="mt-0.5 text-xs font-semibold text-primary">
+                      {i.modifiers.map((m) => m.name).join(" · ")}
+                    </p>
+                  ) : null}
                   {i.note ? <p className="mt-1 text-xs italic text-slate-500">{i.note}</p> : null}
                 </div>
                 <span className="shrink-0 text-sm font-black text-slate-950">{formatMoney(i.total)}</span>

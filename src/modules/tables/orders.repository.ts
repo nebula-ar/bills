@@ -42,6 +42,9 @@ export function findOpenOrder(tableId: string) {
           note: true,
           kdsStatus: true,
           productId: true,
+          // Sin esto la comanda dice "Capuccino $7.150" y nadie sabe por qué
+          // sale más caro, ni con qué leche prepararlo.
+          modifiers: { select: { id: true, name: true, priceDelta: true } },
         },
       },
     },
@@ -70,6 +73,7 @@ export async function findProductosVendibles(businessId: string, branchId: strin
       imageUpdatedAt: true,
       catalogSlug: true,
       category: { select: { id: true, name: true } },
+      modifierGroups: { where: { deleted: false }, select: { id: true }, take: 1 },
       branchPrices: {
         where: { branchId, active: true, deleted: false },
         select: { price: true },
@@ -89,6 +93,7 @@ export async function findProductosVendibles(businessId: string, branchId: strin
       categoriaId: p.category?.id ?? null,
       imageVersion: p.imageUpdatedAt?.getTime() ?? null,
       catalogSlug: p.catalogSlug,
+      tieneOpciones: p.modifierGroups.length > 0,
     }));
 }
 
@@ -231,6 +236,46 @@ export function cancelarComanda(input: { orderId: string; tableId: string; staff
     await tx.table.update({
       where: { id: input.tableId },
       data: { status: TableStatus.FREE, updatedById: input.staffId },
+    });
+  });
+}
+
+/** Igual que `agregarRenglon`, pero con las opciones elegidas y su copia. */
+export function agregarRenglonConOpciones(input: {
+  orderId: string;
+  productId: string;
+  description: string;
+  unitPrice: number;
+  quantity: number;
+  total: number;
+  note: string | null;
+  opciones: { modifierId: string; name: string; priceDelta: number }[];
+  staffId: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    await tx.orderItem.create({
+      data: {
+        orderId: input.orderId,
+        productId: input.productId,
+        description: input.description,
+        unitPrice: input.unitPrice,
+        quantity: input.quantity,
+        total: input.total,
+        note: input.note,
+        kdsStatus: KdsStatus.PENDING,
+        modifiers: { create: input.opciones },
+      },
+    });
+
+    const renglones = await tx.orderItem.findMany({
+      where: { orderId: input.orderId },
+      select: { total: true },
+    });
+    const subtotal = renglones.reduce((suma, r) => suma + r.total, 0);
+
+    await tx.order.update({
+      where: { id: input.orderId },
+      data: { subtotal, total: subtotal, version: { increment: 1 }, updatedById: input.staffId },
     });
   });
 }

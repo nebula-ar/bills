@@ -4,6 +4,7 @@ import type { Capability } from "@/lib/capabilities";
 import {
   abrirOReusarComanda,
   agregarRenglon,
+  agregarRenglonConOpciones,
   cancelarComanda,
   contarRenglonesEnCocina,
   findOpenOrder,
@@ -11,6 +12,8 @@ import {
   quitarRenglon,
 } from "./orders.repository";
 import { motivoParaNoCancelar, totalesDeComanda, validarCantidad } from "./order-lifecycle";
+import { effectiveUnitPrice, validarSeleccion } from "@/modules/catalog/modifiers";
+import { findGruposDeProducto } from "@/modules/catalog/modifiers.repository";
 
 /**
  * Tomar el pedido de una mesa.
@@ -107,4 +110,63 @@ export async function cancelar(input: {
 /** Totales de lo que hay cargado, para mostrar en pantalla. */
 export function totalesDe(items: { total: number }[], discount = 0, tip = 0) {
   return totalesDeComanda(items, discount, tip);
+}
+
+/**
+ * Agrega un producto CON opciones elegidas.
+ *
+ * La validación pasa por `validarSeleccion`, que recibe los grupos del producto
+ * y la selección entera. Ahí está la regla que importa: un modificador solo se
+ * acepta si su grupo está asignado a ESE producto. Sin eso, un pedido armado a
+ * mano puede colgarle a un café una opción de ajuste negativo de otro producto
+ * y dejar la cuenta en cero.
+ */
+export async function agregarProductoConOpciones(input: {
+  businessId: string;
+  branchId: string;
+  tableId: string;
+  productId: string;
+  modifierIds: string[];
+  note: string | null;
+  staffId: string;
+}): Promise<Resultado> {
+  const grupos = await findGruposDeProducto(input.businessId, input.productId);
+
+  const problema = validarSeleccion(grupos, input.modifierIds);
+  if (problema) return { ok: false, error: problema };
+
+  const precio = await findPrecioEnSucursal(input.productId, input.branchId);
+  if (!precio) return { ok: false, error: "Ese producto no tiene precio en esta sucursal" };
+
+  const elegidos = grupos
+    .flatMap((g) => g.modifiers)
+    .filter((m) => input.modifierIds.includes(m.id));
+
+  // Con piso en cero: sin él, un ajuste negativo repetido arrastraba el total.
+  const unitPrice = effectiveUnitPrice(precio.price, elegidos);
+
+  const orden = await abrirOReusarComanda({
+    businessId: input.businessId,
+    branchId: input.branchId,
+    tableId: input.tableId,
+    staffId: input.staffId,
+  });
+
+  const quantity = QUANTITY_SCALE;
+
+  await agregarRenglonConOpciones({
+    orderId: orden.id,
+    productId: input.productId,
+    description: precio.product.name,
+    unitPrice,
+    quantity,
+    total: lineTotal(unitPrice, quantity),
+    note: input.note?.trim() || null,
+    // Copia del nombre y del ajuste: editar un modificador no puede reescribir
+    // una comanda vieja.
+    opciones: elegidos.map((m) => ({ modifierId: m.id, name: m.name, priceDelta: m.priceDelta })),
+    staffId: input.staffId,
+  });
+
+  return { ok: true };
 }
