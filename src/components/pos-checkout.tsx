@@ -1153,23 +1153,26 @@ export function PosCheckout({
                   </div>
                 ) : null}
                 <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-                  <span className="text-sm font-bold text-slate-500">Total</span>
+                  <span className="text-base font-bold text-slate-500">Total</span>
                   <span className="text-right">
                     {discountTotal > 0 ? (
                       <span className="block text-sm font-bold text-slate-400 line-through">{money(listTotal)}</span>
                     ) : null}
-                    <span className="block text-2xl font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    <span className="font-display block text-3xl font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
                       {money(total)}
                     </span>
                   </span>
                 </div>
+                {/* El botón más grande de la pantalla, y a propósito: es el
+                    único que cierra la venta y se toca con la mano ocupada, sin
+                    mirar. Al lado, cualquier otro control puede ser chico. */}
                 <button
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
+                  className="mt-4 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-primary px-4 py-5 text-xl font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
                   onClick={openCheckout}
                   type="button"
                 >
                   Cobrar
-                  <ArrowRight className="size-4" />
+                  <ArrowRight className="size-5" />
                 </button>
               </>
             ) : (
@@ -1189,17 +1192,20 @@ export function PosCheckout({
                 {/* El total queda a la vista aunque esté en cero: es el número
                     que el cajero canta, y tiene que estar SIEMPRE en el mismo
                     lugar de la pantalla, no aparecer recién al primer toque. */}
+                {/* Mismos cuerpos que con el carrito cargado: si acá fueran más
+                    chicos, el total y el botón saltarían de tamaño al sumar el
+                    primer producto, justo donde el ojo está apoyado. */}
                 <div className="mt-4 flex items-center justify-between rounded-2xl bg-primary/10 px-4 py-3">
                   <span className="text-base font-black text-slate-950">Total</span>
                   <span
-                    className="text-2xl font-black text-primary"
+                    className="font-display text-3xl font-black text-primary"
                     style={{ fontVariantNumeric: "tabular-nums" }}
                   >
                     {money(0)}
                   </span>
                 </div>
                 <button
-                  className="mt-3 w-full rounded-2xl bg-primary/40 px-4 py-4 text-base font-black text-white"
+                  className="mt-3 w-full rounded-2xl bg-primary/40 px-4 py-5 text-xl font-black text-white"
                   disabled
                   type="button"
                 >
