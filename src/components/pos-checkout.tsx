@@ -973,7 +973,11 @@ export function PosCheckout({
       </Step>
         </div>
 
-        <aside className="hidden lg:sticky lg:top-6 lg:block lg:h-[calc(100vh-3rem)]">
+        {/* Sin alto calculado a mano: un `calc(100vh-…)` no sabe del encabezado
+          ni del lugar reservado para el nav, y el panel terminaba abajo del
+          borde con el botón de cobro cortado. Como item del grid, la fila ya
+          lo acota. */}
+        <aside className="hidden lg:block lg:h-full">
           {/* Alto completo con el total abajo: en un mostrador la vista queda
               abierta todo el día, y el número que se canta tiene que estar
               siempre en el mismo lugar. */}
