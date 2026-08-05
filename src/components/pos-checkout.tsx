@@ -846,7 +846,7 @@ export function PosCheckout({
         {categorias.length > 1 ? (
           <div className="-mx-1 mb-2.5 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
-              className={`shrink-0 rounded-full px-4 py-2 text-sm font-black transition ${
+              className={`shrink-0 rounded-full px-4 py-2 text-base font-black transition ${
                 categoria === null ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
               }`}
               onClick={() => setCategoria(null)}
@@ -856,7 +856,7 @@ export function PosCheckout({
             </button>
             {categorias.map((c) => (
               <button
-                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-black transition ${
+                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-base font-black transition ${
                   categoria === c.nombre ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
                 }`}
                 key={c.nombre}
@@ -919,10 +919,10 @@ export function PosCheckout({
                     )
                   ) : null}
                   <span className="flex flex-1 flex-col items-center justify-center gap-0.5 p-2.5">
-                    <span className="line-clamp-2 text-sm font-black leading-tight text-slate-950">
+                    <span className="line-clamp-2 text-base font-black leading-tight text-slate-950">
                       {product.familyName ?? product.name}
                     </span>
-                    <span className="font-display text-lg font-black text-primary">{money(product.price)}</span>
+                    <span className="font-display text-xl font-black text-primary">{money(product.price)}</span>
                     <span className="mt-1.5 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 text-xs font-black text-slate-700">
                       {inCart > 0 ? `${formatQuantity(inCart)} en el pedido` : `${entry.variants.length} talles`}
                     </span>
@@ -985,7 +985,7 @@ export function PosCheckout({
                         {/* Sobre la foto y no debajo del precio: lo que no se
                             puede vender tiene que verse ANTES de tocarlo. */}
                         {outOfStock ? (
-                          <span className="absolute left-2 top-2 rounded-full bg-destructive px-2.5 py-1 text-[0.7rem] font-black text-white">
+                          <span className="absolute left-2 top-2 rounded-full bg-destructive px-2.5 py-1 text-xs font-black text-white">
                             Sin stock
                           </span>
                         ) : null}
@@ -999,11 +999,16 @@ export function PosCheckout({
                   <span className="flex flex-1 flex-col items-center justify-center gap-0.5 p-2.5">
                     {/* A dos renglones y no truncado: "Docena de medialunas" y
                         "Docena de medialunas rellenas" son productos distintos
-                        y con puntos suspensivos se venden cruzados. */}
-                    <span className="line-clamp-2 text-sm font-black leading-tight text-slate-950">{product.name}</span>
-                    <span className="font-display text-lg font-black text-primary">
+                        y con puntos suspensivos se venden cruzados.
+
+                        Los cuerpos van un escalón arriba de lo habitual en una
+                        web. Esto no se lee sentado y de cerca: se lee parado,
+                        de costado y con la fila esperando. Cuesta filas
+                        visibles y las vale. */}
+                    <span className="line-clamp-2 text-base font-black leading-tight text-slate-950">{product.name}</span>
+                    <span className="font-display text-xl font-black text-primary">
                       {money(product.price)}
-                      {byWeight ? <span className="text-xs font-bold text-primary">/{unitShort(product.unit)}</span> : null}
+                      {byWeight ? <span className="text-sm font-bold text-primary">/{unitShort(product.unit)}</span> : null}
                     </span>
                     {/* Pasarse del stock NO se puede avisar con color: en este
                         rubro el rosa es la marca, y el `--destructive` está a
@@ -1013,11 +1018,11 @@ export function PosCheckout({
                         pintada por la mitad. Se avisa con palabras, en la misma
                         píldora llena que ya usa "Sin stock" sobre la foto. */}
                     {overStock ? (
-                      <span className="rounded-full bg-destructive px-2.5 py-0.5 text-[0.7rem] font-black text-white">
+                      <span className="rounded-full bg-destructive px-2.5 py-0.5 text-xs font-black text-white">
                         Más de lo que hay
                       </span>
                     ) : product.stock !== null && !(outOfStock && showsPhotos && imageSrc) ? (
-                      <span className={`text-[0.7rem] font-bold ${outOfStock ? "text-rose-600" : "text-slate-400"}`}>
+                      <span className={`text-xs font-bold ${outOfStock ? "text-rose-600" : "text-slate-400"}`}>
                         {outOfStock ? "Sin stock" : `Quedan ${formatQuantity(product.stock, product.unit)}`}
                       </span>
                     ) : null}
@@ -1124,8 +1129,8 @@ export function PosCheckout({
               <>
                 <div className="mt-4 flex-1 space-y-2 overflow-y-auto">
                   {cartItems.map((item) => (
-                    <div className="flex items-center gap-2 text-sm" key={item.productId}>
-                      <span className="min-w-0 flex-1 truncate font-bold text-slate-700">
+                    <div className="flex items-center gap-2 text-base" key={item.productId}>
+                      <span className="min-w-0 flex-1 truncate text-base font-bold text-slate-700">
                         {item.name}{" "}
                         <span className="text-slate-400">
                           ×{formatQuantity(item.quantity, allowsFraction(item.unit) ? item.unit : undefined)}
