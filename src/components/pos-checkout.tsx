@@ -742,12 +742,22 @@ export function PosCheckout({
       </Step>
       ) : null}
 
-      <Step crece iconName={catalogIcon} step={productStep} title="¿Qué se llevó?" delay={200}>
-        <div className="mb-3 flex items-center gap-2">
+      <Step
+        crece
+        delay={200}
+        iconName={catalogIcon}
+        step={productStep}
+        // Sin título cuando el catálogo es el único paso: rotular la única
+        // sección de la pantalla es rotular la pantalla, y de eso ya se ocupa
+        // el nav. Donde hay pasos antes —elegir sucursal, quién atiende— el
+        // título vuelve, porque ahí sí ordena una secuencia.
+        title={productStep > 1 ? "¿Qué se llevó?" : undefined}
+      >
+        <div className="mb-2.5 flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
+              className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
               onChange={(event) => setSearch(event.target.value)}
               placeholder={features.barcodes ? "Buscar por nombre o código…" : `Buscar ${catalogSingular.toLowerCase()}…`}
               value={search}
@@ -758,16 +768,16 @@ export function PosCheckout({
           {features.barcodes ? (
             <button
               aria-label="Escanear código"
-              className="flex size-[52px] shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white transition active:scale-95"
+              className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white transition active:scale-95"
               onClick={() => setScanning(true)}
               type="button"
             >
-              <QrCode className="size-6" />
+              <QrCode className="size-5" />
             </button>
           ) : null}
         </div>
         {categorias.length > 1 ? (
-          <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-1 mb-2.5 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               className={`shrink-0 rounded-full px-4 py-2 text-sm font-black transition ${
                 categoria === null ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
@@ -1756,7 +1766,8 @@ function Step({
   // Icono elegido por el rubro (nombre) en vez de un componente fijo.
   iconName?: string;
   step: number;
-  title: string;
+  // Opcional: un paso que es el único de la pantalla no necesita rótulo.
+  title?: string;
   delay: number;
   children: React.ReactNode;
   // Este paso ocupa el alto que sobra y scrollea por dentro. En una caja la
@@ -1774,21 +1785,23 @@ function Step({
       }`}
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
     >
-      <h2 className="mb-3 flex items-center gap-2.5 text-lg font-black text-slate-950">
-        {/* Con un solo paso el número no ordena nada: es ruido en la pantalla
-            que más se mira. */}
-        {step > 1 ? (
-          <span className="flex size-7 items-center justify-center rounded-full bg-primary text-sm font-black text-white">
-            {step}
-          </span>
-        ) : null}
-        {iconName ? (
-          <DynamicIcon className="size-5 text-primary" name={iconName} />
-        ) : Icon ? (
-          <Icon className="size-5 text-primary" />
-        ) : null}
-        {title}
-      </h2>
+      {title ? (
+        <h2 className="mb-3 flex items-center gap-2.5 text-lg font-black text-slate-950">
+          {/* Con un solo paso el número no ordena nada: es ruido en la pantalla
+              que más se mira. */}
+          {step > 1 ? (
+            <span className="flex size-7 items-center justify-center rounded-full bg-primary text-sm font-black text-white">
+              {step}
+            </span>
+          ) : null}
+          {iconName ? (
+            <DynamicIcon className="size-5 text-primary" name={iconName} />
+          ) : Icon ? (
+            <Icon className="size-5 text-primary" />
+          ) : null}
+          {title}
+        </h2>
+      ) : null}
       {crece ? <div className="flex min-h-0 flex-1 flex-col">{children}</div> : children}
     </section>
   );
