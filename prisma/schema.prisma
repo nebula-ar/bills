@@ -87,6 +87,9 @@ model Business {
   @@index([deletedAt])
   modifierGroups ModifierGroup[]
   modifiers      Modifier[]
+  sectors   Sector[]
+  tables    Table[]
+  orders    Order[]
 }
 
 // Rubro del negocio. Solo define los DEFAULTS del onboarding (qué módulos se
@@ -171,6 +174,9 @@ model Branch {
 
   @@index([businessId])
   @@index([deletedAt])
+  sectors Sector[]
+  tables  Table[]
+  orders  Order[]
 }
 
 model Terminal {
@@ -245,6 +251,7 @@ model User {
   @@index([businessId])
   @@index([branchId])
   @@index([deletedAt])
+  orders Order[]
 }
 
 // Roles por TAREA, no por jerarquía lineal. Un mozo y un cocinero comparten
@@ -376,6 +383,7 @@ model Modifier {
 
   @@index([businessId])
   @@index([groupId])
+  orderItem OrderItemModifier[]
 }
 
 // Qué opciones llevaba un renglón vendido.
@@ -461,6 +469,7 @@ model Product {
   @@index([deletedAt])
   // Qué opciones se le ofrecen (ver src/modules/catalog/modifiers.ts).
   modifierGroups ModifierGroup[]
+  orderItems OrderItem[]
 }
 
 enum ProductKind {
@@ -524,6 +533,188 @@ model BranchProductPrice {
 // Ventas
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Salón: sectores, mesas y comandas (módulos TABLES y KITCHEN)
+//
+// Una comanda se diferencia de una venta de mostrador en que existe un rato
+// largo antes de cobrarse, y en ese rato la tocan el mozo, la cocina y el
+// cajero, a veces desde dispositivos distintos y al mismo tiempo. De ahí el
+// `version` para concurrencia y los estados por renglón.
+//
+// Las reglas de quién puede qué están en src/modules/tables/order-lifecycle.ts.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// De dónde salió la venta. El mostrador es el default y es lo que hacen todos
+// los rubros; el salón y el para-llevar los suma la gastronomía.
+enum SaleChannel {
+  COUNTER
+  TABLE
+  TAKEAWAY
+}
+
+enum TableStatus {
+  FREE
+  OCCUPIED
+  RESERVED
+}
+
+enum OrderStatus {
+  OPEN
+  PAID
+  CANCELLED
+}
+
+// Estado de un renglón en la pantalla de cocina.
+enum KdsStatus {
+  // Lo cargó el cliente desde el QR y todavía no lo confirmó el mozo: no viajó
+  // a cocina y no cuenta para el total.
+  CART
+  PENDING
+  PREPARING
+  READY
+  DELIVERED
+}
+
+model Sector {
+  id          String    @id @default(cuid())
+  businessId  String
+  branchId    String
+  name        String
+  // Los sectores nuevos van al FINAL, no en cero. Con todos empatados en 0 el
+  // orden queda indefinido, y la mesa que se crea a continuación cae en un
+  // sector arbitrario en vez de en el que el usuario está mirando.
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  createdById String?
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tables   Table[]
+
+  @@index([businessId])
+  @@index([branchId])
+}
+
+model Table {
+  id          String      @id @default(cuid())
+  businessId  String
+  branchId    String
+  sectorId    String?
+  name        String
+  seats       Int         @default(4)
+  status      TableStatus @default(FREE)
+  sortOrder   Int         @default(0)
+  // Token del QR de la mesa: deja pedir sin login. Nullable porque una mesa
+  // puede existir sin QR impreso.
+  publicToken String?     @unique
+  createdAt   DateTime    @default(now())
+  createdById String?
+  updatedAt   DateTime    @updatedAt
+  updatedById String?
+  deleted     Boolean     @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  sector   Sector?  @relation(fields: [sectorId], references: [id], onDelete: SetNull)
+  orders   Order[]
+
+  @@index([businessId])
+  @@index([branchId])
+  @@index([sectorId])
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  businessId  String
+  branchId    String
+  tableId     String?
+  // Quién la abrió. null = la abrió el cliente desde el QR.
+  staffId     String?
+  number      Int
+  status      OrderStatus @default(OPEN)
+  // Concurrencia optimista: sube en cada cambio. Dos dispositivos sobre la
+  // misma mesa es lo normal en un salón, no un caso raro.
+  version     Int         @default(0)
+  subtotal    Int         @default(0)
+  discount    Int         @default(0)
+  // Del mozo, no del negocio: suma al total pero NO al subtotal.
+  tip         Int         @default(0)
+  total       Int         @default(0)
+  // La venta que se generó al cobrar.
+  saleId      String?     @unique
+  openedAt    DateTime    @default(now())
+  closedAt    DateTime?
+  createdById String?
+  updatedAt   DateTime    @updatedAt
+  updatedById String?
+  deleted     Boolean     @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  business Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  table    Table?      @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  staff    User?       @relation(fields: [staffId], references: [id], onDelete: Restrict)
+  sale     Sale?       @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  items    OrderItem[]
+
+  @@index([businessId])
+  @@index([branchId])
+  @@index([tableId])
+  @@index([status])
+}
+
+model OrderItem {
+  id          String    @id @default(cuid())
+  orderId     String
+  productId   String?
+  // Copia del nombre, igual que SaleItem.description: si el producto cambia o
+  // se borra, la comanda vieja tiene que seguir diciendo qué se pidió.
+  description String
+  // Precio base, sin modificadores. En pesos enteros.
+  unitPrice   Int
+  // En milésimas, como todo el resto (ver src/lib/quantity.ts).
+  quantity    Int       @default(1000)
+  // (base + Σ modificadores) × cantidad.
+  total       Int
+  // Instrucción libre para la cocina: "sin azúcar", "bien caliente".
+  note        String?
+  kdsStatus   KdsStatus @default(PENDING)
+  // Para el reloj de la pantalla de cocina.
+  sentToKitchenAt DateTime  @default(now())
+  readyAt         DateTime?
+  createdAt   DateTime  @default(now())
+
+  order     Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product?            @relation(fields: [productId], references: [id], onDelete: SetNull)
+  modifiers OrderItemModifier[]
+
+  @@index([orderId])
+  @@index([kdsStatus])
+}
+
+// Igual que SaleItemModifier: guarda copia del nombre y del ajuste para que
+// editar un modificador no reescriba comandas viejas.
+model OrderItemModifier {
+  id          String  @id @default(cuid())
+  orderItemId String
+  modifierId  String?
+  name        String
+  priceDelta  Int     @default(0)
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  modifier  Modifier? @relation(fields: [modifierId], references: [id], onDelete: SetNull)
+
+  @@index([orderItemId])
+}
+
 model Sale {
   id          String     @id @default(cuid())
   branchId    String
@@ -535,8 +726,19 @@ model Sale {
   // subtotal = suma de los ítems a precio de lista; total = subtotal - discountTotal.
   subtotal      Int      @default(0)
   discountTotal Int      @default(0)
+  // Propina del salón. Va aparte del subtotal a propósito: es plata del mozo,
+  // no del negocio, y sumarla a lo facturado infla la contabilidad con algo
+  // ajeno. Pero tiene que estar en la venta igual, porque el arqueo de caja
+  // cuenta lo que entró al cajón, propina incluida.
+  tip           Int      @default(0)
   total         Int
   notes       String?
+  channel     SaleChannel @default(COUNTER)
+  // Copia de quién atendió y de qué mesa salió. Snapshot y no relación: el
+  // comprobante de hace seis meses tiene que seguir diciendo "Mesa 4, atendió
+  // Vero" aunque la mesa se haya borrado o Vero ya no trabaje acá.
+  waiterName  String?
+  tableName   String?
   status      SaleStatus @default(COMPLETED)
   soldAt      DateTime   @default(now())
   createdAt   DateTime   @default(now())
@@ -583,6 +785,7 @@ model Sale {
   @@index([terminalId])
   @@index([customerId])
   @@index([deletedAt])
+  order Order?
 }
 
 model SaleItem {
