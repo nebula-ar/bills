@@ -815,9 +815,14 @@ export function PosCheckout({
               const inCart = entry.variants.reduce((sum, variant) => sum + (cart[variant.productId] ?? 0), 0);
 
               return (
+                // Misma tarjeta que la de un producto suelto: en la grilla no
+                // se distinguen a simple vista, y dos estilos para lo mismo
+                // hacen dudar de si son cosas distintas.
                 <button
-                  className={`flex min-h-[7.5rem] flex-col justify-between rounded-2xl border-2 p-3.5 text-left transition active:scale-[0.99] ${
-                    inCart > 0 ? "border-primary bg-primary/10" : "border-slate-200 bg-white"
+                  className={`flex min-h-[7.5rem] flex-col overflow-hidden rounded-2xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] ${
+                    inCart > 0
+                      ? "bg-white shadow-md shadow-primary/20 ring-2 ring-primary"
+                      : "bg-white shadow-sm ring-1 ring-slate-950/5"
                   }`}
                   key={`family-${product.familyId}`}
                   onClick={() => setOpenFamily(product.familyId)}
@@ -828,22 +833,24 @@ export function PosCheckout({
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         alt=""
-                        className="mb-2 aspect-square w-full rounded-xl bg-slate-100 object-cover"
+                        className="aspect-[4/3] w-full bg-slate-100 object-cover"
                         loading="lazy"
                         src={imageSrc}
                       />
                     ) : (
-                      <span className="mb-2 flex aspect-square w-full items-center justify-center rounded-xl bg-slate-100">
-                        <DynamicIcon className="size-8 text-slate-300" name={catalogIcon} />
+                      <span className="flex aspect-[4/3] w-full items-center justify-center bg-primary/5">
+                        <DynamicIcon className="size-8 text-primary/30" name={catalogIcon} />
                       </span>
                     )
                   ) : null}
-                  <span className="block text-base font-black leading-tight text-slate-950">
-                    {product.familyName ?? product.name}
-                  </span>
-                  <span className="mt-1.5 block text-lg font-black text-primary">{money(product.price)}</span>
-                  <span className="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 text-sm font-black text-slate-700">
-                    {inCart > 0 ? `${formatQuantity(inCart)} en el pedido` : `${entry.variants.length} talles`}
+                  <span className="flex flex-1 flex-col items-center justify-center gap-0.5 p-2.5">
+                    <span className="line-clamp-2 text-sm font-black leading-tight text-slate-950">
+                      {product.familyName ?? product.name}
+                    </span>
+                    <span className="font-display text-lg font-black text-primary">{money(product.price)}</span>
+                    <span className="mt-1.5 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 text-xs font-black text-slate-700">
+                      {inCart > 0 ? `${formatQuantity(inCart)} en el pedido` : `${entry.variants.length} talles`}
+                    </span>
                   </span>
                 </button>
               );
@@ -856,25 +863,35 @@ export function PosCheckout({
             const overStock = product.stock !== null && quantity > product.stock;
 
             return (
+              // La foto va a sangre y el texto centrado debajo, como en Migas:
+              // el que vende reconoce la mercadería por la foto, no leyendo. Un
+              // `border-2` con la foto metida adentro deja a la tarjeta con
+              // cara de formulario; el `ring-1` es un borde que no ocupa lugar.
+              // Elegido: anillo y sombra en vez de relleno rosa, para que la
+              // foto siga siendo lo que se ve.
               <div
-                className={`flex min-h-[7.5rem] flex-col justify-between rounded-2xl border-2 p-3.5 transition ${
+                className={`flex min-h-[7.5rem] flex-col overflow-hidden rounded-2xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
                   overStock
-                    ? "border-rose-400 bg-rose-50"
+                    ? "bg-rose-50 shadow-sm ring-2 ring-rose-400"
                     : active
-                      ? "border-primary bg-primary/10"
-                      : "border-slate-200 bg-white"
+                      ? "bg-white shadow-md shadow-primary/20 ring-2 ring-primary"
+                      : "bg-white shadow-sm ring-1 ring-slate-950/5"
                 }`}
                 key={product.productId}
               >
-                <button className="text-left active:scale-[0.99]" onClick={() => addProduct(product.productId)} type="button">
+                <button
+                  className="flex flex-1 flex-col active:scale-[0.99]"
+                  onClick={() => addProduct(product.productId)}
+                  type="button"
+                >
                   {showsPhotos ? (
                     imageSrc ? (
-                      <span className="relative mb-2 block">
+                      <span className="relative block w-full">
                         {/* Miniatura ya normalizada por el servidor. */}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           alt=""
-                          className="aspect-square max-h-40 w-full rounded-xl bg-slate-100 object-cover lg:max-h-32"
+                          className="aspect-[4/3] w-full bg-slate-100 object-cover"
                           loading="lazy"
                           src={imageSrc}
                         />
@@ -887,74 +904,86 @@ export function PosCheckout({
                         ) : null}
                       </span>
                     ) : (
-                      <span className="mb-2 flex aspect-square w-full items-center justify-center rounded-xl bg-slate-100">
-                        <DynamicIcon className="size-8 text-slate-300" name={catalogIcon} />
+                      <span className="flex aspect-[4/3] w-full items-center justify-center bg-primary/5">
+                        <DynamicIcon className="size-8 text-primary/30" name={catalogIcon} />
                       </span>
                     )
                   ) : null}
-                  <span className="block text-base font-black leading-tight text-slate-950">{product.name}</span>
-                  <span className="mt-1.5 block text-lg font-black text-primary">
-                    {money(product.price)}
-                    {byWeight ? <span className="text-xs font-bold text-primary">/{unitShort(product.unit)}</span> : null}
-                  </span>
-                  {product.stock !== null && !(outOfStock && showsPhotos && imageSrc) ? (
-                    <span
-                      className={`mt-0.5 block text-[0.7rem] font-bold ${
-                        outOfStock ? "text-rose-600" : overStock ? "text-rose-600" : "text-slate-400"
-                      }`}
-                    >
-                      {outOfStock ? "Sin stock" : `Quedan ${formatQuantity(product.stock, product.unit)}`}
+                  <span className="flex flex-1 flex-col items-center justify-center gap-0.5 p-2.5">
+                    {/* A dos renglones y no truncado: "Docena de medialunas" y
+                        "Docena de medialunas rellenas" son productos distintos
+                        y con puntos suspensivos se venden cruzados. */}
+                    <span className="line-clamp-2 text-sm font-black leading-tight text-slate-950">{product.name}</span>
+                    <span className="font-display text-lg font-black text-primary">
+                      {money(product.price)}
+                      {byWeight ? <span className="text-xs font-bold text-primary">/{unitShort(product.unit)}</span> : null}
                     </span>
-                  ) : null}
+                    {product.stock !== null && !(outOfStock && showsPhotos && imageSrc) ? (
+                      <span
+                        className={`text-[0.7rem] font-bold ${
+                          outOfStock ? "text-rose-600" : overStock ? "text-rose-600" : "text-slate-400"
+                        }`}
+                      >
+                        {outOfStock ? "Sin stock" : `Quedan ${formatQuantity(product.stock, product.unit)}`}
+                      </span>
+                    ) : null}
+                  </span>
                 </button>
 
-                {byWeight ? (
-                  // Por peso o por metro no tiene sentido el +/-: se tipea.
-                  <label className="mt-3 flex items-center gap-2 rounded-full bg-white px-3 py-1.5 ring-1 ring-primary/20">
-                    <input
-                      aria-label={`Cantidad de ${product.name} en ${unitShort(product.unit)}`}
-                      className="w-full min-w-0 bg-transparent text-base font-black text-slate-950 outline-none"
-                      inputMode="decimal"
-                      onChange={(event) => setProductQuantity(product.productId, event.target.value, product.unit)}
-                      placeholder="0"
-                      value={quantity ? formatQuantity(quantity) : ""}
-                    />
-                    <span className="shrink-0 text-xs font-black text-slate-400">{unitShort(product.unit)}</span>
-                  </label>
-                ) : active ? (
-                  <div className="mt-3 flex items-center justify-between rounded-full bg-white p-1 ring-1 ring-primary/20">
-                    <button
-                      aria-label={`Restar ${product.name}`}
-                      className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition active:scale-90"
-                      onClick={() => decreaseProduct(product.productId)}
-                      type="button"
-                    >
-                      <Minus className="size-4" />
-                    </button>
-                    <span className="text-lg font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
-                      {formatQuantity(quantity)}
-                    </span>
-                    <button
-                      aria-label={`Sumar ${product.name}`}
-                      className="flex size-9 items-center justify-center rounded-full bg-primary text-white transition active:scale-90"
-                      onClick={() => addProduct(product.productId)}
-                      type="button"
-                    >
-                      <Plus className="size-4" />
-                    </button>
-                  </div>
-                ) : null}
+                {byWeight || active || (features.packs && product.packSize && product.packSize > 1) ? (
+                  // Los controles llevan su propio margen porque la tarjeta ya
+                  // no tiene padding: se lo sacamos para que la foto llegue al
+                  // borde.
+                  <div className="space-y-1.5 px-2.5 pb-2.5">
+                    {byWeight ? (
+                      // Por peso o por metro no tiene sentido el +/-: se tipea.
+                      <label className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 ring-1 ring-primary/20">
+                        <input
+                          aria-label={`Cantidad de ${product.name} en ${unitShort(product.unit)}`}
+                          className="w-full min-w-0 bg-transparent text-base font-black text-slate-950 outline-none"
+                          inputMode="decimal"
+                          onChange={(event) => setProductQuantity(product.productId, event.target.value, product.unit)}
+                          placeholder="0"
+                          value={quantity ? formatQuantity(quantity) : ""}
+                        />
+                        <span className="shrink-0 text-xs font-black text-slate-400">{unitShort(product.unit)}</span>
+                      </label>
+                    ) : active ? (
+                      <div className="flex items-center justify-between rounded-full bg-white p-1 ring-1 ring-primary/20">
+                        <button
+                          aria-label={`Restar ${product.name}`}
+                          className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition active:scale-90"
+                          onClick={() => decreaseProduct(product.productId)}
+                          type="button"
+                        >
+                          <Minus className="size-4" />
+                        </button>
+                        <span className="text-lg font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
+                          {formatQuantity(quantity)}
+                        </span>
+                        <button
+                          aria-label={`Sumar ${product.name}`}
+                          className="flex size-9 items-center justify-center rounded-full bg-primary text-white transition active:scale-90"
+                          onClick={() => addProduct(product.productId)}
+                          type="button"
+                        >
+                          <Plus className="size-4" />
+                        </button>
+                      </div>
+                    ) : null}
 
-                {features.packs && product.packSize && product.packSize > 1 && !byWeight ? (
-                  <button
-                    aria-label={`Agregar ${product.packLabel ?? "bulto"} de ${product.name}`}
-                    className="mt-1.5 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-slate-950 text-xs font-black text-white transition active:scale-[0.97]"
-                    onClick={() => addPack(product.productId, product.packSize as number)}
-                    type="button"
-                  >
-                    <Plus className="size-3.5" />
-                    {product.packLabel ?? "Bulto"} × {product.packSize}
-                  </button>
+                    {features.packs && product.packSize && product.packSize > 1 && !byWeight ? (
+                      <button
+                        aria-label={`Agregar ${product.packLabel ?? "bulto"} de ${product.name}`}
+                        className="flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-slate-950 text-xs font-black text-white transition active:scale-[0.97]"
+                        onClick={() => addPack(product.productId, product.packSize as number)}
+                        type="button"
+                      >
+                        <Plus className="size-3.5" />
+                        {product.packLabel ?? "Bulto"} × {product.packSize}
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             );

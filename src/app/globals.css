@@ -262,3 +262,12 @@ textarea {
   font-family: var(--font-baloo), var(--font-nunito), ui-sans-serif, sans-serif;
   font-optical-sizing: auto;
 }
+
+/* Los números que se cantan en el mostrador —precios, totales— llevan la
+   display igual que los títulos: son lo que el cliente mira, no texto de
+   apoyo. No son encabezados, así que necesitan un gancho propio. En los rubros
+   que no definen display, la clase no hace nada y se ve la del rubro. */
+[data-vertical="BAKERY"] .font-display {
+  font-family: var(--font-baloo), var(--font-nunito), ui-sans-serif, sans-serif;
+  font-optical-sizing: auto;
+}
