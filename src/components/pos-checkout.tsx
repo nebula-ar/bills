@@ -880,12 +880,12 @@ export function PosCheckout({
               // Elegido: anillo y sombra en vez de relleno rosa, para que la
               // foto siga siendo lo que se ve.
               <div
-                className={`flex min-h-[7.5rem] flex-col overflow-hidden rounded-2xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+                className={`flex min-h-[7.5rem] flex-col overflow-hidden rounded-2xl bg-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
                   overStock
-                    ? "bg-rose-50 shadow-sm ring-2 ring-rose-400"
+                    ? "shadow-sm ring-2 ring-destructive"
                     : active
-                      ? "bg-white shadow-md shadow-primary/20 ring-2 ring-primary"
-                      : "bg-white shadow-sm ring-1 ring-slate-950/5"
+                      ? "shadow-md shadow-primary/20 ring-2 ring-primary"
+                      : "shadow-sm ring-1 ring-slate-950/5"
                 }`}
                 key={product.productId}
               >
@@ -928,12 +928,19 @@ export function PosCheckout({
                       {money(product.price)}
                       {byWeight ? <span className="text-xs font-bold text-primary">/{unitShort(product.unit)}</span> : null}
                     </span>
-                    {product.stock !== null && !(outOfStock && showsPhotos && imageSrc) ? (
-                      <span
-                        className={`text-[0.7rem] font-bold ${
-                          outOfStock ? "text-rose-600" : overStock ? "text-rose-600" : "text-slate-400"
-                        }`}
-                      >
+                    {/* Pasarse del stock NO se puede avisar con color: en este
+                        rubro el rosa es la marca, y el `--destructive` está a
+                        12° de hue del `--primary`, así que "error" y "elegido"
+                        se ven igual. Antes se teñía el fondo de rosa claro y,
+                        como la foto tapa la mitad de arriba, la tarjeta quedaba
+                        pintada por la mitad. Se avisa con palabras, en la misma
+                        píldora llena que ya usa "Sin stock" sobre la foto. */}
+                    {overStock ? (
+                      <span className="rounded-full bg-destructive px-2.5 py-0.5 text-[0.7rem] font-black text-white">
+                        Más de lo que hay
+                      </span>
+                    ) : product.stock !== null && !(outOfStock && showsPhotos && imageSrc) ? (
+                      <span className={`text-[0.7rem] font-bold ${outOfStock ? "text-rose-600" : "text-slate-400"}`}>
                         {outOfStock ? "Sin stock" : `Quedan ${formatQuantity(product.stock, product.unit)}`}
                       </span>
                     ) : null}
@@ -968,7 +975,12 @@ export function PosCheckout({
                         >
                           <Minus className="size-4" />
                         </button>
-                        <span className="text-lg font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
+                        {/* El número es el dato que está mal, así que se marca
+                            el número. */}
+                        <span
+                          className={`text-lg font-black ${overStock ? "text-destructive" : "text-slate-950"}`}
+                          style={{ fontVariantNumeric: "tabular-nums" }}
+                        >
                           {formatQuantity(quantity)}
                         </span>
                         <button
