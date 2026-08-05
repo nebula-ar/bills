@@ -144,6 +144,8 @@ test.describe("Escanear busca en la base, no solo en memoria", () => {
     await otra.getByPlaceholder("Ej: Corte clásico").fill(`Recién cargado ${codigo}`);
     await otra.locator('input[name="price"]').fill("2500");
     await otra.getByRole("button", { name: /Crear/ }).click();
+    await expect(otra.getByRole("heading", { name: `Foto de Recién cargado ${codigo}` })).toBeVisible();
+    await otra.getByRole("button", { name: "Listo" }).click();
     await expect(otra.getByRole("button").filter({ hasText: `Recién cargado ${codigo}` })).toBeVisible({
       timeout: 20_000,
     });
@@ -173,6 +175,8 @@ test.describe("Escanear busca en la base, no solo en memoria", () => {
     await page.getByPlaceholder("Ej: Corte clásico").fill(`Apagado ${codigo}`);
     await page.locator('input[name="price"]').fill("3000");
     await page.getByRole("button", { name: /Crear/ }).click();
+    await expect(page.getByRole("heading", { name: `Foto de Apagado ${codigo}` })).toBeVisible();
+    await page.getByRole("button", { name: "Listo" }).click();
     await expect(page.getByRole("button").filter({ hasText: `Apagado ${codigo}` })).toBeVisible({ timeout: 20_000 });
     await page.getByRole("button").filter({ hasText: `Apagado ${codigo}` }).click();
     await page.locator("summary").first().click();

@@ -20,7 +20,11 @@ test.describe("Fotos de productos", () => {
 
     await page.locator("textarea").fill("Chocolate artesanal sobre fondo limpio");
     await expect(page.getByRole("button", { name: "Generar imagen" })).toBeEnabled();
-    await page.getByRole("button", { name: "Cerrar" }).click();
+    await page
+      .getByRole("heading", { name: "Generar foto con IA" })
+      .locator("xpath=ancestor::header/..")
+      .getByRole("button", { name: "Cerrar" })
+      .click();
     await expect(page.getByRole("heading", { name: "Generar foto con IA" })).toHaveCount(0);
   });
 
@@ -67,7 +71,7 @@ test.describe("Fotos de productos", () => {
     await expect(page.getByText("Guardada", { exact: true })).toBeVisible({ timeout: 30_000 });
 
     await page.getByRole("button", { name: "Quitar" }).click();
-    await expect(page.getByText("Sacá o elegí una foto")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Sacá, elegí o generá una foto")).toBeVisible({ timeout: 15_000 });
   });
 
   test("la foto de un producto no se sirve sin sesión", async ({ page, request }) => {

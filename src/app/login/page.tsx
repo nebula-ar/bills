@@ -9,59 +9,55 @@ type LoginPageProps = {
   }>;
 };
 
-// El login usa el mismo sistema visual que la landing (hero.tsx): fondo crema,
-// tipografía display bien pesada, el logo negro con la B lima y el azul #3158e8
-// como único acento. Antes era otra marca —logo violeta "BB", fondo lavanda,
-// botón azul con glow— y se notaba el salto al entrar desde la home.
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const callbackUrl = getSafeCallbackUrl(getSingleParam(params.callbackUrl));
   const hasError = Boolean(getSingleParam(params.error));
 
   return (
-    <main className="flex min-h-[100dvh] flex-col bg-[#f5f4ef] text-slate-950 sm:items-center sm:justify-center sm:px-6 sm:py-10">
-      {/* En celular ocupa toda la pantalla (es una PWA y el login es la primera
-          pantalla real); de sm para arriba se convierte en tarjeta centrada. */}
-      <section className="flex w-full flex-1 flex-col bg-[#fffef9] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:min-h-0 sm:max-w-[26rem] sm:flex-none sm:rounded-[28px] sm:border sm:border-slate-950/10 sm:px-8 sm:py-10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]">
-        <div className="flex flex-1 flex-col justify-center gap-7 sm:flex-none">
-          <div className="grid gap-5">
-            {/* El logo vuelve a la home: sin esto el login es un callejón sin
-                salida para quien entró a mirar y todavía no tiene cuenta. */}
+    <main className="flex min-h-[100dvh] flex-col bg-slate-100 text-slate-950 sm:items-center sm:justify-center sm:px-6 sm:py-10">
+      <section className="flex w-full flex-1 flex-col bg-white px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:min-h-0 sm:max-w-[28rem] sm:flex-none sm:rounded-[2.5rem] sm:px-8 sm:py-10 sm:shadow-2xl sm:shadow-slate-950/15">
+        <div className="flex flex-1 flex-col justify-center gap-8 sm:flex-none">
+          <div className="grid gap-6 text-center">
             <Link
-              className="inline-flex w-fit items-center gap-2.5 rounded-xl text-lg font-black tracking-[-0.04em] text-slate-950 transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3158e8] focus-visible:ring-offset-2"
+              className="mx-auto grid size-20 place-items-center rounded-[1.8rem] bg-linear-to-br from-blue-600 to-violet-600 text-3xl font-black tracking-[-0.08em] text-white shadow-lg shadow-blue-600/30 transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-4 active:scale-95"
               href="/"
+              aria-label="Ir al inicio"
             >
-              <span className="grid size-9 place-items-center rounded-xl bg-slate-950 text-base font-black text-[#d7ef62]">B</span>
-              Bills
+              <span aria-label="Marca Bills" role="img">
+                BB
+              </span>
             </Link>
 
             <div>
-              <h1 className="text-[2.5rem] font-black leading-[0.95] tracking-[-0.06em] text-slate-950">
-                Iniciá sesión
-              </h1>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                Ingresá con los datos de tu cuenta.
-              </p>
+              <p className="text-sm font-black tracking-[0.24em] text-blue-600">BILLS</p>
+              <h1 className="mt-3 text-3xl font-black tracking-[-0.05em] text-slate-950">Bienvenido de nuevo</h1>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">Ingresá para administrar tu negocio.</p>
             </div>
           </div>
 
           {hasError ? (
-            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">
               No pudimos iniciar sesión. Revisá tus datos e intentá de nuevo.
             </p>
           ) : null}
 
           <LoginForm callbackUrl={callbackUrl} />
 
-          <p className="border-t border-slate-200 pt-6 text-sm text-slate-600">
-            ¿No tenés cuenta?{" "}
-            <Link className="font-black text-[#3158e8] hover:underline" href="/register">
-              Registrá tu negocio
+          <div className="grid gap-3 text-center text-sm font-semibold text-slate-500">
+            <p>
+              ¿No tenés cuenta?{" "}
+              <Link className="font-black text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2" href="/register">
+                Registrá tu negocio
+              </Link>
+            </p>
+            <Link className="font-bold text-slate-500 hover:text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2" href="/terminal">
+              ¿Sos empleado? Ir a la terminal
             </Link>
-          </p>
+          </div>
         </div>
 
-        <p className="shrink-0 pt-8 text-xs leading-5 text-slate-400">
+        <p className="shrink-0 pt-8 text-center text-xs leading-5 text-slate-400">
           Al ingresar aceptás los términos de uso y la política de privacidad.
         </p>
       </section>
@@ -74,11 +70,7 @@ function getSingleParam(value: string | string[] | undefined) {
 }
 
 function getSafeCallbackUrl(value: string | undefined) {
-  if (!value || !value.startsWith("/")) {
-    return "/";
-  }
-
-  if (value.startsWith("//")) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return "/";
   }
 

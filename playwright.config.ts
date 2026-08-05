@@ -38,7 +38,10 @@ export default defineConfig({
   webServer: {
     command: `npx next start --port ${PORT}`,
     url: `${BASE_URL}/login`,
-    reuseExistingServer: !process.env.CI,
+    // `e2e:prepare` reemplaza e2e.db. Reusar un Next que ya tenía abierta la
+    // SQLite anterior hace que la app lea un archivo huérfano y los tests vean
+    // estado distinto del que acaba de sembrarse.
+    reuseExistingServer: false,
     timeout: 120_000,
     env: {
       DATABASE_URL: "file:./e2e.db",
