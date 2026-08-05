@@ -1472,8 +1472,8 @@ export function PosCheckout({
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex items-center justify-between px-5 pt-6">
             <div>
-              <h3 className="text-xl font-black tracking-tight text-slate-950">{pasos[pasoIdx].titulo}</h3>
-              <p className="text-sm text-slate-500">{selectedStaff ? `Atiende ${selectedStaff.name}` : ""}</p>
+              <h3 className="text-2xl font-black tracking-tight text-slate-950">{pasos[pasoIdx].titulo}</h3>
+              <p className="text-base text-slate-500">{selectedStaff ? `Atiende ${selectedStaff.name}` : ""}</p>
             </div>
             <button
               aria-label="Cerrar"
@@ -1529,8 +1529,8 @@ export function PosCheckout({
                         <Icono className="size-5" />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-base font-black text-slate-950">{canal.label}</span>
-                        <span className="block text-xs text-slate-500">{canal.pista}</span>
+                        <span className="block text-lg font-black text-slate-950">{canal.label}</span>
+                        <span className="block text-sm text-slate-500">{canal.pista}</span>
                       </span>
                       {elegido ? <Check className="size-5 shrink-0 text-primary" /> : null}
                     </button>
@@ -1552,13 +1552,13 @@ export function PosCheckout({
                 <div className="space-y-4">
                   {agruparPorSector(mesas).map(([sector, delSector]) => (
                     <div key={sector}>
-                      <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">{sector}</p>
+                      <p className="mb-2 text-sm font-black uppercase tracking-wide text-slate-500">{sector}</p>
                       <div className="grid grid-cols-4 gap-2">
                         {delSector.map((mesa) => {
                           const elegida = tableId === mesa.id;
                           return (
                             <button
-                              className={`relative grid aspect-square place-items-center rounded-2xl border-2 text-lg font-black transition ${
+                              className={`relative grid aspect-square place-items-center rounded-2xl border-2 text-xl font-black transition ${
                                 elegida
                                   ? "border-primary bg-primary text-white shadow-sm shadow-primary/25"
                                   : "border-slate-200 bg-white text-slate-700"
@@ -1581,7 +1581,7 @@ export function PosCheckout({
             {/* Pedido */}
             {pasoActual === "confirmar" ? (
             <section>
-              <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">Tu pedido</p>
+              <p className="mb-2 text-sm font-black uppercase tracking-wide text-slate-500">Tu pedido</p>
               <div className="space-y-2">
                 {cartItems.map((item) => {
                   const imageSrc = posImageSrc(item);
@@ -1597,8 +1597,8 @@ export function PosCheckout({
                       />
                     ) : null}
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-black text-slate-950">{item.name}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="truncate text-base font-black text-slate-950">{item.name}</p>
+                      <p className="text-sm text-slate-500">
                         {money(item.price)} {allowsFraction(item.unit) ? `por ${unitShort(item.unit)}` : "c/u"}
                       </p>
                     </div>
@@ -1634,7 +1634,7 @@ export function PosCheckout({
                         </button>
                       </div>
                     )}
-                    <p className="w-20 shrink-0 text-right text-sm font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    <p className="w-20 shrink-0 text-right text-base font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
                       {money(lineTotal(item.price, item.quantity))}
                     </p>
                     <button
@@ -1702,7 +1702,7 @@ export function PosCheckout({
             {/* Cliente: hace falta para fiar y sirve para el historial de compras. */}
             {pasoActual === "pago" && customers.length > 0 ? (
               <section>
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">¿Quién compra?</p>
+                <p className="mb-2 text-sm font-black uppercase tracking-wide text-slate-500">¿Quién compra?</p>
                 <select
                   aria-label="Cliente"
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
@@ -1734,7 +1734,7 @@ export function PosCheckout({
             {pasoActual === "pago" ? (
             <section>
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-black uppercase tracking-wide text-slate-500">¿Cómo paga?</p>
+                <p className="text-sm font-black uppercase tracking-wide text-slate-500">¿Cómo paga?</p>
                 <button
                   className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black transition active:scale-95 ${
                     splitMode ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
@@ -1808,7 +1808,7 @@ export function PosCheckout({
                     const active = singleMethod === option.value;
                     return (
                       <button
-                        className={`flex items-center gap-2.5 rounded-2xl px-4 py-4 text-sm font-black transition active:scale-95 ${
+                        className={`flex items-center gap-2.5 rounded-2xl px-4 py-4 text-base font-black transition active:scale-95 ${
                           active ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-slate-100 text-slate-700"
                         }`}
                         key={option.value}
@@ -1827,11 +1827,11 @@ export function PosCheckout({
                   el cliente enfrente, y la que más se equivoca con apuro. */}
               {!splitMode && singleMethod === "CASH" && total > 0 ? (
                 <div className="mt-3 rounded-2xl bg-slate-50 p-3.5">
-                  <p className="text-xs font-black uppercase tracking-wide text-slate-500">¿Con cuánto paga?</p>
+                  <p className="text-sm font-black uppercase tracking-wide text-slate-500">¿Con cuánto paga?</p>
 
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <button
-                      className={`rounded-xl px-3 py-2.5 text-sm font-black transition active:scale-95 ${
+                      className={`rounded-xl px-3 py-3 text-base font-black transition active:scale-95 ${
                         cashReceived === "" ? "bg-slate-900 text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"
                       }`}
                       onClick={() => setCashReceived("")}
@@ -1841,7 +1841,7 @@ export function PosCheckout({
                     </button>
                     {quickCashAmounts(total).map((amount) => (
                       <button
-                        className={`rounded-xl px-3 py-2.5 text-sm font-black transition active:scale-95 ${
+                        className={`rounded-xl px-3 py-3 text-base font-black transition active:scale-95 ${
                           cashReceived === String(amount)
                             ? "bg-slate-900 text-white"
                             : "bg-white text-slate-700 ring-1 ring-slate-200"
