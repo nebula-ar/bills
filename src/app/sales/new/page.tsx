@@ -64,7 +64,6 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
   const posBranches: PosBranch[] = branches.map((branch) => ({
     id: branch.id,
     name: branch.name,
-    businessName: branch.business.name,
     staffs: branch.users.map((staff) => ({ id: staff.id, name: staff.name })),
     products: branch.productPrices.map((productPrice) => ({
       productId: productPrice.productId,

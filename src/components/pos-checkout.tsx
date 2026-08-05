@@ -18,7 +18,6 @@ import {
   ArrowRight,
   Banknote,
   Check,
-  ChevronLeft,
   CreditCard,
   Minus,
   Plus,
@@ -34,7 +33,6 @@ import {
   X,
   DynamicIcon,
 } from "@/components/icons";
-import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition, type ComponentType } from "react";
 
 export type PosProduct = {
@@ -64,7 +62,6 @@ export type PosProduct = {
 export type PosBranch = {
   id: string;
   name: string;
-  businessName: string;
   staffs: { id: string; name: string }[];
   products: PosProduct[];
 };
@@ -689,20 +686,11 @@ export function PosCheckout({
     // el catálogo pasa POR DEBAJO del nav; el respiro se lo damos adentro del
     // scroll, donde solo empuja al último renglón.
     <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-[560px] flex-col overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:h-screen lg:max-w-none lg:overflow-hidden lg:px-8 lg:pb-6">
-      <header className="flex items-center gap-3 duration-500 animate-in fade-in slide-in-from-top-2">
-        <Link
-          aria-label="Volver"
-          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm ring-1 ring-slate-950/5 transition active:scale-95"
-          href="/"
-        >
-          <ChevronLeft className="size-5" />
-        </Link>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-slate-500">{branch.businessName}</p>
-          <h1 className="text-2xl font-black tracking-tight text-slate-950">Nueva venta</h1>
-        </div>
-      </header>
-
+      {/* Sin encabezado propio: el nombre del negocio y un título que dice
+          "Nueva venta" en una pantalla a la que se entra a propósito son dos
+          renglones de alto que no informan nada, y acá el alto es el catálogo.
+          Para volver está el nav de abajo, que además marca dónde estás. El
+          título de la primera tarjeta oficia de título de la pantalla. */}
       <div className="lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_22rem] lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:gap-6">
         <div className="lg:flex lg:min-h-0 lg:min-w-0 lg:flex-col">
       {branches.length > 1 ? (
