@@ -89,6 +89,8 @@ model Business {
   loyaltyEntries         LoyaltyEntry[]
 
   @@index([deletedAt])
+  modifierGroups ModifierGroup[]
+  modifiers      Modifier[]
 }
 
 // Rubro del negocio. Solo define los DEFAULTS del onboarding (qué módulos se
@@ -102,6 +104,7 @@ enum Vertical {
   GROCERY // Verdulería / fiambrería / dietética
   HABERDASHERY // Mercería / bazar
   HARDWARE // Ferretería / corralón
+  BAKERY // Panadería / pastelería / confitería
   GENERAL // Cualquier otro comercio
 }
 
@@ -120,6 +123,9 @@ enum AppModule {
   APPOINTMENTS // Agenda de turnos (barbería, estética)
   QUOTES // Presupuestos: cotizar antes de vender (ferretería, mercería, corralón)
   MARKETING // Recuperar clientes, cumpleaños, puntos y la página pública del negocio
+  TABLES // Salón: sectores, mesas y comandas (gastronomía)
+  KITCHEN // Pantalla de cocina: qué preparar y en qué orden (gastronomía)
+  RECIPES // Recetas, producción y mermas: qué ingrediente consume cada producto
 }
 
 // Un módulo prendido para un negocio. La ausencia de fila = módulo apagado.
@@ -245,10 +251,18 @@ model User {
   @@index([deletedAt])
 }
 
+// Roles por TAREA, no por jerarquía lineal. Un mozo y un cocinero comparten
+// rango pero hacen cosas ajenas entre sí: no hay uno "más arriba" que el otro.
+// Qué puede cada uno se define en src/lib/capabilities.ts, que es la única
+// fuente de verdad para la nav y para los guards del servidor.
 enum UserRole {
-  OWNER
-  ADMIN
-  STAFF
+  OWNER // dueño
+  ADMIN // socio o encargado general
+  MANAGER // encargado de local: la operación completa, sin equipo ni fiscal
+  CASHIER // caja: cobra y arquea, no anula
+  WAITER // mozo: toma pedidos en el salón, no toca la plata
+  COOK // cocina: solo la pantalla de preparación
+  STAFF // empleado de mostrador (vende por terminal)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -302,6 +316,90 @@ model ProductCategory {
 
 // Un ítem vendible. `kind` distingue el servicio (no descuenta stock, no tiene
 // costo de compra) del producto físico (stock, costo, código de barras).
+// ─────────────────────────────────────────────────────────────────────────────
+// Opciones de producto (modificadores)
+//
+// "Con leche descremada", "sin azúcar", "extra jamón". Nacen con la
+// gastronomía pero no son exclusivas de ella: una ferretería que corta a
+// medida o una mercería que vende por color usan lo mismo.
+//
+// La validación vive en src/modules/catalog/modifiers.ts, y ahí está la regla
+// que importa: un modificador solo se puede elegir si su grupo está asignado a
+// ESE producto. Sin eso, quien arma el pedido desde la carta pública puede
+// colgarle a su café una opción de ajuste negativo de otro producto.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ModifierGroup {
+  id          String    @id @default(cuid())
+  businessId  String
+  name        String
+  // Hay que elegir al menos uno para poder agregar el producto.
+  required    Boolean   @default(false)
+  minSelect   Int       @default(0)
+  // 1 = elegir una; >1 = varias.
+  maxSelect   Int       @default(1)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  createdById String?
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  business  Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  modifiers Modifier[]
+  // A qué productos se les ofrece este grupo. Es la relación que hace posible
+  // la validación de pertenencia.
+  products  Product[]
+
+  @@index([businessId])
+}
+
+model Modifier {
+  id          String    @id @default(cuid())
+  businessId  String
+  groupId     String
+  name        String
+  // Cuánto suma o resta al precio del producto, en pesos enteros. Puede ser
+  // negativo ("sin queso −$300"), y por eso el precio efectivo tiene piso en
+  // cero (ver effectiveUnitPrice).
+  priceDelta  Int       @default(0)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  createdById String?
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  deletedById String?
+
+  business Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  group    ModifierGroup      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  saleItem SaleItemModifier[]
+
+  @@index([businessId])
+  @@index([groupId])
+}
+
+// Qué opciones llevaba un renglón vendido.
+//
+// Guarda copia del nombre y del ajuste, igual que SaleItem copia el nombre del
+// producto en `description`: si mañana se edita o se borra el modificador, el
+// comprobante viejo tiene que seguir diciendo qué se vendió y a cuánto.
+model SaleItemModifier {
+  id         String @id @default(cuid())
+  saleItemId String
+  modifierId String?
+  name       String
+  priceDelta Int    @default(0)
+
+  saleItem SaleItem  @relation(fields: [saleItemId], references: [id], onDelete: Cascade)
+  modifier Modifier? @relation(fields: [modifierId], references: [id], onDelete: SetNull)
+
+  @@index([saleItemId])
+}
+
 model Product {
   id          String      @id @default(cuid())
   businessId  String
@@ -365,6 +463,8 @@ model Product {
   @@index([categoryId])
   @@index([barcode])
   @@index([deletedAt])
+  // Qué opciones se le ofrecen (ver src/modules/catalog/modifiers.ts).
+  modifierGroups ModifierGroup[]
 }
 
 enum ProductKind {
@@ -518,6 +618,7 @@ model SaleItem {
   @@index([saleId])
   @@index([productId])
   @@index([deletedAt])
+  modifiers SaleItemModifier[]
 }
 
 model SalePayment {
