@@ -684,7 +684,7 @@ export function PosCheckout({
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:max-w-[1000px] lg:px-6 lg:pb-10">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:max-w-none lg:px-8 lg:pb-10">
       <header className="flex items-center gap-3 duration-500 animate-in fade-in slide-in-from-top-2">
         <Link
           aria-label="Volver"
@@ -699,7 +699,7 @@ export function PosCheckout({
         </div>
       </header>
 
-      <div className="lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
+      <div className="lg:grid lg:grid-cols-[1fr_22rem] lg:items-stretch lg:gap-6">
         <div className="lg:min-w-0">
       {branches.length > 1 ? (
         <Step icon={Store} step={branchStep} title="Sucursal" delay={80}>
@@ -808,7 +808,7 @@ export function PosCheckout({
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {gridEntries.map((entry) => {
             const product = entry.product;
             const imageSrc = posImageSrc(product);
@@ -971,15 +971,18 @@ export function PosCheckout({
       </Step>
         </div>
 
-        <aside className="hidden lg:sticky lg:top-6 lg:block">
-          <div className="rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5">
+        <aside className="hidden lg:sticky lg:top-6 lg:block lg:h-[calc(100vh-3rem)]">
+          {/* Alto completo con el total abajo: en un mostrador la vista queda
+              abierta todo el día, y el número que se canta tiene que estar
+              siempre en el mismo lugar. */}
+          <div className="flex h-full flex-col rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5">
             <h2 className="flex items-center gap-2 text-base font-black text-slate-950">
               <ShoppingBag className="size-4 text-primary" />
               Pedido
             </h2>
             {hasItems ? (
               <>
-                <div className="mt-4 space-y-2">
+                <div className="mt-4 flex-1 space-y-2 overflow-y-auto">
                   {cartItems.map((item) => (
                     <div className="flex items-center gap-2 text-sm" key={item.productId}>
                       <span className="min-w-0 flex-1 truncate font-bold text-slate-700">
@@ -1025,12 +1028,39 @@ export function PosCheckout({
                 </button>
               </>
             ) : (
-              <p className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
-                {/* El rubro pone la palabra: en una panadería no se vende un
-                    "servicio". El label ya existía y este texto se había
-                    quedado con el de la barbería. */}
-                Tocá un {catalogSingular.toLowerCase()} para empezar.
-              </p>
+              <>
+                {/* Centrado y no arriba: la columna es alta y un cartel pegado
+                    al título deja medio metro de blanco debajo. */}
+                <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
+                  <ShoppingBag className="size-10 text-slate-200" />
+                  <p className="text-base font-black text-slate-700">Carrito vacío</p>
+                  {/* El rubro pone la palabra: en una panadería no se vende un
+                      "servicio". */}
+                  <p className="text-sm text-slate-500">
+                    Tocá un {catalogSingular.toLowerCase()} para sumarlo.
+                  </p>
+                </div>
+
+                {/* El total queda a la vista aunque esté en cero: es el número
+                    que el cajero canta, y tiene que estar SIEMPRE en el mismo
+                    lugar de la pantalla, no aparecer recién al primer toque. */}
+                <div className="mt-4 flex items-center justify-between rounded-2xl bg-primary/10 px-4 py-3">
+                  <span className="text-base font-black text-slate-950">Total</span>
+                  <span
+                    className="text-2xl font-black text-primary"
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {money(0)}
+                  </span>
+                </div>
+                <button
+                  className="mt-3 w-full rounded-2xl bg-primary/40 px-4 py-4 text-base font-black text-white"
+                  disabled
+                  type="button"
+                >
+                  Continuar al cobro
+                </button>
+              </>
             )}
           </div>
         </aside>
