@@ -11,9 +11,19 @@ import { SaleChannel } from "@/generated/prisma/enums";
  * dónde igual que una panadería, y una panadería sin salón no tiene por qué
  * verlo.
  */
-export type PasoDeCobro = { key: "donde" | "mesa" | "pago" | "confirmar"; titulo: string };
+export type PasoDeCobro = {
+  key: "donde" | "mesa" | "pago" | "efectivo" | "confirmar";
+  titulo: string;
+};
 
-export function pasosDelCobro(input: { usaSalon: boolean; canal: SaleChannel }): PasoDeCobro[] {
+export function pasosDelCobro(input: {
+  usaSalon: boolean;
+  canal: SaleChannel;
+  // Efectivo en un solo pago. Es lo único que necesita calcular vuelto: con
+  // tarjeta se cobra justo, y en un pago dividido no hay un "con cuánto paga"
+  // único porque son varios montos.
+  pagaEnEfectivo: boolean;
+}): PasoDeCobro[] {
   return [
     ...(input.usaSalon ? ([{ key: "donde", titulo: "¿Dónde?" }] as const) : []),
     // La mesa solo se pregunta si ya se dijo que es una mesa. Preguntarla
@@ -22,6 +32,9 @@ export function pasosDelCobro(input: { usaSalon: boolean; canal: SaleChannel }):
       ? ([{ key: "mesa", titulo: "¿Qué mesa?" }] as const)
       : []),
     { key: "pago", titulo: "¿Cómo paga?" },
+    // El vuelto tiene pantalla propia y va DESPUÉS de elegir el medio: recién
+    // ahí se sabe si hace falta. Con débito este paso no existe.
+    ...(input.pagaEnEfectivo ? ([{ key: "efectivo", titulo: "¿Con cuánto paga?" }] as const) : []),
     { key: "confirmar", titulo: "Confirmar" },
   ];
 }

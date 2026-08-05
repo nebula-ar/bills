@@ -4,8 +4,8 @@ import { SaleChannel } from "@/generated/prisma/enums";
 
 import { pasosDelCobro, puedeAvanzar } from "./checkout-steps.logic";
 
-const claves = (input: { usaSalon: boolean; canal: SaleChannel }) =>
-  pasosDelCobro(input).map((paso) => paso.key);
+const claves = (input: { usaSalon: boolean; canal: SaleChannel; pagaEnEfectivo?: boolean }) =>
+  pasosDelCobro({ pagaEnEfectivo: false, ...input }).map((paso) => paso.key);
 
 describe("qué pasos tiene el cobro", () => {
   it("sin salón son dos: cómo paga y confirmar", () => {
@@ -46,12 +46,54 @@ describe("qué pasos tiene el cobro", () => {
     ]);
   });
 
+  it("pagando en efectivo aparece el paso del vuelto, después de elegir el medio", () => {
+    // Después y no antes: recién al saber que es efectivo tiene sentido
+    // preguntar con cuánto paga.
+    expect(claves({ usaSalon: false, canal: SaleChannel.COUNTER, pagaEnEfectivo: true })).toEqual([
+      "pago",
+      "efectivo",
+      "confirmar",
+    ]);
+  });
+
+  it("con tarjeta no hay paso de vuelto", () => {
+    // Con débito se cobra justo: preguntar con cuánto paga sería un toque de
+    // más en la mitad de las ventas.
+    expect(claves({ usaSalon: false, canal: SaleChannel.COUNTER, pagaEnEfectivo: false })).toEqual([
+      "pago",
+      "confirmar",
+    ]);
+  });
+
+  it("el vuelto se suma a los pasos del salón sin desordenarlos", () => {
+    expect(claves({ usaSalon: true, canal: SaleChannel.TABLE, pagaEnEfectivo: true })).toEqual([
+      "donde",
+      "mesa",
+      "pago",
+      "efectivo",
+      "confirmar",
+    ]);
+  });
+
   it("confirmar es siempre el último", () => {
     // La barra de progreso y el botón "Confirmar venta" se apoyan en esto.
     for (const usaSalon of [true, false]) {
-      for (const canal of [SaleChannel.COUNTER, SaleChannel.TAKEAWAY, SaleChannel.TABLE]) {
-        const pasos = pasosDelCobro({ usaSalon, canal });
-        expect(pasos[pasos.length - 1].key).toBe("confirmar");
+      for (const pagaEnEfectivo of [true, false]) {
+        for (const canal of [SaleChannel.COUNTER, SaleChannel.TAKEAWAY, SaleChannel.TABLE]) {
+          const pasos = pasosDelCobro({ usaSalon, canal, pagaEnEfectivo });
+          expect(pasos[pasos.length - 1].key).toBe("confirmar");
+        }
+      }
+    }
+  });
+
+  it("el vuelto va siempre justo antes de confirmar", () => {
+    // Es lo último que se toca antes de cerrar: el número se lee con los
+    // billetes en la mano.
+    for (const usaSalon of [true, false]) {
+      for (const canal of [SaleChannel.COUNTER, SaleChannel.TABLE]) {
+        const claves = pasosDelCobro({ usaSalon, canal, pagaEnEfectivo: true }).map((p) => p.key);
+        expect(claves[claves.length - 2]).toBe("efectivo");
       }
     }
   });
