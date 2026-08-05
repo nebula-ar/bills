@@ -684,7 +684,11 @@ export function PosCheckout({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-[560px] flex-col overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:h-screen lg:max-w-none lg:overflow-hidden lg:px-8 lg:pb-28">
+    // El nav de abajo es flotante: no ocupa lugar en el flujo, así que
+    // reservarle 7rem acá era regalar alto. La pantalla llega hasta el borde y
+    // el catálogo pasa POR DEBAJO del nav; el respiro se lo damos adentro del
+    // scroll, donde solo empuja al último renglón.
+    <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-[560px] flex-col overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:h-screen lg:max-w-none lg:overflow-hidden lg:px-8 lg:pb-6">
       <header className="flex items-center gap-3 duration-500 animate-in fade-in slide-in-from-top-2">
         <Link
           aria-label="Volver"
@@ -809,7 +813,11 @@ export function PosCheckout({
         ) : null}
 
         <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+        {/* El colchón va acá adentro y no en el contenedor: así el área que
+            scrollea llega hasta el fondo de la pantalla, y lo único que el nav
+            flotante empuja es el último renglón, que se termina de ver
+            scrolleando. */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:pb-24 xl:grid-cols-4 2xl:grid-cols-5">
           {gridEntries.map((entry) => {
             const product = entry.product;
             const imageSrc = posImageSrc(product);
@@ -976,8 +984,15 @@ export function PosCheckout({
         {/* Sin alto calculado a mano: un `calc(100vh-…)` no sabe del encabezado
           ni del lugar reservado para el nav, y el panel terminaba abajo del
           borde con el botón de cobro cortado. Como item del grid, la fila ya
-          lo acota. */}
-        <aside className="hidden lg:block lg:h-full">
+          lo acota.
+
+          El catálogo puede pasar por debajo del nav flotante porque scrollea,
+          pero el botón de cobro no: si queda tapado, no se cobra. El nav va
+          centrado en la ventana (máx. 35rem) y esta columna mide 22rem contra
+          el borde derecho, así que se cruzan solo en ventanas angostas. Ahí le
+          dejamos el lugar; de ~1330px para arriba el carrito llega hasta abajo
+          y gana los 96px. Medido: el botón queda libre en todo el rango. */}
+        <aside className="hidden max-[1327px]:pb-24 lg:block lg:h-full">
           {/* Alto completo con el total abajo: en un mostrador la vista queda
               abierta todo el día, y el número que se canta tiene que estar
               siempre en el mismo lugar. */}
