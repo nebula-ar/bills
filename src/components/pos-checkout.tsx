@@ -57,6 +57,7 @@ export type PosProduct = {
   familyId: string | null;
   familyName: string | null;
   variantLabel: string | null;
+  categoryName: string | null;
 };
 
 export type PosBranch = {
@@ -261,8 +262,20 @@ export function PosCheckout({
   );
   // Busca por nombre, SKU y código de barras: con un lector, escanear escribe el
   // código en este mismo campo y el producto queda filtrado solo.
+  // Categoría elegida en los chips. null = todas.
+  const [categoria, setCategoria] = useState<string | null>(null);
+
+  // Las categorías que existen de verdad, en el orden en que vienen. Con pocas
+  // no se muestran: dos chips para diez productos son ruido.
+  const categorias = useMemo(
+    () => [...new Set(products.map((p) => p.categoryName).filter((c): c is string => Boolean(c)))],
+    [products],
+  );
+
   const filteredProducts = useMemo(() => {
-    const list = products;
+    // El chip filtra ANTES que el buscador: buscar dentro de una categoría es
+    // lo que uno espera, y buscar en todo estando parado en una es confuso.
+    const list = categoria ? products.filter((p) => p.categoryName === categoria) : products;
     // Sin acentos y sin mayúsculas: quien busca "banana" tiene que encontrar
     // "Banana", y quien escribe "cafe" tiene que encontrar "Café". Escribir mal
     // el término es de los problemas más documentados en este tipo de usuario.
@@ -287,7 +300,7 @@ export function PosCheckout({
         normalize(field).includes(query),
       ),
     );
-  }, [products, search, salesRank]);
+  }, [products, search, salesRank, categoria]);
 
   // Con fotos, la grilla tiene que quedar pareja: si al menos un producto tiene,
   // todas las tarjetas reservan el cuadrado. Si ninguno tiene, no se reserva
@@ -398,7 +411,11 @@ export function PosCheckout({
     !(wantsInvoice && customerTaxIdHasError);
 
   const branchStep = branches.length > 1 ? 1 : 0;
-  const staffStep = branchStep + 1;
+  // Preguntar "¿quién atiende?" cuando hay UNA sola opción es un toque de más
+  // antes de cobrar, y la respuesta ya la sabemos. Mismo criterio que la
+  // sucursal acá arriba: el paso aparece solo si hay algo que elegir.
+  const preguntarStaff = branch.staffs.length > 1;
+  const staffStep = preguntarStaff ? branchStep + 1 : branchStep;
   const productStep = staffStep + 1;
 
   function selectBranch(nextId: string) {
@@ -512,6 +529,8 @@ export function PosCheckout({
         familyId: null,
         familyName: null,
         variantLabel: null,
+        // Lo escaneado no trae categoría: cae en "Todo" y se ve igual.
+        categoryName: null,
       };
 
       setExtraProducts((current) => [...current, encontrado]);
@@ -696,6 +715,7 @@ export function PosCheckout({
         </Step>
       ) : null}
 
+      {preguntarStaff ? (
       <Step iconName={staffIcon} step={staffStep} title="¿Quién atiende?" delay={140}>
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           {branch.staffs.map((staff) => {
@@ -723,6 +743,7 @@ export function PosCheckout({
           })}
         </div>
       </Step>
+      ) : null}
 
       <Step iconName={catalogIcon} step={productStep} title="¿Qué se llevó?" delay={200}>
         <div className="mb-3 flex items-center gap-2">
@@ -748,6 +769,32 @@ export function PosCheckout({
             </button>
           ) : null}
         </div>
+        {categorias.length > 1 ? (
+          <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <button
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-black transition ${
+                categoria === null ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
+              }`}
+              onClick={() => setCategoria(null)}
+              type="button"
+            >
+              Todo
+            </button>
+            {categorias.map((c) => (
+              <button
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-black transition ${
+                  categoria === c ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
+                }`}
+                key={c}
+                onClick={() => setCategoria(c)}
+                type="button"
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {gridEntries.map((entry) => {
             const product = entry.product;

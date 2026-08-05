@@ -84,6 +84,7 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
       familyId: productPrice.product.familyId,
       familyName: productPrice.product.family?.name ?? null,
       variantLabel: productPrice.product.variantLabel,
+      categoryName: productPrice.product.category?.name ?? null,
     })),
   }));
 
