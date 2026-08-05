@@ -1823,66 +1823,6 @@ export function PosCheckout({
                 </div>
               )}
 
-              {/* El vuelto. Es la cuenta que hoy hace el vendedor de cabeza con
-                  el cliente enfrente, y la que más se equivoca con apuro. */}
-              {!splitMode && singleMethod === "CASH" && total > 0 ? (
-                <div className="mt-3 rounded-2xl bg-slate-50 p-3.5">
-                  <p className="text-sm font-black uppercase tracking-wide text-slate-500">¿Con cuánto paga?</p>
-
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    <button
-                      className={`rounded-xl px-3 py-3 text-base font-black transition active:scale-95 ${
-                        cashReceived === "" ? "bg-slate-900 text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"
-                      }`}
-                      onClick={() => setCashReceived("")}
-                      type="button"
-                    >
-                      Justo
-                    </button>
-                    {quickCashAmounts(total).map((amount) => (
-                      <button
-                        className={`rounded-xl px-3 py-3 text-base font-black transition active:scale-95 ${
-                          cashReceived === String(amount)
-                            ? "bg-slate-900 text-white"
-                            : "bg-white text-slate-700 ring-1 ring-slate-200"
-                        }`}
-                        key={amount}
-                        onClick={() => setCashReceived(String(amount))}
-                        type="button"
-                      >
-                        {money(amount)}
-                      </button>
-                    ))}
-                  </div>
-
-                  <label className="mt-2 flex items-center rounded-xl border border-slate-200 bg-white px-3">
-                    <span className="text-base font-black text-slate-400">$</span>
-                    <input
-                      aria-label="Con cuánto paga"
-                      className="w-full min-w-0 bg-transparent px-2 py-2.5 text-base font-black text-slate-950 outline-none"
-                      inputMode="numeric"
-                      onChange={(event) => setCashReceived(event.target.value.replace(/\D/g, ""))}
-                      placeholder="Otro monto"
-                      value={formatAmountInput(cashReceived)}
-                    />
-                  </label>
-
-                  {cashReceived !== "" ? (
-                    coversTotal(total, Number(cashReceived)) ? (
-                      <div className="mt-2.5 flex items-baseline justify-between rounded-xl bg-emerald-50 px-3.5 py-3">
-                        <span className="text-sm font-black uppercase tracking-wide text-emerald-700">Vuelto</span>
-                        <span className="text-3xl font-black tracking-tight text-emerald-700">
-                          {money(changeFor(total, Number(cashReceived)))}
-                        </span>
-                      </div>
-                    ) : (
-                      <p className="mt-2.5 rounded-xl bg-amber-50 px-3.5 py-3 text-sm font-bold text-amber-700">
-                        Con eso no alcanza: faltan {money(total - Number(cashReceived))}.
-                      </p>
-                    )
-                  ) : null}
-                </div>
-              ) : null}
             </section>
             ) : null}
 
@@ -1940,6 +1880,73 @@ export function PosCheckout({
                 </div>
               ) : null}
             </section>
+            ) : null}
+
+            {/* El vuelto vive en Confirmar y no junto a los medios de pago, y
+                el motivo es cuándo se usa: elegir "Efectivo" pasa antes de que
+                el cliente saque la plata. El número del vuelto se lee con los
+                billetes YA en la mano, que es este momento. Por eso va último,
+                pegado al botón que cierra la venta.
+
+                Es la cuenta que hoy el vendedor hace de cabeza con el cliente
+                enfrente, y la que más se equivoca con apuro. */}
+            {pasoActual === "confirmar" && !splitMode && singleMethod === "CASH" && total > 0 ? (
+              <div className="rounded-2xl bg-slate-50 p-3.5">
+                <p className="text-sm font-black uppercase tracking-wide text-slate-500">¿Con cuánto paga?</p>
+
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <button
+                    className={`rounded-xl px-3 py-3 text-base font-black transition active:scale-95 ${
+                      cashReceived === "" ? "bg-slate-900 text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"
+                    }`}
+                    onClick={() => setCashReceived("")}
+                    type="button"
+                  >
+                    Justo
+                  </button>
+                  {quickCashAmounts(total).map((amount) => (
+                    <button
+                      className={`rounded-xl px-3 py-3 text-base font-black transition active:scale-95 ${
+                        cashReceived === String(amount)
+                          ? "bg-slate-900 text-white"
+                          : "bg-white text-slate-700 ring-1 ring-slate-200"
+                      }`}
+                      key={amount}
+                      onClick={() => setCashReceived(String(amount))}
+                      type="button"
+                    >
+                      {money(amount)}
+                    </button>
+                  ))}
+                </div>
+
+                <label className="mt-2 flex items-center rounded-xl border border-slate-200 bg-white px-3">
+                  <span className="text-base font-black text-slate-400">$</span>
+                  <input
+                    aria-label="Con cuánto paga"
+                    className="w-full min-w-0 bg-transparent px-2 py-2.5 text-base font-black text-slate-950 outline-none"
+                    inputMode="numeric"
+                    onChange={(event) => setCashReceived(event.target.value.replace(/\D/g, ""))}
+                    placeholder="Otro monto"
+                    value={formatAmountInput(cashReceived)}
+                  />
+                </label>
+
+                {cashReceived !== "" ? (
+                  coversTotal(total, Number(cashReceived)) ? (
+                    <div className="mt-2.5 flex items-baseline justify-between rounded-xl bg-emerald-50 px-3.5 py-3">
+                      <span className="text-sm font-black uppercase tracking-wide text-emerald-700">Vuelto</span>
+                      <span className="text-3xl font-black tracking-tight text-emerald-700">
+                        {money(changeFor(total, Number(cashReceived)))}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="mt-2.5 rounded-xl bg-amber-50 px-3.5 py-3 text-sm font-bold text-amber-700">
+                      Con eso no alcanza: faltan {money(total - Number(cashReceived))}.
+                    </p>
+                  )
+                ) : null}
+              </div>
             ) : null}
 
             {error ? (
