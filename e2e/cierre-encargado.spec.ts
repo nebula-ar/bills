@@ -17,7 +17,10 @@ test.describe("Encargados de cierre de caja", () => {
   async function abrirTurnoNico(page: import("@playwright/test").Page) {
     await page.goto(`/terminal?terminal=${seedIds.nicoTerminalId}`);
     await page.locator('input[name="pin"]').fill(STAFFS.nico.pin);
-    await page.getByRole("button", { name: "Empezar turno" }).click();
+    await Promise.all([
+      page.waitForURL(/\/terminal(?:\?.*)?$/),
+      page.getByRole("button", { name: "Empezar turno" }).click(),
+    ]);
     await expect(page.getByRole("button", { name: "Salir" })).toBeVisible();
   }
 

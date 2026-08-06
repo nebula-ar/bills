@@ -29,7 +29,9 @@ test.describe("ABM (alta de entidades)", () => {
     await page.getByRole("button", { name: "Nuevo producto" }).click();
     await page.locator('input[name="name"]').fill("Producto E2E");
     await page.locator('input[name="price"]').fill("5000");
-    await page.getByRole("button", { name: "Crear producto" }).click();
+    await page.getByRole("button", { name: "Crear y agregar foto" }).click();
+    await expect(page.getByRole("heading", { name: "Foto de Producto E2E" })).toBeVisible();
+    await page.getByRole("button", { name: "Listo" }).click();
     await expect(page.getByText("Producto E2E").first()).toBeVisible();
   });
 });

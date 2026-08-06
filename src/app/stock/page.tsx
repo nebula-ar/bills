@@ -12,6 +12,7 @@ import {
   selectClass,
   StatTiles,
 } from "@/components/manager-ui";
+import { RefreshActionForm } from "@/components/refresh-action-form";
 import { StockEmpty, StockManager } from "@/components/stock-manager";
 import { AppModule, ProductKind } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
@@ -158,7 +159,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
       <div className="grid gap-4">
         {activeBranches.length > 1 ? (
           <SectionCard title="Traspaso entre sucursales" description="Sale de una y entra en la otra, en un solo acto.">
-            <form action={transferStockAction} className="grid gap-3 sm:grid-cols-2">
+            <RefreshActionForm action={transferStockAction} className="grid gap-3 sm:grid-cols-2" resetOnSuccess>
               <input name="branchId" type="hidden" value={branch.id} />
               <Field label="Producto" className="sm:col-span-2">
                 <select className={selectClass} name="productId" required>
@@ -184,7 +185,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
                 <input className={inputClass} inputMode="decimal" name="quantity" placeholder="0" required />
               </Field>
               <PrimaryButton className="sm:col-span-2">Traspasar</PrimaryButton>
-            </form>
+            </RefreshActionForm>
           </SectionCard>
         ) : null}
       </div>

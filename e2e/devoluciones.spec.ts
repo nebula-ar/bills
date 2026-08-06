@@ -26,6 +26,7 @@ test.describe("Devoluciones", () => {
     await ajuste.locator('select[name="productId"]').selectOption({ label: "Alfajor triple (un)" });
     await ajuste.locator('input[name="counted"]').fill("50");
     await ajuste.getByRole("button", { name: "Guardar ajuste" }).click();
+    await expect(page.getByText("Stock actualizado.")).toBeVisible();
     await expect(page.getByRole("row").filter({ hasText: "Alfajor triple" }).getByText("50 un")).toBeVisible();
 
     await venderDos(page); // quedan 48
@@ -36,7 +37,9 @@ test.describe("Devoluciones", () => {
 
     await expect(page.getByText(/Quedan 2 un por devolver/)).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: /Sumar Alfajor triple/ }).click();
-    await page.getByRole("button", { name: "Confirmar devolución" }).click();
+    const confirmar = page.getByRole("button", { name: "Confirmar devolución" });
+    await confirmar.click();
+    await expect(confirmar).toHaveCount(0);
 
     // Volvió una unidad al stock: 48 + 1.
     await page.goto("/stock");

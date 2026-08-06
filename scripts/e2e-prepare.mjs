@@ -1,40 +1,38 @@
-// Prepara la base DESCARTABLE para los E2E: la borra, aplica migraciones (SQLite)
-// y la siembra con datos de demo. Se corre antes de `playwright test`.
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
+import { writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { createRequire } from "node:module";
-import { rmSync, writeFileSync } from "node:fs";
+import pg from "pg";
+
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl?.startsWith("postgres")) {
+  throw new Error("E2E requiere DATABASE_URL PostgreSQL efímera.");
+}
 
 const require = createRequire(import.meta.url);
-
-const env = { ...process.env, DATABASE_URL: "file:./e2e.db" };
-
-for (const file of ["e2e.db", "e2e.db-journal"]) {
-  try {
-    rmSync(file);
-  } catch {
-    // no existía, ok
-  }
+const prismaPackage = require.resolve("prisma/package.json");
+const prismaBin = resolve(dirname(prismaPackage), require(prismaPackage).bin.prisma);
+function run(args) {
+  console.log(`> prisma ${args.join(" ")}`);
+  execFileSync(process.execPath, [prismaBin, ...args], { stdio: "inherit", env: process.env });
 }
 
-function run(command) {
-  console.log(`> ${command}`);
-  execSync(command, { stdio: "inherit", env });
-}
+run(["migrate", "deploy"]);
+run(["db", "seed"]);
 
-run("prisma migrate deploy");
-run("prisma db seed");
-
-// Volcamos algunos IDs sembrados para que los tests del empleado (que entran por
-// link con ?branch=) no tengan que adivinarlos.
-const Database = require("better-sqlite3");
-const db = new Database("e2e.db", { readonly: true });
-const centro = db.prepare('select id from "Branch" where name = ?').get("Sucursal Centro");
-const nicoTerminal = db.prepare('select id from "Terminal" where name = ?').get("Terminal Nico");
-db.close();
+const client = new pg.Client({ connectionString: databaseUrl });
+await client.connect();
+const centro = await client.query('select id from "Branch" where name = $1', ["Sucursal Centro"]);
+const nicoTerminal = await client.query('select id from "Terminal" where name = $1', ["Terminal Nico"]);
+await client.end();
 
 writeFileSync(
   "e2e/seed-ids.json",
-  JSON.stringify({ centroBranchId: centro?.id ?? null, nicoTerminalId: nicoTerminal?.id ?? null }, null, 2),
+  JSON.stringify(
+    { centroBranchId: centro.rows[0]?.id ?? null, nicoTerminalId: nicoTerminal.rows[0]?.id ?? null },
+    null,
+    2,
+  ),
 );
 
-console.log("Base e2e.db lista (migrada + sembrada). IDs -> e2e/seed-ids.json");
+console.log("PostgreSQL E2E migrado y sembrado. IDs -> e2e/seed-ids.json");

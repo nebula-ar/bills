@@ -48,5 +48,7 @@ test("el período elegido sobrevive a la navegación", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/dashboard\?.*range=/);
   // El chip queda marcado como activo: el filtro llegó.
-  await expect(page.getByRole("button", { name: "7d", exact: true })).toHaveClass(/bg-blue-600/);
+  // `bg-primary` y no `bg-blue-600`: el color activo salió del componente y
+  // pasó a ser una ranura del tema, así que en pastelería el mismo chip es rosa.
+  await expect(page.getByRole("button", { name: "7d", exact: true })).toHaveClass(/bg-primary/);
 });

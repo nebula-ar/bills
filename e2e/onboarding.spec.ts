@@ -1,5 +1,19 @@
 import { expect, test } from "@playwright/test";
 
+test("registro presenta la bienvenida publica antes de iniciar el wizard", async ({ page }) => {
+  await page.goto("/register");
+
+  await expect(page.getByRole("img", { name: "Bienvenida a Bills" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "¡Creá tu negocio!" })).toBeVisible();
+  await expect(page.getByText("De qué es tu negocio")).toBeVisible();
+  await expect(page.getByText("Tu cuenta de administrador")).toBeVisible();
+  await expect(page.getByText("Y a vender: el catálogo lo cargás adentro")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/login");
+
+  await page.getByRole("button", { name: "Empezar" }).click();
+  await expect(page.getByRole("button", { name: /Kiosco/ })).toBeVisible();
+});
+
 // Registro por el wizard (un dato por paso) → queda logueado en el panel.
 // El rubro se elige PRIMERO porque renombra todo lo que sigue, y la sucursal
 // no se pregunta: el primer local se llama como el negocio.

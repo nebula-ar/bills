@@ -5,7 +5,6 @@ import { Vertical } from "@/generated/prisma/enums";
 import { VERTICAL_ORDER, VERTICAL_PRESETS, verticalPreset } from "@/lib/vertical";
 import { ArrowLeft, ArrowRight, Check, DynamicIcon, Loader2 } from "@/components/icons";
 import { onboardingSteps } from "@/modules/onboarding/onboarding.logic";
-import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useMemo, useState, useTransition, type KeyboardEvent } from "react";
 
@@ -163,29 +162,43 @@ export function RegisterWizard() {
         return;
       }
 
-      const signInResult = await signIn("credentials", { email: email.trim().toLowerCase(), password, redirect: false });
       // Navegación completa (no router.push): el layout es server component y así
       // se re-ejecuta con la sesión nueva y aparece la barra de navegación.
-      window.location.assign(signInResult?.ok ? "/" : "/login");
+      window.location.assign(result.requiresLogin ? "/login" : "/");
     });
   }
 
   const progress = ((step + 1) / steps.length) * 100;
+  const isWelcome = phase === "welcome";
 
   // El alto de la tarjeta es FIJO, no mínimo. Con `min-h` crecía con el
   // contenido y scrolleaba la página entera, así que el `overflow-y-auto` de
   // adentro no se usaba nunca y el botón terminaba fuera de pantalla. Fijando
   // el alto, el que scrollea es el contenido y el pie queda anclado abajo.
   return (
-    <main className="flex h-[100dvh] flex-col bg-[var(--card)] text-slate-950 sm:h-auto sm:min-h-[100dvh] sm:items-center sm:justify-center sm:bg-[var(--background)] sm:p-6">
+    <main
+      className={
+        isWelcome
+          ? "flex min-h-[100dvh] flex-col bg-slate-100 text-slate-950 sm:items-center sm:justify-center sm:px-6 sm:py-10"
+          : "flex h-[100dvh] flex-col bg-[var(--card)] text-slate-950 sm:h-auto sm:min-h-[100dvh] sm:items-center sm:justify-center sm:bg-[var(--background)] sm:p-6"
+      }
+    >
       <style>{KEYFRAMES}</style>
-      <section className="relative flex w-full flex-1 flex-col overflow-hidden bg-[var(--card)] sm:max-h-[calc(100dvh-3rem)] sm:min-h-[600px] sm:max-w-md sm:flex-none sm:rounded-[28px] sm:border sm:border-slate-950/10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]">
+      <section
+        className={
+          isWelcome
+            ? "relative flex w-full flex-1 flex-col overflow-hidden bg-white sm:min-h-0 sm:max-w-[28rem] sm:flex-none sm:rounded-[2.5rem] sm:shadow-2xl sm:shadow-slate-950/15"
+            : "relative flex w-full flex-1 flex-col overflow-hidden bg-[var(--card)] sm:max-h-[calc(100dvh-3rem)] sm:min-h-[600px] sm:max-w-md sm:flex-none sm:rounded-[28px] sm:border sm:border-slate-950/10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]"
+        }
+      >
         {/* Bienvenida */}
         {phase === "welcome" ? (
           <div className="flex flex-1 flex-col px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:px-8 sm:py-10">
             <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
               <div
-                className="grid size-24 place-items-center rounded-[2rem] bg-slate-950 text-[var(--accent-brand)]"
+                aria-label="Bienvenida a Bills"
+                className="grid size-24 place-items-center rounded-[2rem] bg-linear-to-br from-blue-600 to-violet-600 text-white shadow-lg shadow-primary/30"
+                role="img"
                 style={{ animation: "bbPop .6s cubic-bezier(.34,1.56,.64,1) both" }}
               >
                 <DynamicIcon className="size-12" name="solar:shop-2-bold" />
@@ -203,13 +216,13 @@ export function RegisterWizard() {
                   { icon: "solar:box-bold", label: "Y a vender: el catálogo lo cargás adentro" },
                 ].map((item) => (
                   <li className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700" key={item.label}>
-                    <DynamicIcon className="size-5 text-[var(--primary)]" name={item.icon} />
+                    <DynamicIcon className="size-5 text-primary" name={item.icon} />
                     {item.label}
                   </li>
                 ))}
               </ul>
               <button
-                className={`${primaryBtn} duration-500 animate-in fade-in slide-in-from-bottom-2`}
+                className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.98] duration-500 animate-in fade-in slide-in-from-bottom-2"
                 onClick={() => setPhase("form")}
                 style={stagger(3)}
                 type="button"
@@ -220,7 +233,7 @@ export function RegisterWizard() {
             </div>
             <p className="shrink-0 pt-4 text-center text-xs font-medium text-slate-400">
               ¿Ya tenés cuenta?{" "}
-              <Link className="font-black text-[var(--primary)]" href="/login">
+              <Link className="font-black text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" href="/login">
                 Iniciar sesión
               </Link>
             </p>
@@ -271,7 +284,7 @@ export function RegisterWizard() {
                       tijeras—. */}
                   {meta.id === "vertical" ? null : (
                     <div
-                      className="grid size-20 place-items-center rounded-[1.75rem] bg-[#eef1ff] text-[var(--primary)]"
+                      className="grid size-20 place-items-center rounded-[1.75rem] bg-primary/10 text-[var(--primary)]"
                       style={{ animation: "bbPop .5s cubic-bezier(.34,1.56,.64,1) both" }}
                     >
                       <DynamicIcon className="size-10" name={meta.icon} />
@@ -308,7 +321,7 @@ export function RegisterWizard() {
                           <button
                             aria-pressed={selected}
                             className={`relative flex min-w-0 flex-col items-center gap-1.5 rounded-xl border-2 p-2.5 text-center transition active:scale-[0.98] ${
-                              selected ? "border-[var(--primary)] bg-[#eef1ff]" : "border-slate-300 bg-white"
+                              selected ? "border-[var(--primary)] bg-primary/10" : "border-slate-300 bg-white"
                             }`}
                             key={option}
                             onClick={() => setVertical(option)}
@@ -511,7 +524,7 @@ function ChoiceCard({
   return (
     <button
       className={`flex items-center gap-3 rounded-2xl border-2 p-4 text-left transition active:scale-[0.99] ${
-        selected ? "border-[var(--primary)] bg-[#eef1ff]" : "border-slate-300 bg-white hover:border-[var(--primary)]/40"
+        selected ? "border-[var(--primary)] bg-primary/10" : "border-slate-300 bg-white hover:border-[var(--primary)]/40"
       }`}
       onClick={onClick}
       type="button"

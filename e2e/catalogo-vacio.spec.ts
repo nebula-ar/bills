@@ -159,6 +159,9 @@ test("una barbería no muestra el escáner ni en el catálogo ni en el mostrador
 
   await page.getByRole("button", { name: /^Traer los/ }).click();
   await expect(page.getByText("Corte clásico")).toBeVisible({ timeout: 20_000 });
+  // "Corte clásico" también aparece en la vista previa del catálogo sugerido;
+  // esperamos a que esa vista desaparezca para saber que la acción terminó.
+  await expect(page.getByRole("heading", { name: /Todavía no cargaste tus/i })).toHaveCount(0);
 
   await page.goto("/sales/new");
   await elegirVendedor(page);

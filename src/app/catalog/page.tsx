@@ -133,6 +133,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     catalogSingular: business.labels.catalogSingular,
     catalogPlural: business.labels.catalogPlural,
     flash,
+    aiImagesEnabled: Boolean(process.env.OPENROUTER_API_KEY),
   };
 
   return <ProductsManager data={data} />;

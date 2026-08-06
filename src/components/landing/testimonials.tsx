@@ -4,9 +4,9 @@ import { landingTestimonials } from "./landing-content";
 
 export function TestimonialsSection() {
   return (
-    <section id="testimonios" className="border-t border-slate-200 bg-[var(--card)] py-24 text-slate-950 lg:py-32">
+    <section id="testimonios" className="border-t border-slate-200 bg-bills-canvas py-24 text-slate-950 lg:py-32">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
-        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+        <div data-motion="reveal" className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
             <p className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-[var(--primary)]">Hecho para el día a día</p>
             <h2 className="max-w-2xl text-4xl font-black leading-[0.98] tracking-[-0.07em] sm:text-5xl">
@@ -16,9 +16,9 @@ export function TestimonialsSection() {
           <p className="max-w-xs text-sm leading-6 text-slate-500">Una misma base para equipos de productos, servicios y comercios de barrio.</p>
         </div>
 
-        <div className="mt-14 grid gap-4 md:grid-cols-3">
+        <div data-motion="stagger" className="mt-14 grid gap-4 md:grid-cols-3">
           {landingTestimonials.map((testimonial) => (
-            <article key={testimonial.author} className="flex min-h-[275px] flex-col justify-between rounded-3xl border border-slate-200 bg-[var(--background)] p-7">
+            <article data-motion-item key={testimonial.author} className="flex min-h-[275px] flex-col justify-between rounded-3xl border border-slate-200 bg-bills-paper p-7">
               <div>
                 <Quote className="h-6 w-6 text-[var(--primary)]" aria-hidden="true" />
                 <p className="mt-7 text-base font-semibold leading-7 text-slate-700">“{testimonial.quote}”</p>

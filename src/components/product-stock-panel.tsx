@@ -5,7 +5,6 @@ import { ArrowRight, Check, Loader2, Package, X } from "@/components/icons";
 import type { Unit } from "@/generated/prisma/enums";
 import { formatQuantity, parseQuantityInput, sanitizeQuantityInput, unitShort } from "@/lib/quantity";
 import { resultadoDeOperacion } from "@/modules/stock/stock-operation.logic";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -62,6 +61,7 @@ export function ProductStockPanel({
   unit,
   quantity,
   minStock,
+  onChanged,
 }: {
   productId: string;
   branchId: string;
@@ -70,24 +70,25 @@ export function ProductStockPanel({
   // Existencia actual en milésimas. null = el producto no lleva control.
   quantity: number | null;
   minStock: number | null;
+  onChanged?: () => void;
 }) {
-  const router = useRouter();
   const [op, setOp] = useState<StockOp | null>(null);
   const [value, setValue] = useState("");
   const [reason, setReason] = useState("");
+  const [displayQuantity, setDisplayQuantity] = useState(quantity);
   const [isPending, startTransition] = useTransition();
 
-  if (quantity === null) {
+  if (displayQuantity === null) {
     return null;
   }
 
-  const low = minStock !== null && quantity <= minStock;
+  const low = minStock !== null && displayQuantity <= minStock;
   const active = OPS.find((item) => item.op === op) ?? null;
 
   // Contar cero es legítimo ("se acabó"); recibir o perder cero, no.
   const escrito = parseQuantityInput(value, unit);
   const cantidad = escrito ?? (op === "adjust" && value.trim() === "0" ? 0 : null);
-  const vistaPrevia = op && cantidad !== null ? resultadoDeOperacion(op, quantity, cantidad) : null;
+  const vistaPrevia = op && cantidad !== null ? resultadoDeOperacion(op, displayQuantity, cantidad) : null;
 
   // El filtro del input evita casi todo lo inválido, pero quedan dos cosas que
   // solo se pueden decir con palabras: escribir cero donde no corresponde y
@@ -125,8 +126,13 @@ export function ProductStockPanel({
 
       if (result.ok) {
         toast.success("Stock actualizado.");
+        // El número nuevo lo devuelve la acción y se pinta en el acto, en vez de
+        // recargar la pantalla entera con `router.refresh()`. Viene de master y
+        // es mejor: acá el panel puede estar dentro de un modal, y refrescar la
+        // ruta lo cerraría.
+        setDisplayQuantity(result.quantity);
         cerrar();
-        router.refresh();
+        onChanged?.();
       } else {
         toast.error(result.error);
       }
@@ -145,7 +151,7 @@ export function ProductStockPanel({
               Quedan en {branchName}
             </p>
             <p className={`font-display text-2xl font-black ${low ? "text-amber-600" : "text-slate-950"}`}>
-              {formatQuantity(quantity, unit)}
+              {formatQuantity(displayQuantity, unit)}
             </p>
           </div>
         </div>
@@ -239,7 +245,7 @@ export function ProductStockPanel({
                 <span className="block text-xs font-bold text-slate-500">
                   {vistaPrevia.cambio === 0
                     ? "sin cambios"
-                    : `${vistaPrevia.cambio > 0 ? "+" : "−"}${formatQuantity(Math.abs(vistaPrevia.cambio), unit)} sobre ${formatQuantity(quantity, unit)}`}
+                    : `${vistaPrevia.cambio > 0 ? "+" : "−"}${formatQuantity(Math.abs(vistaPrevia.cambio), unit)} sobre ${formatQuantity(displayQuantity, unit)}`}
                 </span>
               </span>
             </div>

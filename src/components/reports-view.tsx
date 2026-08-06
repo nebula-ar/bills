@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatedMoney, AnimatedNumber } from "@/components/animated-number";
+import { AnimatedMoney } from "@/components/animated-number";
 import { PAYMENT_DONUT_COLORS } from "@/components/reports-charts-colors";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { DASHBOARD_RANGE_LABELS, DashboardRange, type DashboardRangeKey } from "@/lib/dashboard-range";
@@ -23,7 +23,7 @@ import {
   Wallet,
   X,
 } from "@/components/icons";
-import { signOut } from "next-auth/react";
+import { logoutAction } from "@/app/login/actions";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -214,7 +214,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           <button
             aria-label="Cerrar sesión"
             className="flex size-11 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-950/5 transition active:scale-95"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => void logoutAction().then(() => window.location.assign("/login"))}
             type="button"
           >
             <LogOut className="size-5" />
@@ -317,11 +317,13 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
         <div className="mt-4 grid gap-3 lg:grid-cols-12">
         {/* Hero total */}
         <div
-          className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-primary via-blue-600 to-indigo-600 p-6 text-white shadow-lg shadow-primary/25 duration-700 animate-in fade-in slide-in-from-bottom-3 lg:col-span-7"
+          className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-primary via-primary to-primary-strong p-6 text-white shadow-lg shadow-primary/25 duration-700 animate-in fade-in slide-in-from-bottom-3 lg:col-span-7"
           style={{ animationDelay: "60ms", animationFillMode: "backwards" }}
         >
           <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-white/10 blur-xl" />
-          <p className="text-sm font-medium text-primary/25">{heroLabel}</p>
+          {/* Blanco translúcido y no `text-primary/25`: la etiqueta va ENCIMA
+              del degradado primario, así que teñirla del mismo color la borra. */}
+          <p className="text-sm font-medium text-white/75">{heroLabel}</p>
           <AnimatedMoney className="mt-2 block text-[2.4rem] font-black leading-none tracking-tight" value={data.totalSold} />
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm font-medium">
             <span className="flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-white">
@@ -585,7 +587,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-violet-500 to-blue-500 transition-[width] duration-1000 ease-out"
+                      className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary transition-[width] duration-1000 ease-out"
                       style={{ width: `${maxBranchTotal > 0 ? Math.max((branch.total / maxBranchTotal) * 100, 6) : 0}%` }}
                     />
                   </div>

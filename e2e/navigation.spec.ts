@@ -29,8 +29,15 @@ test.describe("Navegación admin (smoke)", () => {
   for (const route of ADMIN_ROUTES) {
     test(`carga ${route} sin errores`, async ({ page }) => {
       await page.goto(route);
-      // La nav de admin sigue montada (layout ok) y no aparece el error boundary.
-      await expect(page.getByRole("link", { name: "Historial" })).toBeVisible();
+      // La home es el desvío entre panel y mostrador; las otras rutas conservan
+      // la navegación de administración. Ambos casos prueban que no cayó en el
+      // error boundary con la sesión real del seed.
+      if (route === "/") {
+        await expect(page).toHaveURL(/\/entrar$/);
+        await expect(page.getByRole("link", { name: /^Panel/ })).toBeVisible();
+      } else {
+        await expect(page.getByRole("link", { name: "Historial" })).toBeVisible();
+      }
       await expect(page.getByText("Algo salió mal")).toHaveCount(0);
     });
   }

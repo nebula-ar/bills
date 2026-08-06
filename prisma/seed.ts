@@ -1,8 +1,11 @@
 import bcrypt from "bcryptjs";
+import { randomUUID } from "node:crypto";
+import { createClient } from "@supabase/supabase-js";
 
 import {
   AppModule,
   CustomerAccountEntryType,
+  EmailOwnershipStatus,
   ExpenseCategory,
   PaymentMethod,
   ProductKind,
@@ -27,6 +30,8 @@ const SALE_COUNT = 180;
 // Milésimas por unidad (ver src/lib/quantity.ts). Se repite acá para que el seed
 // no dependa del alias "@/".
 const ONE = 1000;
+const DEMO_OWNER_EMAIL = "owner@bills.local";
+const DEMO_OWNER_PASSWORD = "admin123";
 
 type BranchSeed = { name: string; address: string };
 type StaffSeed = { name: string; branchName: string; pin: string };
@@ -84,6 +89,40 @@ const branchPriceMultipliers: Record<string, number> = {
   "Sucursal Palermo": 1.15,
   "Sucursal Norte": 0.95,
 };
+
+async function createDemoAuthUser(input: { businessId: string; userId: string }) {
+  const url = process.env.SUPABASE_INTERNAL_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const environmentInstanceId = process.env.EXPECTED_ENVIRONMENT_INSTANCE_ID;
+  if (!url || !serviceRoleKey || !environmentInstanceId) {
+    throw new Error("El seed requiere Supabase y EXPECTED_ENVIRONMENT_INSTANCE_ID.");
+  }
+
+  const admin = createClient(url, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: existing, error: listError } = await admin.auth.admin.listUsers({ page: 1, perPage: 100 });
+  if (listError) throw listError;
+  const previous = existing.users.find((user) => user.email?.toLowerCase() === DEMO_OWNER_EMAIL);
+  if (previous) {
+    const { error } = await admin.auth.admin.deleteUser(previous.id);
+    if (error) throw error;
+  }
+
+  const { data, error } = await admin.auth.admin.createUser({
+    email: DEMO_OWNER_EMAIL,
+    password: DEMO_OWNER_PASSWORD,
+    email_confirm: true,
+    app_metadata: {
+      environment_instance_id: environmentInstanceId,
+      bills_user_id: input.userId,
+      bills_business_id: input.businessId,
+      seeded_demo: true,
+    },
+  });
+  if (error || !data.user) throw error ?? new Error("Supabase no devolvió el usuario demo.");
+  return data.user;
+}
 
 async function main() {
   // Orden de borrado respetando las FKs (hijos antes que padres).
@@ -150,13 +189,19 @@ async function main() {
   // y sus propios empleados, así que se queda sin `sellsAsId`. Atarlo a alguno
   // sería un dato falso —diría que Matías vende como Nico— y este seed también
   // se usa para mirar la app.
+  const ownerId = randomUUID();
+  const authOwner = await createDemoAuthUser({ businessId: business.id, userId: ownerId });
   await prisma.user.create({
     data: {
+      id: ownerId,
       businessId: business.id,
       branchId: branches[0].id,
       name: "Matías Toledo",
-      email: "owner@bills.local",
-      passwordHash: await bcrypt.hash("admin123", 12),
+      email: DEMO_OWNER_EMAIL,
+      authUserId: authOwner.id,
+      authEmailCanonical: DEMO_OWNER_EMAIL,
+      emailOwnershipStatus: EmailOwnershipStatus.UNVERIFIED_AUTOCONFIRM,
+      authLinkedAt: new Date(),
       role: UserRole.OWNER,
     },
   });

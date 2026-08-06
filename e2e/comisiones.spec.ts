@@ -24,6 +24,7 @@ test.describe("Comisiones", () => {
     const fila = page.getByRole("row").filter({ hasText: "Nico Fernández" });
     await fila.locator('input[name="amount"]').fill("5000");
     await fila.getByRole("button", { name: "Pagar" }).click();
+    await expect(page.getByText("Comisión pagada y registrada como gasto.")).toBeVisible();
 
     // Sale de la caja: tiene que aparecer en gastos.
     await page.goto("/expenses");
@@ -35,7 +36,10 @@ test.describe("Comisiones", () => {
     await page.getByRole("button", { name: /Nico Fernández/ }).first().click();
     await expect(page.getByText("Comisión sobre lo que vende")).toBeVisible();
     await page.locator('input[name="commissionRate"]').fill("20");
-    await page.getByRole("button", { name: "Guardar cambios" }).click();
+    await Promise.all([
+      page.waitForURL(/\/staff\?status=success/),
+      page.getByRole("button", { name: "Guardar cambios" }).click(),
+    ]);
 
     await page.goto("/comisiones");
     await expect(page.getByRole("row").filter({ hasText: "Nico Fernández" }).getByText("20%")).toBeVisible({

@@ -1,6 +1,6 @@
 import { hash } from "bcryptjs";
 
-import { UserRole, Vertical } from "@/generated/prisma/client";
+import { AuthProvisionKind, AuthProvisionStatus, UserRole, Vertical } from "@/generated/prisma/client";
 import { logEvent } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { verticalPreset } from "@/lib/vertical";
@@ -25,7 +25,7 @@ export type RegisterBusinessInput = {
   ownerSells?: boolean;
 };
 
-export type RegisterResult = { ok: true } | { ok: false; error: string };
+export type RegisterResult = { ok: true; userId: string; emailCanonical: string } | { ok: false; error: string };
 
 const PIN_RE = /^\d{4,8}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,7 +36,10 @@ const USERNAME_RE = /^[a-z0-9._-]{3,20}$/;
 export async function isEmailAvailable(email: string): Promise<boolean> {
   const normalized = email.trim().toLowerCase();
   if (!EMAIL_RE.test(normalized)) return false;
-  const existing = await prisma.user.findFirst({ where: { email: normalized, deleted: false }, select: { id: true } });
+  const existing = await prisma.user.findFirst({
+    where: { OR: [{ email: normalized }, { authEmailCanonical: normalized }] },
+    select: { id: true },
+  });
   return !existing;
 }
 
@@ -77,7 +80,9 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
     }
   }
 
-  const existingEmail = await prisma.user.findFirst({ where: { email, deleted: false } });
+  const existingEmail = await prisma.user.findFirst({
+    where: { OR: [{ email }, { authEmailCanonical: email }] },
+  });
   if (existingEmail) {
     return { ok: false, error: "Ya hay una cuenta con ese email." };
   }
@@ -89,7 +94,6 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
     }
   }
 
-  const passwordHash = await hash(password, 12);
   const branchesWithHashes = await Promise.all(
     branches.map(async (branch) => ({
       name: branch.name,
@@ -106,7 +110,7 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
   const vertical = input.vertical ?? Vertical.GENERAL;
   const preset = verticalPreset(vertical);
 
-  const businessId = await prisma.$transaction(async (tx) => {
+  const registration = await prisma.$transaction(async (tx) => {
     const business = await tx.business.create({ data: { name: businessName, vertical } });
 
     // Módulos del rubro: el negocio arranca viendo solo lo que necesita.
@@ -120,9 +124,17 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
         name: ownerName,
         email,
         username: username || null,
-        passwordHash,
         role: UserRole.OWNER,
         active: true,
+      },
+    });
+
+    await tx.authProvisionJob.create({
+      data: {
+        kind: AuthProvisionKind.REGISTRATION,
+        status: AuthProvisionStatus.READY,
+        userId: owner.id,
+        emailCanonical: email,
       },
     });
 
@@ -164,11 +176,11 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
       await tx.productCategory.create({ data: { businessId: business.id, name } });
     }
 
-    return business.id;
+    return { businessId: business.id, userId: owner.id };
   });
 
   await logEvent("business.register", `Alta de negocio "${businessName}"`, {
-    businessId,
+    businessId: registration.businessId,
     context: {
       businessName,
       branches: branchesWithHashes.length,
@@ -176,5 +188,5 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
     },
   });
 
-  return { ok: true };
+  return { ok: true, userId: registration.userId, emailCanonical: email };
 }

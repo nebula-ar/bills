@@ -1,7 +1,7 @@
 // Cifrado en reposo para secretos sensibles (certificado/clave privada AFIP
 // de cada Business). Sin KMS/secrets manager — se cifra a nivel de aplicación
 // con AES-256-GCM y una clave simétrica en variable de entorno, mismo
-// espíritu que NEXTAUTH_SECRET.
+// espíritu que STAFF_SESSION_SECRET.
 
 import crypto from "node:crypto";
 
