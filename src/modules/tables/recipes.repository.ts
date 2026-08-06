@@ -28,11 +28,51 @@ export function findInsumos(businessId: string, branchId: string) {
   });
 }
 
-/** Productos que se elaboran: los que pueden tener receta. */
-export function findElaborables(businessId: string, branchId?: string) {
+/**
+ * Elaborables CON su receta completa.
+ *
+ * La usa Producción, que necesita los insumos de cada uno para decir qué se
+ * puede hacer con lo que hay. Para un selector de nombres alcanza con
+ * `findElaborablesLista`, que no arrastra los renglones.
+ */
+export function findElaborables(businessId: string) {
   return prisma.product.findMany({
     where: { businessId, kind: { not: ProductKind.INGREDIENT }, deleted: false },
     orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      receta: {
+        select: {
+          id: true,
+          quantity: true,
+          ingredient: { select: { id: true, name: true, unit: true, cost: true } },
+        },
+      },
+    },
+  });
+}
+
+/**
+ * La LISTA de productos que se elaboran: solo lo que necesita el selector.
+ *
+ * Va aparte de la receta completa a propósito. Traer los renglones de todos
+ * para pintar una lista es cargar mil recetas con sus insumos para mostrar mil
+ * nombres; con `_count` alcanza para decir cuáles tienen receta y cuántos
+ * insumos lleva cada una.
+ */
+export function findElaborablesLista(businessId: string) {
+  return prisma.product.findMany({
+    where: { businessId, kind: { not: ProductKind.INGREDIENT }, deleted: false },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, _count: { select: { receta: true } } },
+  });
+}
+
+/** La receta de UN producto, con su precio en la sucursal para el margen. */
+export function findRecetaDeProducto(businessId: string, productId: string, branchId?: string) {
+  return prisma.product.findFirst({
+    where: { id: productId, businessId, kind: { not: ProductKind.INGREDIENT }, deleted: false },
     select: {
       id: true,
       name: true,

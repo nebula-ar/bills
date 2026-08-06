@@ -83,6 +83,8 @@ export function RecetasManager({
 }) {
   const [tab, setTab] = useState<"receta" | "insumos">("receta");
   const [busqueda, setBusqueda] = useState("");
+  const [buscaProducto, setBuscaProducto] = useState("");
+  const [soloSinReceta, setSoloSinReceta] = useState(false);
   const [nuevoInsumo, setNuevoInsumo] = useState(false);
   const [agregando, setAgregando] = useState(false);
   const [venciendo, setVenciendo] = useState<InsumoRow | null>(null);
@@ -94,6 +96,31 @@ export function RecetasManager({
       .toLowerCase();
   const consulta = normalizar(busqueda.trim());
   const visibles = consulta ? insumos.filter((i) => normalizar(i.name).includes(consulta)) : insumos;
+
+  // Qué se lista por defecto: los que TIENEN receta.
+  //
+  // Volcar los 310 productos es darle al usuario el catálogo entero para que lo
+  // recorra con el ojo. Y no sirve: un producto sin receta no tiene nada que
+  // mirar, se entra a cargarlo, y para eso está el filtro "sin receta". Los que
+  // sí la tienen son pocos y son los que se revisan.
+  //
+  // Buscando, se busca en TODOS: quien sabe qué producto quiere lo escribe.
+  const conReceta = elaborables.filter((p) => p.renglones > 0);
+  const sinRecetaLista = elaborables.filter((p) => p.renglones === 0);
+  const sinReceta = sinRecetaLista.length;
+  const consultaProducto = normalizar(buscaProducto.trim());
+
+  const base = consultaProducto !== "" ? elaborables : soloSinReceta ? sinRecetaLista : conReceta;
+  const encontrados =
+    consultaProducto === ""
+      ? base
+      : base.filter((p) => normalizar(p.name).includes(consultaProducto));
+
+  // Tope de lo que se pinta: más de esto no se lee, se scrollea. Si hay más, se
+  // dice, para que nadie crea que buscó bien y el producto no existe.
+  const TOPE = 40;
+  const productosVisibles = encontrados.slice(0, TOPE);
+  const recortados = encontrados.length - productosVisibles.length;
 
   return (
     <>
@@ -131,33 +158,96 @@ export function RecetasManager({
           {elaborables.length === 0 ? (
             <Vacio texto="Todavía no hay productos que se elaboren." />
           ) : (
-            <>
-              <div className="flex flex-wrap gap-2">
-                {elaborables.map((p) => (
-                  <a
-                    className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-black transition ${
-                      p.id === producto?.id
-                        ? "bg-primary text-white shadow-sm shadow-primary/25"
-                        : "bg-white text-slate-600 ring-1 ring-slate-950/5"
-                    }`}
-                    href={`/recetas?producto=${p.id}`}
-                    key={p.id}
-                  >
-                    {p.name}
-                    {/* Cuántos insumos tiene, no un tilde: "3" dice que la
-                        receta está cargada Y cuánto tiene; el ✓ solo lo
-                        primero. */}
-                    <span
-                      className={`rounded-full px-1.5 text-xs ${
-                        p.id === producto?.id ? "bg-white/20" : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      {p.renglones}
-                    </span>
-                  </a>
-                ))}
+            /* Lista buscable a un lado y la receta al otro, en vez de una nube
+               de chips. Con diez productos la nube se ve bien; con mil son mil
+               píldoras envueltas ocupando la pantalla entera y hay que buscar
+               con el ojo. Una lista con buscador se usa igual con diez que con
+               mil, y de paso deja filtrar lo que todavía no tiene receta, que
+               es la pregunta con la que se entra acá. */
+            <div className="grid gap-4 lg:grid-cols-[20rem_1fr] lg:items-start">
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:ring-4 focus:ring-primary/15"
+                    onChange={(event) => setBuscaProducto(event.target.value)}
+                    placeholder="Buscar producto…"
+                    value={buscaProducto}
+                  />
+                </div>
+
+                {/* Dos vistas, no un filtro más: "con receta" es lo que se
+                    revisa y "sin receta" es lo que hay que resolver. Con el
+                    conteo al lado, además, es la única forma de enterarse de
+                    cuánto falta. */}
+                {sinReceta > 0 ? (
+                  <div className="flex gap-1.5 rounded-xl bg-slate-100 p-1">
+                    {(
+                      [
+                        { pendiente: false, label: `Con receta (${conReceta.length})` },
+                        { pendiente: true, label: `Sin receta (${sinReceta})` },
+                      ] as const
+                    ).map((opcion) => (
+                      <button
+                        className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-black transition ${
+                          soloSinReceta === opcion.pendiente
+                            ? "bg-white text-slate-900 shadow-sm"
+                            : "text-slate-500 hover:text-slate-700"
+                        }`}
+                        key={opcion.label}
+                        onClick={() => setSoloSinReceta(opcion.pendiente)}
+                        type="button"
+                      >
+                        {opcion.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+
+                <div className="max-h-[26rem] overflow-y-auto rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-950/5">
+                  {productosVisibles.length === 0 ? (
+                    <p className="px-3 py-6 text-center text-sm text-slate-500">
+                      {consultaProducto !== ""
+                        ? "No encontramos nada con eso."
+                        : soloSinReceta
+                          ? "Todos tienen receta cargada."
+                          : "Ninguno tiene receta todavía. Buscá un producto para empezar."}
+                    </p>
+                  ) : (
+                    productosVisibles.map((p) => (
+                      <a
+                        className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm font-bold transition ${
+                          p.id === producto?.id ? "bg-primary/10 text-primary" : "text-slate-700 hover:bg-slate-50"
+                        }`}
+                        href={`/recetas?producto=${p.id}`}
+                        key={p.id}
+                      >
+                        <span className="min-w-0 truncate">{p.name}</span>
+                        {/* Cuántos insumos tiene, no un tilde: "3" dice que la
+                            receta está cargada Y cuánto tiene. El "—" dice que
+                            todavía no hay nada, sin disfrazarlo de cero. */}
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-black ${
+                            p.renglones === 0 ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {p.renglones === 0 ? "—" : p.renglones}
+                        </span>
+                      </a>
+                    ))
+                  )}
+                </div>
+
+                {/* Si se recortó, se dice: sin esto alguien busca "pan", ve
+                    cuarenta y cree que su producto no existe. */}
+                <p className="px-1 text-xs text-slate-500">
+                  {recortados > 0
+                    ? `Mostrando ${productosVisibles.length} de ${encontrados.length}. Escribí más para achicar la lista.`
+                    : `${encontrados.length} ${encontrados.length === 1 ? "producto" : "productos"} de ${elaborables.length}`}
+                </p>
               </div>
 
+              <div className="space-y-4">
               {producto ? (
                 <>
                   {/* Lo que se viene a saber: cuánto sale hacerlo y qué queda.
@@ -231,11 +321,14 @@ export function RecetasManager({
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-slate-100 text-left">
+                            {/* Cuatro columnas y no cinco: el costo y su parte
+                                del total son el mismo dato leído de dos formas,
+                                y separados le comían el ancho al nombre del
+                                insumo, que es lo único que hay que leer. */}
                             <Th>Insumo</Th>
                             <Th>Lleva</Th>
                             <Th alineado="derecha">Cuesta</Th>
-                            <Th alineado="derecha">Del costo</Th>
-                            <Th alineado="derecha">Quitar</Th>
+                            <Th alineado="derecha"> </Th>
                           </tr>
                         </thead>
                         <tbody>
@@ -247,25 +340,20 @@ export function RecetasManager({
                               <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
                                 {formatQuantity(r.cantidad, r.unit)}
                               </td>
-                              <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-bold text-slate-800">
-                                {r.sinCosto ? <span className="text-amber-700">sin costo</span> : dinero.format(r.costo)}
-                              </td>
-                              {/* Dónde se va la plata: con esto se sabe con qué
-                                  proveedor conviene pelear el precio. */}
+                              {/* El costo y qué parte del total se lleva, en la
+                                  misma celda: con esto se sabe con qué proveedor
+                                  conviene pelear el precio. */}
                               <td className="whitespace-nowrap px-4 py-3 text-right">
-                                <span className="inline-flex items-center gap-2">
-                                  <span className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100">
-                                    <span
-                                      className="block h-full rounded-full bg-primary"
-                                      style={{ width: `${Math.min(r.porcentaje, 100)}%` }}
-                                    />
-                                  </span>
-                                  <span className="w-9 text-right text-xs font-black text-slate-500">
-                                    {r.porcentaje}%
-                                  </span>
-                                </span>
+                                {r.sinCosto ? (
+                                  <span className="text-sm font-bold text-amber-700">sin costo</span>
+                                ) : (
+                                  <>
+                                    <span className="text-sm font-bold text-slate-800">{dinero.format(r.costo)}</span>
+                                    <span className="ml-2 text-xs font-black text-slate-400">{r.porcentaje}%</span>
+                                  </>
+                                )}
                               </td>
-                              <td className="whitespace-nowrap px-4 py-3 text-right">
+                              <td className="whitespace-nowrap px-2 py-3 text-right">
                                 <form action={sacarDeRecetaAction}>
                                   <input name="recipeItemId" type="hidden" value={r.id} />
                                   <input name="productId" type="hidden" value={producto.id} />
@@ -289,7 +377,7 @@ export function RecetasManager({
                             <td className="whitespace-nowrap px-4 py-3 text-right text-base font-black text-slate-950">
                               {dinero.format(costo)}
                             </td>
-                            <td colSpan={2} />
+                            <td />
                           </tr>
                         </tfoot>
                       </table>
@@ -297,7 +385,8 @@ export function RecetasManager({
                   )}
                 </>
               ) : null}
-            </>
+              </div>
+            </div>
           )}
         </div>
       ) : (

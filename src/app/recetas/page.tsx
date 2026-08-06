@@ -6,7 +6,7 @@ import { unitLabel } from "@/lib/quantity";
 import { getBranchesForManagement } from "@/modules/branches/get-branches-for-management.use-case";
 import { desglosarReceta, margenDeProducto } from "@/modules/tables/recipes";
 import { estadoDeVencimiento, textoDeVencimiento } from "@/modules/stock/vencimientos";
-import { findElaborables, findInsumos } from "@/modules/tables/recipes.repository";
+import { findElaborablesLista, findInsumos, findRecetaDeProducto } from "@/modules/tables/recipes.repository";
 
 /**
  * Insumos y recetas: cuánto cuesta de verdad cada budín.
@@ -34,13 +34,18 @@ export default async function RecetasPage({ searchParams }: RecetasPageProps) {
   const sucursales = await getBranchesForManagement(session.user.businessId);
   const branchId = uno(params.branchId) || sucursales[0]?.id || "";
 
+  // La lista y la receta se piden por separado: la lista es solo nombres y un
+  // conteo, así que con mil productos sigue siendo una consulta liviana. Traer
+  // los renglones de todos para pintar el selector era cargar mil recetas con
+  // sus insumos para mostrar mil nombres.
   const [insumos, elaborables] = await Promise.all([
     findInsumos(session.user.businessId, branchId),
-    findElaborables(session.user.businessId, branchId),
+    findElaborablesLista(session.user.businessId),
   ]);
 
   const productoPedido = uno(params.producto);
-  const producto = elaborables.find((p) => p.id === productoPedido) ?? elaborables[0];
+  const elegido = elaborables.find((p) => p.id === productoPedido) ?? elaborables[0];
+  const producto = elegido ? await findRecetaDeProducto(session.user.businessId, elegido.id, branchId) : null;
 
   const desglose = desglosarReceta(
     (producto?.receta ?? []).map((r) => ({
@@ -74,7 +79,7 @@ export default async function RecetasPage({ searchParams }: RecetasPageProps) {
       <RecetasManager
         branchId={branchId}
         costo={desglose.total}
-        elaborables={elaborables.map((p) => ({ id: p.id, name: p.name, renglones: p.receta.length }))}
+        elaborables={elaborables.map((p) => ({ id: p.id, name: p.name, renglones: p._count.receta }))}
         insumos={insumos.map((i) => {
           const stock = i.stockLevels[0]?.quantity ?? 0;
           const expiresAt = i.stockLevels[0]?.expiresAt ?? null;
