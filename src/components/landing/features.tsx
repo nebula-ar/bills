@@ -1,24 +1,19 @@
 import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 
-import businessWorldsImage from "../../../public/landing/business-worlds-v2.webp";
-import decideIllustration from "../../../public/landing/illustrations/decide-v2.webp";
-import organizeIllustration from "../../../public/landing/illustrations/organize-v2.webp";
-import registerIllustration from "../../../public/landing/illustrations/register-v2.webp";
-
 import { landingFeatures } from "./landing-content";
 
 const featureIllustrations = [
   {
-    image: registerIllustration,
+    image: "/landing/illustrations/register-v2.webp",
     alt: "Una comerciante cobrando una venta con un dispositivo sin contacto",
   },
   {
-    image: organizeIllustration,
+    image: "/landing/illustrations/organize-v2.webp",
     alt: "Comprobantes y productos desordenados convirtiéndose en información organizada",
   },
   {
-    image: decideIllustration,
+    image: "/landing/illustrations/decide-v2.webp",
     alt: "Una comerciante revisando un reporte y eligiendo el siguiente paso",
   },
 ] as const;
@@ -106,7 +101,7 @@ export function AdaptableSection() {
           <figure data-motion="reveal" className="relative order-first min-h-[390px] overflow-hidden rounded-[2rem] border border-slate-950/10 bg-bills-paper shadow-lg shadow-blue-950/10 sm:min-h-[520px] lg:order-none">
             <div data-motion="world-image" className="absolute -inset-y-8 inset-x-0 will-change-transform">
               <Image
-                src={businessWorldsImage}
+                src="/landing/business-worlds-v2.webp"
                 alt="Sillón de barbería, mercadería, ropa y herramientas conectados a un mismo sistema de gestión"
                 fill
                 sizes="(min-width: 1024px) 60vw, 100vw"
