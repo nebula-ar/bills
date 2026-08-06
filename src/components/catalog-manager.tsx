@@ -10,7 +10,8 @@ import { ProductStockPanel } from "@/components/product-stock-panel";
 import { ProductPhotoField } from "@/components/product-photo-field";
 import { formatQuantity } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
-import { Check, ChevronDown, CircleSlash, DynamicIcon, Plus, Search, X } from "@/components/icons";
+import { Check, CircleSlash, DynamicIcon, Plus, Search, X } from "@/components/icons";
+import { SelectField } from "@/components/ui/select-field";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -94,27 +95,6 @@ export type ProductsData = {
 const sheetInput =
   "w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15";
 
-/**
- * Desplegable con la misma caja que los inputs.
- *
- * Un `<select>` sin `appearance-none` dibuja la flechita del sistema operativo y
- * se planta con su propio alto: al lado de un input redondeado quedaba más bajo
- * y con otra tipografía. Acá se le saca el estilo nativo y la flecha la ponemos
- * nosotros, como ya hacía el selector de sucursal.
- */
-function SheetSelect({
-  children,
-  ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) {
-  return (
-    <div className="relative min-w-0">
-      <select {...props} className={`${sheetInput} appearance-none pr-11`}>
-        {children}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-    </div>
-  );
-}
 
 const toneClasses: Record<ProductRow["statusTone"], string> = {
   available: "bg-emerald-50 text-emerald-700",
@@ -134,20 +114,15 @@ function BranchSelect({
   return (
     <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
       Sucursal
-      <div className="relative">
-        <select
-          className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-11 text-base font-bold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-          onChange={(event) => onChange(event.target.value)}
-          value={value}
-        >
-          {branches.map((branch) => (
-            <option key={branch.id} value={branch.id}>
-              {branch.name}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-      </div>
+      {/* Sin `name`: no viaja en el form, cambia qué sucursal se está editando.
+          El form manda su propio input oculto con `branchId`. */}
+      <SelectField
+        ariaLabel="Sucursal"
+        defaultValue={value}
+        key={value}
+        onChange={onChange}
+        options={branches.map((branch) => ({ value: branch.id, label: branch.name }))}
+      />
     </label>
   );
 }
@@ -663,20 +638,24 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                         existencias y un producto físico sí. Antes había además
                         un tilde "Controlar stock" que decía lo mismo y permitía
                         guardar la contradicción. */}
-                    <SheetSelect defaultValue={editing.kind} name="kind">
-                      <option value="GOOD">Producto físico (lleva stock)</option>
-                      <option value="SERVICE">Servicio (no lleva stock)</option>
-                    </SheetSelect>
+                    <SelectField
+                      ariaLabel="Tipo"
+                      defaultValue={editing.kind}
+                      name="kind"
+                      options={[
+                        { value: "GOOD", label: "Producto físico (lleva stock)" },
+                        { value: "SERVICE", label: "Servicio (no lleva stock)" },
+                      ]}
+                    />
                   </label>
                   <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Se vende por
-                    <SheetSelect defaultValue={editing.unit} name="unit">
-                      {data.units.map((unit) => (
-                        <option key={unit.value} value={unit.value}>
-                          {unit.label}
-                        </option>
-                      ))}
-                    </SheetSelect>
+                    <SelectField
+                      ariaLabel="Se vende por"
+                      defaultValue={editing.unit}
+                      name="unit"
+                      options={data.units.map((unit) => ({ value: unit.value, label: unit.label }))}
+                    />
                   </label>
                   {data.features.barcodes ? (
                     <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
@@ -699,14 +678,15 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   </label>
                   <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Categoría
-                    <SheetSelect defaultValue={editing.categoryId ?? ""} name="categoryId">
-                      <option value="">Sin categoría</option>
-                      {data.categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </SheetSelect>
+                    <SelectField
+                      ariaLabel="Categoría"
+                      defaultValue={editing.categoryId ?? ""}
+                      name="categoryId"
+                      options={[
+                        { value: "", label: "Sin categoría" },
+                        ...data.categories.map((category) => ({ value: category.id, label: category.name })),
+                      ]}
+                    />
                   </label>
                   <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Avisar cuando queden menos de
