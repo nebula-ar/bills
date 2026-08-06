@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, ShoppingBag, TrendingUp } from "@/components/icons";
 import { LogoutButton } from "@/components/logout-button";
 import { requireAdminSession } from "@/lib/auth";
+import { BrandLogo } from "@/lib/brand-logo";
 import { findUserWithSellsAs } from "@/modules/auth/user.repository";
 
 // La primera pantalla después de entrar. El dueño de un comercio chico usa la
@@ -31,9 +32,8 @@ export default async function EntrarPage() {
       <section className="flex w-full flex-1 flex-col bg-[#fffef9] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:min-h-0 sm:max-w-[26rem] sm:flex-none sm:rounded-[28px] sm:border sm:border-slate-950/10 sm:px-8 sm:py-10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]">
         <div className="flex flex-1 flex-col justify-center gap-7 sm:flex-none">
           <div className="grid gap-5">
-            <span className="inline-flex w-fit items-center gap-2.5 text-lg font-black tracking-[-0.04em] text-slate-950">
-              <span className="grid size-9 place-items-center rounded-xl bg-slate-950 text-base font-black text-[#d7ef62]">B</span>
-              Bills
+            <span className="inline-flex w-fit items-center gap-2.5">
+              <BrandLogo variant="blue" height={34} />
             </span>
 
             <div>

@@ -19,6 +19,7 @@ import {
   rubroExamples,
   type RubroExample,
 } from "./landing-content";
+import { BrandLogo } from "@/lib/brand-logo";
 
 const exampleIcons = {
   barberia: CalendarDays,
@@ -46,7 +47,7 @@ function DashboardPreview({ example }: { example: RubroExample }) {
       <div className="rotate-[1.5deg] rounded-[28px] border border-slate-950/10 bg-[#fffef9] p-3 shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)] sm:p-4">
         <div className="flex items-center justify-between border-b border-slate-200/80 px-2 pb-3">
           <div className="flex items-center gap-2 text-xs font-black tracking-tight text-slate-950">
-            <span className="grid h-6 w-6 place-items-center rounded-lg bg-slate-950 text-[11px] font-black text-[#d7ef62]">B</span>
+            <BrandLogo iconOnly height={24} variant="blue" />
             <span data-testid="dashboard-business-name">Bills / {example.businessName}</span>
           </div>
           <div className="flex gap-1" aria-hidden="true">
@@ -59,7 +60,7 @@ function DashboardPreview({ example }: { example: RubroExample }) {
         <div className="grid min-h-[395px] grid-cols-[88px_1fr] sm:grid-cols-[132px_1fr]">
           <aside className="border-r border-slate-200/80 px-1 py-5 sm:px-2">
             <div className="mb-6 flex items-center gap-2 px-1 text-xs font-black text-slate-950">
-              <span className="grid h-6 w-6 place-items-center rounded-lg bg-slate-950 text-[11px] text-[#d7ef62]">B</span>
+              <BrandLogo iconOnly height={24} variant="blue" />
               <span className="hidden sm:inline">Bills</span>
             </div>
             <div className="space-y-1 text-[10px] font-bold sm:text-[11px]">
