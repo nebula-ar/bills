@@ -8,6 +8,7 @@ import { VariantGenerator } from "@/components/variant-generator";
 import { CatalogOnboarding } from "@/components/catalog-onboarding";
 import { ProductStockPanel } from "@/components/product-stock-panel";
 import { ProductPhotoField } from "@/components/product-photo-field";
+import { ProductAnalyticsTab } from "@/components/product-analytics-tab";
 import { formatQuantity } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import { Check, CircleSlash, DynamicIcon, Plus, Search, X } from "@/components/icons";
@@ -160,7 +161,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const [search, setSearch] = useState("");
   const [newBranchId, setNewBranchId] = useState(data.selectedBranchId);
   const [editId, setEditId] = useState<string | null>(null);
-  const [editTab, setEditTab] = useState<"producto" | "stock">("producto");
+  const [editTab, setEditTab] = useState<"producto" | "stock" | "analisis">("producto");
   const [editBranchId, setEditBranchId] = useState(data.selectedBranchId);
   const editing = data.products.find((product) => product.id === editId) ?? null;
   const newBranchName = data.branches.find((branch) => branch.id === newBranchId)?.name ?? "";
@@ -492,6 +493,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 [
                   { key: "producto", label: data.catalogSingular },
                   { key: "stock", label: data.features.stock ? "Stock y códigos" : "Códigos y costo" },
+                  { key: "analisis", label: "Análisis" },
                 ] as const
               ).map((pestana) => (
                 <button
@@ -723,6 +725,18 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   ) : null}
               </div>
             </div>
+
+            {/* Pestaña de análisis. Va montada solo cuando está a la vista: no
+                tiene campos del <form>, así que desmontarla no pierde nada, y
+                al montarse recién ahí se dispara la consulta. */}
+            {editTab === "analisis" ? (
+              <ProductAnalyticsTab
+                activa
+                productId={editing.id}
+                unidad={editing.unit as never}
+                usaStock={data.features.stock}
+              />
+            ) : null}
             </div>
             <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
               <button
