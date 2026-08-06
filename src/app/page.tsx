@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { FAQSection } from "@/components/landing/faq";
 import { Footer } from "@/components/landing/footer";
 import { HeroSection } from "@/components/landing/hero";
+import { LandingMotion } from "@/components/landing/landing-motion";
 import { Navbar } from "@/components/landing/Navbar";
 import { PricingSection } from "@/components/landing/pricing";
 import { TestimonialsSection } from "@/components/landing/testimonials";
@@ -50,7 +51,8 @@ export default async function LandingPage() {
   if (staffSession) redirect("/terminal");
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#f5f4ef] font-sans text-slate-950 selection:bg-[#d7ef62]">
+    <LandingMotion>
+      <div className="min-h-screen bg-bills-paper font-sans text-bills-ink selection:bg-bills-lime">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <Navbar />
@@ -64,6 +66,7 @@ export default async function LandingPage() {
         <CTASection />
       </main>
       <Footer />
-    </div>
+      </div>
+    </LandingMotion>
   );
 }

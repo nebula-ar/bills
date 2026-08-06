@@ -10,7 +10,9 @@ import {
   UsersRound,
   WalletCards,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 
 import {
   landingHero,
@@ -134,11 +136,36 @@ export function HeroSection() {
   const [titleStart, titleAccent] = landingHero.title.split(", ");
   const descriptionId = "hero-rubro-description";
   const heroDescription = selectedId ? selected.description : landingHero.description;
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      if (!selectedId || !previewRef.current) return;
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      if (reduceMotion) return;
+
+      gsap.fromTo(
+        previewRef.current,
+        { autoAlpha: 0.72, y: 8, scale: 0.99 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.36,
+          ease: "power3.out",
+          clearProps: "all",
+        },
+      );
+    },
+    { dependencies: [selectedId], scope: previewRef, revertOnUpdate: true },
+  );
 
   return (
-    <section id="hero" className="relative overflow-hidden bg-[#f5f4ef] text-slate-950">
+    <section id="hero" className="relative overflow-hidden bg-bills-paper text-slate-950">
       <div className="mx-auto grid min-h-[760px] max-w-7xl items-center gap-12 px-5 pb-20 pt-32 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20 lg:px-12 lg:pb-28 lg:pt-44">
-        <div>
+        <div data-motion="hero-copy">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/50 px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 sm:text-xs">
             <span className="h-2 w-2 rounded-full bg-[#3158e8] shadow-[0_0_0_4px_rgba(49,88,232,0.14)]" />
             {landingHero.eyebrow}
@@ -150,10 +177,10 @@ export function HeroSection() {
             {heroDescription}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/register" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[#3158e8]">
+            <Link href="/register" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[#3158e8] active:scale-95">
               Empezar gratis <ArrowUpRight className="h-4 w-4" />
             </Link>
-            <Link href="/#producto" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 px-5 text-sm font-black text-slate-700 transition hover:-translate-y-0.5 hover:bg-white">
+            <Link href="/#producto" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 px-5 text-sm font-black text-slate-700 transition hover:-translate-y-0.5 hover:bg-white active:scale-95">
               Ver cómo funciona
             </Link>
           </div>
@@ -171,7 +198,7 @@ export function HeroSection() {
                     aria-pressed={active}
                     aria-controls={descriptionId}
                     onClick={() => setSelectedId(example.id)}
-                    className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 text-xs font-extrabold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3158e8] focus-visible:ring-offset-2 ${active ? "border-[#3158e8] bg-[#3158e8] text-white" : "border-slate-300 text-slate-600 hover:border-[#3158e8] hover:text-[#3158e8]"}`}
+                    className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 text-xs font-extrabold transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3158e8] focus-visible:ring-offset-2 ${active ? "border-[#3158e8] bg-[#3158e8] text-white" : "border-slate-300 text-slate-600 hover:border-[#3158e8] hover:text-[#3158e8]"}`}
                   >
                     <ExampleIcon example={example} />
                     {example.label}
@@ -182,9 +209,27 @@ export function HeroSection() {
           </div>
         </div>
 
-        <div className="relative z-20 flex items-center justify-center lg:pt-4">
+        <div data-motion="hero-visual" className="relative z-20 flex items-center justify-center lg:pt-4">
           <div className="absolute h-[min(70vw,34rem)] w-[min(70vw,34rem)] rounded-full bg-[#dfe7ff]" aria-hidden="true" />
-          <DashboardPreview example={selected} />
+          <div ref={previewRef} className="relative w-full max-w-[590px] will-change-transform">
+            <DashboardPreview example={selected} />
+          </div>
+          <div
+            data-motion="hero-floater"
+            aria-hidden="true"
+            className="absolute right-0 top-[26%] hidden rotate-2 rounded-2xl bg-bills-blue px-4 py-3 text-white shadow-lg shadow-blue-600/25 sm:block lg:-right-7"
+          >
+            <span className="block text-[9px] font-black uppercase tracking-[0.14em] text-blue-100">Ventas en vivo</span>
+            <strong className="mt-1 block text-lg font-black tracking-[-0.05em]">+ $ 24.800</strong>
+          </div>
+          <div
+            data-motion="hero-floater"
+            aria-hidden="true"
+            className="absolute bottom-[27%] left-0 hidden -rotate-3 rounded-2xl border border-bills-ink bg-bills-lime px-4 py-3 text-bills-ink shadow-[6px_7px_0_var(--color-bills-ink)] sm:block lg:-left-8"
+          >
+            <span className="block text-[9px] font-black uppercase tracking-[0.14em] text-slate-600">Stock al día</span>
+            <strong className="mt-1 block text-sm font-black">Sin sorpresas</strong>
+          </div>
         </div>
       </div>
 
