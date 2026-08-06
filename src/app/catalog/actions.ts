@@ -148,14 +148,20 @@ function parseCommercialFields(formData: FormData) {
   const costRaw = parseOptionalString(formData, "cost");
   const minStockRaw = parseOptionalString(formData, "minStock");
   const packSizeRaw = parseOptionalString(formData, "packSize");
+  const kind =
+    kindRaw && (Object.values(ProductKind) as string[]).includes(kindRaw) ? (kindRaw as ProductKind) : undefined;
 
   return {
-    kind: kindRaw && (Object.values(ProductKind) as string[]).includes(kindRaw) ? (kindRaw as ProductKind) : undefined,
+    kind,
     unit: unitRaw && (Object.values(Unit) as string[]).includes(unitRaw) ? (unitRaw as Unit) : undefined,
     sku: parseOptionalString(formData, "sku") ?? null,
     barcode: parseOptionalString(formData, "barcode") ?? null,
     cost: costRaw ? parseWholeAmount(costRaw) : null,
-    trackStock: formData.get("trackStock") === "on",
+    // Se deduce del tipo en vez de preguntarse: un servicio no tiene existencias
+    // y un producto físico sí, siempre. Preguntarlo aparte permitía guardar la
+    // contradicción "servicio que descuenta stock", y en la práctica el tilde
+    // estaba puesto en todos.
+    trackStock: kind === undefined ? undefined : kind !== ProductKind.SERVICE,
     // El mínimo se tipea en unidades y se guarda en milésimas, igual que el stock.
     minStock: minStockRaw ? parseQuantityInput(minStockRaw) : null,
     // El bulto se cuenta en unidades enteras: media caja no existe.

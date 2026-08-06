@@ -88,8 +88,33 @@ export type ProductsData = {
   flash: { status: "success" | "error"; message: string } | null;
 };
 
+// Un solo estilo de campo para toda la ficha. Antes la pestaña de stock usaba
+// uno más chico y con otro fondo, así que al cambiar de pestaña los campos
+// cambiaban de forma y parecían de otra pantalla.
 const sheetInput =
-  "w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/15";
+  "w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15";
+
+/**
+ * Desplegable con la misma caja que los inputs.
+ *
+ * Un `<select>` sin `appearance-none` dibuja la flechita del sistema operativo y
+ * se planta con su propio alto: al lado de un input redondeado quedaba más bajo
+ * y con otra tipografía. Acá se le saca el estilo nativo y la flecha la ponemos
+ * nosotros, como ya hacía el selector de sucursal.
+ */
+function SheetSelect({
+  children,
+  ...props
+}: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) {
+  return (
+    <div className="relative min-w-0">
+      <select {...props} className={`${sheetInput} appearance-none pr-11`}>
+        {children}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+    </div>
+  );
+}
 
 const toneClasses: Record<ProductRow["statusTone"], string> = {
   available: "bg-emerald-50 text-emerald-700",
@@ -634,20 +659,24 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               <div className="grid min-w-0 gap-3 sm:grid-cols-2 [&>*]:min-w-0">
                   <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Tipo
-                    <select className={sheetInput} defaultValue={editing.kind} name="kind">
+                    {/* De acá sale si lleva stock: un servicio no tiene
+                        existencias y un producto físico sí. Antes había además
+                        un tilde "Controlar stock" que decía lo mismo y permitía
+                        guardar la contradicción. */}
+                    <SheetSelect defaultValue={editing.kind} name="kind">
+                      <option value="GOOD">Producto físico (lleva stock)</option>
                       <option value="SERVICE">Servicio (no lleva stock)</option>
-                      <option value="GOOD">Producto físico</option>
-                    </select>
+                    </SheetSelect>
                   </label>
                   <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Se vende por
-                    <select className={sheetInput} defaultValue={editing.unit} name="unit">
+                    <SheetSelect defaultValue={editing.unit} name="unit">
                       {data.units.map((unit) => (
                         <option key={unit.value} value={unit.value}>
                           {unit.label}
                         </option>
                       ))}
-                    </select>
+                    </SheetSelect>
                   </label>
                   {data.features.barcodes ? (
                     <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
@@ -670,20 +699,16 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   </label>
                   <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Categoría
-                    <select className={sheetInput} defaultValue={editing.categoryId ?? ""} name="categoryId">
+                    <SheetSelect defaultValue={editing.categoryId ?? ""} name="categoryId">
                       <option value="">Sin categoría</option>
                       {data.categories.map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.name}
                         </option>
                       ))}
-                    </select>
+                    </SheetSelect>
                   </label>
-                  <label className="flex items-center gap-2 text-sm font-bold text-slate-700 sm:col-span-2">
-                    <input defaultChecked={editing.trackStock} name="trackStock" type="checkbox" />
-                    Controlar stock (descuenta al vender y avisa cuando falta)
-                  </label>
-                  <label className="grid gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500 sm:col-span-2">
+                  <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Avisar cuando queden menos de
                     <input
                       className={sheetInput}
