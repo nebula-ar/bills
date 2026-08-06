@@ -38,7 +38,10 @@ describe("parseQuantityInput", () => {
 describe("formatQuantity", () => {
   it("no muestra decimales cuando no hacen falta", () => {
     expect(formatQuantity(2000)).toBe("2");
-    expect(formatQuantity(2000, Unit.UNIT)).toBe("2 un");
+    // Contar cosas no lleva abreviatura: "2 un" no lo escribe nadie. Y sin
+    // abreviatura no queda un espacio colgando al final.
+    expect(formatQuantity(2000, Unit.UNIT)).toBe("2");
+    expect(formatQuantity(2000, Unit.KG)).toBe("2 kg");
   });
 
   it("muestra solo los decimales significativos", () => {
