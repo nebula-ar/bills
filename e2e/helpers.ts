@@ -14,7 +14,7 @@ export async function loginAsAdmin(page: Page) {
   await page.goto("/login");
   await page.locator("#email").fill(ADMIN.email);
   await page.locator("#password").fill(ADMIN.password);
-  await page.getByRole("button", { name: "Ingresar" }).click();
+  await page.getByRole("button", { name: "Iniciar sesión" }).click();
   // Cae en el desvío (/entrar), que a propósito NO muestra la barra de
   // navegación: preguntar a dónde va y ofrecer un atajo al lado se contradice.
   // Así que se espera lo que sí hay ahí. Esperar "Historial" —el link de la
