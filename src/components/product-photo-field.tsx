@@ -79,9 +79,12 @@ export function ProductPhotoField({
     <div className="grid gap-2">
       <span className="text-xs font-black uppercase tracking-wide text-slate-500">Foto</span>
 
-      <div className="flex items-center gap-3">
+      {/* Apilado y no en fila: en la ficha la foto es la identidad del producto
+          —es como lo reconoce el que vende— así que ocupa el ancho de su
+          columna en vez de ser una miniatura al costado del texto. */}
+      <div className="flex flex-col gap-2.5">
         <button
-          className="relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 transition active:scale-95"
+          className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 transition active:scale-[0.99]"
           disabled={isPending}
           onClick={() => inputRef.current?.click()}
           type="button"
@@ -91,7 +94,7 @@ export function ProductPhotoField({
             // eslint-disable-next-line @next/next/no-img-element
             <img alt="" className="size-full object-cover" src={src} />
           ) : (
-            <Plus className="size-6 text-slate-400" />
+            <Plus className="size-7 text-slate-400" />
           )}
           {isPending ? (
             <span className="absolute inset-0 flex items-center justify-center bg-white/70">

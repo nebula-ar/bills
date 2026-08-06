@@ -19,6 +19,40 @@ export const PROMOTION_TYPE_HINTS: Record<PromotionType, string> = {
   [PromotionType.BUNDLE_PRICE]: "Ej: corte + barba a $13.000 en vez de $15.500.",
 };
 
+/**
+ * El descuento en dos palabras: "20% off", "3x2", "-$2.000", "Combo $13.000".
+ *
+ * Va corto porque se muestra al lado del precio en la ficha del producto,
+ * donde lo que importa es reconocer de un vistazo que ese precio no es el que
+ * se va a cobrar. El detalle está en la pantalla de promociones.
+ */
+export function promotionShortLabel(promocion: {
+  type: PromotionType;
+  percentOff: number | null;
+  fixedOff: number | null;
+  buyQuantity: number | null;
+  payQuantity: number | null;
+  bundlePrice: number | null;
+}): string {
+  const pesos = (valor: number) =>
+    new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(valor);
+
+  switch (promocion.type) {
+    case PromotionType.PERCENT_OFF:
+      return promocion.percentOff ? `${promocion.percentOff}% off` : "Descuento";
+    case PromotionType.FIXED_OFF:
+      return promocion.fixedOff ? `−${pesos(promocion.fixedOff)}` : "Descuento";
+    case PromotionType.NX_M:
+      return promocion.buyQuantity && promocion.payQuantity
+        ? `${promocion.buyQuantity}x${promocion.payQuantity}`
+        : "Llevá y pagá menos";
+    case PromotionType.BUNDLE_PRICE:
+      return promocion.bundlePrice ? `Combo ${pesos(promocion.bundlePrice)}` : "Combo";
+    default:
+      return "Descuento";
+  }
+}
+
 export const PROMOTION_SCOPE_LABELS: Record<PromotionScope, string> = {
   [PromotionScope.ALL]: "Toda la venta",
   [PromotionScope.CATEGORY]: "Categorías elegidas",

@@ -11,6 +11,7 @@ import { ProductPhotoField } from "@/components/product-photo-field";
 import { formatQuantity } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import { Check, ChevronDown, CircleSlash, DynamicIcon, Plus, Search, X } from "@/components/icons";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -57,6 +58,9 @@ export type ProductRow = {
   // Modelo con talles: se muestra el modelo + la variante.
   familyName: string | null;
   variantLabel: string | null;
+  // Promos vigentes que le pegan a este producto. Solo para avisar: el cálculo
+  // real lo hace el cobro, porque depende del carrito entero.
+  promociones: { id: string; name: string; label: string }[];
 };
 
 export type ProductsData = {
@@ -510,63 +514,104 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 vive en una media query y le gana a `hidden`, así que el panel
                 se seguía viendo en escritorio y las dos pestañas aparecían
                 juntas. Oculto significa oculto y nada más. */}
-            <div
-              className={
-                editTab === "producto"
-                  ? "space-y-4 sm:grid sm:grid-cols-2 sm:items-start sm:gap-x-5 sm:space-y-0 sm:[&>*]:mb-4"
-                  : "hidden"
-              }
-            >
-              {!editConfig?.configured ? (
-                <p className="flex items-center gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
-                  <CircleSlash className="size-4 shrink-0" />
-                  Sin precio{editBranchName ? ` en ${editBranchName}` : " en esta sucursal"} — cargalo para poder venderlo.
-                </p>
-              ) : null}
-              <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                {editBranchName ? `Precio en ${editBranchName}` : "Precio en esta sucursal"}
-                <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
-                  <span className="text-lg font-black text-slate-400">$</span>
-                  <MoneyInput
-                    className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
-                    defaultValue={editConfig?.priceValue ?? ""}
-                    key={editBranchId}
-                    name="price"
-                    placeholder="0"
+            {/* Dos columnas con un reparto explícito, no un grid que va
+                acomodando en orden de lectura: así la foto caía al lado del
+                nombre por casualidad y abajo a la derecha quedaba un hueco.
+                Izquierda la identidad —cómo se ve y si se vende—, derecha los
+                datos que se escriben. */}
+            <div className={editTab === "producto" ? "grid gap-5 sm:grid-cols-[15rem_1fr]" : "hidden"}>
+              <div className="space-y-4">
+                <ProductPhotoField
+                  catalogSlug={editing.catalogSlug}
+                  hasPhoto={editing.hasPhoto}
+                  productId={editing.id}
+                  version={editing.imageVersion}
+                />
+                <AvailabilityToggle defaultOn={editConfig?.available || !editConfig?.configured} key={editBranchId} />
+              </div>
+
+              <div className="space-y-4">
+                {!editConfig?.configured ? (
+                  <p className="flex items-center gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+                    <CircleSlash className="size-4 shrink-0" />
+                    Sin precio{editBranchName ? ` en ${editBranchName}` : " en esta sucursal"} — cargalo para poder venderlo.
+                  </p>
+                ) : null}
+
+                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                  Nombre
+                  <input
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
+                    defaultValue={editing.name}
+                    name="name"
+                    required
+                    type="text"
                   />
-                </div>
-              </label>
-              <AvailabilityToggle defaultOn={editConfig?.available || !editConfig?.configured} key={editBranchId} />
+                </label>
 
-              <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                Nombre
-                <input
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-                  defaultValue={editing.name}
-                  name="name"
-                  required
-                  type="text"
-                />
-              </label>
-              {data.branches.length > 1 ? (
-                <BranchSelect branches={data.branches} onChange={setEditBranchId} value={editBranchId} />
-              ) : null}
+                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                  {editBranchName ? `Precio en ${editBranchName}` : "Precio en esta sucursal"}
+                  <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
+                    <span className="text-lg font-black text-slate-400">$</span>
+                    <MoneyInput
+                      className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
+                      defaultValue={editConfig?.priceValue ?? ""}
+                      key={editBranchId}
+                      name="price"
+                      placeholder="0"
+                    />
+                  </div>
+                </label>
 
-              <ProductPhotoField
-                catalogSlug={editing.catalogSlug}
-                hasPhoto={editing.hasPhoto}
-                productId={editing.id}
-                version={editing.imageVersion}
-              />
-              <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                Descripción (opcional)
-                <input
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-                  defaultValue={editing.description ?? ""}
-                  name="description"
-                  type="text"
-                />
-              </label>
+                {/* Pegado al precio y no en otra pestaña: el descuento es la
+                    razón por la que el precio que se escribe acá no es el que
+                    se va a cobrar. Sin esto se termina bajando el precio a mano
+                    sobre una promo que ya está descontando.
+
+                    Se avisa, no se edita: las promos se arman en su pantalla,
+                    donde se elige vigencia, mínimos y a qué alcanza. Y no se
+                    dice CUÁNTO descuenta porque eso depende del carrito entero
+                    —mínimos por monto, NxM, combos—; decir un número acá que
+                    después no coincida con la caja sería peor que no decirlo. */}
+                {editing.promociones.length > 0 ? (
+                  <div className="rounded-2xl bg-emerald-50 px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
+                      Tiene descuento activo
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {editing.promociones.map((promocion) => (
+                        <span
+                          className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-200"
+                          key={promocion.id}
+                          title={promocion.name}
+                        >
+                          {promocion.label}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs text-emerald-800/80">
+                      Se aplica solo al cobrar, sobre este precio.{" "}
+                      <Link className="font-black underline" href="/promotions">
+                        Ver promociones
+                      </Link>
+                    </p>
+                  </div>
+                ) : null}
+
+                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                  Descripción (opcional)
+                  <input
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
+                    defaultValue={editing.description ?? ""}
+                    name="description"
+                    type="text"
+                  />
+                </label>
+
+                {data.branches.length > 1 ? (
+                  <BranchSelect branches={data.branches} onChange={setEditBranchId} value={editBranchId} />
+                ) : null}
+              </div>
 
             </div>
 
