@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { ArrowLeft, ShieldCheck } from "@/components/icons";
@@ -24,11 +25,13 @@ const EDITORIAL_DOTS = [
   { x: 290, y: 79, size: 18 },
 ] as const;
 
-// Contenido estático de marketing del panel editorial (copiado del diseño).
-const LAST_SALES = [
-  { concept: "Corte + barba", amount: "$ 18.000" },
-  { concept: "Venta de productos", amount: "$ 7.500" },
-  { concept: "Corte clásico", amount: "$ 12.000" },
+// Signos "+" dispersos del fondo oscuro mobile (textura del mockup W97ZG).
+const EDITORIAL_PLUSES = [
+  { x: 30, y: 140, size: 14 },
+  { x: 336, y: 190, size: 11 },
+  { x: 56, y: 300, size: 9 },
+  { x: 322, y: 330, size: 12 },
+  { x: 180, y: 250, size: 8 },
 ] as const;
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -51,6 +54,19 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="absolute right-[-60px] top-[104px] h-[190px] w-[210px] rounded-full bg-[radial-gradient(circle_at_center,#7C3AED70_0%,#7C3AED00_70%)] blur-[28px]" />
         </div>
 
+        {/* Textura de signos "+" dispersos (mockup mobile) */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          {EDITORIAL_PLUSES.map((plus) => (
+            <span
+              className="absolute font-extrabold leading-none text-[#8BB3FF]/40"
+              key={`${plus.x}-${plus.y}`}
+              style={{ fontSize: plus.size, left: plus.x, top: plus.y }}
+            >
+              +
+            </span>
+          ))}
+        </div>
+
         {/* Volver */}
         <div className="relative z-10 flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))]">
           <Link
@@ -62,15 +78,34 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </Link>
         </div>
 
-        {/* Franja de acento gradiente */}
-        <div aria-hidden="true" className="relative z-10 mt-4 h-1 w-full bg-linear-to-r from-blue-600 to-violet-600" />
+        {/* Marca Bills */}
+        <div className="relative z-10 flex items-center gap-2.5 px-5 pt-4">
+          <span className="grid size-8 place-items-center rounded-lg bg-blue-600 font-funnel-sans text-lg font-extrabold text-white">
+            B
+          </span>
+          <span className="font-funnel-sans text-xl font-extrabold text-white">Bills</span>
+        </div>
+
+        {/* Ilustración en el espacio oscuro: la misma escena completa que en
+            web, anclada al borde inferior para que la hoja de acceso la cubra
+            apenas (como en el mockup mobile), sin hueco entre ambas. */}
+        <div className="relative z-10 flex min-h-0 flex-1 items-end justify-center px-6">
+          <Image
+            alt="Ilustración: tu negocio con ventas, caja y stock en órbita"
+            className="-mb-10 max-h-[300px] w-auto max-w-full object-contain"
+            height={1024}
+            priority
+            src="/login/illustrations/login-orbit-desktop-v1.png"
+            width={1536}
+          />
+        </div>
 
         {/* Hoja blanca de acceso */}
-        <section className="relative z-10 mt-5 flex flex-1 flex-col items-center gap-4 rounded-t-[32px] bg-white px-6 pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-[18px]">
+        <section className="relative z-10 flex flex-col items-center gap-4 rounded-t-[32px] bg-white px-6 pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-[18px]">
           <div aria-hidden="true" className="h-[5px] w-[46px] shrink-0 rounded-full bg-slate-300" />
 
           <h1 className="text-center font-montserrat text-[23px] font-bold text-slate-950">Ingresá a Bills</h1>
-          <p className="text-center text-xs text-slate-500">Deslizá hacia arriba para acceder a tu negocio</p>
+          <p className="text-center text-xs text-slate-500">Accedé a tu negocio para continuar</p>
 
           {hasError ? <LoginErrorBanner /> : null}
 
@@ -81,7 +116,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       {/* ===== Desktop (≥ lg): split screen (nodo WMXMk) ===== */}
       <div className="hidden min-h-[100dvh] lg:flex">
         {/* Panel editorial */}
-        <aside className="relative hidden w-[420px] shrink-0 flex-col justify-between overflow-hidden bg-[#070A19] p-8 lg:flex">
+        <aside className="relative hidden w-[50%] max-w-[900px] shrink-0 flex-col justify-between overflow-hidden bg-[#070A19] p-8 lg:flex">
           {/* Glows radiales */}
           <div aria-hidden="true" className="pointer-events-none absolute left-[15%] top-[25%] h-[260px] w-[270px] rounded-full bg-[radial-gradient(circle_at_center,#2563EB66_0%,#2563EB00_70%)] blur-[26px]" />
           <div aria-hidden="true" className="pointer-events-none absolute left-[44%] top-[8%] h-[180px] w-[210px] rounded-full bg-[radial-gradient(circle_at_center,#7C3AED55_0%,#7C3AED00_70%)] blur-[24px]" />
@@ -96,9 +131,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               />
             ))}
           </div>
-
-          {/* Franja de acento */}
-          <div aria-hidden="true" className="absolute inset-x-0 top-0 h-[5px] bg-linear-to-r from-blue-600 to-violet-600" />
 
           {/* Marca Bills */}
           <div className="relative z-10 flex items-center gap-2.5">
@@ -119,39 +151,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Ventas, caja y stock para que tu negocio se sienta bajo control.
             </p>
 
-            {/* Ventana flotante Bills */}
-            <div className="flex flex-col gap-3.5 rounded-[28px] bg-white p-[18px] shadow-[0_18px_36px_#2563EB44]">
-              <div className="flex items-center justify-between">
-                <p className="font-funnel-sans text-base font-bold text-[#1A1A1A]">Resumen de hoy</p>
-                <span className="flex items-center gap-[5px] rounded-full bg-emerald-50 px-2 py-[5px]">
-                  <span className="size-[6px] rounded-full bg-emerald-600" />
-                  <span className="text-[10px] font-bold text-emerald-700">Al día</span>
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="flex flex-col gap-[5px] rounded-[10px] bg-[#F6F7FB] p-3">
-                  <span className="text-[9px] font-extrabold tracking-[0.8px] text-slate-500">VENTAS</span>
-                  <span className="font-mono text-base font-bold text-[#5D5DFF]">$ 84.600</span>
-                </div>
-                <div className="flex flex-col gap-[5px] rounded-[10px] bg-[#F6F7FB] p-3">
-                  <span className="text-[9px] font-extrabold tracking-[0.8px] text-slate-500">CAJA</span>
-                  <span className="font-mono text-base font-bold text-[#E07A5F]">$ 42.100</span>
-                </div>
-              </div>
-
-              <div>
-                {LAST_SALES.map((sale) => (
-                  <div
-                    className="flex items-center justify-between border-b border-[#EEEEEE] py-2.5"
-                    key={sale.concept}
-                  >
-                    <span className="text-xs font-semibold text-[#1A1A1A]">{sale.concept}</span>
-                    <span className="font-mono text-[11px] font-bold text-[#5D5DFF]">{sale.amount}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Ilustración principal: la dueña del negocio con ventas, caja y
+                stock en órbita (reemplaza la tarjeta de preview del mockup). */}
+            <Image
+              alt="Ilustración: tu negocio con ventas, caja y stock en órbita"
+              className="mx-auto w-full max-w-[620px]"
+              height={1024}
+              priority
+              src="/login/illustrations/login-orbit-desktop-v1.png"
+              width={1536}
+            />
           </div>
 
           {/* Mensaje de confianza */}
