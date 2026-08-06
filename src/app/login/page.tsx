@@ -47,7 +47,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <main className="min-h-[100dvh] bg-[#070A19]">
       {/* ===== Mobile (< lg): fondo oscuro + hoja de acceso (nodo W97ZG) ===== */}
-      <div className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-[#070A19] lg:hidden">
+      <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#070A19] lg:hidden">
         {/* Halos radiales azul y violeta de fondo */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <div className="absolute left-[-80px] top-[72px] h-[210px] w-[240px] rounded-full bg-[radial-gradient(circle_at_center,#2563EB80_0%,#2563EB00_70%)] blur-[28px]" />
@@ -89,7 +89,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         {/* Ilustración en el espacio oscuro: la misma escena completa que en
             web, anclada al borde inferior para que la hoja de acceso la cubra
             apenas (como en el mockup mobile), sin hueco entre ambas. */}
-        <div className="relative z-10 flex min-h-0 flex-1 items-end justify-center px-6">
+        <div className="relative z-10 flex min-h-0 flex-1 items-end justify-center overflow-hidden px-6">
           <Image
             alt="Ilustración: tu negocio con ventas, caja y stock en órbita"
             className="-mb-10 max-h-[300px] w-auto max-w-full object-contain"
@@ -101,7 +101,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
 
         {/* Hoja blanca de acceso */}
-        <section className="relative z-10 flex flex-col items-center gap-4 rounded-t-[32px] bg-white px-6 pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-[18px]">
+        <section className="relative z-10 flex min-h-0 flex-col items-center gap-4 overflow-y-auto rounded-t-[32px] bg-white px-6 pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-[18px]">
           <div aria-hidden="true" className="h-[5px] w-[46px] shrink-0 rounded-full bg-slate-300" />
 
           <h1 className="text-center font-montserrat text-[23px] font-bold text-slate-950">Ingresá a Bills</h1>

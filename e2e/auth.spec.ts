@@ -114,4 +114,26 @@ test.describe("Autenticación admin", () => {
     await page.keyboard.press("Enter");
     await expect(page.locator("#mobile-password")).toHaveAttribute("type", "text");
   });
+
+  test("login móvil queda acoplado al viewport sin scroll vertical", async ({ page }) => {
+    // NEBU-12: la hoja blanca con el form debe acoplarse al viewport. El scroll
+    // de página solo aparece si la hoja se pasa de altura y empuja al main.
+    for (const viewport of [
+      { width: 390, height: 844 },
+      { width: 320, height: 568 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/login");
+
+      // Sin scroll vertical de página: documentElement no debe poder scrollear.
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight))
+        .toBeLessThanOrEqual(0);
+
+      // El form completo queda visible: la CTA "Entrar a Bills" y el link de
+      // registro están dentro del viewport, sin scroll.
+      await expect(page.getByRole("button", { name: "Entrar a Bills" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "¿No tenés cuenta? Registrá tu negocio" })).toBeVisible();
+    }
+  });
 });
