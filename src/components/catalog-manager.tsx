@@ -156,6 +156,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const [search, setSearch] = useState("");
   const [newBranchId, setNewBranchId] = useState(data.selectedBranchId);
   const [editId, setEditId] = useState<string | null>(null);
+  const [editTab, setEditTab] = useState<"producto" | "stock">("producto");
   const [editBranchId, setEditBranchId] = useState(data.selectedBranchId);
   const editing = data.products.find((product) => product.id === editId) ?? null;
   const newBranchName = data.branches.find((branch) => branch.id === newBranchId)?.name ?? "";
@@ -186,6 +187,9 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 
   function openEdit(id: string) {
     setEditBranchId(data.selectedBranchId);
+    // Siempre en la primera pestaña: si quedara donde la dejó el producto
+    // anterior, abrir una ficha mostraría el stock antes que el nombre.
+    setEditTab("producto");
     setEditId(id);
   }
 
@@ -471,19 +475,48 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 <X className="size-5" />
               </button>
             </div>
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 pt-5 sm:grid sm:grid-cols-2 sm:items-start sm:gap-x-5 sm:space-y-0 sm:[&>*]:mb-4">
-              {/* La existencia y sus operaciones, sin salir de la ficha. */}
-              {data.features.stock ? (
-                <ProductStockPanel
-                  branchId={data.selectedBranchId}
-                  branchName={data.selectedBranchName}
-                  minStock={editing.minStockRaw}
-                  productId={editing.id}
-                  quantity={editing.stockQuantity}
-                  unit={editing.unit as never}
-                />
-              ) : null}
+            {/* Dos pestañas. La ficha mezclaba lo que se mira todos los días
+                —nombre, precio, foto— con lo que se configura una vez —códigos,
+                costo, mínimos, bultos— y para llegar a lo segundo había que
+                scrollear pasando por lo primero.
 
+                Se ocultan con CSS y NO se desmontan: es un solo <form>, y un
+                campo desmontado no se envía. Cambiar de pestaña borraría en
+                silencio lo que el usuario escribió del otro lado. */}
+            <div className="flex shrink-0 gap-2 border-b border-slate-100 bg-white px-5 pt-3">
+              {(
+                [
+                  { key: "producto", label: data.catalogSingular },
+                  { key: "stock", label: data.features.stock ? "Stock y códigos" : "Códigos y costo" },
+                ] as const
+              ).map((pestana) => (
+                <button
+                  className={`-mb-px border-b-2 px-3 pb-2.5 text-sm font-black transition ${
+                    editTab === pestana.key
+                      ? "border-primary text-primary"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                  key={pestana.key}
+                  onClick={() => setEditTab(pestana.key)}
+                  type="button"
+                >
+                  {pestana.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5">
+            {/* El `hidden` NO se combina con las clases del layout: `sm:grid`
+                vive en una media query y le gana a `hidden`, así que el panel
+                se seguía viendo en escritorio y las dos pestañas aparecían
+                juntas. Oculto significa oculto y nada más. */}
+            <div
+              className={
+                editTab === "producto"
+                  ? "space-y-4 sm:grid sm:grid-cols-2 sm:items-start sm:gap-x-5 sm:space-y-0 sm:[&>*]:mb-4"
+                  : "hidden"
+              }
+            >
               {!editConfig?.configured ? (
                 <p className="flex items-center gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
                   <CircleSlash className="size-4 shrink-0" />
@@ -520,6 +553,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               ) : null}
 
               <ProductPhotoField
+                catalogSlug={editing.catalogSlug}
                 hasPhoto={editing.hasPhoto}
                 productId={editing.id}
                 version={editing.imageVersion}
@@ -534,13 +568,25 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 />
               </label>
 
-              {/* Datos comerciales: solo tienen sentido con stock o códigos. */}
+            </div>
+
+            {/* Pestaña de stock y códigos. */}
+            <div className={editTab === "stock" ? "space-y-4" : "hidden"}>
+              {/* La existencia y sus operaciones, arriba de todo: es lo que se
+                  viene a hacer acá, y lo de abajo se configura una vez. */}
+              {data.features.stock ? (
+                <ProductStockPanel
+                  branchId={data.selectedBranchId}
+                  branchName={data.selectedBranchName}
+                  minStock={editing.minStockRaw}
+                  productId={editing.id}
+                  quantity={editing.stockQuantity}
+                  unit={editing.unit as never}
+                />
+              ) : null}
+
               <input name="hasCommercialFields" type="hidden" value="true" />
-              <details className="rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3" open={editing.trackStock}>
-                <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">
-                  Códigos, costo y stock
-                </summary>
-                <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2 [&>*]:min-w-0">
+              <div className="grid min-w-0 gap-3 sm:grid-cols-2 [&>*]:min-w-0">
                   <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Tipo
                     <select className={sheetInput} defaultValue={editing.kind} name="kind">
@@ -625,8 +671,8 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                       </label>
                     </>
                   ) : null}
-                </div>
-              </details>
+              </div>
+            </div>
             </div>
             <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
               <button

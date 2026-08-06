@@ -3,6 +3,7 @@
 import { deleteProductImage, uploadProductImage } from "@/app/catalog/actions";
 import { Check, Loader2, Plus, Trash2 } from "@/components/icons";
 import { resizeImageForUpload } from "@/lib/image-resize";
+import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import { useRef, useState, useTransition } from "react";
 
 // Carga de la foto de un producto. Vive fuera del <form> de datos (los forms no
@@ -12,18 +13,30 @@ export function ProductPhotoField({
   productId,
   hasPhoto,
   version,
+  catalogSlug,
 }: {
   productId: string;
   hasPhoto: boolean;
   // Marca de tiempo de la última foto: va en la URL para saltear el caché.
   version: number | null;
+  // Qué producto del catálogo de rubro es. Si el negocio no subió foto propia,
+  // esta es la que se ve en el listado y al vender.
+  catalogSlug: string | null;
 }) {
   const [photoVersion, setPhotoVersion] = useState<number | null>(hasPhoto ? version : null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const src = photoVersion ? `/api/products/${productId}/image?v=${photoVersion}` : null;
+  // La misma decisión que toma el listado y el mostrador: propia si hay,
+  // catálogo si no. Antes acá se miraba SOLO la propia, así que un producto con
+  // foto del catálogo abría el editor en blanco y parecía que se había perdido.
+  //
+  // Que "Quitar" sea solo para la propia sigue siendo cierto —no se puede borrar
+  // un archivo compartido por todos los negocios— pero eso es un motivo para
+  // esconder el botón, no para esconder la foto.
+  const src = productImageSrc({ id: productId, imageVersion: photoVersion, catalogSlug });
+  const esPropia = photoVersion !== null;
 
   function pick(file: File | undefined) {
     if (!file) return;
@@ -88,13 +101,17 @@ export function ProductPhotoField({
         </button>
 
         <div className="min-w-0 flex-1">
+          {/* Se distingue de dónde salió: con la del catálogo el dueño tiene que
+              saber que puede reemplazarla por la suya, y que no la subió él. */}
           <p className="text-sm font-bold text-slate-700">
-            {src ? "Foto cargada" : "Sacá o elegí una foto"}
+            {esPropia ? "Foto cargada" : src ? "Foto del catálogo" : "Sacá o elegí una foto"}
           </p>
           <p className="mt-0.5 text-xs text-slate-500">
-            Se ve en el listado y al vender. La guardamos chica para que el mostrador vaya rápido.
+            {!esPropia && src
+              ? "Es la genérica del rubro. Sacale una foto a la tuya y reemplazala."
+              : "Se ve en el listado y al vender. La guardamos chica para que el mostrador vaya rápido."}
           </p>
-          {src ? (
+          {esPropia ? (
             <button
               className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-bold text-rose-600 transition active:scale-95"
               disabled={isPending}
