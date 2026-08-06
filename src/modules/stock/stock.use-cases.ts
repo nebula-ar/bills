@@ -1,4 +1,4 @@
-import { StockMovementType, type Unit } from "@/generated/prisma/client";
+import { StockMovementType, type ProductKind, type Unit } from "@/generated/prisma/client";
 import { logEvent } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { lineTotal } from "@/lib/quantity";
@@ -18,6 +18,9 @@ export type StockRow = {
   sku: string | null;
   barcode: string | null;
   unit: Unit;
+  // Separa lo que se vende de lo que se usa para producir: el insumo tiene
+  // stock y costo pero nunca se pone a la venta (ver ProductKind.INGREDIENT).
+  kind: ProductKind;
   categoryName: string | null;
   quantity: number;
   minStock: number | null;
@@ -52,6 +55,7 @@ export async function getBranchStockOverview(businessId: string, branchId: strin
       sku: product.sku,
       barcode: product.barcode,
       unit: product.unit,
+      kind: product.kind,
       categoryName: product.category?.name ?? null,
       quantity,
       minStock,
