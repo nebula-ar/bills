@@ -86,7 +86,20 @@ export function findRecetaDeProducto(businessId: string, productId: string, bran
         select: {
           id: true,
           quantity: true,
-          ingredient: { select: { id: true, name: true, unit: true, cost: true } },
+          ingredient: {
+            select: {
+              id: true,
+              name: true,
+              unit: true,
+              cost: true,
+              // Cuánto hay del insumo en la sucursal: con eso la receta puede
+              // decir para cuántas unidades alcanza, que es lo que frena la
+              // producción y no se ve en ningún otro lado.
+              stockLevels: branchId
+                ? { where: { branchId }, select: { quantity: true }, take: 1 }
+                : false,
+            },
+          },
         },
       },
     },

@@ -44,6 +44,12 @@ export type RecetaRenglon = {
   costo: number;
   porcentaje: number;
   sinCosto: boolean;
+  /** Costo del insumo por unidad entera (por kilo, por litro). */
+  costoUnitario: number | null;
+  /** Cuánto hay del insumo en la sucursal. */
+  hay: number;
+  /** Para cuántas unidades del producto alcanza ese stock. null = no se puede saber. */
+  alcanzaPara: number | null;
 };
 
 export type ElaborableRow = {
@@ -85,6 +91,7 @@ export function RecetasManager({
   const [busqueda, setBusqueda] = useState("");
   const [buscaProducto, setBuscaProducto] = useState("");
   const [soloSinReceta, setSoloSinReceta] = useState(false);
+  const [eligiendo, setEligiendo] = useState(false);
   const [nuevoInsumo, setNuevoInsumo] = useState(false);
   const [agregando, setAgregando] = useState(false);
   const [venciendo, setVenciendo] = useState<InsumoRow | null>(null);
@@ -122,6 +129,12 @@ export function RecetasManager({
   const productosVisibles = encontrados.slice(0, TOPE);
   const recortados = encontrados.length - productosVisibles.length;
 
+  // Cuántas unidades se pueden hacer con lo que hay: manda el insumo que menos
+  // alcanza, porque la receta los necesita a todos. Es el número que decide si
+  // hay que salir a comprar, y hasta ahora no estaba en ninguna pantalla.
+  const alcances = renglones.map((r) => r.alcanzaPara).filter((n): n is number => n !== null);
+  const alcanzaTotal = alcances.length === renglones.length && alcances.length > 0 ? Math.min(...alcances) : null;
+
   return (
     <>
       <div className="flex gap-2 border-b border-slate-200">
@@ -158,93 +171,46 @@ export function RecetasManager({
           {elaborables.length === 0 ? (
             <Vacio texto="Todavía no hay productos que se elaboren." />
           ) : (
-            /* Lista buscable a un lado y la receta al otro, en vez de una nube
-               de chips. Con diez productos la nube se ve bien; con mil son mil
-               píldoras envueltas ocupando la pantalla entera y hay que buscar
-               con el ojo. Una lista con buscador se usa igual con diez que con
-               mil, y de paso deja filtrar lo que todavía no tiene receta, que
-               es la pregunta con la que se entra acá. */
-            <div className="grid gap-4 lg:grid-cols-[20rem_1fr] lg:items-start">
-              <div className="space-y-2">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:ring-4 focus:ring-primary/15"
-                    onChange={(event) => setBuscaProducto(event.target.value)}
-                    placeholder="Buscar producto…"
-                    value={buscaProducto}
-                  />
-                </div>
+            /* Un solo control arriba y la receta abajo, a todo el ancho.
+               A esta pantalla se entra con UN producto en la cabeza: no hace
+               falta tener el catálogo a la vista permanentemente, y una columna
+               fija de 20rem le come el ancho justamente a la tabla, que es lo
+               que se vino a mirar. El buscador se abre cuando se lo necesita. */
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-primary/40"
+                  onClick={() => setEligiendo(true)}
+                  type="button"
+                >
+                  <span className="min-w-0">
+                    <span className="block text-xs font-black uppercase tracking-wide text-slate-500">
+                      Receta de
+                    </span>
+                    <span className="block truncate text-lg font-black text-slate-950">
+                      {producto?.name ?? "Elegí un producto"}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600">
+                    <Search className="size-3.5" />
+                    Cambiar
+                  </span>
+                </button>
 
-                {/* Dos vistas, no un filtro más: "con receta" es lo que se
-                    revisa y "sin receta" es lo que hay que resolver. Con el
-                    conteo al lado, además, es la única forma de enterarse de
-                    cuánto falta. */}
+                {/* El pendiente a la vista sin ocupar lugar: es la otra pregunta
+                    con la que se entra acá, pero no la principal. */}
                 {sinReceta > 0 ? (
-                  <div className="flex gap-1.5 rounded-xl bg-slate-100 p-1">
-                    {(
-                      [
-                        { pendiente: false, label: `Con receta (${conReceta.length})` },
-                        { pendiente: true, label: `Sin receta (${sinReceta})` },
-                      ] as const
-                    ).map((opcion) => (
-                      <button
-                        className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-black transition ${
-                          soloSinReceta === opcion.pendiente
-                            ? "bg-white text-slate-900 shadow-sm"
-                            : "text-slate-500 hover:text-slate-700"
-                        }`}
-                        key={opcion.label}
-                        onClick={() => setSoloSinReceta(opcion.pendiente)}
-                        type="button"
-                      >
-                        {opcion.label}
-                      </button>
-                    ))}
-                  </div>
+                  <button
+                    className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-black text-amber-700 transition active:scale-95"
+                    onClick={() => {
+                      setSoloSinReceta(true);
+                      setEligiendo(true);
+                    }}
+                    type="button"
+                  >
+                    {sinReceta} sin receta
+                  </button>
                 ) : null}
-
-                <div className="max-h-[26rem] overflow-y-auto rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-950/5">
-                  {productosVisibles.length === 0 ? (
-                    <p className="px-3 py-6 text-center text-sm text-slate-500">
-                      {consultaProducto !== ""
-                        ? "No encontramos nada con eso."
-                        : soloSinReceta
-                          ? "Todos tienen receta cargada."
-                          : "Ninguno tiene receta todavía. Buscá un producto para empezar."}
-                    </p>
-                  ) : (
-                    productosVisibles.map((p) => (
-                      <a
-                        className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm font-bold transition ${
-                          p.id === producto?.id ? "bg-primary/10 text-primary" : "text-slate-700 hover:bg-slate-50"
-                        }`}
-                        href={`/recetas?producto=${p.id}`}
-                        key={p.id}
-                      >
-                        <span className="min-w-0 truncate">{p.name}</span>
-                        {/* Cuántos insumos tiene, no un tilde: "3" dice que la
-                            receta está cargada Y cuánto tiene. El "—" dice que
-                            todavía no hay nada, sin disfrazarlo de cero. */}
-                        <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-black ${
-                            p.renglones === 0 ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"
-                          }`}
-                        >
-                          {p.renglones === 0 ? "—" : p.renglones}
-                        </span>
-                      </a>
-                    ))
-                  )}
-                </div>
-
-                {/* Si se recortó, se dice: sin esto alguien busca "pan", ve
-                    cuarenta y cree que su producto no existe. */}
-                <p className="px-1 text-xs text-slate-500">
-                  {recortados > 0
-                    ? `Mostrando ${productosVisibles.length} de ${encontrados.length}. Escribí más para achicar la lista.`
-                    : `${encontrados.length} ${encontrados.length === 1 ? "producto" : "productos"} de ${elaborables.length}`}
-                </p>
               </div>
 
               <div className="space-y-4">
@@ -317,17 +283,24 @@ export function RecetasManager({
                   {renglones.length === 0 ? (
                     <Vacio texto={`${producto.name} todavía no tiene receta.`} />
                   ) : (
-                    <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5">
-                      <table className="w-full">
+                    // Scroll horizontal como red: si igual no entra, se llega a
+                    // las columnas de la derecha. Con `overflow-hidden` quedaban
+                    // cortadas y no había forma de verlas.
+                    <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5">
+                      <table className="w-full min-w-[21rem]">
                         <thead>
                           <tr className="border-b border-slate-100 text-left">
-                            {/* Cuatro columnas y no cinco: el costo y su parte
-                                del total son el mismo dato leído de dos formas,
-                                y separados le comían el ancho al nombre del
-                                insumo, que es lo único que hay que leer. */}
+                            {/* El ancho de más se usa para informar, no para
+                                estirar el nombre: de dónde sale el costo del
+                                renglón, cuánto hay del insumo y para cuántas
+                                unidades alcanza. Eso último es lo que frena la
+                                producción y no se ve en ningún otro lado. */}
                             <Th>Insumo</Th>
-                            <Th>Lleva</Th>
+                            <Th>Lleva uno</Th>
+                            <Th alineado="derecha" oculto>Precio del insumo</Th>
                             <Th alineado="derecha">Cuesta</Th>
+                            <Th alineado="derecha" oculto>Hay</Th>
+                            <Th alineado="derecha">Alcanza para</Th>
                             <Th alineado="derecha"> </Th>
                           </tr>
                         </thead>
@@ -339,6 +312,13 @@ export function RecetasManager({
                               </td>
                               <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
                                 {formatQuantity(r.cantidad, r.unit)}
+                              </td>
+                              {/* De dónde sale el costo del renglón: sin esto
+                                  hay que ir a Insumos a ver a cuánto está. */}
+                              <td className="hidden whitespace-nowrap px-4 py-3 text-right text-sm text-slate-500 lg:table-cell">
+                                {r.costoUnitario !== null
+                                  ? `${dinero.format(r.costoUnitario)} / ${unitShort(r.unit)}`
+                                  : "—"}
                               </td>
                               {/* El costo y qué parte del total se lleva, en la
                                   misma celda: con esto se sabe con qué proveedor
@@ -353,7 +333,25 @@ export function RecetasManager({
                                   </>
                                 )}
                               </td>
-                              <td className="whitespace-nowrap px-2 py-3 text-right">
+                              <td className="hidden whitespace-nowrap px-4 py-3 text-right text-sm text-slate-600 lg:table-cell">
+                                {formatQuantity(r.hay, r.unit)}
+                              </td>
+                              {/* El insumo que menos alcanza es el que frena la
+                                  producción. Marcado, se ve cuál comprar. */}
+                              <td className="whitespace-nowrap px-4 py-3 text-right">
+                                {r.alcanzaPara === null ? (
+                                  <span className="text-sm text-slate-400">—</span>
+                                ) : (
+                                  <span
+                                    className={`text-sm font-black ${
+                                      r.alcanzaPara === alcanzaTotal ? "text-amber-700" : "text-slate-500"
+                                    }`}
+                                  >
+                                    {r.alcanzaPara}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="whitespace-nowrap px-1 py-3 text-right">
                                 <form action={sacarDeRecetaAction}>
                                   <input name="recipeItemId" type="hidden" value={r.id} />
                                   <input name="productId" type="hidden" value={producto.id} />
@@ -369,15 +367,26 @@ export function RecetasManager({
                             </tr>
                           ))}
                         </tbody>
+                        {/* Una sola celda que ocupa todo y se acomoda por
+                            dentro: con `colSpan` fijos, esconder columnas en el
+                            celular desalinea el pie contra la tabla. */}
                         <tfoot>
                           <tr className="border-t-2 border-slate-100 bg-slate-50">
-                            <td className="px-4 py-3 text-sm font-black text-slate-600" colSpan={2}>
-                              {renglones.length} {renglones.length === 1 ? "insumo" : "insumos"}
+                            <td className="px-4 py-3" colSpan={7}>
+                              <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                                <span className="text-sm font-black text-slate-600">
+                                  {renglones.length} {renglones.length === 1 ? "insumo" : "insumos"}
+                                  {alcanzaTotal !== null ? (
+                                    <span className="ml-3 font-bold text-slate-500">
+                                      {alcanzaTotal === 0
+                                        ? "no alcanza para ninguno"
+                                        : `alcanza para ${alcanzaTotal}`}
+                                    </span>
+                                  ) : null}
+                                </span>
+                                <span className="text-base font-black text-slate-950">{dinero.format(costo)}</span>
+                              </div>
                             </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-right text-base font-black text-slate-950">
-                              {dinero.format(costo)}
-                            </td>
-                            <td />
                           </tr>
                         </tfoot>
                       </table>
@@ -489,6 +498,92 @@ export function RecetasManager({
           )}
         </div>
       )}
+
+      {/* El buscador de producto vive acá y no en la pantalla: se abre, se
+          busca, se elige y se va. Tenerlo siempre visible costaba una columna
+          entera para algo que se toca una vez por visita. */}
+      <Modal abierto={eligiendo} onClose={() => setEligiendo(false)} titulo="¿De qué producto?">
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <input
+              autoFocus
+              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
+              onChange={(event) => setBuscaProducto(event.target.value)}
+              placeholder="Escribí el nombre…"
+              value={buscaProducto}
+            />
+          </div>
+
+          {/* Dos vistas, no un filtro más: "con receta" es lo que se revisa y
+              "sin receta" lo que hay que resolver. */}
+          {sinReceta > 0 ? (
+            <div className="flex gap-1.5 rounded-xl bg-slate-100 p-1">
+              {(
+                [
+                  { pendiente: false, label: `Con receta (${conReceta.length})` },
+                  { pendiente: true, label: `Sin receta (${sinReceta})` },
+                ] as const
+              ).map((opcion) => (
+                <button
+                  className={`flex-1 rounded-lg px-2 py-2 text-sm font-black transition ${
+                    soloSinReceta === opcion.pendiente
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                  key={opcion.label}
+                  onClick={() => setSoloSinReceta(opcion.pendiente)}
+                  type="button"
+                >
+                  {opcion.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="max-h-[22rem] overflow-y-auto rounded-2xl bg-slate-50 p-1.5">
+            {productosVisibles.length === 0 ? (
+              <p className="px-3 py-8 text-center text-sm text-slate-500">
+                {consultaProducto !== ""
+                  ? "No encontramos nada con eso."
+                  : soloSinReceta
+                    ? "Todos tienen receta cargada."
+                    : "Ninguno tiene receta todavía. Buscá un producto para empezar."}
+              </p>
+            ) : (
+              productosVisibles.map((p) => (
+                <a
+                  className={`flex items-center justify-between gap-2 rounded-xl px-3 py-3 text-sm font-bold transition ${
+                    p.id === producto?.id ? "bg-primary/10 text-primary" : "text-slate-700 hover:bg-white"
+                  }`}
+                  href={`/recetas?producto=${p.id}`}
+                  key={p.id}
+                >
+                  <span className="min-w-0 truncate">{p.name}</span>
+                  {/* Cuántos insumos tiene, no un tilde: "3" dice que está
+                      cargada Y cuánto lleva. El "—" dice que no hay nada, sin
+                      disfrazarlo de cero. */}
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-black ${
+                      p.renglones === 0 ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {p.renglones === 0 ? "—" : p.renglones}
+                  </span>
+                </a>
+              ))
+            )}
+          </div>
+
+          {/* Si se recortó, se dice: sin esto alguien busca "pan", ve cuarenta y
+              cree que su producto no existe. */}
+          <p className="text-xs text-slate-500">
+            {recortados > 0
+              ? `Mostrando ${productosVisibles.length} de ${encontrados.length}. Escribí más para achicar la lista.`
+              : `${encontrados.length} ${encontrados.length === 1 ? "producto" : "productos"} de ${elaborables.length}`}
+          </p>
+        </div>
+      </Modal>
 
       <Modal abierto={nuevoInsumo} onClose={() => setNuevoInsumo(false)} titulo="Nuevo insumo">
         <form action={crearInsumoAction} className="grid gap-3">
@@ -662,12 +757,22 @@ function Dato({
   );
 }
 
-function Th({ children, alineado = "izquierda" }: { children: React.ReactNode; alineado?: "izquierda" | "derecha" }) {
+function Th({
+  children,
+  alineado = "izquierda",
+  oculto = false,
+}: {
+  children: React.ReactNode;
+  alineado?: "izquierda" | "derecha";
+  // Columnas de apoyo: en el celular se esconden para que las que deciden algo
+  // entren sin cortarse.
+  oculto?: boolean;
+}) {
   return (
     <th
       className={`px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500 ${
         alineado === "derecha" ? "text-right" : ""
-      }`}
+      } ${oculto ? "hidden lg:table-cell" : ""}`}
       scope="col"
     >
       {children}

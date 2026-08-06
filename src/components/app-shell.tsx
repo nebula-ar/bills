@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 type AppShellProps = {
   children: ReactNode;
-  maxWidth?: "sm" | "md" | "lg" | "xl";
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "full";
 };
 
 const shellMaxWidth: Record<NonNullable<AppShellProps["maxWidth"]>, string> = {
@@ -10,6 +10,9 @@ const shellMaxWidth: Record<NonNullable<AppShellProps["maxWidth"]>, string> = {
   md: "max-w-3xl",
   lg: "max-w-5xl",
   xl: "max-w-6xl",
+  // Sin tope: para las pantallas que son una tabla, encajonarlas desperdicia
+  // media pantalla mientras las columnas cortan el texto.
+  full: "max-w-none",
 };
 
 // La barra de navegación inferior es global (se monta en el layout raíz) y flota

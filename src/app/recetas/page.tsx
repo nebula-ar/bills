@@ -63,7 +63,7 @@ export default async function RecetasPage({ searchParams }: RecetasPageProps) {
   const hoy = new Date();
 
   return (
-    <AppShell>
+    <AppShell maxWidth="full">
       <PageHeader title="Recetas" description="Qué insumo lleva cada producto, y cuánto cuesta hacerlo." />
 
       {mensaje ? (
@@ -105,16 +105,29 @@ export default async function RecetasPage({ searchParams }: RecetasPageProps) {
         margen={margenDeProducto(precio, desglose.total)}
         precio={precio}
         producto={producto ? { id: producto.id, name: producto.name, renglones: producto.receta.length } : null}
-        renglones={(producto?.receta ?? []).map((r, indice) => ({
-          id: r.id,
-          ingredienteId: r.ingredient.id,
-          nombre: r.ingredient.name,
-          unit: r.ingredient.unit,
-          cantidad: r.quantity,
-          costo: desglose.renglones[indice]?.costo ?? 0,
-          porcentaje: desglose.renglones[indice]?.porcentaje ?? 0,
-          sinCosto: desglose.renglones[indice]?.sinCosto ?? false,
-        }))}
+        renglones={(producto?.receta ?? []).map((r, indice) => {
+          const hay = r.ingredient.stockLevels?.[0]?.quantity ?? 0;
+
+          return {
+            id: r.id,
+            ingredienteId: r.ingredient.id,
+            nombre: r.ingredient.name,
+            unit: r.ingredient.unit,
+            cantidad: r.quantity,
+            costo: desglose.renglones[indice]?.costo ?? 0,
+            porcentaje: desglose.renglones[indice]?.porcentaje ?? 0,
+            sinCosto: desglose.renglones[indice]?.sinCosto ?? false,
+            costoUnitario: r.ingredient.cost,
+            hay,
+            // Enteras: media medialuna no se produce. Un renglón con cantidad
+            // cero no limita nada, así que no se divide por él.
+            //
+            // Y nunca negativo: el stock puede quedar bajo cero (se vendió más
+            // de lo que figuraba), pero "alcanza para −4" no significa nada. Con
+            // menos que cero no alcanza para ninguno.
+            alcanzaPara: r.quantity > 0 ? Math.max(0, Math.floor(hay / r.quantity)) : null,
+          };
+        })}
         sinCostear={desglose.sinCostear}
         unidades={Object.values(Unit).map((u) => ({ value: u, label: unitLabel(u) }))}
       />
