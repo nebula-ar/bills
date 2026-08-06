@@ -9,7 +9,15 @@ import { findProductToSell } from "@/app/sales/new/scan-actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { TAX_CONDITION_LABELS } from "@/lib/invoice-labels";
 import { formatAmountInput } from "@/lib/money";
-import { allowsFraction, formatQuantity, lineTotal, ONE, parseQuantityInput, unitShort } from "@/lib/quantity";
+import {
+  allowsFraction,
+  formatQuantity,
+  lineTotal,
+  ONE,
+  parseQuantityInput,
+  sanitizeQuantityInput,
+  unitShort,
+} from "@/lib/quantity";
 import { changeFor, coversTotal, quickCashAmounts } from "@/modules/sales/change.logic";
 import { validateTaxId } from "@/lib/tax-id";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
@@ -1044,7 +1052,16 @@ export function PosCheckout({
                           aria-label={`Cantidad de ${product.name} en ${unitShort(product.unit)}`}
                           className="w-full min-w-0 bg-transparent text-base font-black text-slate-950 outline-none"
                           inputMode="decimal"
-                          onChange={(event) => setProductQuantity(product.productId, event.target.value, product.unit)}
+                          // Filtrado al escribir: sin esto se podía tipear
+                          // "diez" y el renglón desaparecía del pedido en
+                          // silencio, porque el parser devolvía null.
+                          onChange={(event) =>
+                            setProductQuantity(
+                              product.productId,
+                              sanitizeQuantityInput(event.target.value, product.unit),
+                              product.unit,
+                            )
+                          }
                           placeholder="0"
                           value={quantity ? formatQuantity(quantity) : ""}
                         />

@@ -3,7 +3,7 @@
 import { applyProductStockAction, type StockOp } from "@/app/catalog/stock-actions";
 import { ArrowRight, Check, Loader2, Package, X } from "@/components/icons";
 import type { Unit } from "@/generated/prisma/enums";
-import { formatQuantity, parseQuantityInput, unitShort } from "@/lib/quantity";
+import { formatQuantity, parseQuantityInput, sanitizeQuantityInput, unitShort } from "@/lib/quantity";
 import { resultadoDeOperacion } from "@/modules/stock/stock-operation.logic";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -88,6 +88,17 @@ export function ProductStockPanel({
   const escrito = parseQuantityInput(value, unit);
   const cantidad = escrito ?? (op === "adjust" && value.trim() === "0" ? 0 : null);
   const vistaPrevia = op && cantidad !== null ? resultadoDeOperacion(op, quantity, cantidad) : null;
+
+  // El filtro del input evita casi todo lo inválido, pero quedan dos cosas que
+  // solo se pueden decir con palabras: escribir cero donde no corresponde y
+  // dejar el separador colgando ("1,"). Un botón apagado sin explicación deja
+  // al usuario tocándolo sin entender.
+  const problema =
+    value.trim() === "" || cantidad !== null
+      ? null
+      : op === "adjust"
+        ? "Escribí cuánto contaste."
+        : "Tiene que ser un número mayor que cero.";
 
   function abrir(next: StockOp) {
     setOp(next === op ? null : next);
@@ -180,18 +191,27 @@ export function ProductStockPanel({
             </button>
           </div>
 
-          <label className="mt-2.5 flex items-center rounded-xl border border-slate-200 bg-white px-3.5">
+          {/* El campo filtra al escribir: lo que no puede ser una cantidad no
+              llega a entrar. Escribir "diez" y ver el botón apagado sin más es
+              lo que hacía sentir que la pantalla no responde. */}
+          <label
+            className={`mt-2.5 flex items-center rounded-xl border bg-white px-3.5 ${
+              problema ? "border-amber-300" : "border-slate-200"
+            }`}
+          >
             <input
               aria-label={active.pregunta}
               autoFocus
               className="w-full min-w-0 bg-transparent py-3 text-lg font-black text-slate-950 outline-none"
               inputMode="decimal"
-              onChange={(event) => setValue(event.target.value)}
+              onChange={(event) => setValue(sanitizeQuantityInput(event.target.value, unit))}
               placeholder={active.placeholder}
               value={value}
             />
             <span className="shrink-0 text-sm font-black text-slate-400">{unitShort(unit)}</span>
           </label>
+
+          {problema ? <p className="mt-1.5 text-xs font-bold text-amber-700">{problema}</p> : null}
 
           {/* LA vista previa. Es lo que hace entendible la pantalla: no hay que
               saber si la operación suma o reemplaza, se ve en qué termina. */}

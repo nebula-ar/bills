@@ -1,7 +1,14 @@
 import { Unit } from "@/generated/prisma/enums";
 import { describe, expect, it } from "vitest";
 
-import { formatQuantity, lineTotal, ONE, parseQuantityInput, wholeUnits } from "./quantity";
+import {
+  formatQuantity,
+  lineTotal,
+  ONE,
+  parseQuantityInput,
+  sanitizeQuantityInput,
+  wholeUnits,
+} from "./quantity";
 
 describe("parseQuantityInput", () => {
   it("interpreta enteros como unidades completas", () => {
@@ -63,5 +70,56 @@ describe("wholeUnits", () => {
     expect(wholeUnits(ONE)).toBe(1);
     expect(wholeUnits(1500)).toBe(2);
     expect(wholeUnits(3000)).toBe(3);
+  });
+});
+
+describe("sanitizeQuantityInput", () => {
+  it("saca las letras y deja los números", () => {
+    // El que escribe "diez" ve el campo lleno y el botón apagado sin saber por
+    // qué. Filtrando, el estado inválido no llega a existir.
+    expect(sanitizeQuantityInput("diez", Unit.UNIT)).toBe("");
+    expect(sanitizeQuantityInput("12 cajas", Unit.UNIT)).toBe("12");
+    expect(sanitizeQuantityInput("a1b2c3", Unit.UNIT)).toBe("123");
+  });
+
+  it("saca símbolos y espacios", () => {
+    expect(sanitizeQuantityInput("$ 12 -", Unit.UNIT)).toBe("12");
+    expect(sanitizeQuantityInput("-5", Unit.UNIT)).toBe("5");
+  });
+
+  it("en algo que se vende por unidad no deja escribir decimales", () => {
+    // "1,5 unidades" no es una cantidad, es un error de tipeo: media medialuna
+    // no se vende ni se repone.
+    expect(sanitizeQuantityInput("1,5", Unit.UNIT)).toBe("15");
+    expect(sanitizeQuantityInput("1.5", Unit.UNIT)).toBe("15");
+  });
+
+  it("en lo que se vende por peso deja UN separador", () => {
+    expect(sanitizeQuantityInput("1,5", Unit.KG)).toBe("1,5");
+    expect(sanitizeQuantityInput("1.5", Unit.KG)).toBe("1.5");
+    // El primero manda: sin esto queda escrito algo que después no se puede leer.
+    expect(sanitizeQuantityInput("1,5,3", Unit.KG)).toBe("1,53");
+    expect(sanitizeQuantityInput("1.5.3", Unit.KG)).toBe("1.53");
+  });
+
+  it("deja escribir el separador solo, para poder seguir tipeando", () => {
+    // Al escribir "0,5" se pasa por "0,": cortarlo ahí haría imposible el paso.
+    expect(sanitizeQuantityInput("0,", Unit.KG)).toBe("0,");
+  });
+
+  it("una cadena vacía sigue vacía", () => {
+    expect(sanitizeQuantityInput("", Unit.KG)).toBe("");
+  });
+
+  it("lo que sale siempre lo entiende el parser, o es vacío", () => {
+    // La garantía que hace útil al filtro: nada de lo que quede escrito puede
+    // ser algo que después el parser rechace por su forma.
+    for (const entrada of ["12", "abc", "1,5", "1.5.3", "$99", "-4", "0,5"]) {
+      for (const unidad of [Unit.UNIT, Unit.KG]) {
+        const limpio = sanitizeQuantityInput(entrada, unidad);
+        if (limpio === "" || limpio.endsWith(",") || limpio.endsWith(".")) continue;
+        expect(parseQuantityInput(limpio, unidad)).not.toBeNull();
+      }
+    }
   });
 });

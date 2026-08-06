@@ -113,3 +113,31 @@ export function lineTotal(unitPrice: number, quantity: number): number {
 export function wholeUnits(quantity: number): number {
   return Math.ceil(quantity / QUANTITY_SCALE);
 }
+
+/**
+ * Deja escribir SOLO lo que después va a poder interpretarse como cantidad.
+ *
+ * `parseQuantityInput` rechaza la basura, pero rechazar en silencio no alcanza:
+ * el que escribe "diez" ve el campo lleno y el botón apagado, sin saber por
+ * qué. Filtrando en el momento, el estado inválido no llega a existir.
+ *
+ * Deja el separador decimal solo donde tiene sentido: en algo que se vende por
+ * unidad, "1,5" no es una cantidad, es un error de tipeo.
+ */
+export function sanitizeQuantityInput(raw: string, unit: Unit = Unit.UNIT): string {
+  const soloNumeros = raw.replace(/[^\d.,]/g, "");
+
+  if (!allowsFraction(unit)) {
+    return soloNumeros.replace(/[.,]/g, "");
+  }
+
+  // Un solo separador: el primero manda y los demás se caen, así "1,5,3" no
+  // queda escrito como algo que después no se puede leer.
+  const primero = soloNumeros.search(/[.,]/);
+
+  if (primero === -1) {
+    return soloNumeros;
+  }
+
+  return `${soloNumeros.slice(0, primero + 1)}${soloNumeros.slice(primero + 1).replace(/[.,]/g, "")}`;
+}
