@@ -8,8 +8,21 @@ import { supabaseAnonKey, supabaseCookieOptions, supabaseServerUrl } from "./con
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
+  // "Recordarme" (cookie bills.remember, seteada por loginAction): sin marcar
+  // la sesión dura 8 h; marcando, 30 días. Sin la cookie se usa el default de
+  // Supabase (cookie de sesión del navegador). El maxAge se aplica en cada
+  // escritura de cookies, así que también se conserva al refrescar tokens.
+  const baseCookieOptions = supabaseCookieOptions();
+  const remember = cookieStore.get("bills.remember")?.value;
+  const cookieOptions =
+    remember === "1"
+      ? { ...baseCookieOptions, maxAge: 60 * 60 * 24 * 30 }
+      : remember === "0"
+        ? { ...baseCookieOptions, maxAge: 60 * 60 * 8 }
+        : baseCookieOptions;
+
   return createServerClient(supabaseServerUrl(), supabaseAnonKey(), {
-    cookieOptions: supabaseCookieOptions(),
+    cookieOptions,
     cookies: {
       getAll() {
         return cookieStore.getAll();

@@ -23,7 +23,7 @@ test.describe("Autenticación admin", () => {
     await page.goto("/login");
     await page.locator("#email").fill(ADMIN.email);
     await page.locator("#password").fill("clave-incorrecta");
-    await page.getByRole("button", { name: "Ingresar" }).click();
+    await page.getByRole("button", { name: "Iniciar sesión" }).click();
 
     await expect(page.locator("#login-error")).toContainText(/incorrect/i);
     // No debe navegar fuera del login.
@@ -72,7 +72,7 @@ test.describe("Autenticación admin", () => {
     await page.goto("/login");
     await page.locator("#email").fill("unlinked@bills.local");
     await page.locator("#password").fill("secret123");
-    await page.getByRole("button", { name: "Ingresar" }).click();
+    await page.getByRole("button", { name: "Iniciar sesión" }).click();
 
     await expect(page.locator("#login-error")).toContainText(/incorrect/i);
     await expect(page).toHaveURL(/\/login/);
@@ -81,12 +81,14 @@ test.describe("Autenticación admin", () => {
   test("login muestra la nueva entrada publica y conserva sus accesos", async ({ page }) => {
     await page.goto("/login");
 
-    await expect(page.getByRole("img", { name: "Marca Bills" })).toBeVisible();
+    // El diseño nuevo reemplazó el logo con aria-label por la marca de texto
+    // ("B" azul + "Bills"); el acceso principal se valida por el heading.
     await expect(page.getByRole("heading", { name: "Bienvenido de nuevo" })).toBeVisible();
-    await expect(page.getByLabel("Email o usuario")).toBeVisible();
+    await expect(page.getByLabel("Correo electrónico")).toBeVisible();
     await expect(page.locator("#password")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Registrá tu negocio" })).toHaveAttribute("href", "/register");
-    await expect(page.getByRole("link", { name: "Ir a la terminal" })).toHaveAttribute("href", "/terminal");
+    await expect(page.getByRole("link", { name: "Creá tu cuenta" })).toHaveAttribute("href", "/register");
+    // El flujo de recuperación es follow-up: hoy apunta a Contacto.
+    await expect(page.getByRole("link", { name: "¿Olvidaste tu clave?" })).toHaveAttribute("href", "/contact");
   });
 
   test("login permite alternar la visibilidad de la contraseña", async ({ page }) => {
@@ -104,12 +106,12 @@ test.describe("Autenticación admin", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/login");
 
-    await expect(page.locator("#password")).toBeVisible();
+    await expect(page.locator("#mobile-password")).toBeVisible();
     await expect(page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).resolves.toBe(true);
 
-    await page.locator("#password").focus();
+    await page.locator("#mobile-password").focus();
     await page.keyboard.press("Tab");
     await page.keyboard.press("Enter");
-    await expect(page.locator("#password")).toHaveAttribute("type", "text");
+    await expect(page.locator("#mobile-password")).toHaveAttribute("type", "text");
   });
 });

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Inter, Montserrat } from "next/font/google";
+import { Funnel_Sans, Geist_Mono, Inter, Montserrat } from "next/font/google";
 import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { FlashToaster } from "@/components/flash-toaster";
@@ -23,6 +23,11 @@ const montserrat = Montserrat({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const funnelSans = Funnel_Sans({
+  variable: "--font-funnel-sans",
   subsets: ["latin"],
 });
 
@@ -71,7 +76,7 @@ export default async function RootLayout({
   return (
     <html
       lang="es-AR"
-      className={`${inter.variable} ${geistMono.variable} ${montserrat.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} ${montserrat.variable} ${funnelSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#f6f7fb]">
         {children}
