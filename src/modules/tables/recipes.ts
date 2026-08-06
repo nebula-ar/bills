@@ -90,3 +90,66 @@ export function faltantesParaProducir(
     }))
     .filter((f) => f.falta > 0);
 }
+
+export type RenglonDesglosado = RenglonDeReceta & {
+  /** Lo que cuesta este insumo en UNA unidad del producto. */
+  costo: number;
+  /** Qué parte del costo total se lleva, en porcentaje entero. */
+  porcentaje: number;
+  /** Si el insumo todavía no tiene costo cargado y por eso suma cero. */
+  sinCosto: boolean;
+};
+
+/**
+ * La receta con el peso de cada insumo en el costo.
+ *
+ * El total solo dice cuánto sale; el desglose dice DÓNDE se va la plata, que es
+ * lo que decide qué conviene negociar con el proveedor. Sin esto hay que
+ * dividir a mano renglón por renglón.
+ */
+export function desglosarReceta(receta: RenglonDeReceta[]): {
+  renglones: RenglonDesglosado[];
+  total: number;
+  /** Cuántos insumos no tienen costo: el total está incompleto por esos. */
+  sinCostear: number;
+} {
+  const total = costoDeReceta(receta);
+
+  return {
+    total,
+    sinCostear: receta.filter((renglon) => renglon.costoPorUnidad == null).length,
+    renglones: receta.map((renglon) => {
+      const costo =
+        renglon.costoPorUnidad == null
+          ? 0
+          : Math.round((renglon.costoPorUnidad * renglon.cantidad) / QUANTITY_SCALE);
+
+      return {
+        ...renglon,
+        costo,
+        // Sobre cero no se puede repartir nada: sin esto sería una división por
+        // cero y saldría NaN impreso en pantalla.
+        porcentaje: total === 0 ? 0 : Math.round((costo / total) * 100),
+        sinCosto: renglon.costoPorUnidad == null,
+      };
+    }),
+  };
+}
+
+/**
+ * Qué queda de vender uno, sabiendo lo que cuesta hacerlo.
+ *
+ * `null` cuando falta el precio: sin precio no hay margen que calcular, y
+ * mostrar "0%" haría creer que se vende a pérdida.
+ */
+export function margenDeProducto(
+  precio: number | null,
+  costo: number,
+): { ganancia: number; porcentaje: number } | null {
+  if (precio === null || precio <= 0) return null;
+
+  const ganancia = precio - costo;
+  // Sobre el precio, igual que en el resto de la app: "de cada 100 que entran,
+  // cuántos quedan".
+  return { ganancia, porcentaje: Math.round((ganancia / precio) * 100) };
+}

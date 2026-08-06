@@ -4,7 +4,9 @@ import { describe, expect, it } from "vitest";
 import {
   consumoDeProduccion,
   costoDeReceta,
+  desglosarReceta,
   faltantesParaProducir,
+  margenDeProducto,
   seVende,
   type RenglonDeReceta,
 } from "./recipes";
@@ -124,5 +126,67 @@ describe("¿alcanza el stock?", () => {
 
   it("justo lo necesario alcanza", () => {
     expect(faltantesParaProducir(MEDIALUNA, 1, { harina: 120, manteca: 40 })).toEqual([]);
+  });
+});
+
+describe("desglosarReceta", () => {
+  const receta = [
+    { ingredienteId: "harina", cantidad: 500, costoPorUnidad: 2000 },
+    { ingredienteId: "manteca", cantidad: 100, costoPorUnidad: 8000 },
+  ];
+
+  it("dice cuánto pone cada insumo y qué parte del costo se lleva", () => {
+    // El total dice cuánto sale; el desglose dice DÓNDE se va la plata, que es
+    // lo que decide qué conviene negociar con el proveedor.
+    const { renglones, total } = desglosarReceta(receta);
+    expect(total).toBe(1800);
+    expect(renglones.map((r) => [r.ingredienteId, r.costo, r.porcentaje])).toEqual([
+      ["harina", 1000, 56],
+      ["manteca", 800, 44],
+    ]);
+  });
+
+  it("una receta vacía no divide por cero", () => {
+    // Sin esto saldría NaN impreso en pantalla.
+    expect(desglosarReceta([])).toEqual({ renglones: [], total: 0, sinCostear: 0 });
+  });
+
+  it("con todo en cero los porcentajes son cero, no NaN", () => {
+    const { renglones, total } = desglosarReceta([
+      { ingredienteId: "x", cantidad: 500, costoPorUnidad: 0 },
+    ]);
+    expect(total).toBe(0);
+    expect(renglones[0].porcentaje).toBe(0);
+  });
+
+  it("marca los insumos sin costo y cuenta cuántos son", () => {
+    // El total queda incompleto por esos: decirlo evita que alguien fije el
+    // precio sobre un costo al que le falta la mitad.
+    const { renglones, sinCostear, total } = desglosarReceta([
+      { ingredienteId: "harina", cantidad: 500, costoPorUnidad: 2000 },
+      { ingredienteId: "sal", cantidad: 10, costoPorUnidad: null },
+    ]);
+    expect(sinCostear).toBe(1);
+    expect(renglones[1].sinCosto).toBe(true);
+    expect(renglones[1].costo).toBe(0);
+    expect(total).toBe(1000);
+  });
+});
+
+describe("margenDeProducto", () => {
+  it("saca la ganancia y el porcentaje sobre el precio", () => {
+    // Sobre el precio, igual que en el resto de la app: "de cada 100 que
+    // entran, cuántos quedan".
+    expect(margenDeProducto(5000, 1800)).toEqual({ ganancia: 3200, porcentaje: 64 });
+  });
+
+  it("sin precio devuelve null y no cero", () => {
+    // "0%" haría creer que se vende a pérdida; la verdad es que no hay precio.
+    expect(margenDeProducto(null, 1800)).toBeNull();
+    expect(margenDeProducto(0, 1800)).toBeNull();
+  });
+
+  it("vender por debajo del costo da margen negativo, no lo esconde", () => {
+    expect(margenDeProducto(1000, 1800)).toEqual({ ganancia: -800, porcentaje: -80 });
   });
 });

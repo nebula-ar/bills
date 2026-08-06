@@ -1,34 +1,12 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
-import {
-  Badge,
-  EmptyState,
-  Field,
-  formatMoney,
-  GhostButton,
-  inputClass,
-  SectionCard,
-  selectClass,
-} from "@/components/manager-ui";
+import { RecetasManager } from "@/components/recetas-manager";
 import { AppModule, Unit } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
-import { formatQuantity, unitShort } from "@/lib/quantity";
+import { unitLabel } from "@/lib/quantity";
 import { getBranchesForManagement } from "@/modules/branches/get-branches-for-management.use-case";
-import { costoDeReceta } from "@/modules/tables/recipes";
-import {
-  estadoDeVencimiento,
-  ordenarPorUrgencia,
-  textoDeVencimiento,
-} from "@/modules/stock/vencimientos";
+import { desglosarReceta, margenDeProducto } from "@/modules/tables/recipes";
+import { estadoDeVencimiento, textoDeVencimiento } from "@/modules/stock/vencimientos";
 import { findElaborables, findInsumos } from "@/modules/tables/recipes.repository";
-
-import {
-  crearInsumoAction,
-  ponerEnRecetaAction,
-  ponerVencimientoAction,
-  sacarDeRecetaAction,
-} from "./actions";
-
-const fechaCorta = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" });
 
 /**
  * Insumos y recetas: cuánto cuesta de verdad cada budín.
@@ -58,18 +36,20 @@ export default async function RecetasPage({ searchParams }: RecetasPageProps) {
 
   const [insumos, elaborables] = await Promise.all([
     findInsumos(session.user.businessId, branchId),
-    findElaborables(session.user.businessId),
+    findElaborables(session.user.businessId, branchId),
   ]);
 
   const productoPedido = uno(params.producto);
   const producto = elaborables.find((p) => p.id === productoPedido) ?? elaborables[0];
 
-  const receta = (producto?.receta ?? []).map((r) => ({
-    ingredienteId: r.ingredient.id,
-    cantidad: r.quantity,
-    costoPorUnidad: r.ingredient.cost,
-  }));
-  const costo = costoDeReceta(receta);
+  const desglose = desglosarReceta(
+    (producto?.receta ?? []).map((r) => ({
+      ingredienteId: r.ingredient.id,
+      cantidad: r.quantity,
+      costoPorUnidad: r.ingredient.cost,
+    })),
+  );
+  const precio = producto?.branchPrices?.[0]?.price ?? null;
 
   const mensaje = uno(params.mensaje);
   const estado = uno(params.estado);
@@ -79,10 +59,7 @@ export default async function RecetasPage({ searchParams }: RecetasPageProps) {
 
   return (
     <AppShell>
-      <PageHeader
-        title="Recetas"
-        description="Qué insumo lleva cada producto, y cuánto cuesta hacerlo."
-      />
+      <PageHeader title="Recetas" description="Qué insumo lleva cada producto, y cuánto cuesta hacerlo." />
 
       {mensaje ? (
         <p
@@ -94,167 +71,48 @@ export default async function RecetasPage({ searchParams }: RecetasPageProps) {
         </p>
       ) : null}
 
-      <SectionCard title="Insumos" description="Lo que se compra y se consume. No se vende.">
-        {insumos.length === 0 ? (
-          <EmptyState title="Todavía no hay insumos" hint="Cargá harina, manteca, azúcar… acá abajo." />
-        ) : (
-          <ul className="mb-4 flex flex-col gap-2">
-            {/* Lo que vence primero, arriba: quien abre esto quiere ver lo que
-                tiene que resolver hoy, no buscarlo entre lo que está bien. */}
-            {ordenarPorUrgencia(
-              insumos.map((i) => ({ ...i, expiresAt: i.stockLevels[0]?.expiresAt ?? null })),
-            ).map((i) => {
-              const stock = i.stockLevels[0]?.quantity ?? 0;
-              const bajo = i.minStock !== null && stock < i.minStock;
-              const vencimiento = estadoDeVencimiento(i.expiresAt, hoy);
+      <RecetasManager
+        branchId={branchId}
+        costo={desglose.total}
+        elaborables={elaborables.map((p) => ({ id: p.id, name: p.name, renglones: p.receta.length }))}
+        insumos={insumos.map((i) => {
+          const stock = i.stockLevels[0]?.quantity ?? 0;
+          const expiresAt = i.stockLevels[0]?.expiresAt ?? null;
+          const vencimiento = estadoDeVencimiento(expiresAt, hoy);
 
-              return (
-                <li className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-3" key={i.id}>
-                  <span className="flex-1 text-sm font-bold text-slate-950">{i.name}</span>
-                  <span className="text-sm text-slate-600">
-                    {formatQuantity(stock)} {unitShort(i.unit)}
-                  </span>
-                  {i.cost ? (
-                    <span className="text-sm font-semibold text-slate-500">
-                      {formatMoney(i.cost)}/{unitShort(i.unit)}
-                    </span>
-                  ) : (
-                    <Badge tone="warning">sin costo</Badge>
-                  )}
-                  {bajo ? <Badge tone="danger">falta</Badge> : null}
-                  {vencimiento === "vencido" || vencimiento === "hoy" ? (
-                    <Badge tone="danger">{textoDeVencimiento(vencimiento)}</Badge>
-                  ) : vencimiento === "pronto" ? (
-                    <Badge tone="warning">
-                      {textoDeVencimiento(vencimiento)} {i.expiresAt ? fechaCorta.format(i.expiresAt) : ""}
-                    </Badge>
-                  ) : null}
-                  <form action={ponerVencimientoAction} className="flex items-center gap-1">
-                    <input name="branchId" type="hidden" value={branchId} />
-                    <input name="productId" type="hidden" value={i.id} />
-                    <input
-                      aria-label={`Vencimiento de ${i.name}`}
-                      className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
-                      defaultValue={i.expiresAt ? i.expiresAt.toISOString().slice(0, 10) : ""}
-                      name="expiresAt"
-                      type="date"
-                    />
-                    <button className="text-xs font-bold text-slate-500 hover:text-primary" type="submit">
-                      Guardar
-                    </button>
-                  </form>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-
-        <form action={crearInsumoAction} className="flex flex-wrap items-end gap-2">
-          <Field label="Insumo nuevo">
-            <input className={inputClass} name="name" placeholder="Ej: Harina 000" required />
-          </Field>
-          <Field label="Unidad">
-            <select className={selectClass} defaultValue={Unit.KG} name="unit">
-              {Object.values(Unit).map((u) => (
-                <option key={u} value={u}>
-                  {unitShort(u)}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Costo por unidad">
-            <input className={inputClass} inputMode="numeric" name="cost" placeholder="2000" />
-          </Field>
-          <Field label="Avisar bajo">
-            <input className={inputClass} inputMode="decimal" name="minStock" placeholder="5" />
-          </Field>
-          <GhostButton>Agregar insumo</GhostButton>
-        </form>
-      </SectionCard>
-
-      {elaborables.length === 0 ? null : (
-        <SectionCard
-          title="Receta"
-          description={
-            producto
-              ? `${producto.name} · cuesta ${formatMoney(costo)} hacer uno`
-              : "Elegí un producto"
-          }
-        >
-          <div className="mb-4 flex flex-wrap gap-2">
-            {elaborables.map((p) => (
-              <a
-                className={`rounded-full px-3 py-1.5 text-sm font-bold transition ${
-                  p.id === producto?.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-                href={`/recetas?producto=${p.id}`}
-                key={p.id}
-              >
-                {p.name}
-                {p.receta.length > 0 ? " ✓" : ""}
-              </a>
-            ))}
-          </div>
-
-          {producto ? (
-            <div className="flex flex-col gap-4">
-              {producto.receta.length === 0 ? (
-                <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
-                  {producto.name} todavía no tiene receta. Agregale insumos abajo.
-                </p>
-              ) : (
-                <ul className="flex flex-col gap-2">
-                  {producto.receta.map((r) => (
-                    <li className="flex items-center gap-3 rounded-xl bg-slate-50 p-3" key={r.id}>
-                      <span className="flex-1 text-sm font-bold text-slate-950">{r.ingredient.name}</span>
-                      <span className="text-sm text-slate-600">
-                        {formatQuantity(r.quantity)} {unitShort(r.ingredient.unit)}
-                      </span>
-                      <span className="text-sm font-semibold text-slate-500">
-                        {r.ingredient.cost
-                          ? formatMoney(Math.round((r.ingredient.cost * r.quantity) / 1000))
-                          : "—"}
-                      </span>
-                      <form action={sacarDeRecetaAction}>
-                        <input name="recipeItemId" type="hidden" value={r.id} />
-                        <input name="productId" type="hidden" value={producto.id} />
-                        <button
-                          aria-label={`Quitar ${r.ingredient.name}`}
-                          className="grid size-7 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive"
-                          type="submit"
-                        >
-                          ×
-                        </button>
-                      </form>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {insumos.length > 0 ? (
-                <form action={ponerEnRecetaAction} className="flex flex-wrap items-end gap-2">
-                  <input name="productId" type="hidden" value={producto.id} />
-                  <Field label="Insumo">
-                    <select className={selectClass} name="ingredientId">
-                      {insumos.map((i) => (
-                        <option key={i.id} value={i.id}>
-                          {i.name} ({unitShort(i.unit)})
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Cuánto lleva UNO">
-                    <input className={inputClass} inputMode="decimal" name="quantity" placeholder="0,12" required />
-                  </Field>
-                  <GhostButton>Poner en la receta</GhostButton>
-                </form>
-              ) : null}
-            </div>
-          ) : null}
-        </SectionCard>
-      )}
+          return {
+            id: i.id,
+            name: i.name,
+            unit: i.unit,
+            cost: i.cost,
+            stock,
+            minStock: i.minStock,
+            bajo: i.minStock !== null && stock < i.minStock,
+            // ISO corto: es lo que espera un <input type="date">.
+            expiresAt: expiresAt ? expiresAt.toISOString().slice(0, 10) : null,
+            vencimiento,
+            // Solo se avisa lo que hay que resolver; "ok" y "sin-fecha" no son
+            // noticias.
+            textoVencimiento:
+              vencimiento === "ok" || vencimiento === "sin-fecha" ? null : textoDeVencimiento(vencimiento),
+          };
+        })}
+        margen={margenDeProducto(precio, desglose.total)}
+        precio={precio}
+        producto={producto ? { id: producto.id, name: producto.name, renglones: producto.receta.length } : null}
+        renglones={(producto?.receta ?? []).map((r, indice) => ({
+          id: r.id,
+          ingredienteId: r.ingredient.id,
+          nombre: r.ingredient.name,
+          unit: r.ingredient.unit,
+          cantidad: r.quantity,
+          costo: desglose.renglones[indice]?.costo ?? 0,
+          porcentaje: desglose.renglones[indice]?.porcentaje ?? 0,
+          sinCosto: desglose.renglones[indice]?.sinCosto ?? false,
+        }))}
+        sinCostear={desglose.sinCostear}
+        unidades={Object.values(Unit).map((u) => ({ value: u, label: unitLabel(u) }))}
+      />
     </AppShell>
   );
 }

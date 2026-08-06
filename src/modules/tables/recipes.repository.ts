@@ -29,13 +29,19 @@ export function findInsumos(businessId: string, branchId: string) {
 }
 
 /** Productos que se elaboran: los que pueden tener receta. */
-export function findElaborables(businessId: string) {
+export function findElaborables(businessId: string, branchId?: string) {
   return prisma.product.findMany({
     where: { businessId, kind: { not: ProductKind.INGREDIENT }, deleted: false },
     orderBy: { name: "asc" },
     select: {
       id: true,
       name: true,
+      // El precio de venta en la sucursal, para poder decir qué queda de hacer
+      // uno. Sin él la pantalla dice cuánto cuesta y calla lo único que se
+      // quiere saber: si conviene.
+      branchPrices: branchId
+        ? { where: { branchId, deleted: false, active: true }, select: { price: true }, take: 1 }
+        : false,
       receta: {
         select: {
           id: true,
