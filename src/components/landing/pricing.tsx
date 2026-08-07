@@ -5,7 +5,7 @@ import { landingPlans } from "./landing-content";
 
 export function PricingSection() {
   return (
-    <section id="precios" className="border-t border-slate-200 bg-bills-paper py-24 text-slate-950 lg:py-32">
+    <section id="precios" className="scroll-mt-24 border-t border-slate-200 bg-bills-paper py-24 text-slate-950 lg:py-32">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div data-motion="reveal" className="max-w-2xl">
           <p className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-[var(--primary)]">Precios claros</p>

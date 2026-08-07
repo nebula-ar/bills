@@ -20,7 +20,7 @@ const featureIllustrations = [
 
 export function FeaturesSection() {
   return (
-    <section id="producto" className="border-t border-slate-200 bg-bills-canvas py-24 text-slate-950 lg:py-32">
+    <section id="producto" className="scroll-mt-24 border-t border-slate-200 bg-bills-canvas py-24 text-slate-950 lg:py-32">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div data-motion="reveal" className="max-w-3xl">
           <p className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-[var(--primary)]">El método Bills</p>
@@ -70,7 +70,7 @@ export function AdaptableSection() {
   ] as const;
 
   return (
-    <section id="rubros" className="overflow-hidden border-t border-slate-200 bg-bills-blue-soft py-24 text-slate-950 lg:py-32">
+    <section id="rubros" className="scroll-mt-24 overflow-hidden border-t border-slate-200 bg-bills-blue-soft py-24 text-slate-950 lg:py-32">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div data-motion="reveal" className="max-w-3xl">
           <p className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-[var(--primary)]">Un producto, varios mundos</p>
