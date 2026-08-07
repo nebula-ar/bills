@@ -69,7 +69,7 @@ export function MobileNav({ nav }: { nav: Nav }) {
 
   return (
     <>
-      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto grid max-w-[560px] grid-cols-5 border-t border-slate-200 bg-white/90 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-lg sm:bottom-4 sm:rounded-[1.75rem] sm:border sm:px-3 sm:pb-2">
+      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto grid max-w-[560px] grid-cols-5 border-t border-slate-200 bg-white/90 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-lg sm:bottom-4 sm:rounded-3xl sm:border sm:px-3 sm:pb-2">
         {nav.primary.map((item) => {
           const active = isPrimaryActive(pathname, item);
           return (
@@ -114,7 +114,7 @@ export function MobileNav({ nav }: { nav: Nav }) {
                   key={item.href}
                   onClick={() => setMoreOpen(false)}
                 >
-                  <span className={`flex size-11 shrink-0 items-center justify-center rounded-[0.7rem] shadow-sm ${TINTS[item.tint]}`}>
+                  <span className={`flex size-11 shrink-0 items-center justify-center rounded-lg shadow-sm ${TINTS[item.tint]}`}>
                     <Icon className="size-6" icon={item.icon} />
                   </span>
                   <div className="min-w-0 flex-1">

@@ -222,7 +222,7 @@ export function StaffSaleTerminal({
       {/* Barra de cobro (footer de la tarjeta) */}
       <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-3">
         <button
-          className={`flex w-full items-center gap-3 rounded-[1.5rem] p-2 pl-5 text-left transition active:scale-[0.99] ${
+          className={`flex w-full items-center gap-3 rounded-2xl p-2 pl-5 text-left transition active:scale-[0.99] ${
             hasItems ? "bg-primary" : "pointer-events-none bg-slate-200"
           }`}
           disabled={!hasItems}
@@ -365,7 +365,7 @@ export function StaffSaleTerminal({
 
       {success ? (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm duration-200 animate-in fade-in">
-          <div className="flex flex-col items-center gap-3 rounded-[2rem] bg-white px-12 py-10 shadow-2xl duration-300 animate-in zoom-in-95">
+          <div className="flex flex-col items-center gap-3 rounded-2xl bg-white px-12 py-10 shadow-2xl duration-300 animate-in zoom-in-95">
             <span className="flex size-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
               <Check className="size-11" />
             </span>

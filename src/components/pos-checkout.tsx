@@ -1137,7 +1137,7 @@ export function PosCheckout({
           {/* Alto completo con el total abajo: en un mostrador la vista queda
               abierta todo el día, y el número que se canta tiene que estar
               siempre en el mismo lugar. */}
-          <div className="flex h-full flex-col rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5">
+          <div className="flex h-full flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-950/5">
             {/* Mismo tamaño e icono que el título de las tarjetas de la
                 izquierda: son dos encabezados de la misma fila, y si uno es más
                 chico la fila se ve torcida aunque las cajas estén alineadas. */}
@@ -1240,7 +1240,7 @@ export function PosCheckout({
       {/* Barra de pedido (abrir checkout) — solo mobile/tablet chico */}
       <div className="fixed inset-x-0 bottom-[4.75rem] z-30 mx-auto max-w-[560px] px-4 sm:bottom-[7rem] lg:hidden">
         <button
-          className={`flex w-full items-center gap-3 rounded-[1.5rem] p-2.5 pl-5 text-left shadow-[0_-8px_40px_rgba(15,23,42,0.16)] transition active:scale-[0.99] ${
+          className={`flex w-full items-center gap-3 rounded-2xl p-2.5 pl-5 text-left shadow-[0_-8px_40px_rgba(15,23,42,0.16)] transition active:scale-[0.99] ${
             hasItems ? "bg-primary" : "pointer-events-none bg-slate-300"
           }`}
           disabled={!hasItems}
@@ -2037,7 +2037,7 @@ export function PosCheckout({
 
       {success ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm duration-200 animate-in fade-in">
-          <div className="flex flex-col items-center gap-3 rounded-[2rem] bg-white px-12 py-10 shadow-2xl duration-300 animate-in zoom-in-95">
+          <div className="flex flex-col items-center gap-3 rounded-2xl bg-white px-12 py-10 shadow-2xl duration-300 animate-in zoom-in-95">
             <span className="flex size-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
               <Check className="size-11" />
             </span>
@@ -2077,7 +2077,7 @@ function Step({
       // Sin esto la primera arrancaba 16px más abajo que el panel del carrito y
       // las dos columnas no leían como una sola fila. El `p-5` es el mismo del
       // carrito, para que los dos títulos caigan a la misma altura.
-      className={`mt-4 rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3 first:mt-0 ${
+      className={`mt-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3 first:mt-0 ${
         crece ? "lg:flex lg:min-h-0 lg:flex-1 lg:flex-col" : ""
       }`}
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}

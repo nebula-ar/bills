@@ -139,7 +139,7 @@ export function BottomSheet({
       <div
         className={`mx-auto flex max-h-[92dvh] flex-col overflow-hidden rounded-t-[2.75rem] bg-white pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-12px_50px_rgba(15,23,42,0.25)] ${
           size === "dialog"
-            ? "max-w-[460px] sm:max-w-[860px] sm:rounded-[2rem] sm:pb-6"
+            ? "max-w-[460px] sm:max-w-[860px] sm:rounded-2xl sm:pb-6"
             : "max-w-[460px]"
         } ${panelClassName}`}
         style={{

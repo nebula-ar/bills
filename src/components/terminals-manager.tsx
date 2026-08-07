@@ -267,7 +267,7 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
       ) : null}
 
       {!branch ? (
-        <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+        <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
           Cargá una sucursal activa para administrar sus terminales.
         </div>
       ) : (

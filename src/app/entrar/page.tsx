@@ -39,7 +39,7 @@ export default async function EntrarPage() {
     <main className="flex min-h-[100dvh] flex-col bg-[var(--background)] pb-24 text-slate-950 sm:items-center sm:justify-center sm:px-6 sm:py-10 sm:pb-32">
       {/* En celular ocupa toda la pantalla (es una PWA y esta es la primera
           pantalla real de la sesión); de sm para arriba se vuelve tarjeta. */}
-      <section className="flex w-full flex-1 flex-col bg-[var(--card)] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:min-h-0 sm:max-w-[26rem] sm:flex-none sm:rounded-[28px] sm:border sm:border-slate-950/10 sm:px-8 sm:py-10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]">
+      <section className="flex w-full flex-1 flex-col bg-[var(--card)] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:min-h-0 sm:max-w-[26rem] sm:flex-none sm:rounded-3xl sm:border sm:border-slate-950/10 sm:px-8 sm:py-10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]">
         <div className="flex flex-1 flex-col justify-center gap-7 sm:flex-none">
           <div className="grid gap-5">
             {/* La marca real de master reemplaza a la "B" dibujada a mano. */}
@@ -59,7 +59,7 @@ export default async function EntrarPage() {
             {destinos.map((destino) => (
               <Link
                 key={destino.href}
-                className="group flex items-center gap-4 rounded-[20px] border border-slate-950/10 bg-white p-5 transition hover:border-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 active:scale-[0.99]"
+                className="group flex items-center gap-4 rounded-2xl border border-slate-950/10 bg-white p-5 transition hover:border-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 active:scale-[0.99]"
                 href={destino.href}
               >
                 <span
@@ -87,7 +87,7 @@ export default async function EntrarPage() {
               // Pasa con el mozo y el cocinero: sus pantallas todavía no
               // existen. Decirlo es mejor que dejar la pantalla vacía, y MUCHO
               // mejor que redirigir, que es como se armó el rebote.
-              <p className="rounded-[20px] border border-slate-950/10 bg-white p-5 text-sm leading-6 text-slate-600">
+              <p className="rounded-2xl border border-slate-950/10 bg-white p-5 text-sm leading-6 text-slate-600">
                 Tu cuenta todavía no tiene pantallas asignadas. Pedile al
                 encargado que revise tu rol.
               </p>

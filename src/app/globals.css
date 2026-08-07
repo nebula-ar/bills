@@ -216,7 +216,7 @@ textarea {
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans snap-y snap-proximity;
+    @apply font-sans;
     scrollbar-width: none;
     -ms-overflow-style: none;
   }

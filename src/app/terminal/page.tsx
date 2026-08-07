@@ -79,7 +79,7 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
 
   return (
     <main className="flex min-h-[100dvh] justify-center bg-slate-100 text-slate-950 sm:px-6 sm:py-8">
-      <section className="relative flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-white sm:h-[calc(100dvh-4rem)] sm:rounded-[2.5rem] sm:shadow-[0_24px_80px_rgba(15,23,42,0.16)] sm:ring-1 sm:ring-slate-200 lg:max-w-3xl">
+      <section className="relative flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-white sm:h-[calc(100dvh-4rem)] sm:rounded-4xl sm:shadow-[0_24px_80px_rgba(15,23,42,0.16)] sm:ring-1 sm:ring-slate-200 lg:max-w-3xl">
         {flash ? <StaffToast message={flash.message} status={flash.status} /> : null}
         <div className="shrink-0 border-b border-slate-100 px-5 py-4">
           <div className="flex items-center justify-between gap-2">
