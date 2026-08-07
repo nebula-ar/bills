@@ -7,11 +7,12 @@ import { EXPORT_DATASETS } from "@/modules/reports/export.use-case";
 export default async function ExportarPage() {
   await requireBusinessContext();
 
-  // Por defecto, el mes pasado: es lo que se le manda al contador a principio de
-  // mes, que es cuando alguien entra a esta pantalla.
+  // Por defecto, el mes en curso (del 1° a hoy): quien entra a exportar suele
+  // haber vendido recién y espera ver esas ventas sin tocar el filtro. El mes
+  // pasado se elige desde las fechas si hace falta mandárselo al contador.
   const now = new Date();
-  const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const to = new Date(now.getFullYear(), now.getMonth(), 0);
+  const from = new Date(now.getFullYear(), now.getMonth(), 1);
+  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   return (
     <AppShell maxWidth="lg">
