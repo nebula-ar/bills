@@ -44,7 +44,7 @@ export default async function PosLauncherPage() {
   const businessName = branches[0]?.business.name ?? "Bills";
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-none lg:px-8">
       <header className="duration-500 animate-in fade-in slide-in-from-top-2">
         <p className="truncate text-sm font-medium text-slate-500">{businessName}</p>
         <h1 className="mt-0.5 text-2xl font-black tracking-tight text-slate-950">Puntos de venta</h1>
