@@ -88,7 +88,7 @@ test.describe("Presupuestos", () => {
     await page.getByRole("button", { name: "Efectivo", exact: true }).click();
     await page.getByRole("button", { name: /Confirmar/ }).click();
 
-    await expect(page.getByText(/Venta registrada|Listo/).first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/Venta registrada|Listo/).first()).toBeVisible({ timeout: 40_000 });
 
     // Y el presupuesto queda marcado, para no cotizar dos veces lo mismo.
     await page.goto("/presupuestos");

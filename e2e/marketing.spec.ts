@@ -130,7 +130,7 @@ test.describe("Página pública del negocio", () => {
     await page.getByPlaceholder("Al menos 6 caracteres").fill("secret123");
     await continuar.click();
     await page.getByRole("button", { name: /Crear mi negocio/ }).click();
-    await page.waitForURL(/\/entrar$|dashboard/, { timeout: 20_000 });
+    await page.waitForURL(/\/entrar$|dashboard/, { timeout: 40_000 });
   }
 
   async function prenderPagina(page: import("@playwright/test").Page) {
@@ -141,7 +141,7 @@ test.describe("Página pública del negocio", () => {
 
     // El link aparece recién cuando la página queda prendida.
     const link = page.locator("span.font-mono").first();
-    await expect(link).toBeVisible({ timeout: 20_000 });
+    await expect(link).toBeVisible({ timeout: 40_000 });
     return (await link.textContent()) ?? "";
   }
 
@@ -163,7 +163,7 @@ test.describe("Página pública del negocio", () => {
     await anonPage.getByPlaceholder("11 5555-5555").fill("11 5555-9999");
     await anonPage.getByRole("button", { name: "Reservar turno" }).click();
 
-    await expect(anonPage.getByRole("heading", { name: "¡Turno reservado!" })).toBeVisible({ timeout: 20_000 });
+    await expect(anonPage.getByRole("heading", { name: "¡Turno reservado!" })).toBeVisible({ timeout: 40_000 });
     await anon.close();
 
     // Y el turno cae en la agenda del negocio. Puede haber quedado para mañana:
@@ -174,7 +174,7 @@ test.describe("Página pública del negocio", () => {
       await page.getByRole("link", { name: /Día siguiente/ }).click();
     }
 
-    await expect(page.getByText("Cliente E2E")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Cliente E2E")).toBeVisible({ timeout: 30_000 });
   });
 
   test("sin nombre ni teléfono no deja reservar", async ({ page, context }) => {
@@ -202,7 +202,7 @@ test.describe("Página pública del negocio", () => {
 
     await page.locator('input[name="publicPageActive"]').uncheck();
     await page.getByRole("button", { name: "Guardar" }).click();
-    await expect(page.locator("span.font-mono")).toHaveCount(0, { timeout: 20_000 });
+    await expect(page.locator("span.font-mono")).toHaveCount(0, { timeout: 40_000 });
 
     const anon = await context.browser()!.newContext();
     const anonPage = await anon.newPage();

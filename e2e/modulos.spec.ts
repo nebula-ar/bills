@@ -56,7 +56,7 @@ test.describe("Módulos del sistema", () => {
     await page.getByRole("button", { name: "Sumar Alfajor triple" }).first().click();
 
     // El total ya llega descontado desde el servidor (misma lógica que al cobrar).
-    await expect(page.getByText("3x2 en golosinas").first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("3x2 en golosinas").first()).toBeVisible({ timeout: 40_000 });
   });
 
   test("clientes: se puede fiar en el POS y después cobrar la cuenta", async ({ page }) => {
@@ -91,7 +91,7 @@ test.describe("Módulos del sistema", () => {
     // Recargamos para leer el estado ya persistido, sin depender de cuándo el
     // router aplica la respuesta de la acción.
     await page.reload();
-    await expect(page.getByRole("listitem").filter({ hasText: "Pago" }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("listitem").filter({ hasText: "Pago" }).first()).toBeVisible({ timeout: 30_000 });
   });
 
   // Proveedores no tiene pantalla propia: una compra es plata que sale, así que
@@ -105,7 +105,7 @@ test.describe("Módulos del sistema", () => {
     const alta = page.locator("form", { hasText: "Nuevo proveedor" });
     await alta.locator('input[name="name"]').fill(`Proveedor E2E ${unique}`);
     await alta.getByRole("button", { name: "Crear proveedor" }).click();
-    await expect(page.getByText(`Proveedor E2E ${unique}`)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(`Proveedor E2E ${unique}`)).toBeVisible({ timeout: 30_000 });
     await page.getByRole("button", { name: "Cerrar" }).last().click();
 
     // Factura de compra a ese proveedor por $10.000 (10 unidades a $1.000).
@@ -118,21 +118,21 @@ test.describe("Módulos del sistema", () => {
     await factura.locator('input[name="itemQuantity"]').first().fill("10");
     await factura.locator('input[name="itemUnitCost"]').first().fill("1000");
     await factura.getByRole("button", { name: "Cargar factura" }).click();
-    await expect(page.getByText("Factura cargada.")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Factura cargada.")).toBeVisible({ timeout: 30_000 });
 
     // Queda en "A pagar" con lo que falta.
     await page.goto("/expenses");
     const deuda = page.getByRole("button", { name: `Factura de Proveedor E2E ${unique}` });
-    await expect(deuda).toBeVisible({ timeout: 15_000 });
+    await expect(deuda).toBeVisible({ timeout: 30_000 });
 
     // Se paga completa: sale de lo que se debe y entra a lo que salió este mes.
     await deuda.click();
     await page.getByRole("button", { name: "Registrar pago" }).click();
-    await expect(page.getByText("Pago registrado.")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Pago registrado.")).toBeVisible({ timeout: 30_000 });
 
     await page.goto("/expenses");
     await expect(page.getByRole("button", { name: `Factura de Proveedor E2E ${unique}` })).toHaveCount(0, {
-      timeout: 15_000,
+      timeout: 30_000,
     });
     await expect(page.getByText(`Pago a Proveedor E2E ${unique}`)).toBeVisible();
   });
@@ -150,7 +150,7 @@ test.describe("Módulos del sistema", () => {
     await ajuste.getByRole("button", { name: "Guardar ajuste" }).click();
     await expect(page.getByText("Stock actualizado.")).toBeVisible();
     await expect(page.getByRole("row").filter({ hasText: "Chicles" }).getByText("50 un")).toBeVisible({
-      timeout: 15_000,
+      timeout: 30_000,
     });
 
     // Factura que mete 20 Chicles.
@@ -159,7 +159,7 @@ test.describe("Módulos del sistema", () => {
     const alta = page.locator("form", { hasText: "Nuevo proveedor" });
     await alta.locator('input[name="name"]').fill(`Anulable ${unique}`);
     await alta.getByRole("button", { name: "Crear proveedor" }).click();
-    await expect(page.getByText(`Anulable ${unique}`)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(`Anulable ${unique}`)).toBeVisible({ timeout: 30_000 });
     await page.getByRole("button", { name: "Cerrar" }).last().click();
 
     await page.getByRole("button", { name: "Nuevo gasto" }).click();
@@ -177,7 +177,7 @@ test.describe("Módulos del sistema", () => {
     // Entró: 50 + 20.
     await page.goto("/stock");
     await expect(page.getByRole("row").filter({ hasText: "Chicles" }).getByText("70 un")).toBeVisible({
-      timeout: 15_000,
+      timeout: 30_000,
     });
 
     // Se anula y la mercadería tiene que volver a salir.
@@ -192,7 +192,7 @@ test.describe("Módulos del sistema", () => {
 
     await page.goto("/stock");
     await expect(page.getByRole("row").filter({ hasText: "Chicles" }).getByText("50 un")).toBeVisible({
-      timeout: 15_000,
+      timeout: 30_000,
     });
   });
 

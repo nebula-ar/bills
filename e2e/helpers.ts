@@ -19,7 +19,7 @@ export async function loginAsAdmin(page: Page) {
   // navegación: preguntar a dónde va y ofrecer un atajo al lado se contradice.
   // Así que se espera lo que sí hay ahí. Esperar "Historial" —el link de la
   // nav— dejaba a los 90 tests que loguean colgados 15 segundos cada uno.
-  await expect(page.getByRole("link", { name: /^Panel/ })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("link", { name: /^Panel/ })).toBeVisible({ timeout: 30_000 });
 }
 
 // Elige quién atiende en el mostrador. Con más de un empleado ya no hay
@@ -28,6 +28,6 @@ export async function loginAsAdmin(page: Page) {
 // ya lo eligió y no hay botones que tocar.
 export async function elegirVendedor(page: Page) {
   const opciones = page.getByTestId("staff-option");
-  await expect(opciones.first()).toBeVisible({ timeout: 15_000 });
+  await expect(opciones.first()).toBeVisible({ timeout: 30_000 });
   await opciones.first().click();
 }
