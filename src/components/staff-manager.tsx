@@ -168,7 +168,7 @@ export function StaffsManager({ data }: { data: StaffsData }) {
 
       <div className="mt-4">
         {data.staffs.length === 0 ? (
-          <div className="mt-8 flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-white/50 p-10 text-center">
+          <div className="mt-8 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/50 p-10 text-center">
             <div className="mb-4 flex size-20 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-950/5">
               <DynamicIcon className="size-8 text-slate-300" name={data.staffIcon} />
             </div>

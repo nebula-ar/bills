@@ -51,7 +51,7 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
       {/* Datos fiscales */}
       <form
         action={updateFiscalData}
-        className="mt-4 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-2"
+        className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-2"
       >
         <div className="mb-4 flex items-center gap-2.5">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -130,7 +130,7 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
 
       {/* Certificado de producción */}
       <div
-        className="mt-4 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-2"
+        className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-2"
         style={{ animationDelay: "80ms", animationFillMode: "backwards" }}
       >
         <div className="mb-4 flex items-center gap-2.5">

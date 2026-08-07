@@ -225,7 +225,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
       {/* Sin catálogo no se puede vender: es lo primero que hay que resolver. */}
       {data.catalogEmpty ? (
         <Link
-          className="mt-5 flex items-center gap-3 rounded-[1.5rem] bg-primary p-4 text-white shadow-sm transition active:scale-[0.99] duration-500 animate-in fade-in slide-in-from-bottom-2"
+          className="mt-5 flex items-center gap-3 rounded-2xl bg-primary p-4 text-white shadow-sm transition active:scale-[0.99] duration-500 animate-in fade-in slide-in-from-bottom-2"
           href="/catalog"
         >
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/15">
@@ -317,7 +317,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
         <div className="mt-4 grid gap-3 lg:grid-cols-12">
         {/* Hero total */}
         <div
-          className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-primary via-primary to-primary-strong p-6 text-white shadow-lg shadow-primary/25 duration-700 animate-in fade-in slide-in-from-bottom-3 lg:col-span-7"
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-primary-strong p-6 text-white shadow-lg shadow-primary/25 duration-700 animate-in fade-in slide-in-from-bottom-3 lg:col-span-7"
           style={{ animationDelay: "60ms", animationFillMode: "backwards" }}
         >
           <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-white/10 blur-xl" />
@@ -643,7 +643,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
               <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
-          <div className="mt-3 overflow-hidden rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-950/5">
+          <div className="mt-3 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5">
             {data.latestSales.length === 0 ? (
               <p className="px-5 py-8 text-center text-sm text-slate-500">No hay ventas para estos filtros.</p>
             ) : (
@@ -845,7 +845,7 @@ function Panel({
 }) {
   return (
     <div
-      className="mb-4 break-inside-avoid rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3"
+      className="mb-4 break-inside-avoid rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3"
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
     >
       <h2 className="flex items-center gap-2 text-base font-black text-slate-950">

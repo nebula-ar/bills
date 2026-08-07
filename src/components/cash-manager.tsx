@@ -97,7 +97,7 @@ export function CashManager({ data }: { data: CashData }) {
 
       <div className={isPending ? "pointer-events-none opacity-60 transition-opacity" : "transition-opacity"}>
         {/* Saldo total */}
-        <div className="mt-4 rounded-[1.5rem] bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-lg">
+        <div className="mt-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-lg">
           <p className="flex items-center gap-1.5 text-sm font-medium text-slate-300">
             <Wallet className="size-4" />
             Saldo total en caja
@@ -370,7 +370,7 @@ function ActionButton({ icon: Icon, label, onClick }: { icon: React.ComponentTyp
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mt-4 break-inside-avoid rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5">
+    <div className="mt-4 break-inside-avoid rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-950/5">
       <h2 className="text-base font-black text-slate-950">{title}</h2>
       <div className="mt-3">{children}</div>
     </div>

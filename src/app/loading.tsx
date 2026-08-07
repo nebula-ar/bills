@@ -11,13 +11,13 @@ export default function Loading() {
 
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
-          <div className="h-24 animate-pulse rounded-[1.25rem] bg-white shadow-sm ring-1 ring-slate-950/5" key={index} />
+          <div className="h-24 animate-pulse rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5" key={index} />
         ))}
       </div>
 
       <div className="mt-4 space-y-3">
-        <div className="h-52 animate-pulse rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-950/5" />
-        <div className="h-40 animate-pulse rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-950/5" />
+        <div className="h-52 animate-pulse rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5" />
+        <div className="h-40 animate-pulse rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5" />
       </div>
     </main>
   );

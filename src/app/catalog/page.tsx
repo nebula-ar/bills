@@ -35,7 +35,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     return (
       <main className="mx-auto min-h-screen max-w-[560px] px-4 pb-28 pt-6 text-slate-950">
         <h1 className="text-2xl font-black tracking-tight">{business.labels.catalogPlural}</h1>
-        <div className="mt-4 rounded-[1.5rem] border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+        <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
           Cargá una sucursal para administrar tu catálogo.
         </div>
       </main>

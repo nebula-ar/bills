@@ -527,7 +527,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
 
       {/* Total del mes: gastos + pagos a proveedores, nunca el total de una
           factura que todavía no se pagó. */}
-      <div className="mt-3 rounded-[1.5rem] bg-gradient-to-br from-rose-500 to-rose-600 p-5 text-white shadow-lg shadow-rose-500/25">
+      <div className="mt-3 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 p-5 text-white shadow-lg shadow-rose-500/25">
         <p className="flex items-center gap-1.5 text-sm font-medium text-rose-100">
           <Wallet className="size-4" />
           Total que salió este mes
@@ -591,7 +591,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
       {/* Lo que salió, gasto o pago, en una sola lista */}
       <div className={`mt-4 ${isPending ? "pointer-events-none opacity-60 transition-opacity" : "transition-opacity"}`}>
         {data.outflows.length === 0 ? (
-          <div className="mt-8 flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-white/50 p-10 text-center">
+          <div className="mt-8 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/50 p-10 text-center">
             <div className="mb-4 flex size-20 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-950/5">
               <Wallet className="size-8 text-slate-300" />
             </div>

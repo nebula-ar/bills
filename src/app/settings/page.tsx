@@ -79,7 +79,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 key={module}
               >
                 <span
-                  className={`flex size-11 shrink-0 items-center justify-center rounded-[0.7rem] shadow-sm ${
+                  className={`flex size-11 shrink-0 items-center justify-center rounded-lg shadow-sm ${
                     enabled ? TINTS[info.tint] : "bg-slate-200 text-slate-500"
                   }`}
                 >

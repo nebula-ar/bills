@@ -44,7 +44,7 @@ function DashboardPreview({ example }: { example: RubroExample }) {
         <span className="mt-1 block text-[10px] font-bold text-slate-700">{example.note[1]}</span>
       </div>
 
-      <div className="rotate-[1.5deg] rounded-[28px] border border-slate-950/10 bg-[var(--card)] p-3 shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)] sm:p-4">
+      <div className="rotate-[1.5deg] rounded-3xl border border-slate-950/10 bg-[var(--card)] p-3 shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)] sm:p-4">
         <div className="flex items-center justify-between border-b border-slate-200/80 px-2 pb-3">
           <div className="flex items-center gap-2 text-xs font-black tracking-tight text-slate-950">
             <BrandLogo iconOnly height={24} variant="blue" />

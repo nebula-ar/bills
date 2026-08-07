@@ -36,7 +36,7 @@ export function FeaturesSection() {
           {landingFeatures.map((feature, index) => (
             <article data-motion-item key={feature.kicker} className={`group min-h-[245px] py-6 md:pr-8 ${index > 0 ? "border-t border-slate-300 md:border-l md:border-t-0 md:pl-8" : ""}`}>
               <p className="text-xs font-black text-[var(--primary)]">{feature.kicker}</p>
-              <div className="relative mt-6 aspect-[5/4] overflow-hidden rounded-[2rem] bg-bills-paper sm:aspect-[4/3] md:aspect-square">
+              <div className="relative mt-6 aspect-[5/4] overflow-hidden rounded-3xl bg-bills-paper sm:aspect-[4/3] md:aspect-square">
                 <Image
                   src={featureIllustrations[index].image}
                   alt={featureIllustrations[index].alt}
@@ -97,7 +97,7 @@ export function AdaptableSection() {
             ))}
           </div>
 
-          <figure data-motion="reveal" className="relative order-first min-h-[390px] overflow-hidden rounded-[2rem] border border-slate-950/10 bg-bills-paper shadow-lg shadow-slate-950/10 sm:min-h-[520px] lg:order-none">
+          <figure data-motion="reveal" className="relative order-first min-h-[390px] overflow-hidden rounded-3xl border border-slate-950/10 bg-bills-paper shadow-lg shadow-slate-950/10 sm:min-h-[520px] lg:order-none">
             <div data-motion="world-image" className="absolute -inset-y-8 inset-x-0 will-change-transform">
               <Image
                 src="/landing/business-worlds-v2.webp"

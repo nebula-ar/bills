@@ -52,7 +52,7 @@ export default async function PosLauncherPage() {
       </header>
 
       {gap ? (
-        <div className="mt-6 grid justify-items-center gap-4 rounded-[1.5rem] border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+        <div className="mt-6 grid justify-items-center gap-4 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
           <p className="max-w-sm">{gap.text}</p>
           <Link className="inline-flex rounded-full bg-primary px-4 py-2.5 text-sm font-black text-white" href={gap.href}>
             {gap.cta}
@@ -62,7 +62,7 @@ export default async function PosLauncherPage() {
         <ul className="mt-5 space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
           {branches.map((branch, index) => (
             <li
-              className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3"
+              className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3"
               key={branch.id}
               style={{ animationDelay: `${Math.min(index * 60, 360)}ms`, animationFillMode: "backwards" }}
             >

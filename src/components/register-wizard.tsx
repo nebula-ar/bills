@@ -34,7 +34,7 @@ function Confetti() {
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       {CONFETTI.map((piece, i) => (
         <span
-          className="absolute top-0 rounded-[2px]"
+          className="absolute top-0 rounded-sm"
           key={i}
           style={{
             left: `${piece.left}%`,
@@ -188,8 +188,8 @@ export function RegisterWizard() {
       <section
         className={
           isWelcome
-            ? "relative flex w-full flex-1 flex-col overflow-hidden bg-white sm:min-h-0 sm:max-w-[28rem] sm:flex-none sm:rounded-[2.5rem] sm:shadow-2xl sm:shadow-slate-950/15"
-            : "relative flex w-full flex-1 flex-col overflow-hidden bg-[var(--card)] sm:max-h-[calc(100dvh-3rem)] sm:min-h-[600px] sm:max-w-md sm:flex-none sm:rounded-[28px] sm:border sm:border-slate-950/10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]"
+            ? "relative flex w-full flex-1 flex-col overflow-hidden bg-white sm:min-h-0 sm:max-w-[28rem] sm:flex-none sm:rounded-4xl sm:shadow-2xl sm:shadow-slate-950/15"
+            : "relative flex w-full flex-1 flex-col overflow-hidden bg-[var(--card)] sm:max-h-[calc(100dvh-3rem)] sm:min-h-[600px] sm:max-w-md sm:flex-none sm:rounded-3xl sm:border sm:border-slate-950/10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]"
         }
       >
         {/* Bienvenida */}
@@ -202,7 +202,7 @@ export function RegisterWizard() {
                   azul, pero no vuelve a clavar el color a mano. */}
               <div
                 aria-label="Bienvenida a Bills"
-                className="grid size-24 place-items-center rounded-[2rem] bg-linear-to-br from-blue-600 to-violet-600 shadow-lg shadow-primary/30"
+                className="grid size-24 place-items-center rounded-2xl bg-linear-to-br from-blue-600 to-violet-600 shadow-lg shadow-primary/30"
                 role="img"
                 style={{ animation: "bbPop .6s cubic-bezier(.34,1.56,.64,1) both" }}
               >
@@ -289,7 +289,7 @@ export function RegisterWizard() {
                       tijeras—. */}
                   {meta.id === "vertical" ? null : (
                     <div
-                      className="grid size-20 place-items-center rounded-[1.75rem] bg-primary/10 text-[var(--primary)]"
+                      className="grid size-20 place-items-center rounded-3xl bg-primary/10 text-[var(--primary)]"
                       style={{ animation: "bbPop .5s cubic-bezier(.34,1.56,.64,1) both" }}
                     >
                       <DynamicIcon className="size-10" name={meta.icon} />
