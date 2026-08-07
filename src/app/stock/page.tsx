@@ -11,18 +11,17 @@ import {
   SectionCard,
   selectClass,
   StatTiles,
-  TableWrap,
 } from "@/components/manager-ui";
-import { MoneyInput } from "@/components/money-input";
 import { RefreshActionForm } from "@/components/refresh-action-form";
-import { AppModule } from "@/generated/prisma/client";
+import { StockEmpty, StockManager } from "@/components/stock-manager";
+import { AppModule, ProductKind } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { formatQuantity, unitShort } from "@/lib/quantity";
 import { STOCK_MOVEMENT_LABELS } from "@/lib/stock-error-messages";
 import { getBranchesForManagement } from "@/modules/branches/get-branches-for-management.use-case";
 import { getBranchStockOverview, getStockMovements } from "@/modules/stock/stock.use-cases";
 
-import { adjustStockAction, receiveStockAction, registerLossAction, transferStockAction } from "./actions";
+import { transferStockAction } from "./actions";
 
 const dateFormatter = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
 
@@ -67,7 +66,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
 
       {/* Lo de un producto puntual se resuelve en su propia ficha: ir y venir
           entre dos pantallas para una cosa que es una sola era el problema. */}
-      <p className="rounded-2xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+      <p className="rounded-2xl bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
         Para cargar, contar o descontar UN producto, tocalo en{" "}
         <Link className="font-black underline" href="/catalog">
           {business.labels.catalogPlural}
@@ -122,122 +121,42 @@ export default async function StockPage({ searchParams }: StockPageProps) {
         </SectionCard>
       ) : null}
 
-      <SectionCard title="Existencias" description={`${rows.length} productos con control de stock.`}>
-        {rows.length === 0 ? (
-          <EmptyState
-            title="Ningún producto lleva control de stock todavía."
-            hint="Activá «Controla stock» en el catálogo para empezar a contarlo."
-          />
-        ) : (
-          <TableWrap>
-            <table className="w-full min-w-[34rem] border-collapse text-sm">
-              <thead>
-                <tr className="text-left text-[0.68rem] uppercase tracking-wider text-slate-400">
-                  <th className="pb-2 font-bold">Producto</th>
-                  <th className="pb-2 font-bold">Existencia</th>
-                  <th className="pb-2 font-bold">Mínimo</th>
-                  <th className="pb-2 font-bold">Costo</th>
-                  <th className="pb-2 font-bold">Valorizado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr className="border-t border-slate-100" key={row.productId}>
-                    <td className="py-2.5 pr-3">
-                      <p className="font-bold text-slate-950">{row.name}</p>
-                      <p className="text-xs text-slate-400">
-                        {row.categoryName ?? "Sin categoría"}
-                        {row.sku ? ` · ${row.sku}` : ""}
-                      </p>
-                    </td>
-                    <td className="py-2.5 pr-3">
-                      <Badge tone={row.status === "out" ? "danger" : row.status === "low" ? "warning" : "positive"}>
-                        {formatQuantity(row.quantity, row.unit)}
-                      </Badge>
-                    </td>
-                    <td className="py-2.5 pr-3 text-slate-500">
-                      {row.minStock !== null ? formatQuantity(row.minStock, row.unit) : "—"}
-                    </td>
-                    <td className="py-2.5 pr-3 text-slate-500">{row.cost ? formatMoney(row.cost) : "—"}</td>
-                    <td className="py-2.5 font-bold text-slate-800">{formatMoney(row.stockValue)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableWrap>
-        )}
-      </SectionCard>
+      {/* La lista, sus pestañas y el modal de carga viven en el cliente: son
+          estado de pantalla (qué pestaña, qué producto se está moviendo) y no
+          justifican un viaje al servidor por cada toque. */}
+      {rows.length === 0 ? (
+        <StockEmpty />
+      ) : (
+        <StockManager
+          branchId={branch.id}
+          branchName={branch.name}
+          catalogPlural={business.labels.catalogPlural}
+          movements={movements.map((movement) => ({
+            id: movement.id,
+            productName: movement.product.name,
+            unit: movement.product.unit,
+            quantity: movement.quantity,
+            typeLabel: STOCK_MOVEMENT_LABELS[movement.type],
+            reason: movement.reason,
+            when: dateFormatter.format(movement.occurredAt),
+          }))}
+          rows={rows.map((row) => ({
+            productId: row.productId,
+            name: row.name,
+            sku: row.sku,
+            unit: row.unit,
+            esInsumo: row.kind === ProductKind.INGREDIENT,
+            categoryName: row.categoryName,
+            quantity: row.quantity,
+            minStock: row.minStock,
+            cost: row.cost,
+            stockValue: row.stockValue,
+            status: row.status,
+          }))}
+        />
+      )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <SectionCard
-          title="Ajustar por conteo"
-          description="Contá lo que hay de verdad y el sistema asienta la diferencia."
-        >
-          <RefreshActionForm action={adjustStockAction} className="grid gap-3 sm:grid-cols-2" resetOnSuccess>
-            <input name="branchId" type="hidden" value={branch.id} />
-            <Field label="Producto" className="sm:col-span-2">
-              <select className={selectClass} name="productId" required>
-                {products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} ({unitShort(product.unit)})
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Contado" hint="Podés usar decimales: 1,250">
-              <input className={inputClass} inputMode="decimal" name="counted" placeholder="0" required />
-            </Field>
-            <Field label="Motivo">
-              <input className={inputClass} name="reason" placeholder="Conteo de fin de mes" />
-            </Field>
-            <PrimaryButton className="sm:col-span-2">Guardar ajuste</PrimaryButton>
-          </RefreshActionForm>
-        </SectionCard>
-
-        <SectionCard title="Ingreso de mercadería" description="Lo que llega sin factura cargada todavía.">
-          <RefreshActionForm action={receiveStockAction} className="grid gap-3 sm:grid-cols-2" resetOnSuccess>
-            <input name="branchId" type="hidden" value={branch.id} />
-            <Field label="Producto" className="sm:col-span-2">
-              <select className={selectClass} name="productId" required>
-                {products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} ({unitShort(product.unit)})
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Cantidad">
-              <input className={inputClass} inputMode="decimal" name="quantity" placeholder="0" required />
-            </Field>
-            <Field label="Costo unitario" hint="Opcional: actualiza el costo">
-              <MoneyInput className={inputClass} name="unitCost" placeholder="$" />
-            </Field>
-            <PrimaryButton className="sm:col-span-2">Ingresar</PrimaryButton>
-          </RefreshActionForm>
-        </SectionCard>
-
-        <SectionCard title="Registrar merma" description="Rotura, vencimiento o faltante. Sale del stock con su motivo.">
-          <RefreshActionForm action={registerLossAction} className="grid gap-3 sm:grid-cols-2" resetOnSuccess>
-            <input name="branchId" type="hidden" value={branch.id} />
-            <Field label="Producto" className="sm:col-span-2">
-              <select className={selectClass} name="productId" required>
-                {products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} ({unitShort(product.unit)})
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Cantidad">
-              <input className={inputClass} inputMode="decimal" name="quantity" placeholder="0" required />
-            </Field>
-            <Field label="Motivo">
-              <input className={inputClass} name="reason" placeholder="Se pasó de fecha" />
-            </Field>
-            <PrimaryButton className="sm:col-span-2">Registrar merma</PrimaryButton>
-          </RefreshActionForm>
-        </SectionCard>
-
+      <div className="grid gap-4">
         {activeBranches.length > 1 ? (
           <SectionCard title="Traspaso entre sucursales" description="Sale de una y entra en la otra, en un solo acto.">
             <RefreshActionForm action={transferStockAction} className="grid gap-3 sm:grid-cols-2" resetOnSuccess>
@@ -271,31 +190,6 @@ export default async function StockPage({ searchParams }: StockPageProps) {
         ) : null}
       </div>
 
-      <SectionCard title="Últimos movimientos" description="Cada unidad que entró o salió, y por qué.">
-        {movements.length === 0 ? (
-          <EmptyState title="Todavía no hay movimientos en esta sucursal." />
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {movements.map((movement) => (
-              <li className="flex items-center justify-between gap-3 py-2.5" key={movement.id}>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-slate-950">{movement.product.name}</p>
-                  <p className="truncate text-xs text-slate-400">
-                    {STOCK_MOVEMENT_LABELS[movement.type]}
-                    {movement.reason ? ` · ${movement.reason}` : ""} · {dateFormatter.format(movement.occurredAt)}
-                  </p>
-                </div>
-                <span
-                  className={`shrink-0 text-sm font-black ${movement.quantity >= 0 ? "text-emerald-600" : "text-rose-600"}`}
-                >
-                  {movement.quantity >= 0 ? "+" : "−"}
-                  {formatQuantity(Math.abs(movement.quantity), movement.product.unit)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </SectionCard>
     </AppShell>
   );
 }

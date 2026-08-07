@@ -85,7 +85,7 @@ export function LoginForm({ callbackUrl, variant, showGoogle }: LoginFormProps) 
           <span className={`text-[11px] font-extrabold uppercase tracking-[1px] ${isDesktop ? "text-slate-600" : "text-slate-500"}`}>
             {isDesktop ? "Correo electrónico" : "Email o usuario"}
           </span>
-          <span className="flex min-h-12 items-center rounded-xl border border-slate-300 bg-white px-3.5 transition focus-within:border-blue-600 focus-within:ring-4 focus-within:ring-blue-600/15">
+          <span className="flex min-h-12 items-center rounded-xl border border-slate-300 bg-white px-3.5 transition focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/15">
             <input
               aria-describedby={error ? `${idPrefix}login-error` : undefined}
               aria-invalid={error ? true : undefined}
@@ -109,7 +109,7 @@ export function LoginForm({ callbackUrl, variant, showGoogle }: LoginFormProps) 
           <span className={`text-[11px] font-extrabold uppercase tracking-[1px] ${isDesktop ? "text-slate-600" : "text-slate-500"}`}>
             Contraseña
           </span>
-          <span className="flex min-h-12 items-center rounded-xl border border-slate-300 bg-white px-3.5 transition focus-within:border-blue-600 focus-within:ring-4 focus-within:ring-blue-600/15">
+          <span className="flex min-h-12 items-center rounded-xl border border-slate-300 bg-white px-3.5 transition focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/15">
             <input
               aria-describedby={error ? `${idPrefix}login-error` : undefined}
               aria-invalid={error ? true : undefined}
@@ -159,7 +159,7 @@ export function LoginForm({ callbackUrl, variant, showGoogle }: LoginFormProps) 
           {/* El flujo de recuperación de contraseña es follow-up: hoy el enlace
               lleva a Contacto (no hay página de reset todavía). */}
           <Link
-            className="text-xs font-bold text-blue-600 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            className="text-xs font-bold text-primary transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             href="/contact"
           >
             ¿Olvidaste tu clave?
@@ -167,7 +167,7 @@ export function LoginForm({ callbackUrl, variant, showGoogle }: LoginFormProps) 
         </div>
       ) : (
         <Link
-          className="text-center text-xs font-bold text-blue-600 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+          className="text-center text-xs font-bold text-primary transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           href="/contact"
         >
           ¿Olvidaste tu contraseña?
@@ -175,7 +175,7 @@ export function LoginForm({ callbackUrl, variant, showGoogle }: LoginFormProps) 
       )}
 
       <button
-        className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-extrabold text-white shadow-[0_4px_10px_#2563EB33] transition hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-blue-600"
+        className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 text-sm font-extrabold text-white shadow-[0_4px_10px_#2563EB33] transition hover:bg-primary-strong active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-primary"
         disabled={isPending}
         type="submit"
       >
@@ -195,7 +195,7 @@ export function LoginForm({ callbackUrl, variant, showGoogle }: LoginFormProps) 
         <p className="flex items-center justify-center gap-1.5 text-[13px] font-medium text-slate-500">
           ¿Todavía no usás Bills?{" "}
           <Link
-            className="text-[13px] font-extrabold text-blue-600 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            className="text-[13px] font-extrabold text-primary transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             href="/register"
           >
             Creá tu cuenta
@@ -203,7 +203,7 @@ export function LoginForm({ callbackUrl, variant, showGoogle }: LoginFormProps) 
         </p>
       ) : (
         <Link
-          className="text-center text-xs font-bold text-blue-600 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+          className="text-center text-xs font-bold text-primary transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           href="/register"
         >
           ¿No tenés cuenta? Registrá tu negocio

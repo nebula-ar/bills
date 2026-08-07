@@ -145,7 +145,7 @@ export function ProductPhotoAiSheet({
                 onClick={onUsePhoto}
                 type="button"
               >
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <Camera className="size-6" />
                 </span>
                 <span>
@@ -154,7 +154,7 @@ export function ProductPhotoAiSheet({
                 </span>
               </button>
               <button
-                className="flex min-h-28 w-full items-center gap-4 rounded-2xl bg-blue-600 p-4 text-left text-white shadow-sm shadow-blue-600/25 transition active:scale-[0.99]"
+                className="flex min-h-28 w-full items-center gap-4 rounded-2xl bg-primary p-4 text-left text-white shadow-sm shadow-primary/25 transition active:scale-[0.99]"
                 onClick={chooseDescription}
                 type="button"
               >
@@ -163,7 +163,7 @@ export function ProductPhotoAiSheet({
                 </span>
                 <span>
                   <span className="block text-sm font-black">Generar desde descripción</span>
-                  <span className="mt-1 block text-xs font-medium text-blue-100">Contanos qué vendés y la IA crea una foto lista para catálogo.</span>
+                  <span className="mt-1 block text-xs font-medium text-primary-foreground/75">Contanos qué vendés y la IA crea una foto lista para catálogo.</span>
                 </span>
               </button>
               <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-700">
@@ -176,7 +176,7 @@ export function ProductPhotoAiSheet({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img alt={`Foto actual de ${productName}`} className="aspect-video w-full rounded-3xl object-cover" src={sourceSrc} />
               ) : (
-                <div className="flex items-center gap-2 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-black text-blue-600">
+                <div className="flex items-center gap-2 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-black text-primary">
                   <ImageIcon className="size-5" />
                   Producto: {productName}
                 </div>
@@ -186,7 +186,7 @@ export function ProductPhotoAiSheet({
                 {mode === "enhance" ? "¿Cómo querés que quede?" : "Descripción del producto"}
                 <div className="relative">
                   <textarea
-                    className="min-h-28 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pb-7 text-sm font-semibold normal-case tracking-normal text-slate-950 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    className="min-h-28 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pb-7 text-sm font-semibold normal-case tracking-normal text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/20"
                     maxLength={300}
                     onChange={(event) => setInstruction(event.target.value)}
                     value={instruction}
@@ -201,7 +201,7 @@ export function ProductPhotoAiSheet({
                   {TOUCH_OPTIONS.map((option) => (
                     <button
                       className={`min-h-11 shrink-0 snap-start rounded-full px-4 text-xs font-black transition active:scale-95 ${
-                        touches.includes(option.value) ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-600"
+                        touches.includes(option.value) ? "bg-primary text-white" : "bg-primary/10 text-primary"
                       }`}
                       key={option.value}
                       onClick={() => toggleTouch(option.value)}
@@ -221,7 +221,7 @@ export function ProductPhotoAiSheet({
                       <button
                         className={`min-h-14 rounded-2xl border px-3 text-sm font-black transition active:scale-95 ${
                           style === option.value
-                            ? "border-blue-600 bg-blue-50 text-slate-950 ring-1 ring-blue-600"
+                            ? "border-primary bg-primary/10 text-slate-950 ring-1 ring-primary"
                             : "border-slate-200 bg-white text-slate-700"
                         }`}
                         key={option.value}
@@ -245,11 +245,11 @@ export function ProductPhotoAiSheet({
               {mode === "enhance" ? (
                 <div className="grid grid-cols-2 rounded-2xl bg-slate-100 p-1">
                   <button className={`min-h-11 rounded-xl text-sm font-black transition active:scale-95 ${showOriginal ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"}`} onClick={() => setShowOriginal(true)} type="button">Original</button>
-                  <button className={`min-h-11 rounded-xl text-sm font-black transition active:scale-95 ${!showOriginal ? "bg-white text-blue-600 shadow-sm" : "text-slate-500"}`} onClick={() => setShowOriginal(false)} type="button">Mejorada con IA</button>
+                  <button className={`min-h-11 rounded-xl text-sm font-black transition active:scale-95 ${!showOriginal ? "bg-white text-primary shadow-sm" : "text-slate-500"}`} onClick={() => setShowOriginal(false)} type="button">Mejorada con IA</button>
                 </div>
               ) : null}
 
-              <div className="overflow-hidden rounded-3xl border-2 border-blue-600 bg-slate-50">
+              <div className="overflow-hidden rounded-3xl border-2 border-primary bg-slate-50">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   alt={showOriginal ? `Foto original de ${productName}` : `Opción generada para ${productName}`}
@@ -267,7 +267,7 @@ export function ProductPhotoAiSheet({
                     {candidates.map((candidate, index) => (
                       <button
                         aria-label={`Elegir versión ${index + 1}`}
-                        className={`w-20 shrink-0 snap-start overflow-hidden rounded-2xl border-2 transition active:scale-95 ${selected === index ? "border-blue-600 ring-2 ring-blue-100" : "border-slate-200"}`}
+                        className={`w-20 shrink-0 snap-start overflow-hidden rounded-2xl border-2 transition active:scale-95 ${selected === index ? "border-primary ring-2 ring-primary/20" : "border-slate-200"}`}
                         key={index}
                         onClick={() => setSelected(index)}
                         type="button"
@@ -303,7 +303,7 @@ export function ProductPhotoAiSheet({
               </button>
             ) : null}
             <button
-              className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 text-sm font-black text-white shadow-sm shadow-blue-600/25 transition active:scale-95 disabled:opacity-50"
+              className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-black text-white shadow-sm shadow-primary/25 transition active:scale-95 disabled:opacity-50"
               disabled={isPending || !instruction.trim() || (step === "results" && showOriginal)}
               onClick={step === "results" ? confirm : generate}
               type="button"

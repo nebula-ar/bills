@@ -63,7 +63,7 @@ export function CashManager({ data }: { data: CashData }) {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-none lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -226,7 +226,7 @@ export function CashManager({ data }: { data: CashData }) {
             {data.accounts.map((account) => (
               <label className="flex items-center justify-between gap-3" key={account.method}>
                 <span className="text-sm font-black text-slate-700">{account.label}</span>
-                <div className="flex w-40 items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 focus-within:border-blue-400 focus-within:bg-white">
+                <div className="flex w-40 items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 focus-within:border-primary/40 focus-within:bg-white">
                   <span className="text-lg font-black text-slate-400">$</span>
                   <MoneyInput
                     className="w-full bg-transparent px-1.5 py-2.5 text-right text-lg font-black text-slate-950 outline-none"
@@ -255,7 +255,7 @@ export function CashManager({ data }: { data: CashData }) {
             <MethodSelect defaultValue={data.paymentMethods[0]?.value} label="Entra a" name="toMethod" options={data.paymentMethods} />
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               Monto
-              <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
+              <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
                 <span className="text-2xl font-black text-slate-400">$</span>
                 <MoneyInput
                   className="w-full bg-transparent px-2 py-3.5 text-2xl font-black text-slate-950 outline-none"
@@ -267,7 +267,7 @@ export function CashManager({ data }: { data: CashData }) {
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               Fecha
               <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                 defaultValue={data.todayValue}
                 name="movedAt"
                 type="date"
@@ -276,7 +276,7 @@ export function CashManager({ data }: { data: CashData }) {
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               Nota (opcional)
               <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                 name="note"
                 placeholder="Ej: retiro para pagar proveedor"
                 type="text"
@@ -311,7 +311,7 @@ export function CashManager({ data }: { data: CashData }) {
                       Sistema: {money(account.balance)}
                     </span>
                   </div>
-                  <div className="mt-2 flex items-center rounded-xl border border-slate-200 bg-white px-3 focus-within:border-blue-400">
+                  <div className="mt-2 flex items-center rounded-xl border border-slate-200 bg-white px-3 focus-within:border-primary/40">
                     <span className="text-base font-black text-slate-400">$</span>
                     <MoneyInput
                       className="w-full bg-transparent px-1.5 py-2.5 text-right text-base font-black text-slate-950 outline-none"
@@ -325,7 +325,7 @@ export function CashManager({ data }: { data: CashData }) {
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               Nota (opcional)
               <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                 name="note"
                 placeholder="Ej: cierre del turno tarde"
                 type="text"
@@ -343,7 +343,7 @@ function BranchChip({ active, label, onClick }: { active: boolean; label: string
   return (
     <button
       className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition active:scale-95 ${
-        active ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
+        active ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
       }`}
       onClick={onClick}
       type="button"
@@ -360,7 +360,7 @@ function ActionButton({ icon: Icon, label, onClick }: { icon: React.ComponentTyp
       onClick={onClick}
       type="button"
     >
-      <span className="flex size-9 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+      <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
         <Icon className="size-5" />
       </span>
       <span className="text-xs font-black text-slate-700">{label}</span>
@@ -401,7 +401,7 @@ function SheetFooter({ label }: { label: string }) {
   return (
     <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
       <button
-        className="w-full rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+        className="w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
         type="submit"
       >
         {label}
@@ -426,7 +426,7 @@ function MethodSelect({
       {label}
       <div className="relative">
         <select
-          className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-11 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+          className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-11 text-base font-bold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
           defaultValue={defaultValue}
           name={name}
         >

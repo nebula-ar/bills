@@ -1,9 +1,10 @@
 "use client";
 
 import { applyProductStockAction, type StockOp } from "@/app/catalog/stock-actions";
-import { Check, Loader2, Package } from "@/components/icons";
+import { ArrowRight, Check, Loader2, Package, X } from "@/components/icons";
 import type { Unit } from "@/generated/prisma/enums";
-import { formatQuantity, parseQuantityInput, unitShort } from "@/lib/quantity";
+import { formatQuantity, parseQuantityInput, sanitizeQuantityInput, unitShort } from "@/lib/quantity";
+import { resultadoDeOperacion } from "@/modules/stock/stock-operation.logic";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -14,10 +15,43 @@ import { toast } from "sonner";
 // primera vez eso es una pared: acá el producto ya está elegido y lo único que
 // queda es escribir el número.
 
-const OPS: { op: StockOp; label: string; hint: string; placeholder: string }[] = [
-  { op: "adjust", label: "Conté", hint: "Dejá la existencia en lo que contaste de verdad.", placeholder: "Lo que hay" },
-  { op: "receive", label: "Llegó", hint: "Mercadería que entró.", placeholder: "Lo que entró" },
-  { op: "loss", label: "Se perdió", hint: "Rotura, vencimiento o faltante.", placeholder: "Lo que se perdió" },
+/**
+ * Las tres operaciones, dichas como lo que le pasó al negocio y no como lo que
+ * le pasa a la base.
+ *
+ * `verbo` completa la frase "va a quedar en…" y `pregunta` es lo que se
+ * responde escribiendo. Antes los botones decían "Conté / Llegó / Se perdió" y
+ * había que adivinar cuál sumaba y cuál fijaba: escribir 9 en la primera deja
+ * 9, en la segunda deja 20 y en la tercera deja 2.
+ */
+const OPS: {
+  op: StockOp;
+  boton: string;
+  pregunta: string;
+  ayuda: string;
+  placeholder: string;
+}[] = [
+  {
+    op: "receive",
+    boton: "Llegó mercadería",
+    pregunta: "¿Cuánto llegó?",
+    ayuda: "Se suma a lo que ya había.",
+    placeholder: "Lo que entró",
+  },
+  {
+    op: "adjust",
+    boton: "Conté y hay otra cantidad",
+    pregunta: "¿Cuánto hay de verdad?",
+    ayuda: "Lo que escribas reemplaza la existencia. No se suma.",
+    placeholder: "Lo que contaste",
+  },
+  {
+    op: "loss",
+    boton: "Se perdió o rompió",
+    pregunta: "¿Cuánto se perdió?",
+    ayuda: "Se descuenta de lo que había.",
+    placeholder: "Lo que se perdió",
+  },
 ];
 
 export function ProductStockPanel({
@@ -51,8 +85,30 @@ export function ProductStockPanel({
   const low = minStock !== null && displayQuantity <= minStock;
   const active = OPS.find((item) => item.op === op) ?? null;
 
-  function open(next: StockOp) {
+  // Contar cero es legítimo ("se acabó"); recibir o perder cero, no.
+  const escrito = parseQuantityInput(value, unit);
+  const cantidad = escrito ?? (op === "adjust" && value.trim() === "0" ? 0 : null);
+  const vistaPrevia = op && cantidad !== null ? resultadoDeOperacion(op, displayQuantity, cantidad) : null;
+
+  // El filtro del input evita casi todo lo inválido, pero quedan dos cosas que
+  // solo se pueden decir con palabras: escribir cero donde no corresponde y
+  // dejar el separador colgando ("1,"). Un botón apagado sin explicación deja
+  // al usuario tocándolo sin entender.
+  const problema =
+    value.trim() === "" || cantidad !== null
+      ? null
+      : op === "adjust"
+        ? "Escribí cuánto contaste."
+        : "Tiene que ser un número mayor que cero.";
+
+  function abrir(next: StockOp) {
     setOp(next === op ? null : next);
+    setValue("");
+    setReason("");
+  }
+
+  function cerrar() {
+    setOp(null);
     setValue("");
     setReason("");
   }
@@ -60,24 +116,22 @@ export function ProductStockPanel({
   function submit() {
     if (!op) return;
 
-    const parsed = parseQuantityInput(value, unit);
-    // Contar cero es legítimo ("se acabó"); recibir o perder cero, no.
-    const amount = parsed ?? (op === "adjust" && value.trim() === "0" ? 0 : null);
-
-    if (amount === null) {
+    if (cantidad === null) {
       toast.error("Escribí una cantidad válida.");
       return;
     }
 
     startTransition(async () => {
-      const result = await applyProductStockAction({ op, productId, branchId, quantity: amount, reason });
+      const result = await applyProductStockAction({ op, productId, branchId, quantity: cantidad, reason });
 
       if (result.ok) {
         toast.success("Stock actualizado.");
+        // El número nuevo lo devuelve la acción y se pinta en el acto, en vez de
+        // recargar la pantalla entera con `router.refresh()`. Viene de master y
+        // es mejor: acá el panel puede estar dentro de un modal, y refrescar la
+        // ruta lo cerraría.
         setDisplayQuantity(result.quantity);
-        setOp(null);
-        setValue("");
-        setReason("");
+        cerrar();
         onChanged?.();
       } else {
         toast.error(result.error);
@@ -86,72 +140,148 @@ export function ProductStockPanel({
   }
 
   return (
-    <div className="rounded-2xl bg-slate-50 p-3.5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Package className={`size-5 ${low ? "text-amber-600" : "text-slate-400"}`} />
+    <div className="overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-slate-950/5">
+      {/* Qué hay, dicho con todas las letras. "11 un" solo no dice si es lo que
+          queda, lo que entró o el mínimo. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5">
+        <div className="flex items-center gap-2.5">
+          <Package className={`size-6 ${low ? "text-amber-600" : "text-slate-400"}`} />
           <div>
-            <p className="text-xs font-black uppercase tracking-wide text-slate-500">En {branchName}</p>
-            <p className={`text-lg font-black ${low ? "text-amber-600" : "text-slate-950"}`}>
+            <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+              Quedan en {branchName}
+            </p>
+            <p className={`font-display text-2xl font-black ${low ? "text-amber-600" : "text-slate-950"}`}>
               {formatQuantity(displayQuantity, unit)}
-              {low ? <span className="ml-2 text-xs font-bold">hay que reponer</span> : null}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5">
+        {low ? (
+          <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-black text-amber-700">
+            Hay que reponer
+          </span>
+        ) : null}
+      </div>
+
+      {/* Un botón por cosa que pasó en el negocio, no por operación de sistema.
+          Apilados y con el texto entero: en fila y abreviados no se distinguía
+          cuál sumaba y cuál reemplazaba. */}
+      {!active ? (
+        <div className="grid gap-1.5 border-t border-slate-200/70 p-2">
           {OPS.map((item) => (
             <button
-              className={`rounded-xl px-3 py-2 text-xs font-black transition active:scale-95 ${
-                op === item.op ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"
-              } disabled:cursor-wait disabled:opacity-50`}
-              disabled={isPending}
+              className="flex items-center justify-between gap-2 rounded-xl bg-white px-3.5 py-3 text-left text-sm font-black text-slate-700 ring-1 ring-slate-200 transition active:scale-[0.99] hover:ring-slate-300"
               key={item.op}
-              onClick={() => open(item.op)}
+              onClick={() => abrir(item.op)}
               type="button"
             >
-              {item.label}
+              {item.boton}
+              <ArrowRight className="size-4 shrink-0 text-slate-400" />
             </button>
           ))}
         </div>
-      </div>
-
-      {active ? (
-        <div className="mt-3 grid gap-2 duration-300 animate-in fade-in slide-in-from-top-1">
-          <p className="text-xs text-slate-500">{active.hint}</p>
-          <div className="flex items-center gap-2">
-            <span className="flex flex-1 items-center rounded-xl border border-slate-200 bg-white px-3">
-              <input
-                aria-label={active.placeholder}
-                className="w-full min-w-0 bg-transparent py-2.5 text-base font-black text-slate-950 outline-none"
-                inputMode="decimal"
-                onChange={(event) => setValue(event.target.value)}
-                placeholder={active.placeholder}
-                value={value}
-              />
-              <span className="shrink-0 text-xs font-black text-slate-400">{unitShort(unit)}</span>
-            </span>
+      ) : (
+        <div className="border-t border-slate-200/70 p-3 duration-200 animate-in fade-in slide-in-from-top-1">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-black text-slate-950">{active.pregunta}</p>
+              <p className="mt-0.5 text-xs text-slate-500">{active.ayuda}</p>
+            </div>
             <button
-              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white transition active:scale-95 disabled:bg-slate-200 disabled:text-slate-400"
-              disabled={isPending}
-              onClick={submit}
+              aria-label="Cancelar"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white text-slate-400 ring-1 ring-slate-200 transition active:scale-90"
+              onClick={cerrar}
               type="button"
             >
-              {isPending ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-              Guardar
+              <X className="size-4" />
             </button>
           </div>
+
+          {/* El campo filtra al escribir: lo que no puede ser una cantidad no
+              llega a entrar. Escribir "diez" y ver el botón apagado sin más es
+              lo que hacía sentir que la pantalla no responde. */}
+          <label
+            className={`mt-2.5 flex items-center rounded-xl border bg-white px-3.5 ${
+              problema ? "border-amber-300" : "border-slate-200"
+            }`}
+          >
+            <input
+              aria-label={active.pregunta}
+              autoFocus
+              className="w-full min-w-0 bg-transparent py-3 text-lg font-black text-slate-950 outline-none"
+              inputMode="decimal"
+              onChange={(event) => setValue(sanitizeQuantityInput(event.target.value, unit))}
+              placeholder={active.placeholder}
+              value={value}
+            />
+            <span className="shrink-0 text-sm font-black text-slate-400">{unitShort(unit)}</span>
+          </label>
+
+          {problema ? <p className="mt-1.5 text-xs font-bold text-amber-700">{problema}</p> : null}
+
+          {/* LA vista previa. Es lo que hace entendible la pantalla: no hay que
+              saber si la operación suma o reemplaza, se ve en qué termina. */}
+          {vistaPrevia ? (
+            <div
+              className={`mt-2.5 flex items-baseline justify-between gap-2 rounded-xl px-3.5 py-3 ${
+                vistaPrevia.cambio < 0 ? "bg-amber-50" : "bg-emerald-50"
+              }`}
+            >
+              <span
+                className={`text-xs font-black uppercase tracking-wide ${
+                  vistaPrevia.cambio < 0 ? "text-amber-700" : "text-emerald-700"
+                }`}
+              >
+                Va a quedar en
+              </span>
+              <span className="text-right">
+                <span
+                  className={`font-display block text-xl font-black ${
+                    vistaPrevia.cambio < 0 ? "text-amber-700" : "text-emerald-700"
+                  }`}
+                >
+                  {formatQuantity(vistaPrevia.queda, unit)}
+                </span>
+                <span className="block text-xs font-bold text-slate-500">
+                  {vistaPrevia.cambio === 0
+                    ? "sin cambios"
+                    : `${vistaPrevia.cambio > 0 ? "+" : "−"}${formatQuantity(Math.abs(vistaPrevia.cambio), unit)} sobre ${formatQuantity(displayQuantity, unit)}`}
+                </span>
+              </span>
+            </div>
+          ) : null}
+
+          {/* Perder más de lo que hay no se rechaza: se avisa que va a cortar en
+              cero, para que el faltante no quede escondido. */}
+          {vistaPrevia?.recortado ? (
+            <p className="mt-2 rounded-xl bg-amber-100 px-3.5 py-2.5 text-xs font-bold text-amber-800">
+              Estás perdiendo más de lo que figuraba. La existencia va a quedar en cero.
+            </p>
+          ) : null}
+
           {op !== "receive" ? (
             <input
               aria-label="Motivo"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-950 outline-none"
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-950 outline-none"
               onChange={(event) => setReason(event.target.value)}
               placeholder={op === "loss" ? "Motivo (se venció, se rompió…)" : "Motivo (conteo de fin de mes…)"}
               value={reason}
             />
           ) : null}
+
+          <button
+            className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+            disabled={isPending || cantidad === null}
+            onClick={submit}
+            type="button"
+          >
+            {isPending ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+            {/* El botón repite el resultado: es lo último que se lee antes de
+                tocar, y así no hay que subir la vista para confirmar. */}
+            {vistaPrevia ? `Dejar en ${formatQuantity(vistaPrevia.queda, unit)}` : "Guardar"}
+          </button>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

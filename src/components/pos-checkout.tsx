@@ -2,23 +2,31 @@
 
 import { previewSale, submitSale, type SubmitSaleInput } from "@/app/sales/new/actions";
 import type { PaymentMethod, Unit } from "@/generated/prisma/client";
-import { TaxCondition } from "@/generated/prisma/enums";
+import { SaleChannel, TaxCondition } from "@/generated/prisma/enums";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { ScanConfirmSheet, type ScannedProduct } from "@/components/scan-confirm-sheet";
 import { findProductToSell } from "@/app/sales/new/scan-actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { TAX_CONDITION_LABELS } from "@/lib/invoice-labels";
 import { formatAmountInput } from "@/lib/money";
-import { allowsFraction, formatQuantity, lineTotal, ONE, parseQuantityInput, unitShort } from "@/lib/quantity";
+import {
+  allowsFraction,
+  formatQuantity,
+  lineTotal,
+  ONE,
+  parseQuantityInput,
+  sanitizeQuantityInput,
+  unitShort,
+} from "@/lib/quantity";
 import { changeFor, coversTotal, quickCashAmounts } from "@/modules/sales/change.logic";
 import { validateTaxId } from "@/lib/tax-id";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
+import { pasosDelCobro, puedeAvanzar } from "@/modules/sales/checkout-steps.logic";
 import {
   ArrowLeftRight,
   ArrowRight,
   Banknote,
   Check,
-  ChevronLeft,
   CreditCard,
   Minus,
   Plus,
@@ -29,12 +37,12 @@ import {
   Smartphone,
   Split,
   Store,
+  TableService,
   Trash2,
   Wallet,
   X,
   DynamicIcon,
 } from "@/components/icons";
-import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition, type ComponentType } from "react";
 
 export type PosProduct = {
@@ -57,13 +65,17 @@ export type PosProduct = {
   familyId: string | null;
   familyName: string | null;
   variantLabel: string | null;
+  categoryName: string | null;
+  categoryColor: string | null;
 };
 
 export type PosBranch = {
   id: string;
   name: string;
-  businessName: string;
   staffs: { id: string; name: string }[];
+  // Mesas del salón, para decir a cuál fue lo que se cobró. Vacío en los rubros
+  // que no usan el módulo.
+  tables: { id: string; name: string; sector: string | null }[];
   products: PosProduct[];
 };
 
@@ -90,6 +102,10 @@ type PosCheckoutProps = {
   // el que atiende busca casi siempre lo mismo, y tenerlo alfabético lo obliga a
   // scrollear cada vez.
   salesRank?: Record<string, number>;
+  // Si el negocio usa salón. Habilita el paso "¿Dónde?" del cobro: mostrador,
+  // para llevar o mesa. Apagado, la venta no lleva canal y el cobro tiene un
+  // paso menos, que es lo que corresponde en una barbería.
+  usesTables?: boolean;
   // Con qué empleado vende el que está logueado. El dueño de un comercio chico
   // es dos filas (ver registerBusiness): entra como OWNER y vende como su
   // gemelo STAFF. null = no tiene gemelo, así que hay que preguntar.
@@ -115,6 +131,28 @@ const paymentIcons: Record<string, ComponentType<{ className?: string }>> = {
 };
 
 const ACCOUNT_METHOD = "ACCOUNT";
+
+// Por dónde salió la venta. La pista importa tanto como el nombre: "Mostrador"
+// solo no distingue de "Para llevar" para quien recién arranca con el sistema.
+const CANALES: { key: SaleChannel; label: string; pista: string; icono: ComponentType<{ className?: string }> }[] = [
+  { key: SaleChannel.COUNTER, label: "Mostrador", pista: "Se cobra en la caja", icono: Store },
+  { key: SaleChannel.TAKEAWAY, label: "Para llevar", pista: "Se lo lleva", icono: ShoppingBag },
+  { key: SaleChannel.TABLE, label: "Mesa", pista: "Servido en una mesa", icono: TableService },
+];
+
+// Las mesas se muestran por sector porque así está el salón de verdad: el que
+// cobra ubica "Vereda 3" mirando el patio, no recorriendo una lista alfabética.
+function agruparPorSector(mesas: PosBranch["tables"]) {
+  const porSector = new Map<string, PosBranch["tables"]>();
+  for (const mesa of mesas) {
+    // Las mesas sin sector existen: quedan así si alguien borra el sector.
+    const sector = mesa.sector ?? "Sin sector";
+    const actuales = porSector.get(sector);
+    if (actuales) actuales.push(mesa);
+    else porSector.set(sector, [mesa]);
+  }
+  return [...porSector.entries()];
+}
 
 // Dónde se recuerda quién cobró la última vez en este teléfono.
 const STAFF_MEMORY_KEY = "bills:ultimo-vendedor";
@@ -159,6 +197,7 @@ export function PosCheckout({
   sellsAsStaffId = null,
   features = { barcodes: true, packs: true },
   salesRank = {},
+  usesTables = false,
 }: PosCheckoutProps) {
   const [branchId, setBranchId] = useState(
     initialBranchId && branches.some((item) => item.id === initialBranchId) ? initialBranchId : branches[0]?.id ?? "",
@@ -230,6 +269,11 @@ export function PosCheckout({
   // enfrente, "¿lo tomó?" se contesta mirando, no revisando el total.
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  // El cobro va por pasos: una sola pantalla larga obliga a scrollear con el
+  // cliente enfrente y se cobra con el método que quedó de la venta anterior.
+  const [paso, setPaso] = useState(0);
+  const [channel, setChannel] = useState<SaleChannel>(SaleChannel.COUNTER);
+  const [tableId, setTableId] = useState<string | null>(null);
   const [splitMode, setSplitMode] = useState(false);
   const [singleMethod, setSingleMethod] = useState(paymentOptions[0]?.value ?? "");
   const [splitRows, setSplitRows] = useState<SplitRow[]>([]);
@@ -261,8 +305,23 @@ export function PosCheckout({
   );
   // Busca por nombre, SKU y código de barras: con un lector, escanear escribe el
   // código en este mismo campo y el producto queda filtrado solo.
+  // Categoría elegida en los chips. null = todas.
+  const [categoria, setCategoria] = useState<string | null>(null);
+
+  // Las categorías que existen de verdad, en el orden en que vienen. Con pocas
+  // no se muestran: dos chips para diez productos son ruido.
+  const categorias = useMemo(() => {
+    const vistas = new Map<string, string | null>();
+    for (const p of products) {
+      if (p.categoryName && !vistas.has(p.categoryName)) vistas.set(p.categoryName, p.categoryColor);
+    }
+    return [...vistas].map(([nombre, color]) => ({ nombre, color }));
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
-    const list = products;
+    // El chip filtra ANTES que el buscador: buscar dentro de una categoría es
+    // lo que uno espera, y buscar en todo estando parado en una es confuso.
+    const list = categoria ? products.filter((p) => p.categoryName === categoria) : products;
     // Sin acentos y sin mayúsculas: quien busca "banana" tiene que encontrar
     // "Banana", y quien escribe "cafe" tiene que encontrar "Café". Escribir mal
     // el término es de los problemas más documentados en este tipo de usuario.
@@ -287,7 +346,7 @@ export function PosCheckout({
         normalize(field).includes(query),
       ),
     );
-  }, [products, search, salesRank]);
+  }, [products, search, salesRank, categoria]);
 
   // Con fotos, la grilla tiene que quedar pareja: si al menos un producto tiene,
   // todas las tarjetas reservan el cuadrado. Si ninguno tiene, no se reserva
@@ -397,8 +456,29 @@ export function PosCheckout({
     total > 0 &&
     !(wantsInvoice && customerTaxIdHasError);
 
+  // Los pasos y sus condiciones viven en checkout-steps.logic, con tests: son
+  // reglas de negocio ("sin salón no se pregunta la mesa"), no maquetado.
+  const mesas = branch?.tables ?? [];
+  // Solo el efectivo en un pago necesita vuelto: con tarjeta se cobra justo, y
+  // en un pago dividido no hay un "con cuánto paga" único.
+  const pagaEnEfectivo = !splitMode && singleMethod === "CASH" && total > 0;
+  const pasos = pasosDelCobro({ usaSalon: usesTables, canal: channel, pagaEnEfectivo });
+  const pasoIdx = Math.min(paso, pasos.length - 1);
+  const pasoActual = pasos[pasoIdx].key;
+  const esUltimoPaso = pasoIdx === pasos.length - 1;
+  const mesaElegida = mesas.find((mesa) => mesa.id === tableId);
+  const puedeSeguir = puedeAvanzar({
+    paso: pasoActual,
+    tieneMesa: Boolean(tableId),
+    pagoValido: splitValid && accountReady,
+  });
+
   const branchStep = branches.length > 1 ? 1 : 0;
-  const staffStep = branchStep + 1;
+  // Preguntar "¿quién atiende?" cuando hay UNA sola opción es un toque de más
+  // antes de cobrar, y la respuesta ya la sabemos. Mismo criterio que la
+  // sucursal acá arriba: el paso aparece solo si hay algo que elegir.
+  const preguntarStaff = branch.staffs.length > 1;
+  const staffStep = preguntarStaff ? branchStep + 1 : branchStep;
   const productStep = staffStep + 1;
 
   function selectBranch(nextId: string) {
@@ -512,6 +592,9 @@ export function PosCheckout({
         familyId: null,
         familyName: null,
         variantLabel: null,
+        // Lo escaneado no trae categoría: cae en "Todo" y se ve igual.
+        categoryName: null,
+        categoryColor: null,
       };
 
       setExtraProducts((current) => [...current, encontrado]);
@@ -584,6 +667,11 @@ export function PosCheckout({
     setSplitMode(false);
     setSplitRows([]);
     setError(null);
+    // Siempre desde el primer paso: si quedara donde lo dejó la venta anterior,
+    // la siguiente se cobraría con la mesa de la anterior.
+    setPaso(0);
+    setChannel(SaleChannel.COUNTER);
+    setTableId(null);
     setCheckoutOpen(true);
   }
 
@@ -630,6 +718,17 @@ export function PosCheckout({
         ...(wantsInvoice
           ? { customerName: customerName.trim() || undefined, customerTaxId: customerTaxId.trim() || undefined, customerTaxCondition }
           : {}),
+        ...(usesTables
+          ? {
+              channel,
+              // El mozo es el que atiende, no un dato aparte: la venta ya sabe
+              // quién la hizo. Van los NOMBRES porque el ticket tiene que seguir
+              // diciendo "Mesa 4 · Nico" aunque después borren la mesa.
+              ...(channel === SaleChannel.TABLE
+                ? { tableName: mesaElegida?.name, waiterName: selectedStaff?.name }
+                : {}),
+            }
+          : {}),
       });
       if (result.ok) {
         setCart({});
@@ -660,30 +759,25 @@ export function PosCheckout({
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-40 pt-6 text-slate-950 lg:max-w-[1000px] lg:px-6 lg:pb-10">
-      <header className="flex items-center gap-3 duration-500 animate-in fade-in slide-in-from-top-2">
-        <Link
-          aria-label="Volver"
-          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm ring-1 ring-slate-950/5 transition active:scale-95"
-          href="/"
-        >
-          <ChevronLeft className="size-5" />
-        </Link>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-slate-500">{branch.businessName}</p>
-          <h1 className="text-2xl font-black tracking-tight text-slate-950">Nueva venta</h1>
-        </div>
-      </header>
-
-      <div className="lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
-        <div className="lg:min-w-0">
+    // El nav de abajo es flotante: no ocupa lugar en el flujo, así que
+    // reservarle 7rem acá era regalar alto. La pantalla llega hasta el borde y
+    // el catálogo pasa POR DEBAJO del nav; el respiro se lo damos adentro del
+    // scroll, donde solo empuja al último renglón.
+    <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-[560px] flex-col overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:h-screen lg:max-w-none lg:overflow-hidden lg:px-8 lg:pb-6">
+      {/* Sin encabezado propio: el nombre del negocio y un título que dice
+          "Nueva venta" en una pantalla a la que se entra a propósito son dos
+          renglones de alto que no informan nada, y acá el alto es el catálogo.
+          Para volver está el nav de abajo, que además marca dónde estás. El
+          título de la primera tarjeta oficia de título de la pantalla. */}
+      <div className="lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_22rem] lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:gap-6">
+        <div className="lg:flex lg:min-h-0 lg:min-w-0 lg:flex-col">
       {branches.length > 1 ? (
         <Step icon={Store} step={branchStep} title="Sucursal" delay={80}>
           <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {branches.map((item) => (
               <button
                 className={`shrink-0 rounded-2xl px-5 py-4 text-base font-black transition active:scale-95 ${
-                  item.id === branchId ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-white text-slate-700 ring-1 ring-slate-950/5"
+                  item.id === branchId ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-white text-slate-700 ring-1 ring-slate-950/5"
                 }`}
                 key={item.id}
                 onClick={() => selectBranch(item.id)}
@@ -696,6 +790,7 @@ export function PosCheckout({
         </Step>
       ) : null}
 
+      {preguntarStaff ? (
       <Step iconName={staffIcon} step={staffStep} title="¿Quién atiende?" delay={140}>
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           {branch.staffs.map((staff) => {
@@ -703,7 +798,7 @@ export function PosCheckout({
             return (
               <button
                 className={`flex items-center gap-3 rounded-2xl p-3 text-left transition active:scale-[0.98] ${
-                  active ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-white text-slate-700 ring-1 ring-slate-950/5"
+                  active ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-white text-slate-700 ring-1 ring-slate-950/5"
                 }`}
                 data-testid="staff-option"
                 key={staff.id}
@@ -712,7 +807,7 @@ export function PosCheckout({
               >
                 <span
                   className={`flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-black ${
-                    active ? "bg-white/20 text-white" : "bg-blue-50 text-blue-700"
+                    active ? "bg-white/20 text-white" : "bg-primary/10 text-primary"
                   }`}
                 >
                   {initials(staff.name)}
@@ -723,13 +818,24 @@ export function PosCheckout({
           })}
         </div>
       </Step>
+      ) : null}
 
-      <Step iconName={catalogIcon} step={productStep} title="¿Qué se llevó?" delay={200}>
-        <div className="mb-3 flex items-center gap-2">
+      <Step
+        crece
+        delay={200}
+        iconName={catalogIcon}
+        step={productStep}
+        // Sin título cuando el catálogo es el único paso: rotular la única
+        // sección de la pantalla es rotular la pantalla, y de eso ya se ocupa
+        // el nav. Donde hay pasos antes —elegir sucursal, quién atiende— el
+        // título vuelve, porque ahí sí ordena una secuencia.
+        title={productStep > 1 ? "¿Qué se llevó?" : undefined}
+      >
+        <div className="mb-2.5 flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
               onChange={(event) => setSearch(event.target.value)}
               placeholder={features.barcodes ? "Buscar por nombre o código…" : `Buscar ${catalogSingular.toLowerCase()}…`}
               value={search}
@@ -740,15 +846,54 @@ export function PosCheckout({
           {features.barcodes ? (
             <button
               aria-label="Escanear código"
-              className="flex size-[52px] shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white transition active:scale-95"
+              className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white transition active:scale-95"
               onClick={() => setScanning(true)}
               type="button"
             >
-              <QrCode className="size-6" />
+              <QrCode className="size-5" />
             </button>
           ) : null}
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {categorias.length > 1 ? (
+          <div className="-mx-1 mb-2.5 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <button
+              className={`shrink-0 rounded-full px-4 py-2 text-base font-black transition ${
+                categoria === null ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
+              }`}
+              onClick={() => setCategoria(null)}
+              type="button"
+            >
+              Todo
+            </button>
+            {categorias.map((c) => (
+              <button
+                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-base font-black transition ${
+                  categoria === c.nombre ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
+                }`}
+                key={c.nombre}
+                onClick={() => setCategoria(c.nombre)}
+                type="button"
+              >
+                {/* El punto de color es de la categoría: en un catálogo largo se
+                    reconoce antes por color que leyendo. */}
+                {c.color ? (
+                  <span
+                    className="size-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: c.color }}
+                  />
+                ) : null}
+                {c.nombre}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1">
+        {/* El colchón va acá adentro y no en el contenedor: así el área que
+            scrollea llega hasta el fondo de la pantalla, y lo único que el nav
+            flotante empuja es el último renglón, que se termina de ver
+            scrolleando. */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:pb-24 xl:grid-cols-4 2xl:grid-cols-5">
           {gridEntries.map((entry) => {
             const product = entry.product;
             const imageSrc = posImageSrc(product);
@@ -758,9 +903,12 @@ export function PosCheckout({
               const inCart = entry.variants.reduce((sum, variant) => sum + (cart[variant.productId] ?? 0), 0);
 
               return (
+                // Misma tarjeta que la de un producto suelto: en la grilla no
+                // se distinguen a simple vista, y dos estilos para lo mismo
+                // hacen dudar de si son cosas distintas.
                 <button
-                  className={`flex min-h-[7.5rem] flex-col justify-between rounded-2xl border-2 p-3.5 text-left transition active:scale-[0.99] ${
-                    inCart > 0 ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"
+                  className={`flex min-h-[7.5rem] flex-col overflow-hidden rounded-lg border-2 bg-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] ${
+                    inCart > 0 ? "border-primary shadow-md shadow-primary/20" : "border-slate-950/5 shadow-sm"
                   }`}
                   key={`family-${product.familyId}`}
                   onClick={() => setOpenFamily(product.familyId)}
@@ -771,22 +919,24 @@ export function PosCheckout({
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         alt=""
-                        className="mb-2 aspect-square w-full rounded-xl bg-slate-100 object-cover"
+                        className="aspect-[4/3] w-full bg-slate-100 object-cover"
                         loading="lazy"
                         src={imageSrc}
                       />
                     ) : (
-                      <span className="mb-2 flex aspect-square w-full items-center justify-center rounded-xl bg-slate-100">
-                        <DynamicIcon className="size-8 text-slate-300" name={catalogIcon} />
+                      <span className="flex aspect-[4/3] w-full items-center justify-center bg-primary/5">
+                        <DynamicIcon className="size-8 text-primary/30" name={catalogIcon} />
                       </span>
                     )
                   ) : null}
-                  <span className="block text-base font-black leading-tight text-slate-950">
-                    {product.familyName ?? product.name}
-                  </span>
-                  <span className="mt-1.5 block text-lg font-black text-blue-700">{money(product.price)}</span>
-                  <span className="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 text-sm font-black text-slate-700">
-                    {inCart > 0 ? `${formatQuantity(inCart)} en el pedido` : `${entry.variants.length} talles`}
+                  <span className="flex flex-1 flex-col items-center justify-center gap-0.5 p-2.5">
+                    <span className="line-clamp-2 text-base font-black leading-tight text-slate-950">
+                      {product.familyName ?? product.name}
+                    </span>
+                    <span className="font-display text-xl font-black text-primary">{money(product.price)}</span>
+                    <span className="mt-1.5 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 text-xs font-black text-slate-700">
+                      {inCart > 0 ? `${formatQuantity(inCart)} en el pedido` : `${entry.variants.length} talles`}
+                    </span>
                   </span>
                 </button>
               );
@@ -799,106 +949,165 @@ export function PosCheckout({
             const overStock = product.stock !== null && quantity > product.stock;
 
             return (
+              // La foto va a sangre y el texto centrado debajo, como en Migas:
+              // el que vende reconoce la mercadería por la foto, no leyendo. Un
+              // `border-2` con la foto metida adentro deja a la tarjeta con
+              // cara de formulario; el `ring-1` es un borde que no ocupa lugar.
+              // Elegido: anillo y sombra en vez de relleno rosa, para que la
+              // foto siga siendo lo que se ve.
               <div
-                className={`flex min-h-[7.5rem] flex-col justify-between rounded-2xl border-2 p-3.5 transition ${
+                // `rounded-lg` = `var(--radius)`, el radio base del rubro: 16px
+                // en panadería, que es exactamente el de la tarjeta de Migas.
+                // Con `rounded-2xl` la escala lo multiplica por 1.8 y quedaba en
+                // 28.8px: la esquina se comía la foto.
+                //
+                // Y borde de verdad, no `ring`: el anillo es un box-shadow que
+                // se dibuja AFUERA, mientras el `overflow-hidden` recorta la
+                // foto adentro. Los dos bordes caen en curvas distintas y en la
+                // esquina queda una franja sucia. El borde lo pinta el propio
+                // elemento sobre el recorte, así que el filo sale limpio. Los
+                // 2px están siempre y solo cambia el color: si aparecieran al
+                // elegir, la tarjeta saltaría 4px.
+                className={`flex min-h-[7.5rem] flex-col overflow-hidden rounded-lg border-2 bg-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
                   overStock
-                    ? "border-rose-400 bg-rose-50"
+                    ? "border-destructive shadow-sm"
                     : active
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-slate-200 bg-white"
+                      ? "border-primary shadow-md shadow-primary/20"
+                      : "border-slate-950/5 shadow-sm"
                 }`}
                 key={product.productId}
               >
-                <button className="text-left active:scale-[0.99]" onClick={() => addProduct(product.productId)} type="button">
+                <button
+                  className="flex flex-1 flex-col active:scale-[0.99]"
+                  onClick={() => addProduct(product.productId)}
+                  type="button"
+                >
                   {showsPhotos ? (
                     imageSrc ? (
-                      // Miniatura ya normalizada por el servidor.
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        alt=""
-                        className="mb-2 aspect-square w-full rounded-xl bg-slate-100 object-cover"
-                        loading="lazy"
-                        src={imageSrc}
-                      />
+                      <span className="relative block w-full">
+                        {/* Miniatura ya normalizada por el servidor. */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          alt=""
+                          className="aspect-[4/3] w-full bg-slate-100 object-cover"
+                          loading="lazy"
+                          src={imageSrc}
+                        />
+                        {/* Sobre la foto y no debajo del precio: lo que no se
+                            puede vender tiene que verse ANTES de tocarlo. */}
+                        {outOfStock ? (
+                          <span className="absolute left-2 top-2 rounded-full bg-destructive px-2.5 py-1 text-xs font-black text-white">
+                            Sin stock
+                          </span>
+                        ) : null}
+                      </span>
                     ) : (
-                      <span className="mb-2 flex aspect-square w-full items-center justify-center rounded-xl bg-slate-100">
-                        <DynamicIcon className="size-8 text-slate-300" name={catalogIcon} />
+                      <span className="flex aspect-[4/3] w-full items-center justify-center bg-primary/5">
+                        <DynamicIcon className="size-8 text-primary/30" name={catalogIcon} />
                       </span>
                     )
                   ) : null}
-                  <span className="block text-base font-black leading-tight text-slate-950">{product.name}</span>
-                  <span className="mt-1.5 block text-lg font-black text-blue-700">
-                    {money(product.price)}
-                    {byWeight ? <span className="text-xs font-bold text-blue-500">/{unitShort(product.unit)}</span> : null}
-                  </span>
-                  {product.stock !== null ? (
-                    <span
-                      className={`mt-0.5 block text-[0.7rem] font-bold ${
-                        outOfStock ? "text-rose-600" : overStock ? "text-rose-600" : "text-slate-400"
-                      }`}
-                    >
-                      {outOfStock ? "Sin stock" : `Quedan ${formatQuantity(product.stock, product.unit)}`}
+                  <span className="flex flex-1 flex-col items-center justify-center gap-0.5 p-2.5">
+                    {/* A dos renglones y no truncado: "Docena de medialunas" y
+                        "Docena de medialunas rellenas" son productos distintos
+                        y con puntos suspensivos se venden cruzados.
+
+                        Los cuerpos van un escalón arriba de lo habitual en una
+                        web. Esto no se lee sentado y de cerca: se lee parado,
+                        de costado y con la fila esperando. Cuesta filas
+                        visibles y las vale. */}
+                    <span className="line-clamp-2 text-base font-black leading-tight text-slate-950">{product.name}</span>
+                    <span className="font-display text-xl font-black text-primary">
+                      {money(product.price)}
+                      {byWeight ? <span className="text-sm font-bold text-primary">/{unitShort(product.unit)}</span> : null}
                     </span>
-                  ) : null}
+                    {/* Pasarse del stock NO se puede avisar con color: en este
+                        rubro el rosa es la marca, y el `--destructive` está a
+                        12° de hue del `--primary`, así que "error" y "elegido"
+                        se ven igual. Antes se teñía el fondo de rosa claro y,
+                        como la foto tapa la mitad de arriba, la tarjeta quedaba
+                        pintada por la mitad. Se avisa con palabras, en la misma
+                        píldora llena que ya usa "Sin stock" sobre la foto. */}
+                    {overStock ? (
+                      <span className="rounded-full bg-destructive px-2.5 py-0.5 text-xs font-black text-white">
+                        Más de lo que hay
+                      </span>
+                    ) : product.stock !== null && !(outOfStock && showsPhotos && imageSrc) ? (
+                      <span className={`text-xs font-bold ${outOfStock ? "text-rose-600" : "text-slate-400"}`}>
+                        {outOfStock ? "Sin stock" : `Quedan ${formatQuantity(product.stock, product.unit)}`}
+                      </span>
+                    ) : null}
+                  </span>
                 </button>
 
-                {byWeight ? (
-                  // Por peso o por metro no tiene sentido el +/-: se tipea.
-                  <label className="mt-3 flex items-center gap-2 rounded-full bg-white px-3 py-1.5 ring-1 ring-blue-200">
-                    <input
-                      aria-label={`Cantidad de ${product.name} en ${unitShort(product.unit)}`}
-                      className="w-full min-w-0 bg-transparent text-base font-black text-slate-950 outline-none"
-                      inputMode="decimal"
-                      onChange={(event) => setProductQuantity(product.productId, event.target.value, product.unit)}
-                      placeholder="0"
-                      value={quantity ? formatQuantity(quantity) : ""}
-                    />
-                    <span className="shrink-0 text-xs font-black text-slate-400">{unitShort(product.unit)}</span>
-                  </label>
-                ) : active ? (
-                  <div className="mt-3 flex items-center justify-between rounded-full bg-white p-1 ring-1 ring-blue-200">
-                    <button
-                      aria-label={`Restar ${product.name}`}
-                      className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition active:scale-90"
-                      onClick={() => decreaseProduct(product.productId)}
-                      type="button"
-                    >
-                      <Minus className="size-4" />
-                    </button>
-                    <span className="text-lg font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
-                      {formatQuantity(quantity)}
-                    </span>
-                    <button
-                      aria-label={`Sumar ${product.name}`}
-                      className="flex size-9 items-center justify-center rounded-full bg-blue-600 text-white transition active:scale-90"
-                      onClick={() => addProduct(product.productId)}
-                      type="button"
-                    >
-                      <Plus className="size-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    aria-label={`Agregar ${product.name}`}
-                    className="mt-3 flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 text-sm font-black text-slate-700 transition active:scale-[0.97]"
-                    onClick={() => addProduct(product.productId)}
-                    type="button"
-                  >
-                    <Plus className="size-4" />
-                    Agregar
-                  </button>
-                )}
+                {byWeight || active || (features.packs && product.packSize && product.packSize > 1) ? (
+                  // Los controles llevan su propio margen porque la tarjeta ya
+                  // no tiene padding: se lo sacamos para que la foto llegue al
+                  // borde.
+                  <div className="space-y-1.5 px-2.5 pb-2.5">
+                    {byWeight ? (
+                      // Por peso o por metro no tiene sentido el +/-: se tipea.
+                      <label className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 ring-1 ring-primary/20">
+                        <input
+                          aria-label={`Cantidad de ${product.name} en ${unitShort(product.unit)}`}
+                          className="w-full min-w-0 bg-transparent text-base font-black text-slate-950 outline-none"
+                          inputMode="decimal"
+                          // Filtrado al escribir: sin esto se podía tipear
+                          // "diez" y el renglón desaparecía del pedido en
+                          // silencio, porque el parser devolvía null.
+                          onChange={(event) =>
+                            setProductQuantity(
+                              product.productId,
+                              sanitizeQuantityInput(event.target.value, product.unit),
+                              product.unit,
+                            )
+                          }
+                          placeholder="0"
+                          value={quantity ? formatQuantity(quantity) : ""}
+                        />
+                        <span className="shrink-0 text-xs font-black text-slate-400">{unitShort(product.unit)}</span>
+                      </label>
+                    ) : active ? (
+                      <div className="flex items-center justify-between rounded-full bg-white p-1 ring-1 ring-primary/20">
+                        <button
+                          aria-label={`Restar ${product.name}`}
+                          className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition active:scale-90"
+                          onClick={() => decreaseProduct(product.productId)}
+                          type="button"
+                        >
+                          <Minus className="size-4" />
+                        </button>
+                        {/* El número es el dato que está mal, así que se marca
+                            el número. */}
+                        <span
+                          className={`text-lg font-black ${overStock ? "text-destructive" : "text-slate-950"}`}
+                          style={{ fontVariantNumeric: "tabular-nums" }}
+                        >
+                          {formatQuantity(quantity)}
+                        </span>
+                        <button
+                          aria-label={`Sumar ${product.name}`}
+                          className="flex size-9 items-center justify-center rounded-full bg-primary text-white transition active:scale-90"
+                          onClick={() => addProduct(product.productId)}
+                          type="button"
+                        >
+                          <Plus className="size-4" />
+                        </button>
+                      </div>
+                    ) : null}
 
-                {features.packs && product.packSize && product.packSize > 1 && !byWeight ? (
-                  <button
-                    aria-label={`Agregar ${product.packLabel ?? "bulto"} de ${product.name}`}
-                    className="mt-1.5 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-slate-950 text-xs font-black text-white transition active:scale-[0.97]"
-                    onClick={() => addPack(product.productId, product.packSize as number)}
-                    type="button"
-                  >
-                    <Plus className="size-3.5" />
-                    {product.packLabel ?? "Bulto"} × {product.packSize}
-                  </button>
+                    {features.packs && product.packSize && product.packSize > 1 && !byWeight ? (
+                      <button
+                        aria-label={`Agregar ${product.packLabel ?? "bulto"} de ${product.name}`}
+                        className="flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-slate-950 text-xs font-black text-white transition active:scale-[0.97]"
+                        onClick={() => addPack(product.productId, product.packSize as number)}
+                        type="button"
+                      >
+                        <Plus className="size-3.5" />
+                        {product.packLabel ?? "Bulto"} × {product.packSize}
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             );
@@ -909,21 +1118,39 @@ export function PosCheckout({
             </p>
           ) : null}
         </div>
+        </div>
       </Step>
         </div>
 
-        <aside className="hidden lg:sticky lg:top-6 lg:block">
-          <div className="rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5">
-            <h2 className="flex items-center gap-2 text-base font-black text-slate-950">
-              <ShoppingBag className="size-4 text-blue-600" />
+        {/* Sin alto calculado a mano: un `calc(100vh-…)` no sabe del encabezado
+          ni del lugar reservado para el nav, y el panel terminaba abajo del
+          borde con el botón de cobro cortado. Como item del grid, la fila ya
+          lo acota.
+
+          El catálogo puede pasar por debajo del nav flotante porque scrollea,
+          pero el botón de cobro no: si queda tapado, no se cobra. El nav va
+          centrado en la ventana (máx. 35rem) y esta columna mide 22rem contra
+          el borde derecho, así que se cruzan solo en ventanas angostas. Ahí le
+          dejamos el lugar; de ~1330px para arriba el carrito llega hasta abajo
+          y gana los 96px. Medido: el botón queda libre en todo el rango. */}
+        <aside className="hidden max-[1327px]:pb-24 lg:block lg:h-full">
+          {/* Alto completo con el total abajo: en un mostrador la vista queda
+              abierta todo el día, y el número que se canta tiene que estar
+              siempre en el mismo lugar. */}
+          <div className="flex h-full flex-col rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5">
+            {/* Mismo tamaño e icono que el título de las tarjetas de la
+                izquierda: son dos encabezados de la misma fila, y si uno es más
+                chico la fila se ve torcida aunque las cajas estén alineadas. */}
+            <h2 className="flex items-center gap-2.5 text-lg font-black text-slate-950">
+              <ShoppingBag className="size-5 text-primary" />
               Pedido
             </h2>
             {hasItems ? (
               <>
-                <div className="mt-4 space-y-2">
+                <div className="mt-4 flex-1 space-y-2 overflow-y-auto">
                   {cartItems.map((item) => (
-                    <div className="flex items-center gap-2 text-sm" key={item.productId}>
-                      <span className="min-w-0 flex-1 truncate font-bold text-slate-700">
+                    <div className="flex items-center gap-2 text-base" key={item.productId}>
+                      <span className="min-w-0 flex-1 truncate text-base font-bold text-slate-700">
                         {item.name}{" "}
                         <span className="text-slate-400">
                           ×{formatQuantity(item.quantity, allowsFraction(item.unit) ? item.unit : undefined)}
@@ -946,29 +1173,65 @@ export function PosCheckout({
                   </div>
                 ) : null}
                 <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-                  <span className="text-sm font-bold text-slate-500">Total</span>
+                  <span className="text-base font-bold text-slate-500">Total</span>
                   <span className="text-right">
                     {discountTotal > 0 ? (
                       <span className="block text-sm font-bold text-slate-400 line-through">{money(listTotal)}</span>
                     ) : null}
-                    <span className="block text-2xl font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    <span className="font-display block text-3xl font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
                       {money(total)}
                     </span>
                   </span>
                 </div>
+                {/* El botón más grande de la pantalla, y a propósito: es el
+                    único que cierra la venta y se toca con la mano ocupada, sin
+                    mirar. Al lado, cualquier otro control puede ser chico. */}
                 <button
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+                  className="mt-4 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-primary px-4 py-5 text-xl font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
                   onClick={openCheckout}
                   type="button"
                 >
                   Cobrar
-                  <ArrowRight className="size-4" />
+                  <ArrowRight className="size-5" />
                 </button>
               </>
             ) : (
-              <p className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
-                Tocá un servicio para empezar.
-              </p>
+              <>
+                {/* Centrado y no arriba: la columna es alta y un cartel pegado
+                    al título deja medio metro de blanco debajo. */}
+                <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
+                  <ShoppingBag className="size-10 text-slate-200" />
+                  <p className="text-base font-black text-slate-700">Carrito vacío</p>
+                  {/* El rubro pone la palabra: en una panadería no se vende un
+                      "servicio". */}
+                  <p className="text-sm text-slate-500">
+                    Tocá un {catalogSingular.toLowerCase()} para sumarlo.
+                  </p>
+                </div>
+
+                {/* El total queda a la vista aunque esté en cero: es el número
+                    que el cajero canta, y tiene que estar SIEMPRE en el mismo
+                    lugar de la pantalla, no aparecer recién al primer toque. */}
+                {/* Mismos cuerpos que con el carrito cargado: si acá fueran más
+                    chicos, el total y el botón saltarían de tamaño al sumar el
+                    primer producto, justo donde el ojo está apoyado. */}
+                <div className="mt-4 flex items-center justify-between rounded-2xl bg-primary/10 px-4 py-3">
+                  <span className="text-base font-black text-slate-950">Total</span>
+                  <span
+                    className="font-display text-3xl font-black text-primary"
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {money(0)}
+                  </span>
+                </div>
+                <button
+                  className="mt-3 w-full rounded-2xl bg-primary/40 px-4 py-5 text-xl font-black text-white"
+                  disabled
+                  type="button"
+                >
+                  Continuar al cobro
+                </button>
+              </>
             )}
           </div>
         </aside>
@@ -978,7 +1241,7 @@ export function PosCheckout({
       <div className="fixed inset-x-0 bottom-[4.75rem] z-30 mx-auto max-w-[560px] px-4 sm:bottom-[7rem] lg:hidden">
         <button
           className={`flex w-full items-center gap-3 rounded-[1.5rem] p-2.5 pl-5 text-left shadow-[0_-8px_40px_rgba(15,23,42,0.16)] transition active:scale-[0.99] ${
-            hasItems ? "bg-blue-600" : "pointer-events-none bg-slate-300"
+            hasItems ? "bg-primary" : "pointer-events-none bg-slate-300"
           }`}
           disabled={!hasItems}
           onClick={openCheckout}
@@ -987,7 +1250,7 @@ export function PosCheckout({
           <span className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-white/15 text-white">
             <ShoppingBag className="size-5" />
             {itemCount > 0 ? (
-              <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-white text-xs font-black text-blue-700">
+              <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-white text-xs font-black text-primary">
                 {itemCount}
               </span>
             ) : null}
@@ -998,7 +1261,7 @@ export function PosCheckout({
               {money(total)}
             </span>
           </span>
-          <span className="flex items-center gap-1.5 rounded-2xl bg-white px-5 py-4 text-sm font-black text-blue-700">
+          <span className="flex items-center gap-1.5 rounded-2xl bg-white px-5 py-4 text-sm font-black text-primary">
             Continuar
             <ArrowRight className="size-4" />
           </span>
@@ -1044,7 +1307,7 @@ export function PosCheckout({
                   return (
                     <div
                       className={`flex items-center gap-2.5 rounded-2xl p-2.5 transition ${
-                        item.productId === lastAddedId ? "bg-blue-50 ring-2 ring-blue-500" : "bg-slate-50"
+                        item.productId === lastAddedId ? "bg-primary/10 ring-2 ring-primary" : "bg-slate-50"
                       }`}
                       key={item.productId}
                     >
@@ -1056,7 +1319,7 @@ export function PosCheckout({
                           src={imageSrc}
                         />
                       ) : (
-                        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600">
+                        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-primary">
                           <DynamicIcon className="size-5" name={catalogIcon} />
                         </span>
                       )}
@@ -1101,7 +1364,7 @@ export function PosCheckout({
                           </span>
                           <button
                             aria-label={`Sumar ${item.name}`}
-                            className="flex size-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm transition active:scale-90"
+                            className="flex size-10 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition active:scale-90"
                             onClick={() => addProduct(item.productId)}
                             type="button"
                           >
@@ -1126,7 +1389,7 @@ export function PosCheckout({
 
             <div className="border-t border-slate-100 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
               <button
-                className="flex w-full items-center justify-between gap-3 rounded-2xl bg-blue-600 px-5 py-4 text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+                className="flex w-full items-center justify-between gap-3 rounded-2xl bg-primary px-5 py-4 text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
                 data-testid="scan-review"
                 disabled={!hasItems}
                 onClick={() => {
@@ -1171,7 +1434,7 @@ export function PosCheckout({
 
               return (
                 <div
-                  className={`flex items-center gap-3 rounded-2xl p-3 ${quantity > 0 ? "bg-blue-50" : "bg-slate-50"}`}
+                  className={`flex items-center gap-3 rounded-2xl p-3 ${quantity > 0 ? "bg-primary/10" : "bg-slate-50"}`}
                   key={variant.productId}
                 >
                   <div className="min-w-0 flex-1">
@@ -1196,7 +1459,7 @@ export function PosCheckout({
                     <span className="w-8 text-center text-base font-black">{formatQuantity(quantity)}</span>
                     <button
                       aria-label={`Sumar ${variant.name}`}
-                      className="flex size-9 items-center justify-center rounded-full bg-blue-600 text-white transition active:scale-90"
+                      className="flex size-9 items-center justify-center rounded-full bg-primary text-white transition active:scale-90"
                       onClick={() => addProduct(variant.productId)}
                       type="button"
                     >
@@ -1220,12 +1483,17 @@ export function PosCheckout({
       </BottomSheet>
 
       {/* Hoja: revisar y pagar */}
-      <BottomSheet onClose={() => setCheckoutOpen(false)} open={checkoutOpen} panelClassName="min-h-[70dvh]">
+      {/* `dialog` y no `sheet`: en una caja de mostrador la pantalla es grande y
+          el cobro entraba en una columna de 460px, con los medios de pago
+          apilados de a dos y el vuelto abajo del pliegue. Es la parte de la
+          venta donde menos se puede scrollear, porque el cliente está enfrente
+          esperando el número. */}
+      <BottomSheet onClose={() => setCheckoutOpen(false)} open={checkoutOpen} panelClassName="min-h-[70dvh]" size="dialog">
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex items-center justify-between px-5 pt-6">
             <div>
-              <h3 className="text-xl font-black tracking-tight text-slate-950">Confirmar venta</h3>
-              <p className="text-sm text-slate-500">{selectedStaff ? `Atiende ${selectedStaff.name}` : ""}</p>
+              <h3 className="text-2xl font-black tracking-tight text-slate-950">{pasos[pasoIdx].titulo}</h3>
+              <p className="text-base text-slate-500">{selectedStaff ? `Atiende ${selectedStaff.name}` : ""}</p>
             </div>
             <button
               aria-label="Cerrar"
@@ -1237,10 +1505,103 @@ export function PosCheckout({
             </button>
           </div>
 
+          {/* Barra de progreso: con el cliente enfrente hay que saber cuánto
+              falta sin leer. Un tramo por paso, llenos hasta donde vas. */}
+          {pasos.length > 1 ? (
+            <div className="flex gap-1.5 px-5 pt-3">
+              {pasos.map((p, i) => (
+                <div
+                  className={`h-1.5 flex-1 rounded-full transition-colors ${i <= pasoIdx ? "bg-primary" : "bg-slate-200"}`}
+                  key={p.key}
+                />
+              ))}
+            </div>
+          ) : null}
+
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 pt-5">
+            {/* Paso "¿Dónde?": mostrador, para llevar o mesa. Sin esto todo el
+                salón y el mostrador se suman en el mismo número y no hay forma
+                de saber qué canal rinde. */}
+            {pasoActual === "donde" ? (
+              <div className="space-y-2.5">
+                {CANALES.map((canal) => {
+                  const elegido = channel === canal.key;
+                  const Icono = canal.icono;
+                  return (
+                    <button
+                      className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition ${
+                        elegido ? "border-primary bg-primary/5" : "border-slate-200 bg-white"
+                      }`}
+                      key={canal.key}
+                      onClick={() => {
+                        setChannel(canal.key);
+                        // Cambiar de canal deja la mesa vieja pegada si no se
+                        // limpia, y se cobraría en el mostrador "a la mesa 4".
+                        if (canal.key !== SaleChannel.TABLE) setTableId(null);
+                      }}
+                      type="button"
+                    >
+                      <span
+                        className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${
+                          elegido ? "bg-primary text-white" : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        <Icono className="size-5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-lg font-black text-slate-950">{canal.label}</span>
+                        <span className="block text-sm text-slate-500">{canal.pista}</span>
+                      </span>
+                      {elegido ? <Check className="size-5 shrink-0 text-primary" /> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            {/* Paso "¿Qué mesa?": mini plano agrupado por sector, como el salón.
+                Se toca la mesa, no se elige de una lista desplegable: el mozo
+                sabe dónde está sentado el cliente, no en qué posición del
+                combo. */}
+            {pasoActual === "mesa" ? (
+              mesas.length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
+                  No hay mesas cargadas todavía. Cargalas en Salón.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {agruparPorSector(mesas).map(([sector, delSector]) => (
+                    <div key={sector}>
+                      <p className="mb-2 text-sm font-black uppercase tracking-wide text-slate-500">{sector}</p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {delSector.map((mesa) => {
+                          const elegida = tableId === mesa.id;
+                          return (
+                            <button
+                              className={`relative grid aspect-square place-items-center rounded-2xl border-2 text-xl font-black transition ${
+                                elegida
+                                  ? "border-primary bg-primary text-white shadow-sm shadow-primary/25"
+                                  : "border-slate-200 bg-white text-slate-700"
+                              }`}
+                              key={mesa.id}
+                              onClick={() => setTableId(elegida ? null : mesa.id)}
+                              type="button"
+                            >
+                              {mesa.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : null}
+
             {/* Pedido */}
+            {pasoActual === "confirmar" ? (
             <section>
-              <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">Tu pedido</p>
+              <p className="mb-2 text-sm font-black uppercase tracking-wide text-slate-500">Tu pedido</p>
               <div className="space-y-2">
                 {cartItems.map((item) => {
                   const imageSrc = posImageSrc(item);
@@ -1256,8 +1617,8 @@ export function PosCheckout({
                       />
                     ) : null}
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-black text-slate-950">{item.name}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="truncate text-base font-black text-slate-950">{item.name}</p>
+                      <p className="text-sm text-slate-500">
                         {money(item.price)} {allowsFraction(item.unit) ? `por ${unitShort(item.unit)}` : "c/u"}
                       </p>
                     </div>
@@ -1293,7 +1654,7 @@ export function PosCheckout({
                         </button>
                       </div>
                     )}
-                    <p className="w-20 shrink-0 text-right text-sm font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    <p className="w-20 shrink-0 text-right text-base font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
                       {money(lineTotal(item.price, item.quantity))}
                     </p>
                     <button
@@ -1334,14 +1695,37 @@ export function PosCheckout({
                 </div>
               ) : null}
             </section>
+            ) : null}
+
+            {/* Lo elegido en los pasos previos, a la vista antes de confirmar:
+                el que cobra tiene que poder revisar sin volver atrás. */}
+            {pasoActual === "confirmar" && usesTables ? (
+              <div className="space-y-1.5 rounded-2xl bg-slate-50 p-3.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-500">Dónde</span>
+                  <span className="font-black text-slate-950">
+                    {CANALES.find((canal) => canal.key === channel)?.label}
+                  </span>
+                </div>
+                {channel === SaleChannel.TABLE && mesaElegida ? (
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-500">Mesa</span>
+                    <span className="font-black text-slate-950">
+                      {mesaElegida.name}
+                      {selectedStaff ? ` · ${selectedStaff.name}` : ""}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             {/* Cliente: hace falta para fiar y sirve para el historial de compras. */}
-            {customers.length > 0 ? (
+            {pasoActual === "pago" && customers.length > 0 ? (
               <section>
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">¿Quién compra?</p>
+                <p className="mb-2 text-sm font-black uppercase tracking-wide text-slate-500">¿Quién compra?</p>
                 <select
                   aria-label="Cliente"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
                   onChange={(event) => setCustomerId(event.target.value)}
                   value={customerId}
                 >
@@ -1367,12 +1751,13 @@ export function PosCheckout({
             ) : null}
 
             {/* Pago */}
+            {pasoActual === "pago" ? (
             <section>
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-black uppercase tracking-wide text-slate-500">¿Cómo paga?</p>
+                <p className="text-sm font-black uppercase tracking-wide text-slate-500">¿Cómo paga?</p>
                 <button
                   className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black transition active:scale-95 ${
-                    splitMode ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
+                    splitMode ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
                   }`}
                   onClick={toggleSplit}
                   type="button"
@@ -1387,7 +1772,7 @@ export function PosCheckout({
                   {splitRows.map((row) => (
                     <div className="flex items-center gap-2" key={row.id}>
                       <select
-                        className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-950 outline-none focus:border-blue-400 focus:bg-white"
+                        className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-950 outline-none focus:border-primary/40 focus:bg-white"
                         onChange={(event) => updateSplitRow(row.id, { method: event.target.value })}
                         value={row.method}
                       >
@@ -1397,7 +1782,7 @@ export function PosCheckout({
                           </option>
                         ))}
                       </select>
-                      <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 px-2 focus-within:border-blue-400 focus-within:bg-white">
+                      <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 px-2 focus-within:border-primary/40 focus-within:bg-white">
                         <span className="text-sm font-bold text-slate-400">$</span>
                         <input
                           aria-label="Monto del pago"
@@ -1422,7 +1807,7 @@ export function PosCheckout({
                   ))}
                   <div className="flex items-center justify-between pt-1">
                     {splitRows.length < paymentOptions.length ? (
-                      <button className="text-sm font-black text-blue-600" onClick={addSplitRow} type="button">
+                      <button className="text-sm font-black text-primary" onClick={addSplitRow} type="button">
                         + Agregar método
                       </button>
                     ) : (
@@ -1434,14 +1819,17 @@ export function PosCheckout({
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-2.5">
+                // Con el ancho de escritorio entran cuatro por fila: los ocho
+                // medios pasan de cuatro renglones a dos y el vuelto sube a la
+                // vista sin scrollear.
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                   {paymentOptions.map((option) => {
                     const Icon = paymentIcons[option.value] ?? Wallet;
                     const active = singleMethod === option.value;
                     return (
                       <button
-                        className={`flex items-center gap-2.5 rounded-2xl px-4 py-4 text-sm font-black transition active:scale-95 ${
-                          active ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-slate-100 text-slate-700"
+                        className={`flex items-center gap-2.5 rounded-2xl px-4 py-4 text-base font-black transition active:scale-95 ${
+                          active ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-slate-100 text-slate-700"
                         }`}
                         key={option.value}
                         onClick={() => setSingleMethod(option.value)}
@@ -1455,73 +1843,15 @@ export function PosCheckout({
                 </div>
               )}
 
-              {/* El vuelto. Es la cuenta que hoy hace el vendedor de cabeza con
-                  el cliente enfrente, y la que más se equivoca con apuro. */}
-              {!splitMode && singleMethod === "CASH" && total > 0 ? (
-                <div className="mt-3 rounded-2xl bg-slate-50 p-3.5">
-                  <p className="text-xs font-black uppercase tracking-wide text-slate-500">¿Con cuánto paga?</p>
-
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    <button
-                      className={`rounded-xl px-3 py-2.5 text-sm font-black transition active:scale-95 ${
-                        cashReceived === "" ? "bg-slate-900 text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"
-                      }`}
-                      onClick={() => setCashReceived("")}
-                      type="button"
-                    >
-                      Justo
-                    </button>
-                    {quickCashAmounts(total).map((amount) => (
-                      <button
-                        className={`rounded-xl px-3 py-2.5 text-sm font-black transition active:scale-95 ${
-                          cashReceived === String(amount)
-                            ? "bg-slate-900 text-white"
-                            : "bg-white text-slate-700 ring-1 ring-slate-200"
-                        }`}
-                        key={amount}
-                        onClick={() => setCashReceived(String(amount))}
-                        type="button"
-                      >
-                        {money(amount)}
-                      </button>
-                    ))}
-                  </div>
-
-                  <label className="mt-2 flex items-center rounded-xl border border-slate-200 bg-white px-3">
-                    <span className="text-base font-black text-slate-400">$</span>
-                    <input
-                      aria-label="Con cuánto paga"
-                      className="w-full min-w-0 bg-transparent px-2 py-2.5 text-base font-black text-slate-950 outline-none"
-                      inputMode="numeric"
-                      onChange={(event) => setCashReceived(event.target.value.replace(/\D/g, ""))}
-                      placeholder="Otro monto"
-                      value={formatAmountInput(cashReceived)}
-                    />
-                  </label>
-
-                  {cashReceived !== "" ? (
-                    coversTotal(total, Number(cashReceived)) ? (
-                      <div className="mt-2.5 flex items-baseline justify-between rounded-xl bg-emerald-50 px-3.5 py-3">
-                        <span className="text-sm font-black uppercase tracking-wide text-emerald-700">Vuelto</span>
-                        <span className="text-3xl font-black tracking-tight text-emerald-700">
-                          {money(changeFor(total, Number(cashReceived)))}
-                        </span>
-                      </div>
-                    ) : (
-                      <p className="mt-2.5 rounded-xl bg-amber-50 px-3.5 py-3 text-sm font-bold text-amber-700">
-                        Con eso no alcanza: faltan {money(total - Number(cashReceived))}.
-                      </p>
-                    )
-                  ) : null}
-                </div>
-              ) : null}
             </section>
+            ) : null}
 
             {/* Datos fiscales del cliente (opcional) */}
+            {pasoActual === "confirmar" ? (
             <section>
               <button
                 className={`flex w-full items-center justify-between gap-2 rounded-2xl px-4 py-3 text-sm font-black transition active:scale-[0.99] ${
-                  wantsInvoice ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200" : "bg-slate-100 text-slate-600"
+                  wantsInvoice ? "bg-primary/10 text-primary ring-1 ring-primary/20" : "bg-slate-100 text-slate-600"
                 }`}
                 onClick={() => setWantsInvoice((value) => !value)}
                 type="button"
@@ -1536,7 +1866,7 @@ export function PosCheckout({
               {wantsInvoice ? (
                 <div className="mt-2.5 space-y-2.5 rounded-2xl bg-slate-50 p-3.5">
                   <input
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:ring-4 focus:ring-primary/15"
                     onChange={(event) => setCustomerName(event.target.value)}
                     placeholder="Nombre o razón social"
                     type="text"
@@ -1544,7 +1874,7 @@ export function PosCheckout({
                   />
                   <input
                     className={`w-full rounded-xl border bg-white px-3.5 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:ring-4 ${
-                      customerTaxIdHasError ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100" : "border-slate-200 focus:border-blue-400 focus:ring-blue-100"
+                      customerTaxIdHasError ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100" : "border-slate-200 focus:border-primary/40 focus:ring-primary/15"
                     }`}
                     inputMode="numeric"
                     onChange={(event) => setCustomerTaxId(event.target.value)}
@@ -1555,7 +1885,7 @@ export function PosCheckout({
                   {customerTaxIdHasError ? <p className="text-xs font-semibold text-rose-600">CUIT/DNI inválido.</p> : null}
                   {customerTaxIdCheck?.kind === "CUIT" && customerTaxIdCheck.valid ? (
                     <select
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:ring-4 focus:ring-primary/15"
                       onChange={(event) => setCustomerTaxCondition(event.target.value as TaxCondition)}
                       value={customerTaxCondition}
                     >
@@ -1570,6 +1900,92 @@ export function PosCheckout({
                 </div>
               ) : null}
             </section>
+            ) : null}
+
+            {/* El vuelto tiene paso propio, después de elegir el medio y antes
+                de confirmar. Ahí es cuando se usa: elegir "Efectivo" pasa antes
+                de que el cliente saque la plata; el número se lee con los
+                billetes YA en la mano.
+
+                Solo, y en grande: es la cuenta que hoy el vendedor hace de
+                cabeza con el cliente enfrente, y la que más se equivoca con
+                apuro. Compartiendo pantalla con el pedido y los datos fiscales
+                competía con todo lo demás. */}
+            {pasoActual === "efectivo" ? (
+              <div className="space-y-3">
+                {/* El total va acá arriba porque en este paso el pie dice
+                    "Continuar", no el importe: sin esto habría que elegir con
+                    cuánto paga sin ver contra qué. */}
+                <div className="flex items-baseline justify-between rounded-2xl bg-primary/10 px-4 py-3.5">
+                  <span className="text-base font-black text-slate-950">Total</span>
+                  <span
+                    className="font-display text-3xl font-black text-primary"
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {money(total)}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    className={`rounded-xl px-3 py-3 text-base font-black transition active:scale-95 ${
+                      cashReceived === "" ? "bg-slate-900 text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"
+                    }`}
+                    onClick={() => setCashReceived("")}
+                    type="button"
+                  >
+                    Justo
+                  </button>
+                  {quickCashAmounts(total).map((amount) => (
+                    <button
+                      className={`rounded-xl px-3 py-3 text-base font-black transition active:scale-95 ${
+                        cashReceived === String(amount)
+                          ? "bg-slate-900 text-white"
+                          : "bg-white text-slate-700 ring-1 ring-slate-200"
+                      }`}
+                      key={amount}
+                      onClick={() => setCashReceived(String(amount))}
+                      type="button"
+                    >
+                      {money(amount)}
+                    </button>
+                  ))}
+                </div>
+
+                <label className="flex items-center rounded-xl border border-slate-200 bg-white px-3">
+                  <span className="text-base font-black text-slate-400">$</span>
+                  <input
+                    aria-label="Con cuánto paga"
+                    className="w-full min-w-0 bg-transparent px-2 py-3 text-base font-black text-slate-950 outline-none"
+                    inputMode="numeric"
+                    onChange={(event) => setCashReceived(event.target.value.replace(/\D/g, ""))}
+                    placeholder="Otro monto"
+                    value={formatAmountInput(cashReceived)}
+                  />
+                </label>
+
+                {/* Ahora que la pantalla es solo para esto, el vuelto va del
+                    tamaño que le corresponde: es el número que el cajero canta
+                    y cuenta con la mano. */}
+                {cashReceived !== "" ? (
+                  coversTotal(total, Number(cashReceived)) ? (
+                    <div className="flex items-baseline justify-between rounded-2xl bg-emerald-50 px-4 py-4">
+                      <span className="text-base font-black uppercase tracking-wide text-emerald-700">Vuelto</span>
+                      <span
+                        className="font-display text-4xl font-black tracking-tight text-emerald-700"
+                        style={{ fontVariantNumeric: "tabular-nums" }}
+                      >
+                        {money(changeFor(total, Number(cashReceived)))}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="rounded-2xl bg-amber-50 px-4 py-4 text-base font-bold text-amber-700">
+                      Con eso no alcanza: faltan {money(total - Number(cashReceived))}.
+                    </p>
+                  )
+                ) : null}
+              </div>
+            ) : null}
 
             {error ? (
               <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">
@@ -1578,19 +1994,43 @@ export function PosCheckout({
             ) : null}
           </div>
 
-          {/* Footer: confirmar */}
-          <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
+          {/* Footer: volver / seguir / confirmar */}
+          <div className="mt-auto flex gap-2 border-t border-slate-100 px-5 pb-1 pt-4">
+            {/* "Volver" en el primer paso no tiene a dónde volver, así que ahí
+                cancela. Y siempre hay salida: quedarse trabado en un cobro con
+                el cliente enfrente es peor que cualquier paso de más. */}
             <button
-              className="flex w-full items-center justify-between gap-3 rounded-2xl bg-blue-600 px-6 py-4 text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
-              disabled={!canConfirm || isPending}
-              onClick={confirm}
+              className="shrink-0 rounded-2xl bg-slate-100 px-5 py-4 text-base font-black text-slate-600 transition active:scale-[0.98] disabled:opacity-50"
+              disabled={isPending}
+              onClick={() => (pasoIdx === 0 ? setCheckoutOpen(false) : setPaso(pasoIdx - 1))}
               type="button"
             >
-              <span className="text-base font-black">{isPending ? "Registrando…" : "Confirmar venta"}</span>
-              <span className="text-lg font-black" style={{ fontVariantNumeric: "tabular-nums" }}>
-                {money(total)}
-              </span>
+              {pasoIdx === 0 ? "Cancelar" : "Volver"}
             </button>
+
+            {esUltimoPaso ? (
+              <button
+                className="flex flex-1 items-center justify-between gap-3 rounded-2xl bg-primary px-6 py-4 text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                disabled={!canConfirm || isPending}
+                onClick={confirm}
+                type="button"
+              >
+                <span className="text-base font-black">{isPending ? "Registrando…" : "Confirmar venta"}</span>
+                <span className="text-lg font-black" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {money(total)}
+                </span>
+              </button>
+            ) : (
+              <button
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                disabled={!puedeSeguir}
+                onClick={() => setPaso(pasoIdx + 1)}
+                type="button"
+              >
+                Continuar
+                <ArrowRight className="size-4" />
+              </button>
+            )}
           </div>
         </div>
       </BottomSheet>
@@ -1617,30 +2057,49 @@ function Step({
   title,
   delay,
   children,
+  crece = false,
 }: {
   icon?: ComponentType<{ className?: string }>;
   // Icono elegido por el rubro (nombre) en vez de un componente fijo.
   iconName?: string;
   step: number;
-  title: string;
+  // Opcional: un paso que es el único de la pantalla no necesita rótulo.
+  title?: string;
   delay: number;
   children: React.ReactNode;
+  // Este paso ocupa el alto que sobra y scrollea por dentro. En una caja la
+  // pantalla es fija: lo único que se mueve es la grilla de productos.
+  crece?: boolean;
 }) {
   return (
     <section
-      className="mt-4 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3"
+      // `first:mt-0`: la separación es ENTRE tarjetas, no arriba de la primera.
+      // Sin esto la primera arrancaba 16px más abajo que el panel del carrito y
+      // las dos columnas no leían como una sola fila. El `p-5` es el mismo del
+      // carrito, para que los dos títulos caigan a la misma altura.
+      className={`mt-4 rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3 first:mt-0 ${
+        crece ? "lg:flex lg:min-h-0 lg:flex-1 lg:flex-col" : ""
+      }`}
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
     >
-      <h2 className="mb-3 flex items-center gap-2.5 text-lg font-black text-slate-950">
-        <span className="flex size-7 items-center justify-center rounded-full bg-blue-600 text-sm font-black text-white">{step}</span>
-        {iconName ? (
-          <DynamicIcon className="size-5 text-blue-600" name={iconName} />
-        ) : Icon ? (
-          <Icon className="size-5 text-blue-600" />
-        ) : null}
-        {title}
-      </h2>
-      {children}
+      {title ? (
+        <h2 className="mb-3 flex items-center gap-2.5 text-lg font-black text-slate-950">
+          {/* Con un solo paso el número no ordena nada: es ruido en la pantalla
+              que más se mira. */}
+          {step > 1 ? (
+            <span className="flex size-7 items-center justify-center rounded-full bg-primary text-sm font-black text-white">
+              {step}
+            </span>
+          ) : null}
+          {iconName ? (
+            <DynamicIcon className="size-5 text-primary" name={iconName} />
+          ) : Icon ? (
+            <Icon className="size-5 text-primary" />
+          ) : null}
+          {title}
+        </h2>
+      ) : null}
+      {crece ? <div className="flex min-h-0 flex-1 flex-col">{children}</div> : children}
     </section>
   );
 }

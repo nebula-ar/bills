@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { SaleStatus, StockMovementType, TaxCondition, Unit, UserRole } from "@/generated/prisma/client";
+import { PaymentMethod, SaleChannel, SaleStatus, StockMovementType, TaxCondition, Unit, UserRole } from "@/generated/prisma/client";
 import { chargeCustomerAccount, reverseCustomerCharge } from "@/modules/customers/customer.repository";
 import { applyStockMovement } from "@/modules/stock/stock.repository";
 
@@ -48,6 +48,9 @@ export type CreateSaleRepositoryInput = {
   customerName?: string;
   customerTaxId?: string;
   customerTaxCondition?: TaxCondition;
+  channel?: SaleChannel;
+  tableName?: string | null;
+  waiterName?: string | null;
   userId?: string | null;
 };
 
@@ -131,6 +134,9 @@ export function findSaleEntryOptionsBranch(branchId?: string) {
       business: {
         select: {
           name: true,
+          // El rubro define cómo se llama lo que se vende. La terminal decía
+          // "servicio" en una panadería porque no lo tenía.
+          vertical: true,
         },
       },
       users: {
@@ -285,6 +291,9 @@ export function findSaleEntryBranches(businessId: string) {
               familyId: true,
               variantLabel: true,
               family: { select: { name: true } },
+              // Para los chips de categoría del POS: con muchos productos,
+              // buscar por nombre no alcanza.
+              category: { select: { name: true, color: true } },
             },
           },
         },
@@ -301,10 +310,47 @@ export function findSaleEntryBranches(businessId: string) {
   });
 }
 
-export function findRecentSales(businessId: string, limit = 10, cursor?: string) {
+/** Desde inclusive, hasta exclusive (ver sales-period.logic). */
+export type RangoDeVentas = { desde: Date; hasta: Date };
+
+/**
+ * Todas las ventas del período, con lo mínimo para totalizar.
+ *
+ * Va aparte de `findRecentSales` porque los totales tienen que cubrir el
+ * período ENTERO, no la primera página: un total que cambia al tocar "cargar
+ * más" no es un total. Por eso también trae solo total, estado y pagos, sin
+ * renglones ni datos fiscales.
+ */
+export function findSalesForSummary(businessId: string, rango: RangoDeVentas) {
   return prisma.sale.findMany({
     where: {
       deleted: false,
+      soldAt: { gte: rango.desde, lt: rango.hasta },
+      branch: { businessId, deleted: false, active: true },
+      staff: { deleted: false },
+    },
+    select: {
+      total: true,
+      status: true,
+      payments: { select: { method: true, amount: true } },
+    },
+  });
+}
+
+export function findRecentSales(
+  businessId: string,
+  limit = 10,
+  cursor?: string,
+  rango?: RangoDeVentas,
+  metodo?: PaymentMethod,
+) {
+  return prisma.sale.findMany({
+    where: {
+      deleted: false,
+      ...(rango ? { soldAt: { gte: rango.desde, lt: rango.hasta } } : {}),
+      // `some` y no `every`: una venta con pago dividido en efectivo y QR se
+      // pagó con los dos, y tiene que salir en los dos filtros.
+      ...(metodo ? { payments: { some: { method: metodo } } } : {}),
       branch: {
         businessId,
         deleted: false,
@@ -517,6 +563,9 @@ export function createSaleTransaction(input: CreateSaleRepositoryInput) {
         customerName: input.customerName,
         customerTaxId: input.customerTaxId,
         customerTaxCondition: input.customerTaxCondition,
+        channel: input.channel,
+        tableName: input.tableName,
+        waiterName: input.waiterName,
         items: {
           create: input.items.map((item) => ({
             productId: item.productId,

@@ -33,7 +33,7 @@ function Blocked({ title, message }: { title: string; message: string }) {
         </span>
         <h1 className="text-xl font-black tracking-tight text-slate-950">{title}</h1>
         <p className="max-w-xs text-sm text-slate-500">{message}</p>
-        <Link className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white" href="/terminal">
+        <Link className="rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white" href="/terminal">
           Volver a la terminal
         </Link>
       </div>
@@ -65,7 +65,7 @@ export default async function StaffCashClosePage() {
     <Shell>
       <div className="shrink-0 border-b border-slate-100 px-5 py-4">
         <h1 className="flex items-center gap-2 text-xl font-black tracking-tight text-slate-950">
-          <Landmark aria-hidden="true" className="text-blue-600" size={20} />
+          <Landmark aria-hidden="true" className="text-primary" size={20} />
           Cerrar caja
         </h1>
         <p className="mt-0.5 truncate text-sm font-bold text-slate-500">
@@ -92,7 +92,7 @@ export default async function StaffCashClosePage() {
                     Sistema: {money(account.balance)}
                   </span>
                 </div>
-                <div className="mt-2 flex items-center rounded-xl border border-slate-200 bg-white px-3 focus-within:border-blue-400">
+                <div className="mt-2 flex items-center rounded-xl border border-slate-200 bg-white px-3 focus-within:border-primary/40">
                   <span className="text-base font-black text-slate-400">$</span>
                   <MoneyInput
                     className="w-full bg-transparent px-1.5 py-2.5 text-right text-base font-black text-slate-950 outline-none"
@@ -108,7 +108,7 @@ export default async function StaffCashClosePage() {
           <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
             Nota (opcional)
             <input
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
               name="note"
               placeholder="Ej: cierre del turno tarde"
               type="text"
@@ -125,7 +125,7 @@ export default async function StaffCashClosePage() {
 
         <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-3">
           <button
-            className="w-full rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+            className="w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
             type="submit"
           >
             Cerrar caja

@@ -13,6 +13,9 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
+    // Hex y no `var(--background)`: el manifest es JSON estático que lee el
+    // sistema operativo, no CSS. La variable nunca se resolvía. Y siendo un
+    // solo archivo para toda la app, tampoco puede cambiar con el rubro.
     background_color: "#f6f7fb",
     theme_color: "#1F6FFF",
     icons: [

@@ -33,8 +33,8 @@ export function StaffAccessPanel({ branch, lockedStaffId }: StaffAccessPanelProp
         <>
           <input name="staffId" type="hidden" value={lockedStaff.id} />
           <input name="terminalLocked" type="hidden" value="1" />
-          <div className="flex items-center gap-3 rounded-2xl bg-blue-50 p-3 ring-1 ring-blue-100">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-600 text-white">
+          <div className="flex items-center gap-3 rounded-2xl bg-primary/10 p-3 ring-1 ring-primary/15">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-white">
               <Users aria-hidden="true" size={19} />
             </span>
             <div className="min-w-0">
@@ -49,7 +49,7 @@ export function StaffAccessPanel({ branch, lockedStaffId }: StaffAccessPanelProp
       ) : (
         <>
           <div className="flex items-center gap-1.5 text-sm font-bold text-slate-500">
-            <MapPin aria-hidden="true" className="text-blue-600" size={15} />
+            <MapPin aria-hidden="true" className="text-primary" size={15} />
             <span className="truncate">
               {branch.business.name} · {branch.name}
             </span>
@@ -63,7 +63,7 @@ export function StaffAccessPanel({ branch, lockedStaffId }: StaffAccessPanelProp
               return (
                 <label
                   className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-3 shadow-sm transition ${
-                    isSelected ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-200"
+                    isSelected ? "border-primary bg-primary/10" : "border-slate-200 bg-white hover:border-primary/20"
                   }`}
                   key={staff.id}
                 >
@@ -76,11 +76,11 @@ export function StaffAccessPanel({ branch, lockedStaffId }: StaffAccessPanelProp
                     value={staff.id}
                     onChange={() => setSelectedStaffId(staff.id)}
                   />
-                  <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${isSelected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500"}`}>
+                  <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${isSelected ? "bg-primary text-white" : "bg-slate-100 text-slate-500"}`}>
                     <Users aria-hidden="true" size={18} />
                   </span>
                   <span className="min-w-0 flex-1 text-base font-black text-slate-950">{staff.name ?? "Empleado"}</span>
-                  <span className={`grid size-6 shrink-0 place-items-center rounded-full text-xs font-black ${isSelected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-300"}`}>
+                  <span className={`grid size-6 shrink-0 place-items-center rounded-full text-xs font-black ${isSelected ? "bg-primary text-white" : "bg-slate-100 text-slate-300"}`}>
                     {isSelected ? "✓" : ""}
                   </span>
                 </label>
@@ -92,11 +92,11 @@ export function StaffAccessPanel({ branch, lockedStaffId }: StaffAccessPanelProp
       )}
 
       {/* PIN: usa el teclado numérico del teléfono, sin teclado en pantalla */}
-      <label className="grid gap-2 rounded-2xl border border-blue-100 bg-blue-50 p-4 shadow-sm">
-        <span className="text-xs font-black uppercase tracking-[0.14em] text-blue-700">Ingresá tu PIN</span>
+      <label className="grid gap-2 rounded-2xl border border-primary/15 bg-primary/10 p-4 shadow-sm">
+        <span className="text-xs font-black uppercase tracking-[0.14em] text-primary">Ingresá tu PIN</span>
         <input
           autoComplete="off"
-          className="w-full rounded-2xl border-2 border-blue-200 bg-white px-4 py-4 text-center text-3xl font-black tracking-[0.4em] text-blue-950 outline-none transition placeholder:tracking-[0.3em] placeholder:text-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+          className="w-full rounded-2xl border-2 border-primary/20 bg-white px-4 py-4 text-center text-3xl font-black tracking-[0.4em] text-primary outline-none transition placeholder:tracking-[0.3em] placeholder:text-slate-300 focus:border-primary focus:ring-4 focus:ring-primary/15"
           inputMode="numeric"
           maxLength={maxPinLength}
           minLength={4}
@@ -109,7 +109,7 @@ export function StaffAccessPanel({ branch, lockedStaffId }: StaffAccessPanelProp
           value={pin}
           onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, maxPinLength))}
         />
-        <span className="text-center text-xs font-bold text-blue-700">4 a 8 números · se valida al confirmar</span>
+        <span className="text-center text-xs font-bold text-primary">4 a 8 números · se valida al confirmar</span>
       </label>
     </section>
   );

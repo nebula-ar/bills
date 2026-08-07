@@ -3,7 +3,7 @@
 // navegación, así no queda la pantalla en blanco.
 export default function Loading() {
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] bg-[#f6f7fb] px-4 pb-28 pt-6 lg:max-w-[1080px] lg:px-8">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] bg-[var(--background)] px-4 pb-28 pt-6 lg:max-w-none lg:px-8">
       <div className="space-y-2">
         <div className="h-4 w-24 animate-pulse rounded-full bg-slate-200" />
         <div className="h-7 w-44 animate-pulse rounded-lg bg-slate-200" />

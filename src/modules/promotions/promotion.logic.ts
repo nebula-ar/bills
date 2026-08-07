@@ -110,6 +110,36 @@ export function applyPromotions(lines: CartLine[], promotions: PromotionRule[], 
   };
 }
 
+/**
+ * Qué promos vigentes le pegan a un producto, ahora.
+ *
+ * Sirve para avisarlo en la ficha: al cargar un precio hay que saber si ese
+ * producto ya está con 20% off, porque si no se termina descontando dos veces.
+ * Reusa las MISMAS reglas que el cobro (`isLive` y `matches`): si la ficha
+ * dijera algo distinto de lo que después cobra la caja, sería peor que no
+ * decir nada.
+ *
+ * Es informativo: no dice cuánto va a descontar, porque eso depende del
+ * carrito entero (mínimos por monto, NxM, combos).
+ */
+export function promocionesDeProducto(
+  promotions: PromotionRule[],
+  producto: { productId: string; categoryId: string | null },
+  at: Date,
+): PromotionRule[] {
+  const linea: CartLine = {
+    productId: producto.productId,
+    categoryId: producto.categoryId,
+    description: "",
+    quantity: 0,
+    unitPrice: 0,
+  };
+
+  return promotions
+    .filter((promotion) => isLive(promotion, at) && matches(promotion, linea))
+    .sort((a, b) => b.priority - a.priority || a.name.localeCompare(b.name, "es"));
+}
+
 // ¿La promo está vigente ahora? Chequea activación por fecha y por día de semana.
 function isLive(promotion: PromotionRule, at: Date): boolean {
   if (promotion.startsAt && at < promotion.startsAt) {

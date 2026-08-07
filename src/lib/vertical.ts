@@ -302,6 +302,38 @@ export const VERTICAL_PRESETS: Record<Vertical, VerticalPreset> = {
     ],
   },
 
+  [Vertical.BAKERY]: {
+    vertical: Vertical.BAKERY,
+    label: "Panadería o pastelería",
+    tagline: "Mostrador y salón: tomás el pedido en la mesa, la cocina lo prepara y cobrás al final.",
+    namePlaceholder: "Ej: Panadería La Espiga",
+    icon: "solar:chef-hat-bold",
+    staffIcon: "solar:users-group-rounded-bold",
+    catalogIcon: "solar:donut-bitten-bold",
+    // A lo de cualquier comercio con mercadería se le suman los tres de
+    // gastronomía: acá la venta arranca antes del cobro.
+    modules: [...RETAIL_MODULES, AppModule.TABLES, AppModule.KITCHEN, AppModule.RECIPES],
+    // Se escanea y se repone por bulto (la docena de facturas), pero no hay
+    // talles. Y se encarga una torta por link, así que la página es catálogo.
+    features: { ...RESTOCK_FEATURES, publicPage: "catalog" },
+    labels: RETAIL_LABELS,
+    categories: ["Panes", "Facturas", "Pastelería", "Bebidas"],
+    // Con foto: en un mostrador se vende mirando, no leyendo una lista. El POS
+    // ya sabe mostrarlas (ver posImageSrc); sin `catalogSlug` quedaban en texto.
+    catalog: [
+      { name: "Pan de Queso", price: 420, category: "Panes", kind: ProductKind.GOOD, cost: 126, stock: 40 , catalogSlug: "pan-de-queso" },
+      { name: "Milonguita", price: 1400, category: "Panes", kind: ProductKind.GOOD, cost: 420, stock: 30 , catalogSlug: "milonguita" },
+      { name: "Pan Del Abuelo", price: 2800, category: "Panes", kind: ProductKind.GOOD, cost: 840, stock: 20 , catalogSlug: "pan-del-abuelo" },
+      { name: "Medialuna", price: 630, category: "Facturas", kind: ProductKind.GOOD, cost: 202, stock: 60 , catalogSlug: "medialuna" },
+      { name: "Docena de medialunas", price: 7000, category: "Facturas", kind: ProductKind.GOOD, unit: Unit.DOZEN, cost: 2420, stock: 10 , catalogSlug: "docena-de-medialunas" },
+      { name: "Cremona", price: 1500, category: "Facturas", kind: ProductKind.GOOD, cost: 480, stock: 25 , catalogSlug: "cremona" },
+      { name: "Alfajor de Maicena", price: 9520, category: "Pastelería", kind: ProductKind.GOOD, cost: 3332, stock: 15 , catalogSlug: "alfajor-de-maicena" },
+      { name: "Pepas de Membrillo", price: 8960, category: "Pastelería", kind: ProductKind.GOOD, cost: 3136, stock: 12 , catalogSlug: "pepas-de-membrillo" },
+      { name: "Americano", price: 5290, category: "Bebidas", kind: ProductKind.GOOD, cost: 1323, stock: 0 , catalogSlug: "cafe-americano" },
+      { name: "Capuccino", price: 6350, category: "Bebidas", kind: ProductKind.GOOD, cost: 1588, stock: 0 , catalogSlug: "capuccino" },
+    ],
+  },
+
   [Vertical.GENERAL]: {
     vertical: Vertical.GENERAL,
     label: "Otro comercio",
@@ -328,6 +360,7 @@ export const VERTICAL_ORDER: Vertical[] = [
   Vertical.HABERDASHERY,
   Vertical.BEAUTY,
   Vertical.HARDWARE,
+  Vertical.BAKERY,
   Vertical.GENERAL,
 ];
 

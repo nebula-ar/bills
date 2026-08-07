@@ -42,13 +42,13 @@ export function ExportPanel({
         {datasets.map((dataset) => (
           <div
             className={`flex flex-col gap-2 rounded-2xl border border-slate-200 p-3.5 transition ${
-              invalid ? "opacity-40" : ""
+              invalid ? "opacity-40" : "hover:border-primary/30"
             }`}
             key={dataset.value}
           >
             <span className="flex items-center gap-1.5 text-sm font-black text-slate-950">
               {dataset.label}
-              <ArrowUpRight className="size-3.5 text-blue-600" />
+              <ArrowUpRight className="size-3.5 text-primary" />
             </span>
             <span className="text-xs text-slate-500">{dataset.hint}</span>
 
@@ -59,7 +59,7 @@ export function ExportPanel({
                   className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition active:scale-[0.99] ${
                     invalid
                       ? "pointer-events-none"
-                      : "bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-700"
+                      : "bg-slate-100 text-slate-700 hover:bg-primary/10 hover:text-primary"
                   }`}
                   download
                   href={`/api/export?dataset=${dataset.value}&format=${format}&from=${from}&to=${to}`}

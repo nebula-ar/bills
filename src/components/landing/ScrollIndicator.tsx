@@ -15,7 +15,7 @@ export function ScrollIndicator() {
   return (
     <div className="fixed right-4 lg:right-6 top-1/2 -translate-y-1/2 z-50 h-[35vh] min-h-[250px] w-[2px] bg-slate-200 rounded-full overflow-hidden flex items-start">
       <motion.div 
-        className="w-full bg-gradient-to-b from-blue-600 via-slate-500 to-red-600 rounded-full origin-top"
+        className="w-full bg-gradient-to-b from-primary via-slate-500 to-red-600 rounded-full origin-top"
         style={{ 
           height: "100%",
           scaleY: smoothProgress 

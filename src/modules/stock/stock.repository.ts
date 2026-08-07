@@ -168,6 +168,7 @@ export function findBranchStock(businessId: string, branchId: string) {
       sku: true,
       barcode: true,
       unit: true,
+      kind: true,
       cost: true,
       minStock: true,
       category: { select: { id: true, name: true } },

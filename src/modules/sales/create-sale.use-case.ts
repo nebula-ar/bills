@@ -17,6 +17,7 @@ import {
   findSaleStaff,
   type CreateSaleRepositoryItem,
 } from "./sale.repository";
+import { datosDeMesa } from "./sale-channel.logic";
 import { SaleError, SaleErrorCode } from "./sale.errors";
 
 // Una venta pasa por cinco pasos, en este orden y por este motivo:
@@ -209,6 +210,10 @@ export async function createSale(input: CreateSaleDto) {
     customerName: input.customerName?.trim() || undefined,
     customerTaxId,
     customerTaxCondition: input.customerTaxCondition,
+    channel: input.channel,
+    // La regla de qué se guarda de mesa y mozo vive en su propio módulo, con
+    // tests: es fácil de romper desde la pantalla y difícil de notar después.
+    ...datosDeMesa(input),
     userId: input.userId,
   });
 

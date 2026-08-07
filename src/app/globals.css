@@ -5,6 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Acción presionada y acento de marca: el rubro los redefine igual que el
+     resto. Sin esto, un hover o un logo quedaban con el color de Bills. */
+  --color-primary-strong: var(--primary-strong);
+  --color-accent-brand: var(--accent-brand);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
@@ -71,14 +75,14 @@ textarea {
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(0.9765 0.0054 274.97);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.5269 0.2215 266.60); /* el azul de Bills */
+  --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -88,13 +92,17 @@ textarea {
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: oklch(0.5269 0.2215 266.60);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
+  /* El azul presionado y el lima de Bills, ahora como token: eran hex sueltos
+     repartidos por 64 archivos. */
+  --primary-strong: oklch(0.4469 0.2 266.60);
+  --accent-brand: oklch(0.9075 0.1667 117.99);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -103,6 +111,67 @@ textarea {
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Pastelería / panadería
+ 
+   El rubro no cambia solo qué módulos vienen prendidos: también cómo se ve.
+   Una panadería no se reconoce en el azul de una barbería.
+ 
+   Esto alcanza para que TODA la app cambie de cara porque los componentes
+   pintan con ranuras semánticas (bg-primary, bg-destructive, var(--radius-md))
+   y nunca con un color propio. Redefinir las ranuras acá los alcanza a todos,
+   sin forkear ninguno.
+ 
+   El radio más grande no es un detalle: la identidad es rosa Y redondeada.
+   Solo el color deja una app bancaria pintada de rosa.
+   ───────────────────────────────────────────────────────────────────────────── */
+[data-vertical="BAKERY"] {
+  --background: oklch(0.9731 0 89.88); /* canvas */
+  --foreground: oklch(0.2347 0.0081 308.08); /* ink */
+  --card: oklch(1 0 89.88); /* surface */
+  --card-foreground: oklch(0.2347 0.0081 308.08);
+  --popover: oklch(1 0 89.88);
+  --popover-foreground: oklch(0.2347 0.0081 308.08);
+
+  --primary: oklch(0.7368 0.1778 358.63); /* brand */
+  --primary-foreground: oklch(1 0 89.88);
+  --secondary: oklch(0.9319 0.0254 11.6); /* blush */
+  --secondary-foreground: oklch(0.2347 0.0081 308.08);
+
+  --muted: oklch(0.934 0 89.88); /* mist */
+  --muted-foreground: oklch(0.5059 0.0013 197.12); /* ink-soft */
+  --accent: oklch(0.9319 0.0254 11.6); /* blush */
+  --accent-foreground: oklch(0.2347 0.0081 308.08);
+
+  --destructive: oklch(0.6241 0.1986 10.26); /* danger */
+  --border: oklch(0.934 0 89.88); /* line */
+  --input: oklch(0.934 0 89.88);
+  --ring: oklch(0.7368 0.1778 358.63); /* brand */
+
+  /* Redondeado y blando: el resto de la escala (sm/md/lg/xl/2xl) sale de acá. */
+  --radius: 1rem;
+
+  --primary-strong: oklch(0.64 0.234 357.03); /* brand-strong */
+  --accent-brand: oklch(0.939 0.0732 88.45); /* butter */
+
+
+  /* Los halos pastel del fondo. Es la mitad de la identidad de Migas: sin
+     esto queda rosa sobre gris plano, que no es lo mismo. Vive como token
+     para que otro rubro pueda tener el suyo o ninguno. */
+  --fondo-halos:
+    radial-gradient(circle at 12% 8%, oklch(0.8498 0.0845 4.16 / 0.4), transparent 42%),
+    radial-gradient(circle at 88% 4%, oklch(0.8945 0.0549 327.93 / 0.42), transparent 40%),
+    radial-gradient(circle at 78% 96%, oklch(0.9319 0.0254 11.6 / 0.5), transparent 45%);
+
+  /* Acentos del rubro. No tienen ranura estándar en shadcn porque solo los
+     usan sus pantallas: el amarillo de fidelidad, los pasteles de variedad. */
+  --brand-strong: oklch(0.64 0.234 357.03);
+  --butter: oklch(0.939 0.0732 88.45);
+  --pink: oklch(0.8498 0.0845 4.16);
+  --lilac: oklch(0.8945 0.0549 327.93);
+  --success: oklch(0.6528 0.124 155.08);
 }
 
 .dark {
@@ -169,4 +238,43 @@ textarea {
   .hidden-scrollbar::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* El fondo del rubro, si lo definió. Los demás siguen con su color plano.
+   Va en el BODY y no en el html: el body pinta su color de fondo encima y
+   taparía los halos. */
+[data-vertical] body {
+  background-image: var(--fondo-halos, none);
+  background-attachment: fixed;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Tipografía del rubro.
+
+   Va como regla y no como token de `@theme`: Tailwind resuelve los valores de
+   `@theme inline` en tiempo de build, así que una variable definida después no
+   los cambia. Con los colores funciona porque ahí el valor ES una referencia
+   (`var(--primary)`), pero con las familias resolvía a Inter y quedaba fijo.
+
+   La tipografía es la mitad de la identidad de un rubro: con Inter, por más
+   rosa que esté, se lee como una app de banco.
+   ───────────────────────────────────────────────────────────────────────────── */
+[data-vertical="BAKERY"] body {
+  font-family: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-vertical="BAKERY"] h1,
+[data-vertical="BAKERY"] h2,
+[data-vertical="BAKERY"] h3 {
+  font-family: var(--font-baloo), var(--font-nunito), ui-sans-serif, sans-serif;
+  font-optical-sizing: auto;
+}
+
+/* Los números que se cantan en el mostrador —precios, totales— llevan la
+   display igual que los títulos: son lo que el cliente mira, no texto de
+   apoyo. No son encabezados, así que necesitan un gancho propio. En los rubros
+   que no definen display, la clase no hace nada y se ve la del rubro. */
+[data-vertical="BAKERY"] .font-display {
+  font-family: var(--font-baloo), var(--font-nunito), ui-sans-serif, sans-serif;
+  font-optical-sizing: auto;
 }

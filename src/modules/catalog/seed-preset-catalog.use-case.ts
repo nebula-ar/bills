@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ONE } from "@/lib/quantity";
 import { verticalPreset } from "@/lib/vertical";
 
-import { presetCatalogFor } from "./preset-catalog";
+import { applySeedSelection, presetCatalogFor, type SeedSelection } from "./preset-catalog";
 import { ProductError, ProductErrorCode } from "./product.errors";
 
 // Carga el catálogo típico del rubro de una.
@@ -17,7 +17,14 @@ import { ProductError, ProductErrorCode } from "./product.errors";
 // Es idempotente por nombre: si ya existe un producto que se llama igual, se
 // saltea. Así tocar el botón dos veces no duplica nada.
 
-export async function seedPresetCatalog(input: { businessId: string; branchId: string; userId?: string | null }) {
+export async function seedPresetCatalog(input: {
+  businessId: string;
+  branchId: string;
+  userId?: string | null;
+  // Lo que el negocio dejó marcado en la pantalla de revisión. Sin esto entra
+  // el catálogo entero.
+  selection?: SeedSelection[];
+}) {
   const business = await prisma.business.findFirst({
     where: { id: input.businessId, deleted: false },
     select: { vertical: true },
@@ -37,7 +44,9 @@ export async function seedPresetCatalog(input: { businessId: string; branchId: s
   }
 
   const preset = verticalPreset(business.vertical);
-  const catalog = presetCatalogFor(business.vertical);
+  // La selección se cruza contra el catálogo del servidor: del cliente solo se
+  // toman precio y existencia, nunca el producto.
+  const catalog = applySeedSelection(presetCatalogFor(business.vertical), input.selection);
 
   if (catalog.length === 0) {
     return { created: 0 };

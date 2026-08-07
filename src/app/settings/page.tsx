@@ -10,7 +10,7 @@ import { changeVerticalAction, toggleModuleAction } from "./actions";
 
 const TINTS: Record<string, string> = {
   emerald: "bg-emerald-500 text-white",
-  blue: "bg-blue-500 text-white",
+  blue: "bg-primary text-white",
   violet: "bg-violet-500 text-white",
   orange: "bg-orange-500 text-white",
   rose: "bg-rose-500 text-white",
@@ -74,7 +74,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             return (
               <li
                 className={`flex items-center gap-3 rounded-2xl border p-3.5 ${
-                  enabled ? "border-blue-200 bg-blue-50/40" : "border-slate-200 bg-white"
+                  enabled ? "border-primary/20 bg-primary/10/40" : "border-slate-200 bg-white"
                 }`}
                 key={module}
               >
