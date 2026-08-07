@@ -68,9 +68,18 @@ test.describe("Bulto, export y WhatsApp", () => {
     // XML de la hoja una celda numérica no lleva t="s" ni t="str". Se desarma
     // el zip y se lee el XML de la primera hoja.
     const sheetXml = await readXlsxSheetXml(xlsx);
-    const importeCells = sheetXml.match(/<c r="K\d+"[^>]*>/g) ?? [];
+    const importeCells = sheetXml.match(/<c r="K[2-9]\d*"[^>]*>/g) ?? [];
     expect(importeCells.length).toBeGreaterThan(0);
     for (const cell of importeCells) {
+      expect(cell).not.toContain('t="s"');
+      expect(cell).not.toContain('t="str"');
+    }
+
+    // La columna Fecha (A) va como fecha nativa (serial de Excel), no texto.
+    // El regex arranca en la fila 2 para saltear el header (que sí es string).
+    const fechaCells = sheetXml.match(/<c r="A[2-9]\d*"[^>]*>/g) ?? [];
+    expect(fechaCells.length).toBeGreaterThan(0);
+    for (const cell of fechaCells) {
       expect(cell).not.toContain('t="s"');
       expect(cell).not.toContain('t="str"');
     }

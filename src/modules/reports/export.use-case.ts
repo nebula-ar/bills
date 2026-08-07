@@ -466,7 +466,8 @@ export async function renderXlsx(table: ExportTable): Promise<Buffer> {
   }));
 
   // Los importes van como NÚMEROS para que el contador los pueda sumar; el
-  // display es-AR lo pone el numFmt. Las cantidades son números (milésimas).
+  // display es-AR lo pone el numFmt. Las cantidades son números (milésimas) y
+  // las fechas van como fecha nativa para poder ordenar/filtrar en Excel.
   for (const row of table.rows) {
     sheet.addRow(
       table.columns.map((column, index) => {
@@ -484,15 +485,25 @@ export async function renderXlsx(table: ExportTable): Promise<Buffer> {
           return (value as ExportQuantity).value;
         }
 
+        if (column.kind === "datetime" || column.kind === "date") {
+          return value as Date;
+        }
+
         return formatExportCell(column, value);
       }),
     );
   }
 
-  // Columna de moneda: número con formato es-AR de display.
+  // Formato de display es-AR por columna: moneda, cantidad y fechas.
   table.columns.forEach((column, index) => {
+    const columnIndex = index + 1;
+
     if (column.kind === "money") {
-      sheet.getColumn(index + 1).numFmt = "#,##0.00";
+      sheet.getColumn(columnIndex).numFmt = "#,##0.00";
+    } else if (column.kind === "datetime") {
+      sheet.getColumn(columnIndex).numFmt = "dd/mm/yyyy hh:mm";
+    } else if (column.kind === "date") {
+      sheet.getColumn(columnIndex).numFmt = "dd/mm/yyyy";
     }
   });
 

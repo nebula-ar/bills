@@ -254,6 +254,18 @@ describe("renderXlsx", () => {
     expect(producto.type).toBe(3);
     expect(producto.value).toBe("Alfajor");
   });
+
+  it("escribe la fecha como fecha nativa (ordenable) y no como texto", async () => {
+    const table = buildSalesTable([makeSale()]);
+    const buffer = await renderXlsx(table);
+    const sheet = await readXlsxSheet(buffer);
+
+    // La columna "Fecha" es la 1: debe ser una fecha real (type 4), no string.
+    const fecha = sheet.getRow(2).getCell(1);
+    expect(fecha.type).toBe(4);
+    expect(fecha.value).toBeInstanceOf(Date);
+    expect(fecha.numFmt).toBe("dd/mm/yyyy hh:mm");
+  });
 });
 
 describe("computePdfLayout y computePdfRowHeight", () => {
