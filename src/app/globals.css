@@ -278,3 +278,17 @@ textarea {
   font-family: var(--font-baloo), var(--font-nunito), ui-sans-serif, sans-serif;
   font-optical-sizing: auto;
 }
+
+/* Dropdown del menú móvil de la Navbar de la landing: fade + slide sutil al
+   abrir. La regla `motion-safe:` del componente se encarga de respetar
+   `prefers-reduced-motion`, igual que el resto de la landing con GSAP. */
+@keyframes mobile-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

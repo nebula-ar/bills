@@ -4,7 +4,7 @@ import { landingTestimonials } from "./landing-content";
 
 export function TestimonialsSection() {
   return (
-    <section id="testimonios" className="border-t border-slate-200 bg-bills-canvas py-24 text-slate-950 lg:py-32">
+    <section id="testimonios" className="scroll-mt-24 border-t border-slate-200 bg-bills-canvas py-24 text-slate-950 lg:py-32">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div data-motion="reveal" className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
