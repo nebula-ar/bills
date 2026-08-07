@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Baloo_2, Geist_Mono, Inter, Montserrat, Nunito } from "next/font/google";
+import { Baloo_2, Funnel_Sans, Geist_Mono, Inter, Montserrat, Nunito } from "next/font/google";
 import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { FlashToaster } from "@/components/flash-toaster";
@@ -41,6 +41,14 @@ const baloo = Baloo_2({
   variable: "--font-baloo",
   subsets: ["latin"],
   weight: ["600", "700", "800"],
+});
+
+// La del login nuevo. Convive con las de arriba: cada una entra por su propia
+// variable y el rubro elige cuál usa, así que sumar una no le saca la suya a
+// nadie.
+const funnelSans = Funnel_Sans({
+  variable: "--font-funnel-sans",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -101,7 +109,7 @@ export default async function RootLayout({
       // y el bloque [data-vertical] de globals.css las redefine. Sin esto el
       // bloque existe pero nunca aplica.
       data-vertical={business?.vertical}
-      className={`${inter.variable} ${geistMono.variable} ${montserrat.variable} ${nunito.variable} ${baloo.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} ${montserrat.variable} ${nunito.variable} ${baloo.variable} ${funnelSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background">
         {children}

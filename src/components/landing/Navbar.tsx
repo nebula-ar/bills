@@ -1,12 +1,13 @@
 import Link from "next/link";
 
+import { BrandLogo } from "@/lib/brand-logo";
+
 export function Navbar() {
   return (
     <nav className="fixed inset-x-0 top-0 z-50 border-b border-slate-300/70 bg-bills-paper/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
-        <Link href="/" className="inline-flex items-center gap-2.5 text-[22px] font-black tracking-[-0.06em] text-slate-950">
-          <span className="grid h-8 w-8 -rotate-3 place-items-center rounded-[10px] bg-slate-950 text-sm font-black text-[var(--accent-brand)]">B</span>
-          Bills
+        <Link href="/" className="inline-flex items-center gap-2.5">
+          <BrandLogo variant="blue" height={32} className="-rotate-3" />
         </Link>
         <div className="hidden items-center gap-7 text-sm font-bold text-slate-500 md:flex">
           <Link href="/#producto" className="transition hover:text-slate-950">Producto</Link>

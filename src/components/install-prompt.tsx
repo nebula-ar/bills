@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { X } from "@/components/icons";
+import { BrandLogo } from "@/lib/brand-logo";
 
 // Cartel para instalar la PWA. En iOS no existe prompt automático, así que
 // mostramos las instrucciones (Compartir → Agregar a inicio). En Android/Chrome
@@ -106,7 +107,7 @@ export function InstallPrompt() {
             className="flex size-12 shrink-0 items-center justify-center rounded-2xl"
             style={{ backgroundImage: "linear-gradient(135deg, #2563eb, #1d4ed8)" }}
           >
-            <StoreGlyph />
+            <BrandLogo iconOnly height={22} label="Bills" variant="white" />
           </div>
           <div className="min-w-0">
             <p className="text-[15px] font-black tracking-tight text-slate-950">
@@ -139,29 +140,6 @@ export function InstallPrompt() {
         )}
       </div>
     </div>
-  );
-}
-
-// Glifo del producto: un local, no unas tijeras — Bills ya no es solo para
-// barberías. Va inline (no por Iconify) porque este cartel aparece antes de que
-// el usuario tenga sesión y conviene que no dependa de nada.
-function StoreGlyph() {
-  return (
-    <svg
-      width={26}
-      height={26}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#ffffff"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 9.5 4.5 4h15L21 9.5" />
-      <path d="M3 9.5a2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 3 0" />
-      <path d="M5 11.5V20h14v-8.5" />
-      <path d="M9.5 20v-5h5v5" />
-    </svg>
   );
 }
 

@@ -4,6 +4,7 @@ import { checkEmailAvailableAction, registerBusinessAction } from "@/app/registe
 import { Vertical } from "@/generated/prisma/enums";
 import { VERTICAL_ORDER, VERTICAL_PRESETS, verticalPreset } from "@/lib/vertical";
 import { ArrowLeft, ArrowRight, Check, DynamicIcon, Loader2 } from "@/components/icons";
+import { BrandLogo } from "@/lib/brand-logo";
 import { onboardingSteps } from "@/modules/onboarding/onboarding.logic";
 import Link from "next/link";
 import { useMemo, useState, useTransition, type KeyboardEvent } from "react";
@@ -195,13 +196,17 @@ export function RegisterWizard() {
         {phase === "welcome" ? (
           <div className="flex flex-1 flex-col px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:px-8 sm:py-10">
             <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
+              {/* Sin `text-white`: adentro ya no hay una "B" de texto sino el
+                  logo, así que heredar color no pinta nada. La sombra sí queda
+                  en `primary` y no en `blue-600`: en la raíz resuelve al mismo
+                  azul, pero no vuelve a clavar el color a mano. */}
               <div
                 aria-label="Bienvenida a Bills"
-                className="grid size-24 place-items-center rounded-[2rem] bg-linear-to-br from-blue-600 to-violet-600 text-white shadow-lg shadow-primary/30"
+                className="grid size-24 place-items-center rounded-[2rem] bg-linear-to-br from-blue-600 to-violet-600 shadow-lg shadow-primary/30"
                 role="img"
                 style={{ animation: "bbPop .6s cubic-bezier(.34,1.56,.64,1) both" }}
               >
-                <DynamicIcon className="size-12" name="solar:shop-2-bold" />
+                <BrandLogo iconOnly height={40} label="Bills" variant="white" />
               </div>
               <div className="duration-500 animate-in fade-in slide-in-from-bottom-2" style={stagger(1)}>
                 <h1 className="text-3xl font-black tracking-[-0.06em]">¡Creá tu negocio!</h1>

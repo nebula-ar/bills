@@ -1,13 +1,14 @@
 import Link from "next/link";
 
+import { BrandLogo } from "@/lib/brand-logo";
+
 export function Footer() {
   return (
     <footer className="bg-slate-950 px-5 pb-8 pt-14 text-white sm:px-8 lg:px-12">
       <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-[1fr_auto_auto]">
         <div>
-          <Link href="/" className="inline-flex items-center gap-2.5 text-[22px] font-black tracking-[-0.06em]">
-            <span className="grid h-8 w-8 -rotate-3 place-items-center rounded-[10px] bg-[var(--accent-brand)] text-sm font-black text-slate-950">B</span>
-            Bills
+          <Link href="/" className="inline-flex items-center gap-2.5">
+            <BrandLogo variant="white" height={32} className="-rotate-3" />
           </Link>
           <p className="mt-4 max-w-xs text-sm leading-6 text-slate-400">Gestión simple para negocios que quieren trabajar con más claridad.</p>
         </div>

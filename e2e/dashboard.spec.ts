@@ -23,7 +23,9 @@ test.describe("Dashboard", () => {
     await page.getByRole("button", { name: "Nuevo gasto" }).click();
     await page.getByRole("button", { name: "Cargar un gasto" }).click();
     await page.locator('input[name="amount"]').fill("246800");
-    await page.getByRole("button", { name: "Mercadería" }).click();
+    // exact: true — las filas de gastos recientes también son botones cuyo
+    // nombre accesible contiene "Mercadería" (p. ej. "1 ago Mercadería Efectivo").
+    await page.getByRole("button", { name: "Mercadería", exact: true }).click();
     // El aviso está antes de guardar, que es cuando sirve.
     await expect(page.getByText(/no baja la ganancia/)).toBeVisible();
     await page.getByRole("button", { name: "Registrar gasto" }).click();
