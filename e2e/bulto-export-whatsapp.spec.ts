@@ -27,6 +27,15 @@ test.describe("Bulto, export y WhatsApp", () => {
   test("el export de ventas descarga CSV, Excel y PDF", async ({ page }) => {
     await page.goto("/exportar");
 
+    // El período por defecto es el mes en curso (del 1° a hoy): quien vendió
+    // recién y exporta sin tocar las fechas tiene que ver esas ventas. Esto
+    // evita que el bug de la venta "perdida" vuelva (NEBU-25).
+    const hoy = new Date();
+    const mes = `${hoy.getMonth() + 1}`.padStart(2, "0");
+    const dia = `${hoy.getDate()}`.padStart(2, "0");
+    await expect(page.getByLabel("Desde")).toHaveValue(`${hoy.getFullYear()}-${mes}-01`);
+    await expect(page.getByLabel("Hasta")).toHaveValue(`${hoy.getFullYear()}-${mes}-${dia}`);
+
     // Cada link de descarga lleva dataset y formato en el href; los cuatro
     // datasets tienen un "CSV", así que se desambigua por el href de ventas.
     const ventasCsv = page.locator('a[href*="dataset=ventas"][href*="format=csv"]');
