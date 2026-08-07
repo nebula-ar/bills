@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ArrowLeft, ShieldCheck } from "@/components/icons";
+import { BrandLogo } from "@/lib/brand-logo";
 import { LoginForm } from "./login-form";
 
 type LoginPageProps = {
@@ -78,12 +79,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </Link>
         </div>
 
-        {/* Marca Bills */}
-        <div className="relative z-10 flex items-center gap-2.5 px-5 pt-4">
-          <span className="grid size-8 place-items-center rounded-lg bg-blue-600 font-funnel-sans text-lg font-extrabold text-white">
-            B
-          </span>
-          <span className="font-funnel-sans text-xl font-extrabold text-white">Bills</span>
+        {/* Marca Bills (fondo oscuro → logo blanco) */}
+        <div className="relative z-10 px-5 pt-4">
+          <BrandLogo variant="white" height={30} />
         </div>
 
         {/* Ilustración en el espacio oscuro: la misma escena completa que en
@@ -132,15 +130,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             ))}
           </div>
 
-          {/* Marca Bills */}
-          <div className="relative z-10 flex items-center gap-2.5">
-            <span className="grid size-[34px] place-items-center rounded-[10px] bg-blue-600 font-funnel-sans text-xl font-extrabold text-white">
-              B
-            </span>
-            {/* El spec del .pen dice #1A1A1A (resto de la versión clara del
-                diseño): sobre #070A19 queda casi invisible, así que el wordmark
-                se renderiza en blanco como se ve en el PNG. */}
-            <span className="font-funnel-sans text-2xl font-extrabold text-white">Bills</span>
+          {/* Marca Bills (panel oscuro → logo blanco) */}
+          <div className="relative z-10">
+            <BrandLogo variant="white" height={34} />
           </div>
 
           {/* Vista de negocio */}
@@ -173,12 +165,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         {/* Área de acceso */}
         <div className="flex flex-1 items-center justify-center rounded-tr-[24px] rounded-br-[24px] bg-white px-9 py-12">
           <div className="flex w-full max-w-[360px] flex-col gap-[18px]">
-            {/* Marca chica */}
-            <div className="flex items-center gap-2">
-              <span className="grid size-7 place-items-center rounded-lg bg-blue-600 font-funnel-sans text-[17px] font-extrabold text-white">
-                B
-              </span>
-              <span className="font-funnel-sans text-xl font-extrabold text-slate-950">Bills</span>
+            {/* Marca chica (área de acceso clara → logo azul) */}
+            <div>
+              <BrandLogo variant="blue" height={26} />
             </div>
 
             <div className="grid gap-2.5">

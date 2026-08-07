@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 // Web App Manifest: hace la app instalable (Android/Chrome) y define cómo se
-// abre en modo standalone. En iOS el ícono de inicio sale de apple-icon.tsx.
+// abre en modo standalone. En iOS el ícono de inicio sale de apple-icon.png.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Bills",
@@ -14,10 +14,10 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     orientation: "portrait",
     background_color: "#f6f7fb",
-    theme_color: "#2563eb",
+    theme_color: "#1F6FFF",
     icons: [
-      { src: "/icon", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/icon", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/icon.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icon.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }
