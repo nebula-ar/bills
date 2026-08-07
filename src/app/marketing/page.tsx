@@ -207,7 +207,7 @@ export default async function MarketingPage({ searchParams }: MarketingPageProps
         description="Lo que tus clientes se llevan en el mismo ticket, de los últimos 3 meses. Un combo con esto se vende solo."
         actions={
           business.has(AppModule.PROMOTIONS) ? (
-            <Link className="text-xs font-bold text-blue-600 hover:underline" href="/promotions">
+            <Link className="text-xs font-bold text-primary hover:underline" href="/promotions">
               Crear combo
             </Link>
           ) : null

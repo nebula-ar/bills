@@ -45,7 +45,7 @@ const STEPS = [
 ] as const;
 
 const input =
-  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center text-2xl font-black text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100";
+  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center text-2xl font-black text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15";
 
 export function ScanProductSheet({
   open,
@@ -145,7 +145,7 @@ export function ScanProductSheet({
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex items-start justify-between gap-3 px-5 pt-6">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-wide text-blue-600">
+            <p className="text-xs font-black uppercase tracking-wide text-primary">
               Producto nuevo · {step + 1}/{STEPS.length}
             </p>
             <h3 className="mt-1 text-xl font-black tracking-tight text-slate-950">{meta.title}</h3>
@@ -201,7 +201,7 @@ export function ScanProductSheet({
           ) : null}
 
           {step === 1 ? (
-            <label className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white">
+            <label className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white">
               <span className="text-2xl font-black text-slate-400">$</span>
               <input
                 className="w-full bg-transparent px-2 py-4 text-center text-2xl font-black text-slate-950 outline-none"
@@ -216,7 +216,7 @@ export function ScanProductSheet({
 
           {step === 2 ? (
             <>
-              <label className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white">
+              <label className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white">
                 <span className="text-2xl font-black text-slate-400">$</span>
                 <input
                   className="w-full bg-transparent px-2 py-4 text-center text-2xl font-black text-slate-950 outline-none"
@@ -249,7 +249,7 @@ export function ScanProductSheet({
                 {units.slice(0, 6).map((option) => (
                   <button
                     className={`rounded-xl px-2 py-2.5 text-xs font-black transition active:scale-95 ${
-                      unit === option.value ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
+                      unit === option.value ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
                     }`}
                     key={option.value}
                     onClick={() => setUnit(option.value)}
@@ -319,7 +319,7 @@ export function ScanProductSheet({
           ) : null}
 
           <button
-            className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
             disabled={!canAdvance || isPending}
             onClick={next}
             type="button"

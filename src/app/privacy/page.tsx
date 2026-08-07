@@ -14,7 +14,7 @@ export default function PrivacyPage() {
 
       <main className="pt-32 pb-24">
         <section className="max-w-3xl mx-auto px-6">
-          <p className="text-sm font-black uppercase tracking-[0.24em] text-blue-600 mb-4">Legal</p>
+          <p className="text-sm font-black uppercase tracking-[0.24em] text-primary mb-4">Legal</p>
           <h1 className="text-4xl font-bold font-montserrat mb-4">Política de Privacidad</h1>
           <p className="text-sm text-slate-500 mb-12">Última actualización: julio de 2026.</p>
 
@@ -24,11 +24,11 @@ export default function PrivacyPage() {
               <p>
                 Bills es el sistema de gestión operado para administrar negocios de productos y servicios. Ante cualquier consulta sobre esta política o tus datos, podés
                 escribirnos a{" "}
-                <a href="mailto:wmatias1009@gmail.com" className="text-blue-600 font-medium hover:underline">
+                <a href="mailto:wmatias1009@gmail.com" className="text-primary font-medium hover:underline">
                   wmatias1009@gmail.com
                 </a>{" "}
                 o por WhatsApp al{" "}
-                <a href="https://wa.me/5491159804610" className="text-blue-600 font-medium hover:underline">
+                <a href="https://wa.me/5491159804610" className="text-primary font-medium hover:underline">
                   +54 9 11 5980-4610
                 </a>
                 .
@@ -84,7 +84,7 @@ export default function PrivacyPage() {
               <p>
                 Podés pedirnos en cualquier momento acceder, corregir o eliminar los datos de tu
                 cuenta y tu negocio. Para ejercer estos derechos, escribinos a{" "}
-                <a href="mailto:wmatias1009@gmail.com" className="text-blue-600 font-medium hover:underline">
+                <a href="mailto:wmatias1009@gmail.com" className="text-primary font-medium hover:underline">
                   wmatias1009@gmail.com
                 </a>
                 .

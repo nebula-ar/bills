@@ -22,7 +22,7 @@ const SIZE_PRESETS = [
 ];
 
 const input =
-  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white";
+  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white";
 
 export function VariantGenerator({
   branchId,
@@ -234,7 +234,7 @@ export function VariantGenerator({
 
           <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
             <button
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
               disabled={!canCreate || isPending}
               onClick={submit}
               type="button"

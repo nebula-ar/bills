@@ -13,7 +13,7 @@ import { useState } from "react";
 // Clases completas (Tailwind necesita verlas literales para no purgarlas).
 const TINTS: Record<string, string> = {
   emerald: "bg-emerald-500 text-white",
-  blue: "bg-blue-500 text-white",
+  blue: "bg-primary text-white",
   violet: "bg-violet-500 text-white",
   orange: "bg-orange-500 text-white",
   rose: "bg-rose-500 text-white",
@@ -75,7 +75,7 @@ export function MobileNav({ nav }: { nav: Nav }) {
           return (
             <Link
               className={`flex min-w-0 flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[0.62rem] font-bold transition active:scale-95 ${
-                active ? "bg-blue-50 text-blue-700" : "text-slate-500"
+                active ? "bg-primary/10 text-primary" : "text-slate-500"
               }`}
               href={item.href}
               key={item.href}
@@ -87,7 +87,7 @@ export function MobileNav({ nav }: { nav: Nav }) {
         })}
         <button
           className={`flex min-w-0 flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[0.62rem] font-bold transition active:scale-95 ${
-            moreActive || moreOpen ? "bg-blue-50 text-blue-700" : "text-slate-500"
+            moreActive || moreOpen ? "bg-primary/10 text-primary" : "text-slate-500"
           }`}
           onClick={() => setMoreOpen(true)}
           type="button"
@@ -108,7 +108,7 @@ export function MobileNav({ nav }: { nav: Nav }) {
               return (
                 <Link
                   className={`flex items-center gap-3 rounded-2xl p-3.5 transition active:scale-[0.99] ${
-                    active ? "bg-blue-50 ring-1 ring-blue-200" : "bg-slate-50"
+                    active ? "bg-primary/10 ring-1 ring-primary/20" : "bg-slate-50"
                   }`}
                   href={item.href}
                   key={item.href}

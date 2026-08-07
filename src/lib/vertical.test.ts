@@ -1,6 +1,7 @@
-import { Vertical } from "@/generated/prisma/enums";
+import { AppModule, Vertical } from "@/generated/prisma/enums";
 import { describe, expect, it } from "vitest";
 
+import { CONFIGURABLE_MODULES, MODULE_INFO, MODULE_REQUIRES } from "./app-modules";
 import { VERTICAL_ORDER, VERTICAL_PRESETS, verticalFeatures } from "./vertical";
 
 // Lo que cada rubro muestra. El caso que motivó estos tests: una verdulería con
@@ -92,5 +93,97 @@ describe("presets", () => {
     const servicios = barberia.catalog.filter((item) => item.kind === undefined);
 
     expect(servicios.length).toBeGreaterThan(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pastelería / panadería: el rubro que trae Migas.
+//
+// Es el primer rubro gastronómico de la app. Lo que lo distingue de los otros
+// no es que venda mercadería —eso ya lo hace un kiosco— sino que la venta
+// arranca ANTES del cobro: se toma un pedido en una mesa, la cocina lo prepara
+// y recién al final se cobra. De ahí los tres módulos nuevos.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("pastelería", () => {
+  it("el rubro existe y trae su preset completo", () => {
+    const preset = VERTICAL_PRESETS[Vertical.BAKERY];
+
+    expect(preset).toBeDefined();
+    expect(preset.vertical).toBe(Vertical.BAKERY);
+    expect(preset.label.length).toBeGreaterThan(0);
+    expect(preset.tagline.length).toBeGreaterThan(0);
+    // El ejemplo de nombre tiene que sonar a panadería, no a barbería.
+    expect(preset.namePlaceholder).toMatch(/panader|pastel|confiter/i);
+  });
+
+  it("arranca con los módulos de gastronomía prendidos", () => {
+    // Sin mesas y cocina, una panadería con salón no puede laburar el día uno.
+    const { modules } = VERTICAL_PRESETS[Vertical.BAKERY];
+
+    expect(modules).toContain(AppModule.TABLES);
+    expect(modules).toContain(AppModule.KITCHEN);
+    expect(modules).toContain(AppModule.RECIPES);
+    // Y lo que cualquier comercio con mercadería necesita.
+    expect(modules).toContain(AppModule.STOCK);
+    expect(modules).toContain(AppModule.CASH);
+  });
+
+  it("vende mercadería: se escanea y se repone por bulto", () => {
+    // Una docena de facturas es un bulto. Un corte de pelo no.
+    const features = verticalFeatures(Vertical.BAKERY);
+
+    expect(features.barcodes).toBe(true);
+    expect(features.packs).toBe(true);
+    // Talles no: una medialuna no viene en S/M/L.
+    expect(features.variants).toBe(false);
+  });
+
+  it("su página pública es un catálogo, no una agenda de turnos", () => {
+    // A una panadería le encargás una torta; no reservás un turno.
+    expect(verticalFeatures(Vertical.BAKERY).publicPage).toBe("catalog");
+  });
+
+  it("el catálogo semilla es de panadería y tiene precios", () => {
+    const { catalog, categories } = VERTICAL_PRESETS[Vertical.BAKERY];
+
+    expect(catalog.length).toBeGreaterThan(5);
+    expect(categories.length).toBeGreaterThan(2);
+    // Todo producto sembrado tiene precio y categoría declarada, si no el alta
+    // deja al negocio con un catálogo a medio cargar.
+    for (const item of catalog) {
+      expect(item.price, item.name).toBeGreaterThan(0);
+      expect(categories, `${item.name}: categoría no declarada`).toContain(item.category);
+    }
+  });
+});
+
+describe("módulos de gastronomía", () => {
+  it("los tres tienen su metadata para la nav y el onboarding", () => {
+    for (const modulo of [AppModule.TABLES, AppModule.KITCHEN, AppModule.RECIPES]) {
+      const info = MODULE_INFO[modulo];
+
+      expect(info, modulo).toBeDefined();
+      expect(info.label.length, modulo).toBeGreaterThan(0);
+      expect(info.hint.length, modulo).toBeGreaterThan(0);
+      expect(info.icon, modulo).toMatch(/^solar:/);
+    }
+  });
+
+  it("la cocina depende de las mesas", () => {
+    // El KDS muestra comandas. Sin mesas no hay comanda que mostrar: prender
+    // cocina sola dejaría una pantalla vacía para siempre.
+    expect(MODULE_REQUIRES[AppModule.KITCHEN]).toBe(AppModule.TABLES);
+  });
+
+  it("las recetas dependen del stock", () => {
+    // Una receta descuenta ingredientes. Sin stock no hay de dónde descontar.
+    expect(MODULE_REQUIRES[AppModule.RECIPES]).toBe(AppModule.STOCK);
+  });
+
+  it("se pueden prender y apagar desde configuración", () => {
+    for (const modulo of [AppModule.TABLES, AppModule.KITCHEN, AppModule.RECIPES]) {
+      expect(CONFIGURABLE_MODULES, modulo).toContain(modulo);
+    }
   });
 });

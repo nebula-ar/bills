@@ -34,7 +34,7 @@ function TerminalRow({ terminal }: { terminal: Terminal }) {
   return (
     <div className="rounded-2xl bg-slate-50 p-3">
       <div className="flex items-center gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-blue-700 ring-1 ring-slate-950/5">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-primary ring-1 ring-slate-950/5">
           <Icon className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
@@ -43,7 +43,7 @@ function TerminalRow({ terminal }: { terminal: Terminal }) {
         </div>
         <button
           className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-black transition active:scale-95 ${
-            copied ? "bg-emerald-100 text-emerald-700" : "bg-blue-600 text-white"
+            copied ? "bg-emerald-100 text-emerald-700" : "bg-primary text-white"
           }`}
           onClick={handleCopy}
           type="button"
@@ -122,7 +122,7 @@ export function PosTerminals({
             </button>
           </div>
           <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-5 pb-6 pt-4">
-            <p className="rounded-2xl bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-700">
+            <p className="rounded-2xl bg-primary/10 px-4 py-3 text-xs font-semibold text-primary">
               Compartí el link de cada terminal con quien la usa. El empleado entra, pone su PIN y registra la venta.
             </p>
             {terminals.map((terminal) => (

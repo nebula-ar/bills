@@ -27,6 +27,46 @@ import { PRODUCE_REFERENCE_PRICES } from "./produce-prices";
 // de la app representa "sin precio".
 const NO_PRICE = 0;
 
+// Lo que el negocio eligió en la pantalla de revisión: qué productos entran,
+// con qué precio y con cuánta existencia.
+export type SeedSelection = { name: string; price?: number; stock?: number };
+
+function positiveInteger(value: number | undefined) {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
+// Cruza lo elegido contra el catálogo del rubro.
+//
+// El producto se RECONSTRUYE desde el catálogo del servidor: nombre, categoría,
+// unidad y si es mercadería salen de acá, y del cliente se toman solo el precio
+// y la existencia. Un nombre que no está en el catálogo se ignora. Si no fuera
+// así, cualquiera podría mandar un producto inventado a la carga masiva, que
+// escribe directo en la base salteándose los casos de uso de alta.
+//
+// Sin selección entra el catálogo entero, que es el atajo de "traer todo".
+export function applySeedSelection(catalog: SeedProduct[], selection?: SeedSelection[]): SeedProduct[] {
+  if (!selection) return catalog;
+
+  const elegido = new Map(selection.map((item) => [item.name, item]));
+
+  return catalog.flatMap((item) => {
+    const pedido = elegido.get(item.name);
+
+    if (!pedido) return [];
+
+    return [
+      {
+        ...item,
+        price: positiveInteger(pedido.price) ?? item.price,
+        // Existencia declarada por quien la contó. Sin número no se asienta
+        // nada: un movimiento INITIAL dice que entró mercadería, y si nadie la
+        // contó, no entró.
+        stock: positiveInteger(pedido.stock),
+      },
+    ];
+  });
+}
+
 export function presetCatalogFor(vertical: Vertical): SeedProduct[] {
   if (vertical !== Vertical.GROCERY) {
     return verticalPreset(vertical).catalog;

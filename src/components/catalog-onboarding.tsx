@@ -88,13 +88,13 @@ export function CatalogOnboarding({
           primera vez se queda mirando. Así que una manda y las otras esperan. */}
       {presetCount > 0 ? (
         <button
-          className="mt-4 flex w-full flex-col gap-3 rounded-2xl bg-white p-5 text-left ring-2 ring-blue-600 transition active:scale-[0.99] disabled:opacity-60"
+          className="mt-4 flex w-full flex-col gap-3 rounded-2xl bg-white p-5 text-left ring-2 ring-primary transition active:scale-[0.99] disabled:opacity-60"
           disabled={isPending}
           onClick={seedPreset}
           type="button"
         >
           <span className="flex items-center gap-3.5">
-            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-blue-600 text-white">
+            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary text-white">
               {isPending ? <Loader2 className="size-6 animate-spin" /> : <DynamicIcon className="size-6" name={catalogIcon} />}
             </span>
             <span className="min-w-0 flex-1">
@@ -107,7 +107,7 @@ export function CatalogOnboarding({
                   : `${presetCount} ${presetCount === 1 ? catalogSingular.toLowerCase() : catalogPlural.toLowerCase()} con precios sugeridos${presetHasStock ? " y existencia inicial" : ""}.`}
               </span>
             </span>
-            <ArrowRight className="size-5 shrink-0 text-blue-600" />
+            <ArrowRight className="size-5 shrink-0 text-primary" />
           </span>
 
           {presetSample.length > 0 ? (
@@ -119,7 +119,7 @@ export function CatalogOnboarding({
 
           {/* Lo que necesita alguien que nunca usó un sistema: saber que no se
               rompe nada. Sin esto, el botón grande da miedo y no lo toca. */}
-          <span className="flex items-start gap-2 rounded-xl bg-blue-50 px-3 py-2 text-xs leading-5 text-blue-900">
+          <span className="flex items-start gap-2 rounded-xl bg-primary/10 px-3 py-2 text-xs leading-5 text-primary">
             <Check className="mt-0.5 size-3.5 shrink-0" />
             Podés cambiar los precios, borrar lo que no vendas y agregar lo tuyo cuando quieras.
           </span>

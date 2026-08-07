@@ -47,15 +47,41 @@ function money(value: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
 }
 
+function Th({ children, alineado = "izquierda" }: { children: React.ReactNode; alineado?: "izquierda" | "derecha" }) {
+  return (
+    <th
+      className={`px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500 ${
+        alineado === "derecha" ? "text-right" : ""
+      }`}
+      scope="col"
+    >
+      {children}
+    </th>
+  );
+}
+
 type SalesListProps = {
   sales: SalesListSale[];
   // Nombre del negocio: encabeza el comprobante que se manda por WhatsApp.
   businessName?: string;
   initialCursor?: string | null;
   loadMore?: (cursor: string) => Promise<{ sales: SalesListSale[]; nextCursor: string | null }>;
+  /** Qué decir cuando no hay nada: con filtros, "no hay ventas" es ambiguo. */
+  emptyHint?: string;
+  /** Totales del período completo, para el pie de la tabla. */
+  totalDelPeriodo?: number;
+  ventasDelPeriodo?: number;
 };
 
-export function SalesList({ sales, businessName = "", initialCursor = null, loadMore }: SalesListProps) {
+export function SalesList({
+  sales,
+  businessName = "",
+  initialCursor = null,
+  loadMore,
+  emptyHint = "Tocá el botón «+» abajo para cargar la primera.",
+  totalDelPeriodo,
+  ventasDelPeriodo,
+}: SalesListProps) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -67,6 +93,16 @@ export function SalesList({ sales, businessName = "", initialCursor = null, load
   const [invoicing, startInvoicing] = useTransition();
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const selected = items.find((sale) => sale.id === selectedId) ?? null;
+
+  // Lo que suma lo que está a la vista. Las canceladas no entran: si sumaran,
+  // el pie diría más plata de la que entró, igual que en las tarjetas de arriba.
+  const enPantalla = items.reduce(
+    (acumulado, sale) =>
+      sale.status === "CANCELLED"
+        ? acumulado
+        : { cantidad: acumulado.cantidad + 1, total: acumulado.total + sale.total },
+    { cantidad: 0, total: 0 },
+  );
 
   // Sincroniza con la data fresca del server tras un router.refresh() (p.ej.
   // después de emitir una factura), sin perder páginas ya cargadas con "más".
@@ -108,15 +144,105 @@ export function SalesList({ sales, businessName = "", initialCursor = null, load
         <div className="mb-4 flex size-20 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-950/5">
           <ReceiptText className="size-8 text-slate-300" />
         </div>
-        <p className="text-sm font-bold text-slate-600">Todavía no hay ventas</p>
-        <p className="mt-1 text-xs text-slate-400">Tocá el botón «+» abajo para cargar la primera.</p>
+        <p className="text-sm font-bold text-slate-600">No hay ventas para mostrar</p>
+        <p className="mt-1 text-xs text-slate-400">{emptyHint}</p>
       </div>
     );
   }
 
   return (
     <>
-      <ul className="mt-4 space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
+      {/* En escritorio, tabla. Las tarjetas de a dos columnas obligaban a
+          comparar dos ventas leyendo en zigzag: los importes quedaban en
+          posiciones distintas y no se podía barrer la columna con el ojo, que
+          es justo para lo que se abre un historial. En el celular la tabla no
+          entra, así que ahí siguen las tarjetas. */}
+      <div className="mt-4 hidden overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5 lg:block">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-slate-100 text-left">
+              <Th>Hora</Th>
+              <Th>Atendió</Th>
+              <Th>Detalle</Th>
+              <Th>Pago</Th>
+              <Th>Comprobante</Th>
+              <Th alineado="derecha">Total</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((sale) => {
+              const cancelled = sale.status === "CANCELLED";
+              return (
+                <tr
+                  className="cursor-pointer border-b border-slate-50 transition last:border-0 hover:bg-slate-50"
+                  data-testid="sale-row-table"
+                  key={sale.id}
+                  onClick={() => {
+                    setSelectedId(sale.id);
+                    setConfirming(false);
+                  }}
+                >
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-bold text-slate-500" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    {cancelled ? <span className="font-black text-rose-600">Cancelada</span> : `${sale.timeLabel} hs`}
+                  </td>
+                  <td className={`whitespace-nowrap px-4 py-3 text-sm font-bold ${cancelled ? "text-slate-400" : "text-slate-950"}`}>
+                    {sale.staffName}
+                  </td>
+                  {/* El detalle se queda con el ancho que sobra: las demás
+                      columnas miden lo que miden, y el espacio de más sirve para
+                      leer nombres de producto enteros, no para estirar la hora. */}
+                  <td className="w-full max-w-0 truncate px-4 py-3 text-sm text-slate-500">{sale.itemSummary}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-bold text-slate-600">{sale.paymentSummary}</td>
+                  <td className="whitespace-nowrap px-4 py-3">
+                    {cancelled ? null : (
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${AFIP_BADGE_STYLES[sale.afipStatus]}`}>
+                        {sale.invoiceType ? `Factura ${sale.invoiceType} · ` : ""}
+                        {AFIP_STATUS_LABELS[sale.afipStatus]}
+                      </span>
+                    )}
+                  </td>
+                  {/* Los importes a la derecha y con cifras de ancho fijo: así
+                      las unidades quedan alineadas entre filas y la columna se
+                      puede sumar de un vistazo. */}
+                  <td
+                    className={`whitespace-nowrap px-4 py-3 text-right text-base font-black ${cancelled ? "text-slate-400 line-through" : "text-slate-950"}`}
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {money(sale.total)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+
+          {/* Totalizador al pie. Suma lo que ESTÁ EN PANTALLA y lo dice: la
+              tabla muestra una página y el período puede tener más. Un pie que
+              dijera el total del período mientras las filas son otras haría
+              dudar de los dos números; poniendo los dos, la diferencia se
+              entiende sola. */}
+          <tfoot>
+            <tr className="border-t-2 border-slate-100 bg-slate-50">
+              <td className="px-4 py-3 text-sm font-black text-slate-600" colSpan={4}>
+                {enPantalla.cantidad === ventasDelPeriodo
+                  ? `${enPantalla.cantidad} ${enPantalla.cantidad === 1 ? "venta" : "ventas"}`
+                  : `${enPantalla.cantidad} de ${ventasDelPeriodo} en pantalla`}
+              </td>
+              <td className="whitespace-nowrap px-4 py-3 text-right text-xs font-black uppercase tracking-wide text-slate-500">
+                {enPantalla.total === totalDelPeriodo ? "Total" : "En pantalla"}
+              </td>
+              <td
+                className="whitespace-nowrap px-4 py-3 text-right text-lg font-black text-slate-950"
+                data-testid="total-tabla"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {money(enPantalla.total)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <ul className="mt-4 space-y-2.5 lg:hidden">
         {items.map((sale, index) => {
           const cancelled = sale.status === "CANCELLED";
           return (
@@ -307,7 +433,7 @@ export function SalesList({ sales, businessName = "", initialCursor = null, load
                         </p>
                       ) : null}
                       <button
-                        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3.5 text-sm font-black text-blue-700 transition active:scale-[0.99] disabled:opacity-60"
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3.5 text-sm font-black text-primary transition active:scale-[0.99] disabled:opacity-60"
                         disabled={invoicing}
                         onClick={() => handleEmitInvoice(selected.id)}
                         type="button"
@@ -332,7 +458,7 @@ export function SalesList({ sales, businessName = "", initialCursor = null, load
                   <form action={cancelSaleAction} className="space-y-3">
                     <input name="saleId" type="hidden" value={selected.id} />
                     <textarea
-                      className="min-h-20 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      className="min-h-20 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                       maxLength={500}
                       name="reason"
                       placeholder="Motivo de la cancelación (opcional)"

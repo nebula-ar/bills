@@ -92,7 +92,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
               : "Está al día."
           }
           actions={
-            <Link className="text-xs font-bold text-blue-600 hover:underline" href="/customers">
+            <Link className="text-xs font-bold text-primary hover:underline" href="/customers">
               Cerrar ficha
             </Link>
           }
@@ -281,7 +281,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                 {customers.map((customer) => (
                   <tr className="border-t border-slate-100" key={customer.id}>
                     <td className="py-2.5 pr-3">
-                      <Link className="font-bold text-slate-950 hover:text-blue-600" href={`/customers?customerId=${customer.id}`}>
+                      <Link className="font-bold text-slate-950 hover:text-primary" href={`/customers?customerId=${customer.id}`}>
                         {customer.name}
                       </Link>
                       <p className="text-xs text-slate-400">

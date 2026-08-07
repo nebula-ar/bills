@@ -51,7 +51,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
   const editing = data.branches.find((branch) => branch.id === editId) ?? null;
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-none lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -91,7 +91,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
                   onClick={() => setEditId(branch.id)}
                   type="button"
                 >
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                     <Store className="size-5" />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -133,7 +133,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               Nombre
               <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                 name="name"
                 placeholder="Ej: Sucursal Centro"
                 required
@@ -143,7 +143,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               Dirección (opcional)
               <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                 name="address"
                 placeholder="Ej: Av. Rivadavia 1234"
                 type="text"
@@ -155,7 +155,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
           </div>
           <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
             <button
-              className="w-full rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+              className="w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
               type="submit"
             >
               Crear sucursal
@@ -184,7 +184,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Nombre
                 <input
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                   defaultValue={editing.name}
                   name="name"
                   required
@@ -194,7 +194,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Dirección (opcional)
                 <input
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                   defaultValue={editing.address ?? ""}
                   name="address"
                   placeholder="Ej: Av. Rivadavia 1234"
@@ -205,7 +205,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
             </div>
             <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
               <button
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
                 type="submit"
               >
                 <Check className="size-5" />
@@ -218,7 +218,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
 
       <button
         aria-label="Nueva sucursal"
-        className="fixed bottom-[96px] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 transition hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
+        className="fixed bottom-[96px] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 transition hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
         onClick={() => setNewOpen(true)}
         type="button"
       >

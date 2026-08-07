@@ -57,7 +57,7 @@ export default async function PresupuestosPage() {
 
       <div className="flex flex-wrap items-center gap-2">
         <Link
-          className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white transition active:scale-95"
+          className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white transition active:scale-95"
           href="/presupuestos/nuevo"
         >
           Nuevo presupuesto
@@ -128,7 +128,7 @@ export default async function PresupuestosPage() {
                       <div className="flex flex-wrap items-center justify-end gap-1.5">
                         {sellable ? (
                           <Link
-                            className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white transition active:scale-95"
+                            className="rounded-xl bg-primary px-3 py-2 text-xs font-black text-white transition active:scale-95"
                             href={`/sales/new?quote=${quote.id}`}
                           >
                             Cobrar

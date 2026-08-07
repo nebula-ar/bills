@@ -1,6 +1,6 @@
 "use server";
 
-import { PaymentMethod, TaxCondition } from "@/generated/prisma/client";
+import { PaymentMethod, SaleChannel, TaxCondition } from "@/generated/prisma/client";
 import { requireAdminSession } from "@/lib/auth";
 import { logError } from "@/lib/logger";
 import { getSaleErrorMessage, getSaleErrorMessageFor } from "@/lib/sale-error-messages";
@@ -31,6 +31,11 @@ export type SubmitSaleInput = {
   customerName?: string;
   customerTaxId?: string;
   customerTaxCondition?: TaxCondition;
+  // Por dónde salió: mostrador, para llevar o servida en una mesa. Solo lo manda
+  // el rubro que usa salón; el resto no lo elige y queda sin canal.
+  channel?: SaleChannel;
+  tableName?: string;
+  waiterName?: string;
 };
 
 export type SubmitSaleResult = { ok: true } | { ok: false; error: string };
@@ -65,6 +70,9 @@ export async function submitSale(input: SubmitSaleInput): Promise<SubmitSaleResu
       customerName: input.customerName,
       customerTaxId: input.customerTaxId,
       customerTaxCondition: input.customerTaxCondition,
+      channel: input.channel,
+      tableName: input.tableName,
+      waiterName: input.waiterName,
     });
 
     // El turno queda cobrado y enlazado: la agenda del día lo muestra así.

@@ -17,7 +17,7 @@ const TONE_TILE: Record<Tone, string> = {
   positive: "bg-emerald-50 text-emerald-900",
   warning: "bg-amber-50 text-amber-900",
   danger: "bg-rose-50 text-rose-900",
-  info: "bg-blue-50 text-blue-900",
+  info: "bg-primary/10 text-primary",
 };
 
 const TONE_BADGE: Record<Tone, string> = {
@@ -25,7 +25,7 @@ const TONE_BADGE: Record<Tone, string> = {
   positive: "bg-emerald-100 text-emerald-800",
   warning: "bg-amber-100 text-amber-800",
   danger: "bg-rose-100 text-rose-800",
-  info: "bg-blue-100 text-blue-800",
+  info: "bg-primary/15 text-primary",
 };
 
 // Fila de números grandes que encabeza cada pantalla: lo que el dueño mira
@@ -112,14 +112,14 @@ export function Field({
 }
 
 export const inputClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
+  "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/15";
 
 export const selectClass = `${inputClass} appearance-none`;
 
 export function PrimaryButton({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <button
-      className={`rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700 ${className}`}
+      className={`rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm transition active:scale-95 hover:bg-primary-strong ${className}`}
       type="submit"
     >
       {children}

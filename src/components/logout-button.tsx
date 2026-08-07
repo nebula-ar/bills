@@ -25,7 +25,7 @@ export function LogoutButton({ className, label = "Cerrar sesión" }: LogoutButt
   return (
     <Button
       aria-label={label}
-      className={cn("justify-start gap-2 text-slate-600 hover:text-blue-700", className)}
+      className={cn("justify-start gap-2 text-slate-600 hover:text-primary", className)}
       disabled={isPending}
       onClick={handleLogout}
       size="sm"

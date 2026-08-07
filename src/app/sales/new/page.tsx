@@ -9,6 +9,7 @@ import { findUserWithSellsAs } from "@/modules/auth/user.repository";
 import { getSaleEntryBranches } from "@/modules/sales/get-sale-entry-options.use-case";
 import { findTopSellingProductIds } from "@/modules/sales/sale.repository";
 import { findStockLevelsForBranches } from "@/modules/stock/stock.repository";
+import { findMesasParaCobrar } from "@/modules/tables/tables.repository";
 import { PosCheckout, type PosBranch, type PosCustomer } from "@/components/pos-checkout";
 
 type NewSalePageProps = {
@@ -41,6 +42,9 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
 
   const usesCustomers = business.has(AppModule.CUSTOMERS);
   const usesStock = business.has(AppModule.STOCK);
+  // Solo el rubro con salón elige mesa al cobrar. Una barbería no tiene por qué
+  // ver un paso preguntando dónde se sentó el cliente.
+  const usesTables = business.has(AppModule.TABLES);
 
   const branches = await getSaleEntryBranches(business.id);
 
@@ -56,16 +60,25 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
 
   // Existencias y clientes solo si el negocio usa esos módulos: una barbería no
   // necesita cargar nada de esto para cobrar un corte.
-  const [stockLevels, customers] = await Promise.all([
+  const [stockLevels, customers, mesasPorSucursal] = await Promise.all([
     usesStock ? findStockLevelsForBranches(branches.map((branch) => branch.id)) : new Map<string, number>(),
     usesCustomers ? getCustomersForSale(business.id) : Promise.resolve([]),
+    usesTables
+      ? Promise.all(
+          branches.map(async (branch) => [branch.id, await findMesasParaCobrar(business.id, branch.id)] as const),
+        ).then((pares) => new Map(pares))
+      : new Map<string, { id: string; name: string; sector: { name: string } | null }[]>(),
   ]);
 
   const posBranches: PosBranch[] = branches.map((branch) => ({
     id: branch.id,
     name: branch.name,
-    businessName: branch.business.name,
     staffs: branch.users.map((staff) => ({ id: staff.id, name: staff.name })),
+    tables: (mesasPorSucursal.get(branch.id) ?? []).map((mesa) => ({
+      id: mesa.id,
+      name: mesa.name,
+      sector: mesa.sector?.name ?? null,
+    })),
     products: branch.productPrices.map((productPrice) => ({
       productId: productPrice.productId,
       name: productPrice.product.name,
@@ -84,6 +97,8 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
       familyId: productPrice.product.familyId,
       familyName: productPrice.product.family?.name ?? null,
       variantLabel: productPrice.product.variantLabel,
+      categoryName: productPrice.product.category?.name ?? null,
+      categoryColor: productPrice.product.category?.color ?? null,
     })),
   }));
 
@@ -119,6 +134,7 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
       quote={quote ? { id: quote.id, customerId: quote.customerId, items: quote.items } : null}
       features={verticalFeatures(business.vertical)}
       salesRank={Object.fromEntries(salesRank)}
+      usesTables={usesTables}
       paymentOptions={paymentOptions}
       sellsAsStaffId={currentUser?.sellsAsId ?? null}
       staffIcon={verticalPreset(business.vertical).staffIcon}

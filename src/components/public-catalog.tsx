@@ -98,7 +98,7 @@ export function PublicCatalog(props: PublicCatalogProps) {
       </header>
 
       <input
-        className="mt-5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400"
+        className="mt-5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40"
         onChange={(event) => setSearch(event.target.value)}
         placeholder={`Buscar en ${props.catalogPlural.toLowerCase()}…`}
         value={search}
@@ -132,14 +132,14 @@ export function PublicCatalog(props: PublicCatalogProps) {
                 )}
 
                 <p className="text-sm font-black leading-tight text-slate-950">{product.name}</p>
-                <p className="mt-1 text-lg font-black text-blue-700">
+                <p className="mt-1 text-lg font-black text-primary">
                   {money(product.price)}
-                  <span className="text-xs font-bold text-blue-500">/{unitShort(product.unit)}</span>
+                  <span className="text-xs font-bold text-primary">/{unitShort(product.unit)}</span>
                 </p>
 
                 <div className="mt-auto pt-2">
                   {quantity > 0 ? (
-                    <div className="flex items-center justify-between rounded-full bg-blue-50 p-1 ring-1 ring-blue-200">
+                    <div className="flex items-center justify-between rounded-full bg-primary/10 p-1 ring-1 ring-primary/20">
                       <button
                         aria-label={`Quitar ${product.name}`}
                         className="grid size-8 place-items-center rounded-full bg-white text-slate-700"
@@ -151,7 +151,7 @@ export function PublicCatalog(props: PublicCatalogProps) {
                       <span className="text-sm font-black text-slate-950">{formatQuantity(quantity)}</span>
                       <button
                         aria-label={`Sumar ${product.name}`}
-                        className="grid size-8 place-items-center rounded-full bg-blue-600 text-white"
+                        className="grid size-8 place-items-center rounded-full bg-primary text-white"
                         onClick={() => add(product.id)}
                         type="button"
                       >

@@ -11,8 +11,8 @@ export function StaffTerminalNav({
   showCashClose?: boolean;
 }) {
   const base = "grid place-items-center gap-1 rounded-2xl px-2 py-2 text-xs font-black transition";
-  const on = "bg-blue-50 text-blue-700";
-  const off = "text-slate-500 hover:bg-blue-50 hover:text-blue-700";
+  const on = "bg-primary/10 text-primary";
+  const off = "text-slate-500 hover:bg-primary/10 hover:text-primary";
 
   return (
     <nav className="shrink-0 border-t border-slate-200 bg-white px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">

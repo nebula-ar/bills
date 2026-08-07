@@ -8,9 +8,12 @@ import { VariantGenerator } from "@/components/variant-generator";
 import { CatalogOnboarding } from "@/components/catalog-onboarding";
 import { ProductStockPanel } from "@/components/product-stock-panel";
 import { ProductPhotoField } from "@/components/product-photo-field";
+import { ProductAnalyticsTab } from "@/components/product-analytics-tab";
 import { formatQuantity } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
-import { Check, ChevronDown, CircleSlash, DynamicIcon, Plus, Search, X } from "@/components/icons";
+import { Check, CircleSlash, DynamicIcon, Plus, Search, X } from "@/components/icons";
+import { SelectField } from "@/components/ui/select-field";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -57,6 +60,9 @@ export type ProductRow = {
   // Modelo con talles: se muestra el modelo + la variante.
   familyName: string | null;
   variantLabel: string | null;
+  // Promos vigentes que le pegan a este producto. Solo para avisar: el cálculo
+  // real lo hace el cobro, porque depende del carrito entero.
+  promociones: { id: string; name: string; label: string }[];
 };
 
 export type ProductsData = {
@@ -85,8 +91,12 @@ export type ProductsData = {
   aiImagesEnabled: boolean;
 };
 
+// Un solo estilo de campo para toda la ficha. Antes la pestaña de stock usaba
+// uno más chico y con otro fondo, así que al cambiar de pestaña los campos
+// cambiaban de forma y parecían de otra pantalla.
 const sheetInput =
-  "w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
+  "w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15";
+
 
 const toneClasses: Record<ProductRow["statusTone"], string> = {
   available: "bg-emerald-50 text-emerald-700",
@@ -106,20 +116,15 @@ function BranchSelect({
   return (
     <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
       Sucursal
-      <div className="relative">
-        <select
-          className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-11 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-          onChange={(event) => onChange(event.target.value)}
-          value={value}
-        >
-          {branches.map((branch) => (
-            <option key={branch.id} value={branch.id}>
-              {branch.name}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-      </div>
+      {/* Sin `name`: no viaja en el form, cambia qué sucursal se está editando.
+          El form manda su propio input oculto con `branchId`. */}
+      <SelectField
+        ariaLabel="Sucursal"
+        defaultValue={value}
+        key={value}
+        onChange={onChange}
+        options={branches.map((branch) => ({ value: branch.id, label: branch.name }))}
+      />
     </label>
   );
 }
@@ -164,6 +169,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const [search, setSearch] = useState("");
   const [newBranchId, setNewBranchId] = useState(data.selectedBranchId);
   const [editId, setEditId] = useState<string | null>(null);
+  const [editTab, setEditTab] = useState<"producto" | "stock" | "analisis">("producto");
   const [editBranchId, setEditBranchId] = useState(data.selectedBranchId);
   const [editStockChanged, setEditStockChanged] = useState(false);
   const editing = data.products.find((product) => product.id === editId) ?? null;
@@ -218,7 +224,9 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 
   function openEdit(id: string) {
     setEditBranchId(data.selectedBranchId);
-    setEditStockChanged(false);
+    // Siempre en la primera pestaña: si quedara donde la dejó el producto
+    // anterior, abrir una ficha mostraría el stock antes que el nombre.
+    setEditTab("producto");
     setEditId(id);
   }
 
@@ -235,7 +243,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[#f6f7fb] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[1080px] lg:px-8">
+    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-none lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -258,7 +266,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
           {data.branches.map((branch) => (
             <button
               className={`shrink-0 snap-start scroll-ml-1 rounded-full px-4 py-2 text-sm font-bold transition active:scale-95 ${
-                branch.id === data.selectedBranchId ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
+                branch.id === data.selectedBranchId ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
               }`}
               key={branch.id}
               onClick={() => selectBranch(branch.id)}
@@ -304,7 +312,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 <Search className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
                 <input
                   aria-label={`Buscar ${data.catalogPlural.toLowerCase()}`}
-                  className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400"
+                  className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40"
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder={`Buscar ${data.catalogPlural.toLowerCase()}…`}
                   value={search}
@@ -343,7 +351,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                       src={imageSrc}
                     />
                   ) : (
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                       <DynamicIcon className="size-5" name={data.catalogIcon} />
                     </span>
                   )}
@@ -409,6 +417,9 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5">
               <ProductPhotoField
                 aiEnabled={data.aiImagesEnabled}
+                // Recién creado a mano: no viene del catálogo de rubro, así que
+                // no hay imagen genérica que mostrar.
+                catalogSlug={null}
                 hasPhoto={false}
                 productDescription={createdProduct.description}
                 productId={createdProduct.id}
@@ -421,7 +432,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             </div>
             <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
               <button
-                className="w-full rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+                className="w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
                 onClick={closeNew}
                 type="button"
               >
@@ -447,7 +458,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               Nombre
               <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                 name="name"
                 placeholder="Ej: Corte clásico"
                 required
@@ -457,7 +468,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               Descripción (opcional)
               <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
                 name="description"
                 placeholder="Ej: incluye lavado"
                 type="text"
@@ -468,7 +479,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             ) : null}
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               {newBranchName ? `Precio en ${newBranchName} (opcional)` : "Precio (opcional)"}
-              <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
+              <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
                 <span className="text-lg font-black text-slate-400">$</span>
                 <MoneyInput
                   className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
@@ -484,7 +495,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                   ¿Cuántos tenés? (opcional)
                   <input
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white"
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
                     inputMode="decimal"
                     name="stock"
                     placeholder="Ej: 12"
@@ -493,7 +504,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                   ¿Cuánto te cuesta? (opcional)
                   <MoneyInput
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white"
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
                     name="cost"
                     placeholder="$"
                   />
@@ -505,7 +516,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Categoría (opcional)
                 <select
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
                   name="categoryId"
                 >
                   <option value="">Sin categoría</option>
@@ -528,8 +539,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               <p className="mb-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">{newError}</p>
             ) : null}
             <button
-              className="w-full rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
-              disabled={isCreating}
+              className="w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
               type="submit"
             >
               {isCreating ? "Creando…" : `Crear y agregar foto`}
@@ -557,8 +567,150 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 <X className="size-5" />
               </button>
             </div>
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 pt-5 sm:grid sm:grid-cols-2 sm:items-start sm:gap-x-5 sm:space-y-0 sm:[&>*]:mb-4">
-              {/* La existencia y sus operaciones, sin salir de la ficha. */}
+            {/* Dos pestañas. La ficha mezclaba lo que se mira todos los días
+                —nombre, precio, foto— con lo que se configura una vez —códigos,
+                costo, mínimos, bultos— y para llegar a lo segundo había que
+                scrollear pasando por lo primero.
+
+                Se ocultan con CSS y NO se desmontan: es un solo <form>, y un
+                campo desmontado no se envía. Cambiar de pestaña borraría en
+                silencio lo que el usuario escribió del otro lado. */}
+            <div className="flex shrink-0 gap-2 border-b border-slate-100 bg-white px-5 pt-3">
+              {(
+                [
+                  { key: "producto", label: data.catalogSingular },
+                  { key: "stock", label: data.features.stock ? "Stock y códigos" : "Códigos y costo" },
+                  { key: "analisis", label: "Análisis" },
+                ] as const
+              ).map((pestana) => (
+                <button
+                  className={`-mb-px border-b-2 px-3 pb-2.5 text-sm font-black transition ${
+                    editTab === pestana.key
+                      ? "border-primary text-primary"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                  key={pestana.key}
+                  onClick={() => setEditTab(pestana.key)}
+                  type="button"
+                >
+                  {pestana.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5">
+            {/* El `hidden` NO se combina con las clases del layout: `sm:grid`
+                vive en una media query y le gana a `hidden`, así que el panel
+                se seguía viendo en escritorio y las dos pestañas aparecían
+                juntas. Oculto significa oculto y nada más. */}
+            {/* Dos columnas con un reparto explícito, no un grid que va
+                acomodando en orden de lectura: así la foto caía al lado del
+                nombre por casualidad y abajo a la derecha quedaba un hueco.
+                Izquierda la identidad —cómo se ve y si se vende—, derecha los
+                datos que se escriben. */}
+            <div className={editTab === "producto" ? "grid gap-5 sm:grid-cols-[15rem_1fr]" : "hidden"}>
+              <div className="space-y-4">
+                <ProductPhotoField
+                  aiEnabled={data.aiImagesEnabled}
+                  catalogSlug={editing.catalogSlug}
+                  hasPhoto={editing.hasPhoto}
+                  productDescription={editing.description}
+                  productId={editing.id}
+                  productName={editing.name}
+                  version={editing.imageVersion}
+                />
+                <AvailabilityToggle defaultOn={editConfig?.available || !editConfig?.configured} key={editBranchId} />
+              </div>
+
+              <div className="space-y-4">
+                {!editConfig?.configured ? (
+                  <p className="flex items-center gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+                    <CircleSlash className="size-4 shrink-0" />
+                    Sin precio{editBranchName ? ` en ${editBranchName}` : " en esta sucursal"} — cargalo para poder venderlo.
+                  </p>
+                ) : null}
+
+                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                  Nombre
+                  <input
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
+                    defaultValue={editing.name}
+                    name="name"
+                    required
+                    type="text"
+                  />
+                </label>
+
+                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                  {editBranchName ? `Precio en ${editBranchName}` : "Precio en esta sucursal"}
+                  <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
+                    <span className="text-lg font-black text-slate-400">$</span>
+                    <MoneyInput
+                      className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
+                      defaultValue={editConfig?.priceValue ?? ""}
+                      key={editBranchId}
+                      name="price"
+                      placeholder="0"
+                    />
+                  </div>
+                </label>
+
+                {/* Pegado al precio y no en otra pestaña: el descuento es la
+                    razón por la que el precio que se escribe acá no es el que
+                    se va a cobrar. Sin esto se termina bajando el precio a mano
+                    sobre una promo que ya está descontando.
+
+                    Se avisa, no se edita: las promos se arman en su pantalla,
+                    donde se elige vigencia, mínimos y a qué alcanza. Y no se
+                    dice CUÁNTO descuenta porque eso depende del carrito entero
+                    —mínimos por monto, NxM, combos—; decir un número acá que
+                    después no coincida con la caja sería peor que no decirlo. */}
+                {editing.promociones.length > 0 ? (
+                  <div className="rounded-2xl bg-emerald-50 px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
+                      Tiene descuento activo
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {editing.promociones.map((promocion) => (
+                        <span
+                          className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-200"
+                          key={promocion.id}
+                          title={promocion.name}
+                        >
+                          {promocion.label}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs text-emerald-800/80">
+                      Se aplica solo al cobrar, sobre este precio.{" "}
+                      <Link className="font-black underline" href="/promotions">
+                        Ver promociones
+                      </Link>
+                    </p>
+                  </div>
+                ) : null}
+
+                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                  Descripción (opcional)
+                  <input
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
+                    defaultValue={editing.description ?? ""}
+                    name="description"
+                    type="text"
+                  />
+                </label>
+
+                {data.branches.length > 1 ? (
+                  <BranchSelect branches={data.branches} onChange={setEditBranchId} value={editBranchId} />
+                ) : null}
+              </div>
+
+            </div>
+
+            {/* Pestaña de stock y códigos. */}
+            <div className={editTab === "stock" ? "space-y-4" : "hidden"}>
+              {/* La existencia y sus operaciones, arriba de todo: es lo que se
+                  viene a hacer acá, y lo de abajo se configura una vez. */}
               {data.features.stock ? (
                 <ProductStockPanel
                   branchId={data.selectedBranchId}
@@ -571,82 +723,32 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 />
               ) : null}
 
-              {!editConfig?.configured ? (
-                <p className="flex items-center gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
-                  <CircleSlash className="size-4 shrink-0" />
-                  Sin precio{editBranchName ? ` en ${editBranchName}` : " en esta sucursal"} — cargalo para poder venderlo.
-                </p>
-              ) : null}
-              <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                {editBranchName ? `Precio en ${editBranchName}` : "Precio en esta sucursal"}
-                <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
-                  <span className="text-lg font-black text-slate-400">$</span>
-                  <MoneyInput
-                    className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
-                    defaultValue={editConfig?.priceValue ?? ""}
-                    key={editBranchId}
-                    name="price"
-                    placeholder="0"
-                  />
-                </div>
-              </label>
-              <AvailabilityToggle defaultOn={editConfig?.available || !editConfig?.configured} key={editBranchId} />
-
-              <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                Nombre
-                <input
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-                  defaultValue={editing.name}
-                  name="name"
-                  required
-                  type="text"
-                />
-              </label>
-              {data.branches.length > 1 ? (
-                <BranchSelect branches={data.branches} onChange={setEditBranchId} value={editBranchId} />
-              ) : null}
-
-              <ProductPhotoField
-                aiEnabled={data.aiImagesEnabled}
-                hasPhoto={editing.hasPhoto}
-                productDescription={editing.description}
-                productId={editing.id}
-                productName={editing.name}
-                version={editing.imageVersion}
-              />
-              <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                Descripción (opcional)
-                <input
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-                  defaultValue={editing.description ?? ""}
-                  name="description"
-                  type="text"
-                />
-              </label>
-
-              {/* Datos comerciales: solo tienen sentido con stock o códigos. */}
               <input name="hasCommercialFields" type="hidden" value="true" />
-              <details className="rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3" open={editing.trackStock}>
-                <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">
-                  Códigos, costo y stock
-                </summary>
-                <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2 [&>*]:min-w-0">
+              <div className="grid min-w-0 gap-3 sm:grid-cols-2 [&>*]:min-w-0">
                   <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Tipo
-                    <select className={sheetInput} defaultValue={editing.kind} name="kind">
-                      <option value="SERVICE">Servicio (no lleva stock)</option>
-                      <option value="GOOD">Producto físico</option>
-                    </select>
+                    {/* De acá sale si lleva stock: un servicio no tiene
+                        existencias y un producto físico sí. Antes había además
+                        un tilde "Controlar stock" que decía lo mismo y permitía
+                        guardar la contradicción. */}
+                    <SelectField
+                      ariaLabel="Tipo"
+                      defaultValue={editing.kind}
+                      name="kind"
+                      options={[
+                        { value: "GOOD", label: "Producto físico (lleva stock)" },
+                        { value: "SERVICE", label: "Servicio (no lleva stock)" },
+                      ]}
+                    />
                   </label>
                   <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Se vende por
-                    <select className={sheetInput} defaultValue={editing.unit} name="unit">
-                      {data.units.map((unit) => (
-                        <option key={unit.value} value={unit.value}>
-                          {unit.label}
-                        </option>
-                      ))}
-                    </select>
+                    <SelectField
+                      ariaLabel="Se vende por"
+                      defaultValue={editing.unit}
+                      name="unit"
+                      options={data.units.map((unit) => ({ value: unit.value, label: unit.label }))}
+                    />
                   </label>
                   {data.features.barcodes ? (
                     <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
@@ -669,20 +771,17 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   </label>
                   <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Categoría
-                    <select className={sheetInput} defaultValue={editing.categoryId ?? ""} name="categoryId">
-                      <option value="">Sin categoría</option>
-                      {data.categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
+                    <SelectField
+                      ariaLabel="Categoría"
+                      defaultValue={editing.categoryId ?? ""}
+                      name="categoryId"
+                      options={[
+                        { value: "", label: "Sin categoría" },
+                        ...data.categories.map((category) => ({ value: category.id, label: category.name })),
+                      ]}
+                    />
                   </label>
-                  <label className="flex items-center gap-2 text-sm font-bold text-slate-700 sm:col-span-2">
-                    <input defaultChecked={editing.trackStock} name="trackStock" type="checkbox" />
-                    Controlar stock (descuenta al vender y avisa cuando falta)
-                  </label>
-                  <label className="grid gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500 sm:col-span-2">
+                  <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Avisar cuando queden menos de
                     <input
                       className={sheetInput}
@@ -715,12 +814,24 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                       </label>
                     </>
                   ) : null}
-                </div>
-              </details>
+              </div>
+            </div>
+
+            {/* Pestaña de análisis. Va montada solo cuando está a la vista: no
+                tiene campos del <form>, así que desmontarla no pierde nada, y
+                al montarse recién ahí se dispara la consulta. */}
+            {editTab === "analisis" ? (
+              <ProductAnalyticsTab
+                activa
+                productId={editing.id}
+                unidad={editing.unit as never}
+                usaStock={data.features.stock}
+              />
+            ) : null}
             </div>
             <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
               <button
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 active:scale-[0.99]"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
                 type="submit"
               >
                 <Check className="size-5" />
@@ -733,7 +844,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 
       <button
         aria-label={`Nuevo ${data.catalogSingular.toLowerCase()}`}
-        className="fixed bottom-[96px] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 transition hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
+        className="fixed bottom-[96px] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 transition hover:scale-105 active:scale-95 md:bottom-8 md:right-8"
         onClick={openNew}
         type="button"
       >

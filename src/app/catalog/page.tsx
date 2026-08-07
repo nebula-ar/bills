@@ -4,6 +4,9 @@ import { formatQuantity, unitLabel } from "@/lib/quantity";
 import { verticalFeatures, verticalPreset } from "@/lib/vertical";
 import { getBranchProductConfiguration } from "@/modules/catalog/get-branch-catalog-configuration.use-case";
 import { presetCatalogFor } from "@/modules/catalog/preset-catalog";
+import { promotionShortLabel } from "@/lib/promotion-labels";
+import { promocionesDeProducto } from "@/modules/promotions/promotion.logic";
+import { findActivePromotions } from "@/modules/promotions/promotion.repository";
 import { ProductsManager, type ProductRow, type ProductsData } from "@/components/catalog-manager";
 
 const moneyFormatter = new Intl.NumberFormat("es-AR", {
@@ -38,6 +41,14 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       </main>
     );
   }
+
+  // Promos vigentes de esta sucursal. Se piden una vez y se cruzan en memoria
+  // contra cada producto: son pocas y la alternativa era una consulta por fila.
+  // Sin el módulo prendido no se pregunta nada.
+  const promociones = business.has(AppModule.PROMOTIONS)
+    ? await findActivePromotions(business.id, selectedBranch.id)
+    : [];
+  const ahora = new Date();
 
   const rows: ProductRow[] = products.map((product) => {
     const { branchPrice, suggestedPrice, configured } = product;
@@ -91,6 +102,13 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       packLabel: product.packLabel,
       familyName: product.familyName,
       variantLabel: product.variantLabel,
+      // Descuentos que ya le corren encima. Se avisan en la ficha porque al
+      // cargar un precio hay que saber si ese producto ya está con 20% off.
+      promociones: promocionesDeProducto(
+        promociones,
+        { productId: product.id, categoryId: product.categoryId },
+        ahora,
+      ).map((promocion) => ({ id: promocion.id, name: promocion.name, label: promotionShortLabel(promocion) })),
     };
   });
 

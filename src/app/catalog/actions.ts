@@ -10,6 +10,8 @@ import { ProductError } from "@/modules/catalog/product.errors";
 import { updateGlobalProduct } from "@/modules/catalog/update-product.use-case";
 import { removeProductImage, saveProductImage } from "@/modules/catalog/product-image.use-case";
 import { upsertBranchProductConfiguration } from "@/modules/catalog/upsert-branch-product-config.use-case";
+import { analizarProductoEnPeriodo } from "@/modules/catalog/product-analytics.use-case";
+import { parsePeriodo as parsePeriodoDeAnalisis, rangoDelPeriodo } from "@/modules/sales/sales-period.logic";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -160,14 +162,20 @@ function parseCommercialFields(formData: FormData) {
   const costRaw = parseOptionalString(formData, "cost");
   const minStockRaw = parseOptionalString(formData, "minStock");
   const packSizeRaw = parseOptionalString(formData, "packSize");
+  const kind =
+    kindRaw && (Object.values(ProductKind) as string[]).includes(kindRaw) ? (kindRaw as ProductKind) : undefined;
 
   return {
-    kind: kindRaw && (Object.values(ProductKind) as string[]).includes(kindRaw) ? (kindRaw as ProductKind) : undefined,
+    kind,
     unit: unitRaw && (Object.values(Unit) as string[]).includes(unitRaw) ? (unitRaw as Unit) : undefined,
     sku: parseOptionalString(formData, "sku") ?? null,
     barcode: parseOptionalString(formData, "barcode") ?? null,
     cost: costRaw ? parseWholeAmount(costRaw) : null,
-    trackStock: formData.get("trackStock") === "on",
+    // Se deduce del tipo en vez de preguntarse: un servicio no tiene existencias
+    // y un producto físico sí, siempre. Preguntarlo aparte permitía guardar la
+    // contradicción "servicio que descuenta stock", y en la práctica el tilde
+    // estaba puesto en todos.
+    trackStock: kind === undefined ? undefined : kind !== ProductKind.SERVICE,
     // El mínimo se tipea en unidades y se guarda en milésimas, igual que el stock.
     minStock: minStockRaw ? parseQuantityInput(minStockRaw) : null,
     // El bulto se cuenta en unidades enteras: media caja no existe.
@@ -307,4 +315,66 @@ export async function deleteProductImage(productId: string): Promise<ProductImag
   revalidatePath("/sales/new");
 
   return { ok: true, version: Date.now() };
+}
+
+export type AnalisisDeProductoResult =
+  | {
+      ok: true;
+      analisis: {
+        unidades: number;
+        facturado: number;
+        descuentos: number;
+        costo: number;
+        margen: number;
+        margenPorcentaje: number | null;
+        ventas: number;
+        ultimaVenta: string | null;
+        devueltas: number;
+        devuelto: number;
+        compradas: number;
+        gastadoEnCompras: number;
+        ultimoCosto: number | null;
+        tiradas: number;
+        perdidoEnMermas: number;
+      };
+    }
+  | { ok: false; error: string };
+
+/**
+ * Los números de un producto para la pestaña de análisis.
+ *
+ * Se pide cuando se abre la pestaña y no al pintar el catálogo: son cuatro
+ * consultas por producto y con sesenta productos serían doscientas cuarenta
+ * para algo que casi nadie mira.
+ *
+ * `soldAt` sale como string ISO porque un Date no cruza el límite de la server
+ * action sin serializarse.
+ */
+export async function getProductAnalytics(
+  productId: string,
+  periodo: string,
+): Promise<AnalisisDeProductoResult> {
+  const session = await requireAdminSession();
+
+  try {
+    const rango = rangoDelPeriodo(parsePeriodoDeAnalisis(periodo), new Date());
+    const analisis = await analizarProductoEnPeriodo({
+      businessId: session.user.businessId,
+      productId,
+      desde: rango.desde,
+      hasta: rango.hasta,
+    });
+
+    return {
+      ok: true,
+      analisis: { ...analisis, ultimaVenta: analisis.ultimaVenta?.toISOString() ?? null },
+    };
+  } catch (error) {
+    await logError("product.analytics", error, {
+      businessId: session.user.businessId,
+      userId: session.user.id,
+      context: { productId, periodo },
+    });
+    return { ok: false, error: "No pudimos calcular los números. Intentá de nuevo." };
+  }
 }

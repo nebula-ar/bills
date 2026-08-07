@@ -16,8 +16,8 @@ export function Navbar() {
           <Link href="/#testimonios" className="transition hover:text-slate-950">Historias</Link>
         </div>
         <div className="flex items-center gap-4 text-sm font-extrabold">
-          <Link href="/login" className="hidden text-slate-600 transition hover:text-[#3158e8] sm:inline">Iniciar sesión</Link>
-          <Link href="/register" className="rounded-full bg-slate-950 px-4 py-2.5 text-xs text-white transition hover:bg-[#3158e8] active:scale-95 sm:px-5 sm:text-sm">Probá gratis</Link>
+          <Link href="/login" className="hidden text-slate-600 transition hover:text-[var(--primary)] sm:inline">Iniciar sesión</Link>
+          <Link href="/register" className="rounded-full bg-slate-950 px-4 py-2.5 text-xs text-white transition hover:bg-[var(--primary)] active:scale-95 sm:px-5 sm:text-sm">Probá gratis</Link>
         </div>
       </div>
     </nav>
