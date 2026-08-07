@@ -43,7 +43,6 @@ export function FeaturesSection() {
                   fill
                   sizes="(min-width: 768px) 33vw, 100vw"
                   className="object-contain transition-transform duration-300 ease-out group-hover:scale-[1.025] motion-reduce:transition-none"
-                  placeholder="blur"
                 />
               </div>
               <h3 className="mt-7 max-w-xs text-2xl font-black tracking-[-0.05em]">{feature.title}</h3>
@@ -106,7 +105,6 @@ export function AdaptableSection() {
                 fill
                 sizes="(min-width: 1024px) 60vw, 100vw"
                 className="object-cover"
-                placeholder="blur"
               />
             </div>
             <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-bills-ink/85 to-transparent" aria-hidden="true" />
