@@ -30,8 +30,10 @@ function resolveAllowedDevOrigins(): string[] {
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: resolveAllowedDevOrigins(),
-  // El adapter PostgreSQL se resuelve en runtime desde node_modules.
-  serverExternalPackages: ["@prisma/adapter-pg", "pg"],
+  // El adapter PostgreSQL se resuelve en runtime desde node_modules; exceljs y
+  // pdfkit son libs de Node (sin versión browser) que usan los route handlers
+  // de exportación, así que también se externalizan.
+  serverExternalPackages: ["@prisma/adapter-pg", "pg", "exceljs", "pdfkit"],
   // En desarrollo forzamos no-store para que iOS Safari (que cachea fuerte por HTTP
   // en LAN) no sirva un bundle viejo al probar desde el celular. En producción se
   // deja el comportamiento por defecto.
