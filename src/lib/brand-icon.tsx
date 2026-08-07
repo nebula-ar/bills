@@ -5,15 +5,14 @@
 //
 // El logo azul es la logomarca apaisada (ícono + wordmark); para 32/180 px el
 // wordmark se pierde, así que acá va solo el símbolo, en azul sobre fondo
-// claro. Antes se pintaba un glifo blanco sobre gradiente azul; ahora la tinta
-// del logo azul es azul (#1F6FFF), así que el símbolo se renderiza azul sobre
-// fondo claro (ver `brand-assets.ts`).
+// claro. La geometría se deriva del mismo path del logo (brandIconPath) para
+// que el favicon sea exactamente el símbolo que vive dentro de la app.
 import type { ReactElement } from "react";
 
 import { brandColors, brandIconPath, brandIconViewBox } from "./brand-assets";
 
 export function brandIconElement(size: number): ReactElement {
-  // El símbolo (444x520) no es cuadrado: se escala manteniendo la proporción
+  // El símbolo (449x487) no es cuadrado: se escala manteniendo la proporción
   // para no deformarlo dentro del cuadrado del ícono (512/180 px).
   const glyph = Math.round(size * 0.6);
   const glyphHeight = Math.round(glyph * (brandIconViewBox.height / brandIconViewBox.width));
