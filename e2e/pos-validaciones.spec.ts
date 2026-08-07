@@ -10,7 +10,7 @@ test.describe("POS: validaciones", () => {
   test("pago dividido que no cubre el total deja el botón deshabilitado", async ({ page }) => {
     await page.goto("/sales/new");
     await elegirVendedor(page);
-    await page.getByRole("button", { name: "Agregar Alfajor triple" }).first().click();
+    await page.getByRole("button", { name: /Alfajor triple/ }).first().click();
     await page.getByRole("button", { name: "Cobrar" }).click();
 
     // Activar pago dividido y vaciar el monto del único método.

@@ -50,7 +50,7 @@ test.describe("Módulos del sistema", () => {
     await elegirVendedor(page);
 
     // Tres golosinas iguales disparan la promo por categoría.
-    const agregar = page.getByRole("button", { name: "Agregar Alfajor triple" }).first();
+    const agregar = page.getByRole("button", { name: /Alfajor triple/ }).first();
     await agregar.click();
     await page.getByRole("button", { name: "Sumar Alfajor triple" }).first().click();
     await page.getByRole("button", { name: "Sumar Alfajor triple" }).first().click();
@@ -62,7 +62,7 @@ test.describe("Módulos del sistema", () => {
   test("clientes: se puede fiar en el POS y después cobrar la cuenta", async ({ page }) => {
     await page.goto("/sales/new");
     await elegirVendedor(page);
-    await page.getByRole("button", { name: "Agregar Alfajor triple" }).first().click();
+    await page.getByRole("button", { name: /Alfajor triple/ }).first().click();
     await page.getByRole("button", { name: "Cobrar" }).click();
 
     // Elegimos cliente y cobramos en cuenta corriente (fiado). Leemos a quién

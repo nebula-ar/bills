@@ -81,7 +81,7 @@ test.describe("Marketing", () => {
   test("una venta con cliente suma puntos", async ({ page }) => {
     await page.goto("/sales/new");
     await elegirVendedor(page);
-    await page.getByRole("button", { name: "Agregar Alfajor triple" }).first().click();
+    await page.getByRole("button", { name: /Alfajor triple/ }).first().click();
     await page.getByRole("button", { name: "Sumar Alfajor triple" }).first().click();
     await page.getByRole("button", { name: "Cobrar" }).click();
     // Se elige el primero de la lista y se lee su nombre: la etiqueta cambia
