@@ -24,24 +24,60 @@ test.describe("Bulto, export y WhatsApp", () => {
     await expect(page.getByText("$ 26.400").first()).toBeVisible();
   });
 
-  test("el export de ventas descarga un CSV con encabezados", async ({ page }) => {
+  test("el export de ventas descarga CSV, Excel y PDF", async ({ page }) => {
     await page.goto("/exportar");
 
-    const [download] = await Promise.all([
+    // Cada link de descarga lleva dataset y formato en el href; los cuatro
+    // datasets tienen un "CSV", así que se desambigua por el href de ventas.
+    const ventasCsv = page.locator('a[href*="dataset=ventas"][href*="format=csv"]');
+    const ventasXlsx = page.locator('a[href*="dataset=ventas"][href*="format=xlsx"]');
+    const ventasPdf = page.locator('a[href*="dataset=ventas"][href*="format=pdf"]');
+
+    // CSV: BOM primero (si no, Excel rompe las tildes) y separador punto y coma.
+    const [csvDownload] = await Promise.all([
       page.waitForEvent("download"),
-      page.getByRole("link", { name: /Ventas/ }).click(),
+      ventasCsv.click(),
     ]);
 
-    expect(download.suggestedFilename()).toMatch(/^ventas-\d{4}-\d{2}-\d{2}_a_\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(csvDownload.suggestedFilename()).toMatch(/^ventas-\d{4}-\d{2}-\d{2}_a_\d{4}-\d{2}-\d{2}\.csv$/);
 
-    const stream = await download.createReadStream();
+    const stream = await csvDownload.createReadStream();
     const chunks: Buffer[] = [];
     for await (const chunk of stream) chunks.push(chunk as Buffer);
     const csv = Buffer.concat(chunks).toString("utf8");
 
-    // BOM primero (si no, Excel rompe las tildes) y separador punto y coma.
     expect(csv.charCodeAt(0)).toBe(0xfeff);
     expect(csv).toContain("Fecha;Venta;Sucursal;Vendedor;Cliente");
+
+    // Excel: un .xlsx de verdad (zip con la firma PK).
+    const [xlsxDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      ventasXlsx.click(),
+    ]);
+
+    expect(xlsxDownload.suggestedFilename()).toMatch(/\.xlsx$/);
+
+    const xlsxStream = await xlsxDownload.createReadStream();
+    const xlsxChunks: Buffer[] = [];
+    for await (const chunk of xlsxStream) xlsxChunks.push(chunk as Buffer);
+    const xlsx = Buffer.concat(xlsxChunks);
+
+    expect(xlsx.subarray(0, 2).toString("utf8")).toBe("PK");
+
+    // PDF: empieza con la firma %PDF.
+    const [pdfDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      ventasPdf.click(),
+    ]);
+
+    expect(pdfDownload.suggestedFilename()).toMatch(/\.pdf$/);
+
+    const pdfStream = await pdfDownload.createReadStream();
+    const pdfChunks: Buffer[] = [];
+    for await (const chunk of pdfStream) pdfChunks.push(chunk as Buffer);
+    const pdf = Buffer.concat(pdfChunks);
+
+    expect(pdf.subarray(0, 5).toString("utf8")).toBe("%PDF-");
   });
 
   test("un rango invertido no deja descargar", async ({ page }) => {

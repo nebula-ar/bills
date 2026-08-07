@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { csvCell, csvDate, csvDateTime, csvFilename, csvMoney, toCsv } from "./csv.logic";
+import { csvCell, csvDate, csvDateTime, csvMoney, toCsv } from "./csv.logic";
 
 describe("csvCell", () => {
   it("deja pasar el texto simple sin comillas", () => {
@@ -56,11 +56,5 @@ describe("formatos", () => {
 
   it("agrega la hora cuando importa el momento", () => {
     expect(csvDateTime(new Date(2026, 6, 5, 9, 7))).toBe("05/07/2026 09:07");
-  });
-
-  it("nombra el archivo con el rango", () => {
-    expect(csvFilename("ventas", new Date(2026, 6, 1), new Date(2026, 6, 31))).toBe(
-      "ventas-2026-07-01_a_2026-07-31.csv",
-    );
   });
 });

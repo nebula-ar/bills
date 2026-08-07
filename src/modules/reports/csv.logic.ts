@@ -46,14 +46,3 @@ export function csvDateTime(date: Date): string {
   const minutes = `${date.getMinutes()}`.padStart(2, "0");
   return `${csvDate(date)} ${hours}:${minutes}`;
 }
-
-// Nombre del archivo que va a ver el contador en su carpeta de descargas.
-export function csvFilename(dataset: string, from: Date, to: Date): string {
-  return `${dataset}-${isoDay(from)}_a_${isoDay(to)}.csv`;
-}
-
-function isoDay(date: Date): string {
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-}

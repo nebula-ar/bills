@@ -1,11 +1,15 @@
 import { requireAdminSession } from "@/lib/auth";
-import { csvFilename } from "@/modules/reports/csv.logic";
-import { buildExport, isExportDataset } from "@/modules/reports/export.use-case";
+import {
+  buildExport,
+  exportFormatsFor,
+  isExportDataset,
+  isExportFormat,
+} from "@/modules/reports/export.use-case";
 import type { NextRequest } from "next/server";
 
-// Descarga del CSV para el contador. Va por route handler porque una server
-// action no puede devolver un archivo: acá el navegador dispara la descarga
-// directo con el nombre correcto.
+// Descarga para el contador. Va por route handler porque una server action no
+// puede devolver un archivo: acá el navegador dispara la descarga directo con
+// el nombre correcto.
 
 export async function GET(request: NextRequest) {
   const session = await requireAdminSession();
@@ -15,6 +19,18 @@ export async function GET(request: NextRequest) {
 
   if (!isExportDataset(dataset)) {
     return new Response("Dataset desconocido", { status: 400 });
+  }
+
+  const format = params.get("format") ?? "csv";
+
+  if (!isExportFormat(format)) {
+    return new Response("Formato desconocido", { status: 400 });
+  }
+
+  // Un dataset que no sale en ese formato (ej. gastos en PDF) es un error del
+  // que pide, no una caída: se avisa y no se arma nada.
+  if (!exportFormatsFor(dataset).includes(format)) {
+    return new Response("Ese dataset no sale en el formato pedido", { status: 400 });
   }
 
   const from = parseDay(params.get("from"));
@@ -31,12 +47,15 @@ export async function GET(request: NextRequest) {
     return new Response("La fecha de inicio es posterior a la de fin", { status: 400 });
   }
 
-  const csv = await buildExport({ businessId: session.user.businessId, dataset, from, to });
+  const result = await buildExport({ businessId: session.user.businessId, dataset, from, to, format });
 
-  return new Response(csv, {
+  // BodyInit no acepta Buffer<ArrayBufferLike>; se copia a un Uint8Array nuevo.
+  const body = typeof result.body === "string" ? result.body : new Uint8Array(result.body);
+
+  return new Response(body, {
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${csvFilename(dataset, from, to)}"`,
+      "Content-Type": result.contentType,
+      "Content-Disposition": `attachment; filename="${result.filename}"`,
       // Datos del negocio: nunca en un caché compartido.
       "Cache-Control": "private, no-store",
     },
