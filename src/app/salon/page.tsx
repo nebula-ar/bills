@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { StatTiles } from "@/components/stat-tiles";
 import {
   Badge,
   EmptyState,
@@ -10,7 +11,6 @@ import {
   PrimaryButton,
   SectionCard,
   selectClass,
-  StatTiles,
 } from "@/components/manager-ui";
 import { AppModule, TableStatus } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
@@ -147,9 +147,21 @@ export default async function SalonPage({ searchParams }: SalonPageProps) {
 
       <StatTiles
         tiles={[
-          { label: "Mesas", value: String(mesas.length) },
-          { label: "Ocupadas", value: String(ocupadas.length), tone: ocupadas.length ? "info" : "neutral" },
-          { label: "En el salón", value: formatMoney(enMesa), hint: "Consumo sin cobrar" },
+          { label: "Mesas", value: String(mesas.length), amount: mesas.length, kind: "int" },
+          {
+            label: "Ocupadas",
+            value: String(ocupadas.length),
+            amount: ocupadas.length,
+            kind: "int",
+            tone: ocupadas.length ? "info" : "neutral",
+          },
+          {
+            label: "En el salón",
+            value: formatMoney(enMesa),
+            amount: enMesa,
+            kind: "money",
+            hint: "Consumo sin cobrar",
+          },
         ]}
       />
 

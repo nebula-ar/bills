@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 // Piezas compartidas por las pantallas de gestión (stock, proveedores, promos,
 // clientes, módulos). Existen para que todas se vean como el mismo sistema y
 // para no repetir el mismo markup cinco veces.
+// Nota: este módulo es server. StatTiles (que anima con count-up) vive aparte
+// en `stat-tiles.tsx` porque necesita `"use client"`.
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 
@@ -12,14 +14,6 @@ export function formatMoney(value: number) {
 
 export type Tone = "neutral" | "positive" | "warning" | "danger" | "info";
 
-const TONE_TILE: Record<Tone, string> = {
-  neutral: "bg-white text-slate-950",
-  positive: "bg-emerald-50 text-emerald-900",
-  warning: "bg-amber-50 text-amber-900",
-  danger: "bg-rose-50 text-rose-900",
-  info: "bg-primary/10 text-primary",
-};
-
 const TONE_BADGE: Record<Tone, string> = {
   neutral: "bg-slate-100 text-slate-700",
   positive: "bg-emerald-100 text-emerald-800",
@@ -27,25 +21,6 @@ const TONE_BADGE: Record<Tone, string> = {
   danger: "bg-rose-100 text-rose-800",
   info: "bg-primary/15 text-primary",
 };
-
-// Fila de números grandes que encabeza cada pantalla: lo que el dueño mira
-// primero (cuánto debo, cuánto vale mi stock, cuánto me deben).
-export function StatTiles({ tiles }: { tiles: { label: string; value: string; hint?: string; tone?: Tone }[] }) {
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      {tiles.map((tile) => (
-        <div
-          className={`rounded-2xl border border-slate-200 p-4 shadow-sm ${TONE_TILE[tile.tone ?? "neutral"]}`}
-          key={tile.label}
-        >
-          <p className="text-[0.68rem] font-bold uppercase tracking-wider opacity-70">{tile.label}</p>
-          <p className="mt-1 text-xl font-black tracking-tight sm:text-2xl">{tile.value}</p>
-          {tile.hint ? <p className="mt-0.5 text-xs opacity-70">{tile.hint}</p> : null}
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: Tone }) {
   return (
@@ -82,7 +57,8 @@ export function SectionCard({
 
 export function EmptyState({ title, hint }: { title: string; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center">
+    // Entrada suave: un estado sin datos se siente intencional, no roto.
+    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center animate-in fade-in slide-in-from-bottom-2 duration-500">
       <p className="text-sm font-bold text-slate-700">{title}</p>
       {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}
     </div>

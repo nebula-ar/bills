@@ -17,9 +17,15 @@ function easeOutExpo(t: number) {
   return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
 }
 
+// Cuenta de 0 al valor inicial al montar (dashboard) y del valor ANTERIOR al
+// nuevo en los cambios siguientes (total del presupuesto). Si la animación se
+// corta a mitad, la siguiente corrida arranca del último valor interpolado
+// mostrado, para que un tecleo rápido no tire el total a 0.
 function useCountUp(value: number, durationMs: number, delayMs: number) {
   const [display, setDisplay] = useState(0);
-  const frameRef = useRef<number>(0);
+  const fromRef = useRef(0);
+  const currentRef = useRef(0);
+  const frameRef = useRef(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
@@ -27,18 +33,27 @@ function useCountUp(value: number, durationMs: number, delayMs: number) {
     // próximo frame (setState dentro del callback de rAF, no sincrónico en el efecto).
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReduced || durationMs <= 0) {
+      fromRef.current = value;
+      currentRef.current = value;
       frameRef.current = requestAnimationFrame(() => setDisplay(value));
       return () => cancelAnimationFrame(frameRef.current);
     }
+
+    const from = fromRef.current;
+    if (from === value) return;
 
     let startTime: number | null = null;
 
     const step = (now: number) => {
       if (startTime === null) startTime = now;
       const progress = Math.min((now - startTime) / durationMs, 1);
-      setDisplay(value * easeOutExpo(progress));
+      const current = from + (value - from) * easeOutExpo(progress);
+      currentRef.current = current;
+      setDisplay(current);
       if (progress < 1) {
         frameRef.current = requestAnimationFrame(step);
+      } else {
+        fromRef.current = value;
       }
     };
 
@@ -49,6 +64,8 @@ function useCountUp(value: number, durationMs: number, delayMs: number) {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       cancelAnimationFrame(frameRef.current);
+      // Continuar desde donde quedó: evita que el próximo cambio parta de 0.
+      fromRef.current = currentRef.current;
     };
   }, [value, durationMs, delayMs]);
 

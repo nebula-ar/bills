@@ -1,6 +1,8 @@
 "use client";
 
 import { createCashCloseAction, createTransferAction, deleteTransferAction, saveOpeningBalancesAction } from "@/app/caja/actions";
+import { AnimatedMoney } from "@/components/animated-number";
+import { PeriodFade } from "@/components/period-fade";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { MoneyInput } from "@/components/money-input";
 import { ConfirmSubmit } from "@/components/confirm-submit";
@@ -96,6 +98,7 @@ export function CashManager({ data }: { data: CashData }) {
       ) : null}
 
       <div className={isPending ? "pointer-events-none opacity-60 transition-opacity" : "transition-opacity"}>
+        <PeriodFade period={`caja-${data.selectedBranchId}`}>
         {/* Saldo total */}
         <div className="mt-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-lg">
           <p className="flex items-center gap-1.5 text-sm font-medium text-slate-300">
@@ -103,7 +106,7 @@ export function CashManager({ data }: { data: CashData }) {
             Saldo total en caja
           </p>
           <p className="mt-1.5 text-[2.4rem] font-black leading-none tracking-tight" style={tabular}>
-            {money(data.totalBalance)}
+            <AnimatedMoney value={data.totalBalance} />
           </p>
           <p className="mt-2 text-xs font-medium text-slate-400">Saldo inicial + ventas − gastos + transferencias</p>
         </div>
@@ -212,6 +215,7 @@ export function CashManager({ data }: { data: CashData }) {
             )}
           </Panel>
         </div>
+        </PeriodFade>
       </div>
 
       {/* Sheet: saldo inicial */}
@@ -378,7 +382,11 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">{children}</p>;
+  return (
+    <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      {children}
+    </p>
+  );
 }
 
 function SheetHeader({ title, onClose }: { title: string; onClose: () => void }) {

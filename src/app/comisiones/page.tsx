@@ -1,11 +1,12 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { PeriodFade } from "@/components/period-fade";
+import { StatTiles } from "@/components/stat-tiles";
 import {
   Badge,
   EmptyState,
   formatMoney,
   GhostButton,
   SectionCard,
-  StatTiles,
   TableWrap,
 } from "@/components/manager-ui";
 import { MoneyInput } from "@/components/money-input";
@@ -66,10 +67,12 @@ export default async function ComisionesPage({ searchParams }: ComisionesPagePro
 
       <StatTiles
         tiles={[
-          { label: "Vendido en el mes", value: formatMoney(summary.totalSold) },
+          { label: "Vendido en el mes", value: formatMoney(summary.totalSold), amount: summary.totalSold, kind: "money" },
           {
             label: "Comisiones",
             value: formatMoney(summary.totalCommission),
+            amount: summary.totalCommission,
+            kind: "money",
             hint: "A pagar",
             tone: summary.totalCommission > 0 ? "warning" : "neutral",
           },
@@ -81,6 +84,7 @@ export default async function ComisionesPage({ searchParams }: ComisionesPagePro
         title="Liquidación del mes"
         description="Se cuenta solo lo cobrado en ventas completadas: una venta anulada no genera comisión."
       >
+        <PeriodFade period={`month-${monthKey}`}>
         {summary.rows.length === 0 ? (
           <EmptyState
             title="No hay empleados activos."
@@ -152,6 +156,7 @@ export default async function ComisionesPage({ searchParams }: ComisionesPagePro
           El porcentaje de cada uno se configura en {business.labels.staffPlural}. Al pagar, queda registrado como
           gasto de sueldos y sale de la cuenta que elijas.
         </p>
+        </PeriodFade>
       </SectionCard>
     </AppShell>
   );
