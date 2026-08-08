@@ -175,7 +175,7 @@ export function LoginForm({ callbackUrl, variant, showGoogle }: LoginFormProps) 
       )}
 
       <button
-        className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 text-sm font-extrabold text-white shadow-[0_4px_10px_#2563EB33] transition hover:bg-primary-strong active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-primary"
+        className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 text-sm font-extrabold text-white shadow-[0_4px_10px_#3158e833] transition hover:bg-primary-strong active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-primary"
         disabled={isPending}
         type="submit"
       >
