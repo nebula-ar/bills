@@ -184,7 +184,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                       <p className="truncate text-sm font-bold text-slate-800">
                         {entry.type === "CHARGE" ? "Venta a cuenta" : entry.type === "PAYMENT" ? "Pago" : "Ajuste"}
                       </p>
-                      <p className="truncate text-xs text-slate-400">
+                      <p className="truncate text-xs text-slate-500">
                         {dateFormatter.format(entry.occurredAt)}
                         {entry.note ? ` · ${entry.note}` : ""}
                       </p>
@@ -196,7 +196,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                   </li>
                 ))}
                 {detail.entries.length === 0 ? (
-                  <li className="py-2 text-sm text-slate-400">Sin movimientos de cuenta.</li>
+                  <li className="py-2 text-sm text-slate-500">Sin movimientos de cuenta.</li>
                 ) : null}
               </ul>
             </div>
@@ -257,14 +257,14 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                       <p className="truncate text-xs text-slate-500">
                         {dateFormatter.format(sale.soldAt)} · {sale.branch.name}
                       </p>
-                      <p className="truncate text-xs text-slate-400">
+                      <p className="truncate text-xs text-slate-500">
                         {sale.items.map((item) => item.description).join(", ")}
                       </p>
                     </div>
                     <span className="shrink-0 text-sm font-bold text-slate-800">{formatMoney(sale.total)}</span>
                   </li>
                 ))}
-                {detail.sales.length === 0 ? <li className="py-2 text-sm text-slate-400">Sin compras.</li> : null}
+                {detail.sales.length === 0 ? <li className="py-2 text-sm text-slate-500">Sin compras.</li> : null}
               </ul>
             </div>
           </div>
@@ -278,7 +278,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
           <TableWrap>
             <table className="w-full min-w-[30rem] border-collapse text-sm">
               <thead>
-                <tr className="text-left text-[0.68rem] uppercase tracking-wider text-slate-400">
+                <tr className="text-left text-[0.68rem] uppercase tracking-wider text-slate-600">
                   <th className="pb-2 font-bold">Cliente</th>
                   <th className="pb-2 font-bold">Compras</th>
                   <th className="pb-2 font-bold">Saldo</th>
@@ -292,7 +292,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                       <Link className="font-bold text-slate-950 hover:text-primary" href={`/customers?customerId=${customer.id}`}>
                         {customer.name}
                       </Link>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-slate-500">
                         {customer.phone ?? customer.taxId ?? "Sin datos de contacto"}
                         {customer.active ? "" : " · inactivo"}
                       </p>

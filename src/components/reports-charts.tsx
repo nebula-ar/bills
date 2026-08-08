@@ -50,7 +50,7 @@ export function SalesTrendChart({ data }: { data: TrendDatum[] }) {
         />
         <YAxis
           axisLine={false}
-          tick={{ fill: "#94a3b8", fontSize: 11 }}
+          tick={{ fill: "#64748b", fontSize: 11 }}
           tickFormatter={formatCompactCurrency}
           tickLine={false}
           width={44}

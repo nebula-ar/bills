@@ -76,7 +76,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
               <Store className="size-8 text-slate-300" />
             </div>
             <p className="text-sm font-bold text-slate-600">No hay sucursales</p>
-            <p className="mt-1 text-xs text-slate-400">Tocá el botón «+» abajo para crear la primera.</p>
+            <p className="mt-1 text-xs text-slate-500">Tocá el botón «+» abajo para crear la primera.</p>
           </div>
         ) : (
           <ul className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
@@ -122,7 +122,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
             <h3 className="text-xl font-black tracking-tight text-slate-950">Nueva sucursal</h3>
             <button
               aria-label="Cerrar"
-              className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+              className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
               onClick={() => setNewOpen(false)}
               type="button"
             >
@@ -173,7 +173,7 @@ export function BranchesManager({ data }: { data: BranchesData }) {
               <h3 className="text-xl font-black tracking-tight text-slate-950">Editar sucursal</h3>
               <button
                 aria-label="Cerrar"
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                 onClick={() => setEditId(null)}
                 type="button"
               >

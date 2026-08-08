@@ -164,7 +164,7 @@ export function StockManager({
                     <tr className="border-b border-slate-50 last:border-0" key={row.productId}>
                       <td className="w-full max-w-0 px-4 py-3">
                         <p className="truncate text-sm font-bold text-slate-950">{row.name}</p>
-                        <p className="truncate text-xs text-slate-400">
+                        <p className="truncate text-xs text-slate-500">
                           {row.categoryName ?? "Sin categoría"}
                           {row.sku ? ` · ${row.sku}` : ""}
                         </p>
@@ -198,7 +198,7 @@ export function StockManager({
                         {/* Se opera desde la fila: el producto ya está elegido y
                             no hay que volver a buscarlo en un combo. */}
                         <button
-                          className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition active:scale-95 hover:bg-slate-200"
+                          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition active:scale-95 hover:bg-slate-200"
                           onClick={() => setAbierto(row.productId)}
                           type="button"
                         >
@@ -224,7 +224,7 @@ export function StockManager({
               </div>
               <button
                 aria-label="Cerrar"
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                 onClick={() => setAbierto(null)}
                 type="button"
               >
@@ -305,7 +305,7 @@ function MovimientosLista({ movements }: { movements: StockManagerMovement[] }) 
 function Th({ children, alineado = "izquierda" }: { children: React.ReactNode; alineado?: "izquierda" | "derecha" }) {
   return (
     <th
-      className={`px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500 ${
+      className={`px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-600 ${
         alineado === "derecha" ? "text-right" : ""
       }`}
       scope="col"
@@ -320,7 +320,7 @@ export function StockEmpty() {
     <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
       <Package className="mb-3 size-8 text-slate-300" />
       <p className="text-sm font-bold text-slate-600">Ningún producto lleva control de stock</p>
-      <p className="mt-1 text-xs text-slate-400">
+      <p className="mt-1 text-xs text-slate-500">
         Marcalo como producto físico en su ficha para empezar a contarlo.
       </p>
     </div>

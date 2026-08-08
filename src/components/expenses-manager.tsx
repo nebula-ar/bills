@@ -130,7 +130,7 @@ function SheetHeader({ title, onClose }: { title: string; onClose: () => void })
       <h3 className="text-xl font-black tracking-tight text-slate-950">{title}</h3>
       <button
         aria-label="Cerrar"
-        className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+        className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
         onClick={onClose}
         type="button"
       >
@@ -232,7 +232,7 @@ function ExpenseFields({
       <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
         Monto
         <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
-          <span className="text-2xl font-black text-slate-400">$</span>
+          <span className="text-2xl font-black text-slate-600">$</span>
           <MoneyInput
             className="w-full bg-transparent px-2 py-3.5 text-2xl font-black text-slate-950 outline-none"
             name="amount"
@@ -360,7 +360,7 @@ function PurchaseFields({ data }: { data: ExpensesData }) {
         <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
           Total del comprobante
           <MoneyInput className={sheetField} name="declaredTotal" placeholder="Opcional" />
-          <span className="text-xs font-medium normal-case tracking-normal text-slate-400">
+          <span className="text-xs font-medium normal-case tracking-normal text-slate-500">
             Lo que dice el papel. Si no cierra con los renglones, avisamos.
           </span>
         </label>
@@ -370,7 +370,7 @@ function PurchaseFields({ data }: { data: ExpensesData }) {
           <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
             IVA discriminado
             <MoneyInput className={sheetField} name="taxAmount" placeholder="Opcional" />
-            <span className="text-xs font-medium normal-case tracking-normal text-slate-400">
+            <span className="text-xs font-medium normal-case tracking-normal text-slate-500">
               Es crédito fiscal: no cuenta como costo.
             </span>
           </label>
@@ -379,7 +379,7 @@ function PurchaseFields({ data }: { data: ExpensesData }) {
 
       <div className="grid gap-2">
         <span className="text-xs font-black uppercase tracking-wide text-slate-500">Qué te trajo</span>
-        <p className="text-xs font-medium normal-case tracking-normal text-slate-400">
+        <p className="text-xs font-medium normal-case tracking-normal text-slate-500">
           {isMerchandise
             ? "Si elegís un producto con stock y una sucursal, la mercadería entra sola."
             : "Describí el servicio y poné el importe en el costo."}
@@ -603,7 +603,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
               <Wallet className="size-8 text-slate-300" />
             </div>
             <p className="text-sm font-bold text-slate-600">Nada salió en {data.monthLabel}</p>
-            <p className="mt-1 text-xs text-slate-400">Tocá el botón «+» abajo para registrar lo primero.</p>
+            <p className="mt-1 text-xs text-slate-500">Tocá el botón «+» abajo para registrar lo primero.</p>
           </div>
         ) : (
           <ul className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
@@ -744,11 +744,11 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 pt-5">
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-2xl bg-slate-50 px-2 py-3">
-                  <p className="text-[0.62rem] font-black uppercase tracking-wide text-slate-400">Total</p>
+                  <p className="text-[0.62rem] font-black uppercase tracking-wide text-slate-500">Total</p>
                   <p className="mt-1 text-sm font-black text-slate-950">{payable.totalLabel}</p>
                 </div>
                 <div className="rounded-2xl bg-slate-50 px-2 py-3">
-                  <p className="text-[0.62rem] font-black uppercase tracking-wide text-slate-400">Pagado</p>
+                  <p className="text-[0.62rem] font-black uppercase tracking-wide text-slate-500">Pagado</p>
                   <p className="mt-1 text-sm font-black text-slate-950">{payable.paidLabel}</p>
                 </div>
                 <div className={`rounded-2xl px-2 py-3 ${payable.overdue ? "bg-rose-50" : "bg-amber-50"}`}>
@@ -771,7 +771,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                   {payable.items.map((item) => (
                     <div className="flex items-baseline justify-between gap-3 text-sm" key={item.id}>
                       <span className="min-w-0 truncate font-semibold text-slate-700">{item.label}</span>
-                      <span className="shrink-0 text-xs text-slate-400">{item.quantityLabel}</span>
+                      <span className="shrink-0 text-xs text-slate-500">{item.quantityLabel}</span>
                       <span className="shrink-0 font-black text-slate-950">{item.totalLabel}</span>
                     </div>
                   ))}
@@ -796,7 +796,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                 <input name="purchaseId" type="hidden" value={payable.id} />
                 <span className="text-xs font-black uppercase tracking-wide text-slate-500">Pagar</span>
                 <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white">
-                  <span className="text-xl font-black text-slate-400">$</span>
+                  <span className="text-xl font-black text-slate-600">$</span>
                   <MoneyInput
                     aria-label="Importe a pagar"
                     className="w-full bg-transparent px-2 py-3 text-xl font-black text-slate-950 outline-none"
@@ -941,7 +941,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                         >
                           Pagar todo
                         </button>
-                        <p className="text-xs text-slate-400 sm:col-span-3">
+                        <p className="text-xs text-slate-500 sm:col-span-3">
                           Se imputa de la factura más vieja a la más nueva.
                         </p>
                       </form>

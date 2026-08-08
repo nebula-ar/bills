@@ -94,7 +94,7 @@ export default async function ComisionesPage({ searchParams }: ComisionesPagePro
           <TableWrap>
             <table className="w-full min-w-[38rem] border-collapse text-sm">
               <thead>
-                <tr className="text-left text-[0.68rem] uppercase tracking-wider text-slate-400">
+                <tr className="text-left text-[0.68rem] uppercase tracking-wider text-slate-600">
                   <th className="pb-2 font-bold">{business.labels.staffSingular}</th>
                   <th className="pb-2 font-bold">Ventas</th>
                   <th className="pb-2 font-bold">Vendió</th>
@@ -113,7 +113,7 @@ export default async function ComisionesPage({ searchParams }: ComisionesPagePro
                       {row.commissionRate > 0 ? (
                         <Badge tone="info">{row.commissionRate}%</Badge>
                       ) : (
-                        <span className="text-xs text-slate-400">sin comisión</span>
+                        <span className="text-xs text-slate-500">sin comisión</span>
                       )}
                     </td>
                     <td className="py-2.5 pr-3 font-black text-slate-950">{formatMoney(row.commission)}</td>
@@ -152,7 +152,7 @@ export default async function ComisionesPage({ searchParams }: ComisionesPagePro
           </TableWrap>
         )}
 
-        <p className="mt-4 text-xs text-slate-400">
+        <p className="mt-4 text-xs text-slate-500">
           El porcentaje de cada uno se configura en {business.labels.staffPlural}. Al pagar, queda registrado como
           gasto de sueldos y sale de la cuenta que elijas.
         </p>

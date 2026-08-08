@@ -139,14 +139,14 @@ function AvailabilityToggle({ defaultOn }: { defaultOn: boolean }) {
       <button
         aria-checked={on}
         aria-label="Disponible para vender"
-        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-emerald-500" : "bg-slate-300"}`}
+        className={`relative h-11 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-emerald-500" : "bg-slate-300"}`}
         onClick={() => setOn((value) => !value)}
         role="switch"
         type="button"
       >
         <span
-          className="absolute left-1 top-1 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
-          style={{ transform: on ? "translateX(1.25rem)" : "translateX(0)" }}
+          className="absolute left-1 top-1/2 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
+          style={{ transform: on ? "translateY(-50%) translateX(1.25rem)" : "translateY(-50%) translateX(0)" }}
         />
       </button>
     </div>
@@ -447,7 +447,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             <h3 className="text-xl font-black tracking-tight text-slate-950">Nuevo {data.catalogSingular.toLowerCase()}</h3>
             <button
               aria-label="Cerrar"
-              className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+              className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
               onClick={closeNew}
               type="button"
             >
@@ -480,7 +480,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               {newBranchName ? `Precio en ${newBranchName} (opcional)` : "Precio (opcional)"}
               <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
-                <span className="text-lg font-black text-slate-400">$</span>
+                <span className="text-lg font-black text-slate-600">$</span>
                 <MoneyInput
                   className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
                   name="price"
@@ -560,7 +560,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               <h3 className="text-xl font-black tracking-tight text-slate-950">Editar {data.catalogSingular.toLowerCase()}</h3>
               <button
                 aria-label="Cerrar"
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                 onClick={closeEdit}
                 type="button"
               >
@@ -644,7 +644,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                   {editBranchName ? `Precio en ${editBranchName}` : "Precio en esta sucursal"}
                   <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
-                    <span className="text-lg font-black text-slate-400">$</span>
+                    <span className="text-lg font-black text-slate-600">$</span>
                     <MoneyInput
                       className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
                       defaultValue={editConfig?.priceValue ?? ""}

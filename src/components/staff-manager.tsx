@@ -100,14 +100,14 @@ function ActiveToggle({ defaultOn }: { defaultOn: boolean }) {
       <button
         aria-checked={on}
         aria-label="Activo"
-        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-emerald-500" : "bg-slate-300"}`}
+        className={`relative h-11 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-emerald-500" : "bg-slate-300"}`}
         onClick={() => setOn((value) => !value)}
         role="switch"
         type="button"
       >
         <span
-          className="absolute left-1 top-1 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
-          style={{ transform: on ? "translateX(1.25rem)" : "translateX(0)" }}
+          className="absolute left-1 top-1/2 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
+          style={{ transform: on ? "translateY(-50%) translateX(1.25rem)" : "translateY(-50%) translateX(0)" }}
         />
       </button>
     </div>
@@ -127,14 +127,14 @@ function CashCloseToggle({ defaultOn }: { defaultOn: boolean }) {
       <button
         aria-checked={on}
         aria-label="Puede cerrar caja"
-        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-primary" : "bg-slate-300"}`}
+        className={`relative h-11 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-primary" : "bg-slate-300"}`}
         onClick={() => setOn((value) => !value)}
         role="switch"
         type="button"
       >
         <span
-          className="absolute left-1 top-1 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
-          style={{ transform: on ? "translateX(1.25rem)" : "translateX(0)" }}
+          className="absolute left-1 top-1/2 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
+          style={{ transform: on ? "translateY(-50%) translateX(1.25rem)" : "translateY(-50%) translateX(0)" }}
         />
       </button>
     </div>
@@ -173,7 +173,7 @@ export function StaffsManager({ data }: { data: StaffsData }) {
               <DynamicIcon className="size-8 text-slate-300" name={data.staffIcon} />
             </div>
             <p className="text-sm font-bold text-slate-600">Todavía no hay {data.staffPlural.toLowerCase()}</p>
-            <p className="mt-1 text-xs text-slate-400">Tocá el botón «+» abajo para cargar el primero.</p>
+            <p className="mt-1 text-xs text-slate-500">Tocá el botón «+» abajo para cargar el primero.</p>
           </div>
         ) : (
           <ul className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
@@ -227,7 +227,7 @@ export function StaffsManager({ data }: { data: StaffsData }) {
             <h3 className="text-xl font-black tracking-tight text-slate-950">Nuevo {data.staffSingular.toLowerCase()}</h3>
             <button
               aria-label="Cerrar"
-              className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+              className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
               onClick={() => setNewOpen(false)}
               type="button"
             >
@@ -283,7 +283,7 @@ export function StaffsManager({ data }: { data: StaffsData }) {
               <h3 className="text-xl font-black tracking-tight text-slate-950">Editar {data.staffSingular.toLowerCase()}</h3>
               <button
                 aria-label="Cerrar"
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                 onClick={() => setEditId(null)}
                 type="button"
               >
@@ -324,9 +324,9 @@ export function StaffsManager({ data }: { data: StaffsData }) {
                       placeholder="0"
                       type="number"
                     />
-                    <span className="text-lg font-black text-slate-400">%</span>
+                    <span className="text-lg font-black text-slate-600">%</span>
                   </div>
-                  <span className="text-xs font-medium normal-case tracking-normal text-slate-400">
+                  <span className="text-xs font-medium normal-case tracking-normal text-slate-500">
                     Se calcula sobre el total cobrado. Mirá la liquidación en Comisiones.
                   </span>
                 </label>

@@ -65,7 +65,7 @@ function Mesa({ mesa, branchId, sectorId }: { mesa: MesaEnTablero; branchId: str
             </p>
           </div>
         ) : (
-          <p className="text-sm text-slate-400">Sin consumo</p>
+          <p className="text-sm text-slate-500">Sin consumo</p>
         )}
       </Link>
 

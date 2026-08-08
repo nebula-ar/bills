@@ -329,7 +329,7 @@ export function RecetasManager({
                                 ) : (
                                   <>
                                     <span className="text-sm font-bold text-slate-800">{dinero.format(r.costo)}</span>
-                                    <span className="ml-2 text-xs font-black text-slate-400">{r.porcentaje}%</span>
+                                    <span className="ml-2 text-xs font-black text-slate-500">{r.porcentaje}%</span>
                                   </>
                                 )}
                               </td>
@@ -340,7 +340,7 @@ export function RecetasManager({
                                   producción. Marcado, se ve cuál comprar. */}
                               <td className="whitespace-nowrap px-4 py-3 text-right">
                                 {r.alcanzaPara === null ? (
-                                  <span className="text-sm text-slate-400">—</span>
+                                  <span className="text-sm text-slate-500">—</span>
                                 ) : (
                                   <span
                                     className={`text-sm font-black ${
@@ -357,7 +357,7 @@ export function RecetasManager({
                                   <input name="productId" type="hidden" value={producto.id} />
                                   <button
                                     aria-label={`Quitar ${r.nombre}`}
-                                    className="grid size-8 place-items-center rounded-full text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                                    className="grid size-11 place-items-center rounded-full text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"
                                     type="submit"
                                   >
                                     <X className="size-4" />
@@ -444,7 +444,7 @@ export function RecetasManager({
                       <td className="w-full max-w-0 px-4 py-3">
                         <p className="truncate text-sm font-bold text-slate-950">{i.name}</p>
                         {i.minStock !== null ? (
-                          <p className="text-xs text-slate-400">Avisar bajo {formatQuantity(i.minStock, i.unit)}</p>
+                          <p className="text-xs text-slate-500">Avisar bajo {formatQuantity(i.minStock, i.unit)}</p>
                         ) : null}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">
@@ -475,7 +475,7 @@ export function RecetasManager({
                             {i.textoVencimiento}
                           </span>
                         ) : (
-                          <span className="text-sm text-slate-400">—</span>
+                          <span className="text-sm text-slate-500">—</span>
                         )}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">
@@ -483,7 +483,7 @@ export function RecetasManager({
                             fila: veinte campos de fecha abiertos a la vez son
                             veinte formularios pidiendo que los toques. */}
                         <button
-                          className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition active:scale-95 hover:bg-slate-200"
+                          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition active:scale-95 hover:bg-slate-200"
                           onClick={() => setVenciendo(i)}
                           type="button"
                         >
@@ -683,7 +683,7 @@ function Modal({
           <h3 className="text-xl font-black tracking-tight text-slate-950">{titulo}</h3>
           <button
             aria-label="Cerrar"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
             onClick={onClose}
             type="button"
           >

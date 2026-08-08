@@ -133,7 +133,7 @@ export default async function PresupuestosPage() {
                           </li>
                         ))}
                       </ul>
-                      {quote.notes ? <p className="mt-1 text-xs italic text-slate-400">{quote.notes}</p> : null}
+                      {quote.notes ? <p className="mt-1 text-xs italic text-slate-500">{quote.notes}</p> : null}
                     </div>
 
                     <div className="flex flex-col items-end gap-2">

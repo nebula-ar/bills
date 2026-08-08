@@ -83,11 +83,11 @@ export default async function CocinaPage({ searchParams }: CocinaPageProps) {
               <section className="flex flex-col gap-3" key={columna}>
                 <h2 className="flex items-baseline gap-2 text-lg font-black tracking-tight text-slate-950">
                   {TITULOS[columna]}
-                  <span className="text-sm font-bold text-slate-400">{dela.length}</span>
+                  <span className="text-sm font-bold text-slate-600">{dela.length}</span>
                 </h2>
 
                 {dela.length === 0 ? (
-                  <p className="rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-400">
+                  <p className="rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-600">
                     Nada acá
                   </p>
                 ) : (

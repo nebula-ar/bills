@@ -131,7 +131,7 @@ export default async function MermasPage({ searchParams }: MermasPageProps) {
                   {m.product.cost ? formatMoney(Math.round((m.product.cost * m.quantity) / 1000)) : "—"}
                 </span>
                 <span className="w-full text-xs italic text-slate-500 sm:w-auto">{m.reason}</span>
-                <span className="text-xs text-slate-400">{fecha.format(m.createdAt)}</span>
+                <span className="text-xs text-slate-500">{fecha.format(m.createdAt)}</span>
               </li>
             ))}
           </ul>

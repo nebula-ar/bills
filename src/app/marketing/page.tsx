@@ -356,7 +356,7 @@ export default async function MarketingPage({ searchParams }: MarketingPageProps
           showPublicPage={Boolean(features.publicPage)}
         />
 
-        <p className="mt-3 text-xs text-slate-400">
+        <p className="mt-3 text-xs text-slate-500">
           Los mensajes se mandan desde tu WhatsApp, de a uno. No hay envío masivo automático a propósito: mandar
           doscientos mensajes de golpe es la forma más rápida de que te bloqueen el número.
         </p>
