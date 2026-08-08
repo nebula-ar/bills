@@ -4,6 +4,7 @@ import { createTerminalAction, deleteTerminalAction, renameTerminalAction } from
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { copyText } from "@/lib/clipboard";
 import { Check, ChevronDown, Copy, Monitor, Pencil, Plus, Smartphone, Tag, Trash2, X } from "@/components/icons";
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ComponentType } from "react";
 
@@ -393,13 +394,14 @@ export function TerminalsManager({ data }: { data: TerminalsData }) {
               <form action={deleteTerminalAction}>
                 <input name="branchId" type="hidden" value={branch.id} />
                 <input name="terminalId" type="hidden" value={editing.id} />
-                <button
+                {/* Dos toques: borrar una terminal la saca de todas las cajas. */}
+                <ConfirmSubmit
                   className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-600 transition active:scale-[0.99]"
-                  type="submit"
+                  confirmLabel="Sí, borrar"
                 >
                   <Trash2 className="size-4" />
                   Borrar terminal
-                </button>
+                </ConfirmSubmit>
               </form>
             </div>
           </div>

@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import { generateCertificate, updateFiscalData } from "@/app/facturacion/actions";
 import { TaxCondition } from "@/generated/prisma/enums";
-import { CheckCircle2, Eye, EyeOff, KeyRound, Lock, ReceiptText } from "@/components/icons";
+import { CheckCircle2, Eye, EyeOff, KeyRound, Loader2, Lock, ReceiptText } from "@/components/icons";
 import { TAX_CONDITION_LABELS } from "@/lib/invoice-labels";
 import { validateTaxId } from "@/lib/tax-id";
 
@@ -23,11 +23,21 @@ const TAX_CONDITION_OPTIONS = Object.values(TaxCondition);
 export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
   const [cuit, setCuit] = useState(data.cuit ?? "");
   const [showPassword, setShowPassword] = useState(false);
+  const [isGenerating, startGenerating] = useTransition();
 
   const cuitCheck = useMemo(() => (cuit.trim().length > 0 ? validateTaxId(cuit) : null), [cuit]);
   const cuitHasError = cuitCheck !== null && (!cuitCheck.valid || cuitCheck.kind !== "CUIT");
 
   const fiscallyConfigured = Boolean(data.cuit && data.taxCondition && data.salesPointNumber != null);
+
+  // Generar el certificado es una llamada lenta a AFIP: si el botón quedara
+  // habilitado, un doble toque mandaría la operación dos veces. La transición
+  // deshabilita el submit y muestra el spinner mientras corre.
+  function submitGenerateCertificate(formData: FormData) {
+    startGenerating(async () => {
+      await generateCertificate(formData);
+    });
+  }
 
   return (
     <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-[720px] lg:px-8">
@@ -153,7 +163,7 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
             Completá primero los datos fiscales de arriba para poder generar el certificado.
           </p>
         ) : (
-          <form action={generateCertificate} className="space-y-3">
+          <form action={submitGenerateCertificate} className="space-y-3">
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               Usuario de Clave Fiscal
               <input
@@ -188,10 +198,12 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
               Se usa una sola vez para generar el certificado. Nunca la guardamos.
             </p>
             <button
-              className="w-full rounded-2xl bg-violet-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-violet-600/25 transition hover:bg-violet-700 active:scale-[0.99]"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-4 text-base font-black text-white shadow-sm shadow-violet-600/25 transition hover:bg-violet-700 active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+              disabled={isGenerating}
               type="submit"
             >
-              Generar certificado
+              {isGenerating ? <Loader2 className="size-4 animate-spin" /> : null}
+              {isGenerating ? "Generando…" : "Generar certificado"}
             </button>
           </form>
         )}
