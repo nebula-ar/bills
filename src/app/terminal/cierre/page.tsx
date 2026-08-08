@@ -88,12 +88,12 @@ export default async function StaffCashClosePage() {
               <div className="rounded-2xl bg-slate-50 p-3" key={account.method}>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-black text-slate-700">{PAYMENT_METHOD_LABELS[account.method]}</span>
-                  <span className="text-xs font-bold text-slate-400" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  <span className="text-xs font-bold text-slate-700" style={{ fontVariantNumeric: "tabular-nums" }}>
                     Sistema: {money(account.balance)}
                   </span>
                 </div>
                 <div className="mt-2 flex items-center rounded-xl border border-slate-200 bg-white px-3 focus-within:border-primary/40">
-                  <span className="text-base font-black text-slate-400">$</span>
+                  <span className="text-base font-black text-slate-600">$</span>
                   <MoneyInput
                     aria-label={`${PAYMENT_METHOD_LABELS[account.method]} contado`}
                     className="w-full bg-transparent px-1.5 py-2.5 text-right text-base font-black text-slate-950 outline-none"

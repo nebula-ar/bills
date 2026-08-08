@@ -99,7 +99,7 @@ export default async function OpcionesPage({ searchParams }: OpcionesPageProps) 
                     <span className="flex-1 text-sm font-bold text-slate-950">{m.name}</span>
                     <span
                       className={`text-sm font-black ${
-                        m.priceDelta > 0 ? "text-primary" : m.priceDelta < 0 ? "text-destructive" : "text-slate-400"
+                        m.priceDelta > 0 ? "text-primary" : m.priceDelta < 0 ? "text-destructive" : "text-slate-500"
                       }`}
                     >
                       {m.priceDelta === 0
@@ -183,7 +183,7 @@ export default async function OpcionesPage({ searchParams }: OpcionesPageProps) 
             <form action={borrarGrupoAction}>
               <input name="groupId" type="hidden" value={grupo.id} />
               <button
-                className="text-sm font-bold text-slate-400 transition hover:text-destructive"
+                className="text-sm font-bold text-slate-500 transition hover:text-destructive"
                 type="submit"
               >
                 Eliminar el grupo «{grupo.name}»

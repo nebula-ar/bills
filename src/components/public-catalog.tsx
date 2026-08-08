@@ -105,7 +105,7 @@ export function PublicCatalog(props: PublicCatalogProps) {
       />
 
       {filtered.length === 0 ? (
-        <p className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+        <p className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-600">
           No encontramos nada con eso.
         </p>
       ) : (
@@ -142,7 +142,7 @@ export function PublicCatalog(props: PublicCatalogProps) {
                     <div className="flex items-center justify-between rounded-full bg-primary/10 p-1 ring-1 ring-primary/20">
                       <button
                         aria-label={`Quitar ${product.name}`}
-                        className="grid size-8 place-items-center rounded-full bg-white text-slate-700"
+                        className="grid size-11 place-items-center rounded-full bg-white text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                         onClick={() => remove(product.id)}
                         type="button"
                       >
@@ -151,7 +151,7 @@ export function PublicCatalog(props: PublicCatalogProps) {
                       <span className="text-sm font-black text-slate-950">{formatQuantity(quantity)}</span>
                       <button
                         aria-label={`Sumar ${product.name}`}
-                        className="grid size-8 place-items-center rounded-full bg-primary text-white"
+                        className="grid size-11 place-items-center rounded-full bg-primary text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                         onClick={() => add(product.id)}
                         type="button"
                       >
@@ -161,7 +161,7 @@ export function PublicCatalog(props: PublicCatalogProps) {
                   ) : (
                     <button
                       aria-label={`Agregar ${product.name}`}
-                      className="flex w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 py-2 text-sm font-black text-slate-700 transition active:scale-95"
+                      className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 px-3 py-2 text-sm font-black text-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
                       onClick={() => add(product.id)}
                       type="button"
                     >
@@ -176,7 +176,7 @@ export function PublicCatalog(props: PublicCatalogProps) {
         </ul>
       )}
 
-      <p className="mt-6 text-center text-xs text-slate-400">Catálogo publicado con Bills</p>
+      <p className="mt-6 text-center text-xs text-slate-500">Catálogo publicado con Bills</p>
 
       {/* Barra del pedido: aparece recién cuando hay algo, para no tapar nada. */}
       {lines.length > 0 ? (

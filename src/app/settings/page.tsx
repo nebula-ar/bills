@@ -59,7 +59,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <PrimaryButton className="self-start">Guardar rubro</PrimaryButton>
           </div>
         </RefreshActionForm>
-        <p className="mt-3 text-xs text-slate-400">
+        <p className="mt-3 text-xs text-slate-500">
           Cambiar de rubro no toca tus datos: el catálogo, las ventas y el stock quedan tal cual.
         </p>
       </SectionCard>

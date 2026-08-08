@@ -485,7 +485,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                         {index + 1}
                       </span>
                       <span className="truncate font-bold text-slate-700">{staff.staffName}</span>
-                      <span className="shrink-0 text-xs text-slate-400">({staff.saleCount})</span>
+                      <span className="shrink-0 text-xs text-slate-500">({staff.saleCount})</span>
                     </span>
                     <span className="shrink-0 font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
                       {formatMoney(staff.total)}
@@ -542,7 +542,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
             </Empty>
           ) : (
             <>
-              <p className="mb-3 text-xs text-slate-400">
+              <p className="mb-3 text-xs text-slate-500">
                 La mercadería no cuenta como gasto: la descuenta la venta, no la compra.
               </p>
               <div className="space-y-3.5">
@@ -609,7 +609,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                         {index + 1}
                       </span>
                       <span className="truncate font-bold text-slate-700">{product.name}</span>
-                      <span className="shrink-0 text-xs text-slate-400">×{formatQuantity(product.quantity)}</span>
+                      <span className="shrink-0 text-xs text-slate-500">×{formatQuantity(product.quantity)}</span>
                     </span>
                     <span className="shrink-0 font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
                       {formatMoney(product.total)}
@@ -664,7 +664,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                       <p className="text-sm font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
                         {formatMoney(sale.total)}
                       </p>
-                      <p className="text-xs text-slate-400">{sale.timeLabel} hs</p>
+                      <p className="text-xs text-slate-500">{sale.timeLabel} hs</p>
                     </div>
                   </li>
                 ))}

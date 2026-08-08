@@ -77,7 +77,7 @@ export default async function PromotionsPage({ searchParams }: PromotionsPagePro
                       <Badge tone="info">{PROMOTION_TYPE_LABELS[promotion.type]}</Badge>
                     </div>
                     <p className="mt-1 text-sm text-slate-600">{describeRule(promotion)}</p>
-                    <p className="mt-0.5 text-xs text-slate-400">
+                    <p className="mt-0.5 text-xs text-slate-500">
                       {PROMOTION_SCOPE_LABELS[promotion.scope]}
                       {promotion.targets.length > 0
                         ? `: ${promotion.targets

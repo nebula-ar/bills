@@ -105,7 +105,7 @@ export function CashManager({ data }: { data: CashData }) {
           <p className="mt-1.5 text-[2.4rem] font-black leading-none tracking-tight" style={tabular}>
             {money(data.totalBalance)}
           </p>
-          <p className="mt-2 text-xs font-medium text-slate-400">Saldo inicial + ventas − gastos + transferencias</p>
+          <p className="mt-2 text-xs font-medium text-slate-200">Saldo inicial + ventas − gastos + transferencias</p>
         </div>
 
         {/* Acciones */}
@@ -199,7 +199,7 @@ export function CashManager({ data }: { data: CashData }) {
                           {money(close.totalCounted)}
                         </p>
                         <p
-                          className={`text-xs font-bold ${close.diff === 0 ? "text-slate-400" : close.diff > 0 ? "text-emerald-600" : "text-rose-600"}`}
+                          className={`text-xs font-bold ${close.diff === 0 ? "text-slate-600" : close.diff > 0 ? "text-emerald-600" : "text-rose-600"}`}
                           style={tabular}
                         >
                           {close.diff === 0 ? "Sin diferencia" : `${close.diff > 0 ? "+" : ""}${money(close.diff)}`}
@@ -227,7 +227,7 @@ export function CashManager({ data }: { data: CashData }) {
               <label className="flex items-center justify-between gap-3" key={account.method}>
                 <span className="text-sm font-black text-slate-700">{account.label}</span>
                 <div className="flex w-40 items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 focus-within:border-primary/40 focus-within:bg-white">
-                  <span className="text-lg font-black text-slate-400">$</span>
+                  <span className="text-lg font-black text-slate-600">$</span>
                   <MoneyInput
                     className="w-full bg-transparent px-1.5 py-2.5 text-right text-lg font-black text-slate-950 outline-none"
                     defaultValue={account.opening ? String(account.opening) : ""}
@@ -256,7 +256,7 @@ export function CashManager({ data }: { data: CashData }) {
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               Monto
               <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
-                <span className="text-2xl font-black text-slate-400">$</span>
+                <span className="text-2xl font-black text-slate-600">$</span>
                 <MoneyInput
                   className="w-full bg-transparent px-2 py-3.5 text-2xl font-black text-slate-950 outline-none"
                   name="amount"
@@ -307,12 +307,12 @@ export function CashManager({ data }: { data: CashData }) {
                 <div className="rounded-2xl bg-slate-50 p-3" key={account.method}>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-black text-slate-700">{account.label}</span>
-                    <span className="text-xs font-bold text-slate-400" style={tabular}>
+                    <span className="text-xs font-bold text-slate-600" style={tabular}>
                       Sistema: {money(account.balance)}
                     </span>
                   </div>
                   <div className="mt-2 flex items-center rounded-xl border border-slate-200 bg-white px-3 focus-within:border-primary/40">
-                    <span className="text-base font-black text-slate-400">$</span>
+                    <span className="text-base font-black text-slate-600">$</span>
                     <MoneyInput
                       className="w-full bg-transparent px-1.5 py-2.5 text-right text-base font-black text-slate-950 outline-none"
                       name={`counted_${account.method}`}
@@ -387,7 +387,7 @@ function SheetHeader({ title, onClose }: { title: string; onClose: () => void })
       <h3 className="text-xl font-black tracking-tight text-slate-950">{title}</h3>
       <button
         aria-label="Cerrar"
-        className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+        className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
         onClick={onClose}
         type="button"
       >

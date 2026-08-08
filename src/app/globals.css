@@ -75,7 +75,11 @@ textarea {
 }
 
 :root {
-  --background: oklch(0.9765 0.0054 274.97);
+  /* Un solo gris de fondo en toda la app: antes convivían `--background`
+     (oklch 0.9765, un gris azulado) y `bg-slate-100` (#f1f5f9). Unificar al
+     valor de slate-100 para que loading/error, los managers y los shells de
+     terminal pinten el mismo fondo. */
+  --background: oklch(0.968 0.003 248.4);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);

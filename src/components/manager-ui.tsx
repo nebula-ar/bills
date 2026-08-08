@@ -106,7 +106,7 @@ export function Field({
     <label className={`flex flex-col gap-1 ${className}`}>
       <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</span>
       {children}
-      {hint ? <span className="text-xs text-slate-400">{hint}</span> : null}
+      {hint ? <span className="text-xs text-slate-500">{hint}</span> : null}
     </label>
   );
 }
@@ -116,10 +116,13 @@ export const inputClass =
 
 export const selectClass = `${inputClass} appearance-none`;
 
+// Los botones compartidos cumplen WCAG 2.5.5: área de toque ≥44px sin forzar
+// el alto en pantallas chicas. min-h-11 (44px) + padding generoso; el texto
+// chico de Ghost/Danger se mantiene, pero el target es tocable con el pulgar.
 export function PrimaryButton({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <button
-      className={`rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm transition active:scale-95 hover:bg-primary-strong ${className}`}
+      className={`inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95 ${className}`}
       type="submit"
     >
       {children}
@@ -130,7 +133,7 @@ export function PrimaryButton({ children, className = "" }: { children: ReactNod
 export function GhostButton({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <button
-      className={`rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition active:scale-95 hover:border-slate-300 ${className}`}
+      className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95 ${className}`}
       type="submit"
     >
       {children}
@@ -141,7 +144,7 @@ export function GhostButton({ children, className = "" }: { children: ReactNode;
 export function DangerButton({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <button
-      className={`rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-600 transition active:scale-95 hover:bg-rose-50 ${className}`}
+      className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95 ${className}`}
       type="submit"
     >
       {children}

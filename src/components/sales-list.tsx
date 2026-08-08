@@ -50,7 +50,7 @@ function money(value: number) {
 function Th({ children, alineado = "izquierda" }: { children: React.ReactNode; alineado?: "izquierda" | "derecha" }) {
   return (
     <th
-      className={`px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500 ${
+      className={`px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-600 ${
         alineado === "derecha" ? "text-right" : ""
       }`}
       scope="col"
@@ -145,7 +145,7 @@ export function SalesList({
           <ReceiptText className="size-8 text-slate-300" />
         </div>
         <p className="text-sm font-bold text-slate-600">No hay ventas para mostrar</p>
-        <p className="mt-1 text-xs text-slate-400">{emptyHint}</p>
+        <p className="mt-1 text-xs text-slate-500">{emptyHint}</p>
       </div>
     );
   }
@@ -185,7 +185,7 @@ export function SalesList({
                   <td className="whitespace-nowrap px-4 py-3 text-sm font-bold text-slate-500" style={{ fontVariantNumeric: "tabular-nums" }}>
                     {cancelled ? <span className="font-black text-rose-600">Cancelada</span> : `${sale.timeLabel} hs`}
                   </td>
-                  <td className={`whitespace-nowrap px-4 py-3 text-sm font-bold ${cancelled ? "text-slate-400" : "text-slate-950"}`}>
+                  <td className={`whitespace-nowrap px-4 py-3 text-sm font-bold ${cancelled ? "text-slate-500" : "text-slate-950"}`}>
                     {sale.staffName}
                   </td>
                   {/* El detalle se queda con el ancho que sobra: las demás
@@ -205,7 +205,7 @@ export function SalesList({
                       las unidades quedan alineadas entre filas y la columna se
                       puede sumar de un vistazo. */}
                   <td
-                    className={`whitespace-nowrap px-4 py-3 text-right text-base font-black ${cancelled ? "text-slate-400 line-through" : "text-slate-950"}`}
+                    className={`whitespace-nowrap px-4 py-3 text-right text-base font-black ${cancelled ? "text-slate-500 line-through" : "text-slate-950"}`}
                     style={{ fontVariantNumeric: "tabular-nums" }}
                   >
                     {money(sale.total)}
@@ -268,7 +268,7 @@ export function SalesList({
                   {cancelled ? <Ban className="size-5" /> : <ReceiptText className="size-5" />}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className={`truncate text-sm font-bold ${cancelled ? "text-slate-400 line-through" : "text-slate-950"}`}>
+                  <p className={`truncate text-sm font-bold ${cancelled ? "text-slate-500 line-through" : "text-slate-950"}`}>
                     {sale.staffName}
                   </p>
                   <p className="truncate text-xs text-slate-500">
@@ -284,12 +284,12 @@ export function SalesList({
                 </div>
                 <div className="shrink-0 text-right">
                   <p
-                    className={`text-sm font-black ${cancelled ? "text-slate-400 line-through" : "text-slate-950"}`}
+                    className={`text-sm font-black ${cancelled ? "text-slate-500 line-through" : "text-slate-950"}`}
                     style={{ fontVariantNumeric: "tabular-nums" }}
                   >
                     {money(sale.total)}
                   </p>
-                  <p className={`text-xs ${cancelled ? "font-bold text-rose-500" : "text-slate-400"}`}>
+                  <p className={`text-xs ${cancelled ? "font-bold text-rose-500" : "text-slate-500"}`}>
                     {cancelled ? "Cancelada" : `${sale.timeLabel} hs`}
                   </p>
                 </div>
@@ -324,7 +324,7 @@ export function SalesList({
               </div>
               <button
                 aria-label="Cerrar"
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                 onClick={() => setSelectedId(null)}
                 type="button"
               >
@@ -345,7 +345,7 @@ export function SalesList({
                 {selected.items.map((item) => (
                   <div className="flex items-center justify-between gap-3 text-sm" key={item.id}>
                     <span className="min-w-0 truncate text-slate-700">
-                      {item.description} <span className="text-slate-400">×{formatQuantity(item.quantity)}</span>
+                      {item.description} <span className="text-slate-500">×{formatQuantity(item.quantity)}</span>
                     </span>
                     <span className="shrink-0 font-bold text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
                       {money(item.total)}

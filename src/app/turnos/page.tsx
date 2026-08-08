@@ -123,7 +123,7 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
                         <span className="text-lg font-black text-slate-950">
                           {timeFormatter.format(appointment.startsAt)}
                         </span>
-                        <span className="text-xs font-bold text-slate-400">{appointment.durationMinutes} min</span>
+                        <span className="text-xs font-bold text-slate-500">{appointment.durationMinutes} min</span>
                         <Badge tone={STATUS_TONES[appointment.status]}>{STATUS_LABELS[appointment.status]}</Badge>
                         {appointment.saleId ? <Badge tone="positive">Cobrado</Badge> : null}
                       </div>
@@ -134,7 +134,7 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
                         {phone ? ` · ${phone}` : ""}
                       </p>
                       {appointment.notes ? (
-                        <p className="mt-1 text-xs italic text-slate-400">{appointment.notes}</p>
+                        <p className="mt-1 text-xs italic text-slate-500">{appointment.notes}</p>
                       ) : null}
                     </div>
 

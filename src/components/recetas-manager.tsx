@@ -357,7 +357,7 @@ export function RecetasManager({
                                   <input name="productId" type="hidden" value={producto.id} />
                                   <button
                                     aria-label={`Quitar ${r.nombre}`}
-                                    className="grid size-8 place-items-center rounded-full text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                                    className="grid size-11 place-items-center rounded-full text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
                                     type="submit"
                                   >
                                     <X className="size-4" />
@@ -683,7 +683,7 @@ function Modal({
           <h3 className="text-xl font-black tracking-tight text-slate-950">{titulo}</h3>
           <button
             aria-label="Cerrar"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
             onClick={onClose}
             type="button"
           >
