@@ -62,7 +62,7 @@ export function StaffAccessPanel({ branch, lockedStaffId }: StaffAccessPanelProp
 
               return (
                 <label
-                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-3 shadow-sm transition ${
+                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-3 shadow-sm transition focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 ${
                     isSelected ? "border-primary bg-primary/10" : "border-slate-200 bg-white hover:border-primary/20"
                   }`}
                   key={staff.id}

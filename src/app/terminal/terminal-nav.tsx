@@ -10,7 +10,7 @@ export function StaffTerminalNav({
   active: "sell" | "sales" | "cash";
   showCashClose?: boolean;
 }) {
-  const base = "grid place-items-center gap-1 rounded-2xl px-2 py-2 text-xs font-black transition";
+  const base = "grid place-items-center gap-1 rounded-2xl px-2 py-2 text-xs font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2";
   const on = "bg-primary/10 text-primary";
   const off = "text-slate-500 hover:bg-primary/10 hover:text-primary";
 

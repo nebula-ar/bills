@@ -153,6 +153,7 @@ export function StaffSaleTerminal({
           <div className="relative mb-3 mt-3">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
             <input
+              aria-label={`Buscar ${catalogSingular.toLowerCase()}`}
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
               onChange={(event) => setSearch(event.target.value)}
               placeholder={`Buscar ${catalogSingular.toLowerCase()}…`}
@@ -172,7 +173,7 @@ export function StaffSaleTerminal({
                 }`}
                 key={product.productId}
               >
-                <button className="text-left active:scale-[0.99]" onClick={() => add(product.productId)} type="button">
+                <button className="rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99]" onClick={() => add(product.productId)} type="button">
                   <span className="block text-base font-black leading-tight text-slate-950">{product.name}</span>
                   <span className="mt-1.5 block text-lg font-black text-primary">{money(product.price)}</span>
                 </button>
@@ -180,7 +181,7 @@ export function StaffSaleTerminal({
                   <div className="mt-3 flex items-center justify-between rounded-full bg-white p-1 ring-1 ring-primary/20">
                     <button
                       aria-label={`Restar ${product.name}`}
-                      className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition active:scale-90"
+                      className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                       onClick={() => decrease(product.productId)}
                       type="button"
                     >
@@ -191,7 +192,7 @@ export function StaffSaleTerminal({
                     </span>
                     <button
                       aria-label={`Sumar ${product.name}`}
-                      className="flex size-9 items-center justify-center rounded-full bg-primary text-white transition active:scale-90"
+                      className="flex size-11 items-center justify-center rounded-full bg-primary text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                       onClick={() => add(product.productId)}
                       type="button"
                     >
@@ -201,7 +202,7 @@ export function StaffSaleTerminal({
                 ) : (
                   <button
                     aria-label={`Agregar ${product.name}`}
-                    className="mt-3 flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 text-sm font-black text-slate-700 transition active:scale-[0.97]"
+                    className="mt-3 flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 text-sm font-black text-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.97]"
                     onClick={() => add(product.productId)}
                     type="button"
                   >
@@ -223,7 +224,7 @@ export function StaffSaleTerminal({
       {/* Barra de cobro (footer de la tarjeta) */}
       <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-3">
         <button
-          className={`flex w-full items-center gap-3 rounded-2xl p-2 pl-5 text-left transition active:scale-[0.99] ${
+          className={`flex w-full items-center gap-3 rounded-2xl p-2 pl-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99] ${
             hasItems ? "bg-primary shadow-sm shadow-primary/25" : "pointer-events-none bg-slate-200"
           }`}
           disabled={!hasItems}
@@ -267,7 +268,7 @@ export function StaffSaleTerminal({
             <h3 className="text-xl font-black tracking-tight text-slate-950">Cobrar</h3>
             <button
               aria-label="Cerrar"
-              className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+              className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
               onClick={() => setCheckoutOpen(false)}
               type="button"
             >
@@ -288,7 +289,7 @@ export function StaffSaleTerminal({
                     <div className="flex items-center rounded-full bg-white p-1 ring-1 ring-slate-950/5">
                       <button
                         aria-label={`Restar ${item.name}`}
-                        className="flex size-8 items-center justify-center rounded-full text-slate-600 transition active:scale-90"
+                        className="flex size-11 items-center justify-center rounded-full text-slate-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                         onClick={() => decrease(item.productId)}
                         type="button"
                       >
@@ -299,7 +300,7 @@ export function StaffSaleTerminal({
                       </span>
                       <button
                         aria-label={`Sumar ${item.name}`}
-                        className="flex size-8 items-center justify-center rounded-full text-slate-600 transition active:scale-90"
+                        className="flex size-11 items-center justify-center rounded-full text-slate-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                         onClick={() => add(item.productId)}
                         type="button"
                       >
@@ -311,7 +312,7 @@ export function StaffSaleTerminal({
                     </p>
                     <button
                       aria-label={`Quitar ${item.name}`}
-                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition active:scale-90 hover:text-rose-600"
+                      className="flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90 hover:text-rose-600"
                       onClick={() => remove(item.productId)}
                       type="button"
                     >
@@ -330,7 +331,7 @@ export function StaffSaleTerminal({
                   const active = method === option.value;
                   return (
                     <button
-                      className={`flex items-center gap-2.5 rounded-2xl px-4 py-4 text-sm font-black transition active:scale-95 ${
+                      className={`flex items-center gap-2.5 rounded-2xl px-4 py-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95 ${
                         active ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-slate-100 text-slate-700"
                       }`}
                       key={option.value}
@@ -354,7 +355,7 @@ export function StaffSaleTerminal({
 
           <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
             <button
-              className="flex w-full items-center justify-between gap-3 rounded-2xl bg-primary px-6 py-4 text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+              className="flex w-full items-center justify-between gap-3 rounded-2xl bg-primary px-6 py-4 text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
               disabled={!hasItems || !method || isPending}
               onClick={confirm}
               type="button"

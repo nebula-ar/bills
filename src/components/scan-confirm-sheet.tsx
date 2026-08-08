@@ -104,7 +104,7 @@ export function ScanConfirmSheet({
 
           <button
             aria-label="Cancelar"
-            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
             data-testid="scan-cancel"
             onClick={onCancel}
             type="button"
@@ -137,7 +137,7 @@ export function ScanConfirmSheet({
             <div className="mt-2 flex items-center justify-between rounded-2xl bg-slate-50 p-2">
               <button
                 aria-label="Restar"
-                className="flex size-14 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm transition active:scale-90 disabled:opacity-40"
+                className="flex size-14 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90 disabled:opacity-40"
                 disabled={quantity <= ONE}
                 onClick={() => step(-1)}
                 type="button"
@@ -147,7 +147,7 @@ export function ScanConfirmSheet({
               <span className="text-4xl font-black tabular-nums text-slate-950">{formatQuantity(quantity)}</span>
               <button
                 aria-label="Sumar"
-                className="flex size-14 items-center justify-center rounded-2xl bg-primary text-white shadow-sm transition active:scale-90"
+                className="flex size-14 items-center justify-center rounded-2xl bg-primary text-white shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                 onClick={() => step(1)}
                 type="button"
               >
@@ -161,7 +161,7 @@ export function ScanConfirmSheet({
             <div className="mt-2 flex flex-wrap gap-1.5">
               {[2, 3, 6, 12].map((amount) => (
                 <button
-                  className="rounded-xl bg-slate-100 px-3.5 py-2.5 text-sm font-black text-slate-600 transition active:scale-95"
+                  className="rounded-xl bg-slate-100 px-3.5 py-2.5 text-sm font-black text-slate-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
                   key={amount}
                   onClick={() => setQuantity(amount * ONE)}
                   type="button"
@@ -171,7 +171,7 @@ export function ScanConfirmSheet({
               ))}
               {product.packSize && product.packSize > 1 ? (
                 <button
-                  className="rounded-xl bg-slate-900 px-3.5 py-2.5 text-sm font-black text-white transition active:scale-95"
+                  className="rounded-xl bg-slate-900 px-3.5 py-2.5 text-sm font-black text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
                   onClick={() => setQuantity((product.packSize as number) * ONE)}
                   type="button"
                 >
@@ -198,7 +198,7 @@ export function ScanConfirmSheet({
 
         <div className="mt-4 border-t border-slate-100 px-5 pt-4">
           <button
-            className="flex w-full items-center justify-between gap-3 rounded-2xl bg-primary px-5 py-4 text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+            className="flex w-full items-center justify-between gap-3 rounded-2xl bg-primary px-5 py-4 text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
             data-testid="scan-confirm"
             disabled={!puedeAgregar}
             onClick={() => onConfirm(quantity)}

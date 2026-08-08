@@ -176,7 +176,7 @@ PINs de empleados: Nico 1111 · Lucas 2222 · Fede 3333 · Matías 4444 · Franc
 | --- | --- |
 | `npm run dev` | Servidor de desarrollo |
 | `npm test` | Tests unitarios (lógica pura) |
-| `npm run e2e` | Levanta Supabase efímero, migra, siembra, build y Playwright |
+| `npm run e2e` | Supabase efímero (local) o Cloud (`E2E_CLOUD=1`), migra, siembra, build y Playwright |
 | `npm run e2e:fast` | Playwright sin rebuild (ojo: usa el último build) |
 | `npm run lint` | ESLint |
 | `npm run db:reset` | Recrea el schema de una base PostgreSQL de desarrollo |
@@ -186,7 +186,10 @@ PINs de empleados: Nico 1111 · Lucas 2222 · Fede 3333 · Matías 4444 · Franc
 
 - **Unitarios (`vitest`)**: cubren la lógica pura — cantidades y redondeo, motor de
   promociones, saldos de caja, vencimientos de cuentas a pagar, CUIT y facturación.
-- **E2E (`playwright`)**: corren contra `e2e.db`, una base descartable que se resetea
-  y siembra antes de cada corrida. Cubren el flujo real de cada módulo (ajustar
+- **E2E (`playwright`)**: corren contra Supabase/PostgreSQL. En local se levanta
+  una base descartable con Docker (`supabase start`); en CI apuntan a Supabase
+  Cloud (`E2E_CLOUD=1`, ver `.github/workflows/e2e.yml`) para no depender del
+  rate-limit de Docker Hub. El seed va scoped al negocio demo y no toca los datos
+  de QA de la base compartida. Cubren el flujo real de cada módulo (ajustar
   stock, fiar y cobrar la cuenta, cargar y pagar una factura, aplicar una promo,
   apagar un módulo), no solo que la pantalla cargue.
