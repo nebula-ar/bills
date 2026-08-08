@@ -1,4 +1,5 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { PeriodFade } from "@/components/period-fade";
 import { MarketingPublicLink } from "@/components/marketing-public-link";
 import { MarketingSettingsForm } from "@/components/marketing-settings-form";
 import {
@@ -69,17 +70,23 @@ export default async function MarketingPage({ searchParams }: MarketingPageProps
           {
             label: "Se están yendo",
             value: String(overview.lapsed.length),
+            amount: overview.lapsed.length,
+            kind: "int",
             hint: `Sin comprar hace ${lapsedDays}+ días`,
             tone: overview.lapsed.length > 0 ? "warning" : "positive",
           },
           {
             label: "Cumplen este mes",
             value: String(overview.birthdays.length),
+            amount: overview.birthdays.length,
+            kind: "int",
             tone: overview.birthdays.length > 0 ? "info" : "neutral",
           },
           {
             label: "Clientes activos",
             value: String(overview.customers.filter((customer) => customer.purchaseCount > 0).length),
+            amount: overview.customers.filter((customer) => customer.purchaseCount > 0).length,
+            kind: "int",
           },
         ]}
       />
@@ -104,35 +111,37 @@ export default async function MarketingPage({ searchParams }: MarketingPageProps
           </div>
         }
       >
-        {overview.lapsed.length === 0 ? (
-          <EmptyState
-            title="Nadie se está yendo."
-            hint={`Ningún cliente lleva más de ${lapsedDays} días sin comprar.`}
-          />
-        ) : (
-          <ul className="space-y-2.5">
-            {overview.lapsed.slice(0, 20).map((customer) => (
-              <li className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 p-3.5" key={customer.id}>
-                <div className="min-w-0">
-                  <p className="text-sm font-black text-slate-950">{customer.name}</p>
-                  <p className="text-xs text-slate-500">
-                    Hace {customer.daysAway} días · {customer.purchaseCount} compras ·{" "}
-                    {formatMoney(customer.totalSpent)}
-                  </p>
-                </div>
-                <WhatsappButton
-                  label="Escribirle"
-                  message={winBackMessage({
-                    businessName: business.name,
-                    customerName: customer.name,
-                    daysAway: customer.daysAway,
-                  })}
-                  phone={customer.phone}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
+        <PeriodFade period={`lapsed-${lapsedDays}`}>
+          {overview.lapsed.length === 0 ? (
+            <EmptyState
+              title="Nadie se está yendo."
+              hint={`Ningún cliente lleva más de ${lapsedDays} días sin comprar.`}
+            />
+          ) : (
+            <ul className="space-y-2.5">
+              {overview.lapsed.slice(0, 20).map((customer) => (
+                <li className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 p-3.5" key={customer.id}>
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-slate-950">{customer.name}</p>
+                    <p className="text-xs text-slate-500">
+                      Hace {customer.daysAway} días · {customer.purchaseCount} compras ·{" "}
+                      {formatMoney(customer.totalSpent)}
+                    </p>
+                  </div>
+                  <WhatsappButton
+                    label="Escribirle"
+                    message={winBackMessage({
+                      businessName: business.name,
+                      customerName: customer.name,
+                      daysAway: customer.daysAway,
+                    })}
+                    phone={customer.phone}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </PeriodFade>
       </SectionCard>
 
       {/* ── Cumpleaños ─────────────────────────────────────────────────────── */}

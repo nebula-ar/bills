@@ -4,6 +4,7 @@ import { previewSale, submitSale, type SubmitSaleInput } from "@/app/sales/new/a
 import type { PaymentMethod, Unit } from "@/generated/prisma/client";
 import { SaleChannel, TaxCondition } from "@/generated/prisma/enums";
 import { BarcodeScanner } from "@/components/barcode-scanner";
+import { Confetti } from "@/components/confetti";
 import { ScanConfirmSheet, type ScannedProduct } from "@/components/scan-confirm-sheet";
 import { findProductToSell } from "@/app/sales/new/scan-actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
@@ -1240,8 +1241,8 @@ export function PosCheckout({
       {/* Barra de pedido (abrir checkout) — solo mobile/tablet chico */}
       <div className="fixed inset-x-0 bottom-[4.75rem] z-30 mx-auto max-w-[560px] px-4 sm:bottom-[7rem] lg:hidden">
         <button
-          className={`flex w-full items-center gap-3 rounded-2xl p-2.5 pl-5 text-left shadow-[0_-8px_40px_rgba(15,23,42,0.16)] transition active:scale-[0.99] ${
-            hasItems ? "bg-primary" : "pointer-events-none bg-slate-300"
+          className={`flex w-full items-center gap-3 rounded-2xl p-2.5 pl-5 text-left transition active:scale-[0.99] ${
+            hasItems ? "bg-primary shadow-lg shadow-primary/30" : "pointer-events-none bg-slate-300"
           }`}
           disabled={!hasItems}
           onClick={openCheckout}
@@ -1250,7 +1251,14 @@ export function PosCheckout({
           <span className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-white/15 text-white">
             <ShoppingBag className="size-5" />
             {itemCount > 0 ? (
-              <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-white text-xs font-black text-primary">
+              /* `key={itemCount}` re-monta el badge en cada cambio: la
+                 animación `bbPop` corre solo cuando cambia el número, y con
+                 prefers-reduced-motion queda quieto por el CSS global. */
+              <span
+                className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-white text-xs font-black text-primary"
+                key={itemCount}
+                style={{ animation: "bbPop .35s cubic-bezier(.34,1.56,.64,1) both" }}
+              >
                 {itemCount}
               </span>
             ) : null}
@@ -2037,7 +2045,11 @@ export function PosCheckout({
 
       {success ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm duration-200 animate-in fade-in">
-          <div className="flex flex-col items-center gap-3 rounded-2xl bg-white px-12 py-10 shadow-2xl duration-300 animate-in zoom-in-95">
+          {/* Confetti sutil sobre el overlay: refuerza el cierre sin frenar el
+              cobro (mismo patrón que register-wizard, con motion reducido en
+              prefers-reduced-motion). */}
+          <Confetti />
+          <div className="relative flex flex-col items-center gap-3 rounded-2xl bg-white px-12 py-10 shadow-2xl duration-300 animate-in zoom-in-95">
             <span className="flex size-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
               <Check className="size-11" />
             </span>

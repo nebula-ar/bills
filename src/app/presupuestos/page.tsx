@@ -66,9 +66,27 @@ export default async function PresupuestosPage() {
 
       <StatTiles
         tiles={[
-          { label: "Abiertos", value: String(open.length), tone: open.length > 0 ? "info" : "neutral" },
-          { label: "En la calle", value: formatMoney(pendingAmount), hint: "Cotizado sin cobrar" },
-          { label: "Convertidos", value: String(converted.length), tone: converted.length > 0 ? "positive" : "neutral" },
+          {
+            label: "Abiertos",
+            value: String(open.length),
+            amount: open.length,
+            kind: "int",
+            tone: open.length > 0 ? "info" : "neutral",
+          },
+          {
+            label: "En la calle",
+            value: formatMoney(pendingAmount),
+            amount: pendingAmount,
+            kind: "money",
+            hint: "Cotizado sin cobrar",
+          },
+          {
+            label: "Convertidos",
+            value: String(converted.length),
+            amount: converted.length,
+            kind: "int",
+            tone: converted.length > 0 ? "positive" : "neutral",
+          },
         ]}
       />
 

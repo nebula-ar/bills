@@ -37,7 +37,7 @@ function ActiveToggle({ defaultOn }: { defaultOn: boolean }) {
         type="button"
       >
         <span
-          className="absolute left-1 top-1 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out"
+          className="absolute left-1 top-1 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
           style={{ transform: on ? "translateX(1.25rem)" : "translateX(0)" }}
         />
       </button>

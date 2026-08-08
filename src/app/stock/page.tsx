@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { PeriodFade } from "@/components/period-fade";
 import {
   Badge,
   EmptyState,
@@ -91,18 +92,34 @@ export default async function StockPage({ searchParams }: StockPageProps) {
 
       <StatTiles
         tiles={[
-          { label: "Productos", value: String(totals.products) },
-          { label: "Valorizado", value: formatMoney(totals.value), hint: "A precio de costo", tone: "info" },
+          { label: "Productos", value: String(totals.products), amount: totals.products, kind: "int" },
+          {
+            label: "Valorizado",
+            value: formatMoney(totals.value),
+            amount: totals.value,
+            kind: "money",
+            hint: "A precio de costo",
+            tone: "info",
+          },
           {
             label: "Por reponer",
             value: String(totals.low),
+            amount: totals.low,
+            kind: "int",
             hint: "Bajo el mínimo",
             tone: totals.low > 0 ? "warning" : "neutral",
           },
-          { label: "Sin stock", value: String(totals.out), tone: totals.out > 0 ? "danger" : "neutral" },
+          {
+            label: "Sin stock",
+            value: String(totals.out),
+            amount: totals.out,
+            kind: "int",
+            tone: totals.out > 0 ? "danger" : "neutral",
+          },
         ]}
       />
 
+      <PeriodFade period={`stock-${branch.id}`}>
       {alerts.length > 0 ? (
         <SectionCard title="Hay que reponer" description="Productos en cero o por debajo del mínimo que configuraste.">
           <ul className="flex flex-wrap gap-2">
@@ -155,6 +172,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
           }))}
         />
       )}
+      </PeriodFade>
 
       <div className="grid gap-4">
         {activeBranches.length > 1 ? (

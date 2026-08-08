@@ -1,6 +1,7 @@
 "use client";
 
 import { createQuoteAction } from "@/app/presupuestos/actions";
+import { AnimatedMoney } from "@/components/animated-number";
 import { Check, Loader2, Plus, Trash2 } from "@/components/icons";
 import { inputClass, selectClass } from "@/components/manager-ui";
 import { Unit } from "@/generated/prisma/enums";
@@ -332,8 +333,11 @@ export function QuoteBuilder({
         ) : null}
         <div className="mt-2 flex items-baseline justify-between">
           <span className="text-sm font-black uppercase tracking-wide text-white/60">Total</span>
+          {/* Count-up corto: el total es lo que el cliente mira mientras se
+              arma la cotización. Cuenta desde el valor anterior (ver
+              useCountUp), así un cambio de renglón "respira" y no parpadea. */}
           <span className="text-3xl font-black tracking-tight" data-testid="quote-total">
-            {money(totals.total)}
+            <AnimatedMoney durationMs={500} value={totals.total} />
           </span>
         </div>
       </div>

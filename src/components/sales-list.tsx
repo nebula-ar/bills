@@ -89,6 +89,10 @@ export function SalesList({
   const [items, setItems] = useState(sales);
   const [syncedSales, setSyncedSales] = useState(sales);
   const [cursor, setCursor] = useState<string | null>(initialCursor);
+  // Índice desde el que las filas se consideran nuevas y entran con fade
+  // escalonado. En la carga inicial es 0 (todas entran); al "Cargar más",
+  // las que ya estaban NO se re-animan y solo entran las que vinieron.
+  const [enteringBase, setEnteringBase] = useState(0);
   const [loading, startLoading] = useTransition();
   const [invoicing, startInvoicing] = useTransition();
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
@@ -111,6 +115,8 @@ export function SalesList({
   if (sales !== syncedSales) {
     setSyncedSales(sales);
     setItems(sales);
+    // Data fresca del server: entra completa, como la primera vez.
+    setEnteringBase(0);
   }
 
   function handleEmitInvoice(saleId: string) {
@@ -127,6 +133,7 @@ export function SalesList({
 
   function handleLoadMore() {
     if (!loadMore || !cursor) return;
+    const prevCount = items.length;
     startLoading(async () => {
       const page = await loadMore(cursor);
       // Deduplicamos por si una venta nueva corrió el cursor entre páginas.
@@ -135,6 +142,8 @@ export function SalesList({
         return [...prev, ...page.sales.filter((sale) => !seen.has(sale.id))];
       });
       setCursor(page.nextCursor);
+      // Las filas que ya estaban no se re-animan; solo entran las nuevas.
+      setEnteringBase(prevCount);
     });
   }
 
@@ -170,17 +179,21 @@ export function SalesList({
             </tr>
           </thead>
           <tbody>
-            {items.map((sale) => {
+            {items.map((sale, index) => {
               const cancelled = sale.status === "CANCELLED";
+              const entering = index >= enteringBase;
               return (
                 <tr
-                  className="cursor-pointer border-b border-slate-50 transition last:border-0 hover:bg-slate-50"
+                  className={`cursor-pointer border-b border-slate-50 transition last:border-0 hover:bg-slate-50 ${
+                    entering ? "animate-in fade-in slide-in-from-bottom-2 duration-500" : ""
+                  }`}
                   data-testid="sale-row-table"
                   key={sale.id}
                   onClick={() => {
                     setSelectedId(sale.id);
                     setConfirming(false);
                   }}
+                  style={entering ? { animationDelay: `${Math.min((index - enteringBase) * 40, 320)}ms`, animationFillMode: "backwards" } : undefined}
                 >
                   <td className="whitespace-nowrap px-4 py-3 text-sm font-bold text-slate-500" style={{ fontVariantNumeric: "tabular-nums" }}>
                     {cancelled ? <span className="font-black text-rose-600">Cancelada</span> : `${sale.timeLabel} hs`}
@@ -245,11 +258,14 @@ export function SalesList({
       <ul className="mt-4 space-y-2.5 lg:hidden">
         {items.map((sale, index) => {
           const cancelled = sale.status === "CANCELLED";
+          // Solo las filas nuevas (después de "Cargar más") entran con fade
+          // escalonado; las que ya estaban quedan quietas.
+          const entering = index >= enteringBase;
           return (
             <li
-              className="duration-500 animate-in fade-in slide-in-from-bottom-2"
+              className={entering ? "duration-500 animate-in fade-in slide-in-from-bottom-2" : undefined}
               key={sale.id}
-              style={{ animationDelay: `${Math.min(index * 40, 320)}ms`, animationFillMode: "backwards" }}
+              style={entering ? { animationDelay: `${Math.min((index - enteringBase) * 40, 320)}ms`, animationFillMode: "backwards" } : undefined}
             >
               <button
                 className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.99]"

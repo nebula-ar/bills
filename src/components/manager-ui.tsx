@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { AnimatedMoney, AnimatedNumber } from "@/components/animated-number";
 
 // Piezas compartidas por las pantallas de gestión (stock, proveedores, promos,
 // clientes, módulos). Existen para que todas se vean como el mismo sistema y
@@ -28,9 +31,24 @@ const TONE_BADGE: Record<Tone, string> = {
   info: "bg-primary/15 text-primary",
 };
 
+export type StatTile = {
+  label: string;
+  // Lo que se muestra por defecto. Si `amount` viene, se ignora y el número
+  // se anima con count-up (money = plata, int = conteo).
+  value: string;
+  hint?: string;
+  tone?: Tone;
+  /** Monto/valor numérico para animar. */
+  amount?: number;
+  /** Cómo formatear el número animado. */
+  kind?: "money" | "int";
+};
+
 // Fila de números grandes que encabeza cada pantalla: lo que el dueño mira
-// primero (cuánto debo, cuánto vale mi stock, cuánto me deben).
-export function StatTiles({ tiles }: { tiles: { label: string; value: string; hint?: string; tone?: Tone }[] }) {
+// primero (cuánto debo, cuánto vale mi stock, cuánto me deben). Con `amount`
+// el número entra con count-up (igual que el dashboard), así "esto cambió" se
+// comunica en todas las pantallas de dinero, no solo en una.
+export function StatTiles({ tiles }: { tiles: StatTile[] }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {tiles.map((tile) => (
@@ -39,7 +57,17 @@ export function StatTiles({ tiles }: { tiles: { label: string; value: string; hi
           key={tile.label}
         >
           <p className="text-[0.68rem] font-bold uppercase tracking-wider opacity-70">{tile.label}</p>
-          <p className="mt-1 text-xl font-black tracking-tight sm:text-2xl">{tile.value}</p>
+          <p className="mt-1 text-xl font-black tracking-tight sm:text-2xl">
+            {tile.amount !== undefined ? (
+              tile.kind === "money" ? (
+                <AnimatedMoney value={tile.amount} />
+              ) : (
+                <AnimatedNumber value={tile.amount} />
+              )
+            ) : (
+              tile.value
+            )}
+          </p>
           {tile.hint ? <p className="mt-0.5 text-xs opacity-70">{tile.hint}</p> : null}
         </div>
       ))}
@@ -82,7 +110,8 @@ export function SectionCard({
 
 export function EmptyState({ title, hint }: { title: string; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center">
+    // Entrada suave: un estado sin datos se siente intencional, no roto.
+    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center animate-in fade-in slide-in-from-bottom-2 duration-500">
       <p className="text-sm font-bold text-slate-700">{title}</p>
       {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}
     </div>
