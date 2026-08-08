@@ -46,7 +46,7 @@ export function ConfirmSubmit({
       <button
         className={
           className ||
-          "rounded-xl border border-rose-200 bg-white px-3 py-2.5 text-xs font-black text-rose-600 transition active:scale-95"
+          "rounded-xl border border-rose-200 bg-white px-3 py-2.5 text-xs font-black text-rose-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
         }
         onClick={arm}
         type="button"
@@ -58,7 +58,7 @@ export function ConfirmSubmit({
 
   return (
     <button
-      className="rounded-xl bg-rose-600 px-3 py-2.5 text-xs font-black text-white transition active:scale-95"
+      className="rounded-xl bg-rose-600 px-3 py-2.5 text-xs font-black text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
       type="submit"
     >
       {confirmLabel}

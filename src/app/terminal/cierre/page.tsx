@@ -33,7 +33,7 @@ function Blocked({ title, message }: { title: string; message: string }) {
         </span>
         <h1 className="text-xl font-black tracking-tight text-slate-950">{title}</h1>
         <p className="max-w-xs text-sm text-slate-500">{message}</p>
-        <Link className="rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white" href="/terminal">
+        <Link className="rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" href="/terminal">
           Volver a la terminal
         </Link>
       </div>
@@ -95,6 +95,7 @@ export default async function StaffCashClosePage() {
                 <div className="mt-2 flex items-center rounded-xl border border-slate-200 bg-white px-3 focus-within:border-primary/40">
                   <span className="text-base font-black text-slate-400">$</span>
                   <MoneyInput
+                    aria-label={`${PAYMENT_METHOD_LABELS[account.method]} contado`}
                     className="w-full bg-transparent px-1.5 py-2.5 text-right text-base font-black text-slate-950 outline-none"
                     defaultValue={String(account.balance)}
                     name={`counted_${account.method}`}
@@ -125,7 +126,7 @@ export default async function StaffCashClosePage() {
 
         <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-3">
           <button
-            className="w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
+            className="w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99]"
             type="submit"
           >
             Cerrar caja

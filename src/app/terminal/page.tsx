@@ -90,7 +90,7 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
                 {lockedStaffId ? <input name="terminalStaff" type="hidden" value={lockedStaffId} /> : null}
                 {terminalId ? <input name="terminal" type="hidden" value={terminalId} /> : null}
                 <button
-                  className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-600 transition active:scale-95"
+                  className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
                   type="submit"
                 >
                   <LogOut aria-hidden="true" size={14} />
@@ -130,14 +130,14 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
                 <StaffAccessPanel branch={branch} lockedStaffId={lockedStaffId} />
                 {terminalId ? <input name="terminal" type="hidden" value={terminalId} /> : null}
                 <button
-                  className="rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
+                  className="rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99]"
                   type="submit"
                 >
                   Empezar turno
                 </button>
               </form>
               <div className="mx-auto mt-5 flex w-full max-w-md flex-wrap gap-4 px-1 text-sm font-semibold text-slate-500">
-                <Link className="hover:text-primary" href="/login">
+                <Link className="rounded-lg hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" href="/login">
                   Administración
                 </Link>
               </div>

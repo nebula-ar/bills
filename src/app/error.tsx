@@ -21,7 +21,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         No pudimos cargar esta pantalla. Probá de nuevo; si sigue pasando, avisanos.
       </p>
       <button
-        className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white shadow-sm shadow-primary/25 transition active:scale-95"
+        className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white shadow-sm shadow-primary/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
         onClick={reset}
         type="button"
       >
