@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { PeriodFade } from "@/components/period-fade";
+import { StatTiles } from "@/components/stat-tiles";
 import {
   Badge,
   EmptyState,
@@ -11,7 +12,6 @@ import {
   PrimaryButton,
   SectionCard,
   selectClass,
-  StatTiles,
 } from "@/components/manager-ui";
 import { RefreshActionForm } from "@/components/refresh-action-form";
 import { StockEmpty, StockManager } from "@/components/stock-manager";

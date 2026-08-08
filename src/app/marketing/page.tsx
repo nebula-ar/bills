@@ -1,5 +1,6 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { PeriodFade } from "@/components/period-fade";
+import { StatTiles } from "@/components/stat-tiles";
 import { MarketingPublicLink } from "@/components/marketing-public-link";
 import { MarketingSettingsForm } from "@/components/marketing-settings-form";
 import {
@@ -7,7 +8,6 @@ import {
   EmptyState,
   formatMoney,
   SectionCard,
-  StatTiles,
 } from "@/components/manager-ui";
 import { WhatsappButton } from "@/components/whatsapp-button";
 import { AppModule } from "@/generated/prisma/client";

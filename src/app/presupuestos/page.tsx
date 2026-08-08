@@ -1,11 +1,11 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { StatTiles } from "@/components/stat-tiles";
 import {
   Badge,
   EmptyState,
   formatMoney,
   GhostButton,
   SectionCard,
-  StatTiles,
   type Tone,
 } from "@/components/manager-ui";
 import { QuoteShare } from "@/components/quote-share";

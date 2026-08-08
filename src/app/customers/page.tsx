@@ -1,4 +1,5 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { StatTiles } from "@/components/stat-tiles";
 import {
   Badge,
   EmptyState,
@@ -8,7 +9,6 @@ import {
   PrimaryButton,
   SectionCard,
   selectClass,
-  StatTiles,
   TableWrap,
 } from "@/components/manager-ui";
 import { MoneyInput } from "@/components/money-input";

@@ -1,12 +1,12 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { PeriodFade } from "@/components/period-fade";
+import { StatTiles } from "@/components/stat-tiles";
 import {
   Badge,
   EmptyState,
   formatMoney,
   GhostButton,
   SectionCard,
-  StatTiles,
   TableWrap,
 } from "@/components/manager-ui";
 import { MoneyInput } from "@/components/money-input";

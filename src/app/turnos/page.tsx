@@ -1,5 +1,6 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { PeriodFade } from "@/components/period-fade";
+import { StatTiles } from "@/components/stat-tiles";
 import { AppointmentFormHandler } from "@/components/appointment-form-handler";
 import {
   Badge,
@@ -10,7 +11,6 @@ import {
   PrimaryButton,
   SectionCard,
   selectClass,
-  StatTiles,
   type Tone,
 } from "@/components/manager-ui";
 import { AppModule, AppointmentStatus } from "@/generated/prisma/client";
