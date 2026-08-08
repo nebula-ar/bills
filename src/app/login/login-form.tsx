@@ -148,7 +148,7 @@ export function LoginForm({ callbackUrl, variant, showGoogle }: LoginFormProps) 
         <div className="flex items-center justify-between pt-1">
           <label className="flex cursor-pointer items-center gap-2">
             <input
-              className="size-4 cursor-pointer rounded border border-slate-300 bg-white accent-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+              className="size-4 cursor-pointer rounded border border-slate-300 bg-white accent-primary disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isPending}
               name="remember"
               type="checkbox"

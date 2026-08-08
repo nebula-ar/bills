@@ -146,13 +146,22 @@ describe("los dos rubros conservan SU identidad", () => {
   it("ningún componente vuelve a hardcodear el azul de Bills", () => {
     // La regresión más fácil: alguien copia un botón viejo con bg-blue-600 y
     // esa pantalla deja de cambiar con el rubro.
+    //
+    // Excepciones deliberadas: no son colores de UI que el rubro deba cambiar.
+    // El azul de marca ES `#3158e8` desde NEBU-17, así que el hex tiene usos
+    // legítimos fuera de los componentes:
+    // - layout.tsx: el `themeColor` del viewport es un meta tag del navegador
+    //   (la barra de estado), no un color de componente.
+    // - reports-charts-colors.ts / reports-charts.tsx: paletas de visualización
+    //   de datos, que por diseño viven fuera del tema del rubro.
+    const EXENTOS = new Set(["layout.tsx", "reports-charts-colors.ts", "reports-charts.tsx"]);
     const src = path.join(process.cwd(), "src");
     const sospechosos: string[] = [];
     const recorrer = (dir: string) => {
       for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
         const p = path.join(dir, e.name);
         if (e.isDirectory()) recorrer(p);
-        else if (/\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name)) {
+        else if (/\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name) && !EXENTOS.has(e.name)) {
           const t = fs.readFileSync(p, "utf8");
           if (/(bg|text|border|ring|shadow)-blue-\d|#3158e8/.test(t)) sospechosos.push(e.name);
         }

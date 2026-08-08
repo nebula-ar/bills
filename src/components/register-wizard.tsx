@@ -202,7 +202,7 @@ export function RegisterWizard() {
                   azul, pero no vuelve a clavar el color a mano. */}
               <div
                 aria-label="Bienvenida a Bills"
-                className="grid size-24 place-items-center rounded-2xl bg-linear-to-br from-blue-600 to-violet-600 shadow-lg shadow-primary/30"
+                className="grid size-24 place-items-center rounded-2xl bg-linear-to-br from-primary to-violet-600 shadow-lg shadow-primary/30"
                 role="img"
                 style={{ animation: "bbPop .6s cubic-bezier(.34,1.56,.64,1) both" }}
               >

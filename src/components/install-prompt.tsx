@@ -105,7 +105,7 @@ export function InstallPrompt() {
         <div className="flex items-center gap-3 pr-8">
           <div
             className="flex size-12 shrink-0 items-center justify-center rounded-2xl"
-            style={{ backgroundImage: "linear-gradient(135deg, #2563eb, #1d4ed8)" }}
+            style={{ backgroundImage: "linear-gradient(135deg, var(--primary), var(--primary-strong))" }}
           >
             <BrandLogo iconOnly height={22} label="Bills" variant="white" />
           </div>
@@ -133,7 +133,7 @@ export function InstallPrompt() {
           <button
             type="button"
             onClick={install}
-            className="mt-3 w-full rounded-2xl bg-primary py-3 text-[15px] font-black text-white shadow-[0_4px_0_#1d4ed8] transition active:translate-y-[3px] active:shadow-none"
+            className="mt-3 w-full rounded-2xl bg-primary py-3 text-[15px] font-black text-white shadow-[0_4px_0_var(--primary-strong)] transition active:translate-y-[3px] active:shadow-none"
           >
             Instalar app
           </button>
