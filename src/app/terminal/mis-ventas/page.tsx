@@ -51,7 +51,7 @@ export default async function MisVentasPage() {
           <p className="rounded-3xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
             Abrí tu turno con tu PIN para ver tus ventas del día.
           </p>
-          <Link className="mx-auto rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white" href="/terminal">
+          <Link className="mx-auto rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" href="/terminal">
             Ir a mi terminal
           </Link>
         </div>

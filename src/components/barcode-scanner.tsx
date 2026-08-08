@@ -188,7 +188,7 @@ export function BarcodeScanner({
             <button
               aria-label={torchOn ? "Apagar la luz" : "Prender la luz"}
               aria-pressed={torchOn}
-              className={`flex size-10 items-center justify-center rounded-full transition active:scale-90 ${
+              className={`flex size-11 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 active:scale-90 ${
                 torchOn ? "bg-amber-300 text-slate-900" : "bg-white/10 text-white"
               }`}
               onClick={async () => {
@@ -204,7 +204,7 @@ export function BarcodeScanner({
 
           <button
             aria-label="Cerrar"
-            className="flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition active:scale-90"
+            className="flex size-11 items-center justify-center rounded-full bg-white/10 text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 active:scale-90"
             onClick={onClose}
             type="button"
           >
@@ -240,7 +240,7 @@ export function BarcodeScanner({
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-950/90 px-8 text-center text-white">
             <p className="text-sm font-semibold">{error}</p>
             <button
-              className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-900 transition active:scale-95"
+              className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-900 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 active:scale-95"
               onClick={onClose}
               type="button"
             >
@@ -284,7 +284,7 @@ export function BarcodeScanner({
               value={manual}
             />
             <button
-              className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-900 transition active:scale-95"
+              className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-900 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 active:scale-95"
               type="submit"
             >
               Buscar
@@ -292,7 +292,7 @@ export function BarcodeScanner({
           </form>
         ) : (
           <button
-            className="w-full rounded-2xl bg-slate-950/70 py-2.5 text-xs font-bold text-white/80 transition active:scale-95"
+            className="w-full rounded-2xl bg-slate-950/70 py-2.5 text-xs font-bold text-white/80 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 active:scale-95"
             onClick={() => setManualOpen(true)}
             type="button"
           >

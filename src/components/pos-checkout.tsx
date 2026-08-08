@@ -776,7 +776,7 @@ export function PosCheckout({
           <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {branches.map((item) => (
               <button
-                className={`shrink-0 rounded-2xl px-5 py-4 text-base font-black transition active:scale-95 ${
+                className={`shrink-0 rounded-2xl px-5 py-4 text-base font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95 ${
                   item.id === branchId ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-white text-slate-700 ring-1 ring-slate-950/5"
                 }`}
                 key={item.id}
@@ -797,7 +797,7 @@ export function PosCheckout({
             const active = staff.id === staffId;
             return (
               <button
-                className={`flex items-center gap-3 rounded-2xl p-3 text-left transition active:scale-[0.98] ${
+                className={`flex items-center gap-3 rounded-2xl p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] ${
                   active ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-white text-slate-700 ring-1 ring-slate-950/5"
                 }`}
                 data-testid="staff-option"
@@ -835,6 +835,7 @@ export function PosCheckout({
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
+              aria-label={features.barcodes ? "Buscar por nombre o código" : `Buscar ${catalogSingular.toLowerCase()}`}
               className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
               onChange={(event) => setSearch(event.target.value)}
               placeholder={features.barcodes ? "Buscar por nombre o código…" : `Buscar ${catalogSingular.toLowerCase()}…`}
@@ -846,7 +847,7 @@ export function PosCheckout({
           {features.barcodes ? (
             <button
               aria-label="Escanear código"
-              className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white transition active:scale-95"
+              className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
               onClick={() => setScanning(true)}
               type="button"
             >
@@ -857,7 +858,7 @@ export function PosCheckout({
         {categorias.length > 1 ? (
           <div className="-mx-1 mb-2.5 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
-              className={`shrink-0 rounded-full px-4 py-2 text-base font-black transition ${
+              className={`shrink-0 rounded-full px-4 py-2 text-base font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                 categoria === null ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
               }`}
               onClick={() => setCategoria(null)}
@@ -867,7 +868,7 @@ export function PosCheckout({
             </button>
             {categorias.map((c) => (
               <button
-                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-base font-black transition ${
+                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-base font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                   categoria === c.nombre ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
                 }`}
                 key={c.nombre}
@@ -907,7 +908,7 @@ export function PosCheckout({
                 // se distinguen a simple vista, y dos estilos para lo mismo
                 // hacen dudar de si son cosas distintas.
                 <button
-                  className={`flex min-h-[7.5rem] flex-col overflow-hidden rounded-lg border-2 bg-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] ${
+                  className={`flex min-h-[7.5rem] flex-col overflow-hidden rounded-lg border-2 bg-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99] ${
                     inCart > 0 ? "border-primary shadow-md shadow-primary/20" : "border-slate-950/5 shadow-sm"
                   }`}
                   key={`family-${product.familyId}`}
@@ -978,7 +979,7 @@ export function PosCheckout({
                 key={product.productId}
               >
                 <button
-                  className="flex flex-1 flex-col active:scale-[0.99]"
+                  className="flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99]"
                   onClick={() => addProduct(product.productId)}
                   type="button"
                 >
@@ -1071,7 +1072,7 @@ export function PosCheckout({
                       <div className="flex items-center justify-between rounded-full bg-white p-1 ring-1 ring-primary/20">
                         <button
                           aria-label={`Restar ${product.name}`}
-                          className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition active:scale-90"
+                          className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                           onClick={() => decreaseProduct(product.productId)}
                           type="button"
                         >
@@ -1087,7 +1088,7 @@ export function PosCheckout({
                         </span>
                         <button
                           aria-label={`Sumar ${product.name}`}
-                          className="flex size-9 items-center justify-center rounded-full bg-primary text-white transition active:scale-90"
+                          className="flex size-11 items-center justify-center rounded-full bg-primary text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                           onClick={() => addProduct(product.productId)}
                           type="button"
                         >
@@ -1099,7 +1100,7 @@ export function PosCheckout({
                     {features.packs && product.packSize && product.packSize > 1 && !byWeight ? (
                       <button
                         aria-label={`Agregar ${product.packLabel ?? "bulto"} de ${product.name}`}
-                        className="flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-slate-950 text-xs font-black text-white transition active:scale-[0.97]"
+                        className="flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-slate-950 text-xs font-black text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.97]"
                         onClick={() => addPack(product.productId, product.packSize as number)}
                         type="button"
                       >
@@ -1187,7 +1188,7 @@ export function PosCheckout({
                     único que cierra la venta y se toca con la mano ocupada, sin
                     mirar. Al lado, cualquier otro control puede ser chico. */}
                 <button
-                  className="mt-4 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-primary px-4 py-5 text-xl font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
+                  className="mt-4 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-primary px-4 py-5 text-xl font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99]"
                   onClick={openCheckout}
                   type="button"
                 >
@@ -1240,7 +1241,7 @@ export function PosCheckout({
       {/* Barra de pedido (abrir checkout) — solo mobile/tablet chico */}
       <div className="fixed inset-x-0 bottom-[4.75rem] z-30 mx-auto max-w-[560px] px-4 sm:bottom-[7rem] lg:hidden">
         <button
-          className={`flex w-full items-center gap-3 rounded-2xl p-2.5 pl-5 text-left shadow-[0_-8px_40px_rgba(15,23,42,0.16)] transition active:scale-[0.99] ${
+          className={`flex w-full items-center gap-3 rounded-2xl p-2.5 pl-5 text-left shadow-[0_-8px_40px_rgba(15,23,42,0.16)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99] ${
             hasItems ? "bg-primary" : "pointer-events-none bg-slate-300"
           }`}
           disabled={!hasItems}
@@ -1335,7 +1336,7 @@ export function PosCheckout({
                         {/* El bulto entero, sin tocar "+" doce veces. */}
                         {item.packSize && item.packSize > 1 ? (
                           <button
-                            className="mt-1 rounded-lg bg-slate-900 px-2.5 py-1.5 text-[11px] font-black text-white transition active:scale-95"
+                            className="mt-1 rounded-lg bg-slate-900 px-2.5 py-1.5 text-[11px] font-black text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
                             onClick={() => addPack(item.productId, item.packSize as number)}
                             type="button"
                           >
@@ -1353,7 +1354,7 @@ export function PosCheckout({
                         <div className="flex shrink-0 items-center gap-1">
                           <button
                             aria-label={`Restar ${item.name}`}
-                            className="flex size-10 items-center justify-center rounded-xl bg-white text-slate-600 shadow-sm transition active:scale-90"
+                            className="flex size-11 items-center justify-center rounded-xl bg-white text-slate-600 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                             onClick={() => decreaseProduct(item.productId)}
                             type="button"
                           >
@@ -1364,7 +1365,7 @@ export function PosCheckout({
                           </span>
                           <button
                             aria-label={`Sumar ${item.name}`}
-                            className="flex size-10 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition active:scale-90"
+                            className="flex size-11 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                             onClick={() => addProduct(item.productId)}
                             type="button"
                           >
@@ -1389,7 +1390,7 @@ export function PosCheckout({
 
             <div className="border-t border-slate-100 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
               <button
-                className="flex w-full items-center justify-between gap-3 rounded-2xl bg-primary px-5 py-4 text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+                className="flex w-full items-center justify-between gap-3 rounded-2xl bg-primary px-5 py-4 text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
                 data-testid="scan-review"
                 disabled={!hasItems}
                 onClick={() => {
@@ -1450,7 +1451,7 @@ export function PosCheckout({
                   <div className="flex shrink-0 items-center rounded-full bg-white p-1 ring-1 ring-slate-950/5">
                     <button
                       aria-label={`Restar ${variant.name}`}
-                      className="flex size-9 items-center justify-center rounded-full text-slate-600 transition active:scale-90"
+                      className="flex size-11 items-center justify-center rounded-full text-slate-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                       onClick={() => decreaseProduct(variant.productId)}
                       type="button"
                     >
@@ -1459,7 +1460,7 @@ export function PosCheckout({
                     <span className="w-8 text-center text-base font-black">{formatQuantity(quantity)}</span>
                     <button
                       aria-label={`Sumar ${variant.name}`}
-                      className="flex size-9 items-center justify-center rounded-full bg-primary text-white transition active:scale-90"
+                      className="flex size-11 items-center justify-center rounded-full bg-primary text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                       onClick={() => addProduct(variant.productId)}
                       type="button"
                     >
@@ -1472,7 +1473,7 @@ export function PosCheckout({
           </div>
           <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
             <button
-              className="w-full rounded-2xl bg-slate-900 px-4 py-4 text-base font-black text-white transition active:scale-[0.99]"
+              className="w-full rounded-2xl bg-slate-900 px-4 py-4 text-base font-black text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99]"
               onClick={() => setOpenFamily(null)}
               type="button"
             >
@@ -1497,7 +1498,7 @@ export function PosCheckout({
             </div>
             <button
               aria-label="Cerrar"
-              className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+              className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
               onClick={() => setCheckoutOpen(false)}
               type="button"
             >
@@ -1529,7 +1530,7 @@ export function PosCheckout({
                   const Icono = canal.icono;
                   return (
                     <button
-                      className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition ${
+                      className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                         elegido ? "border-primary bg-primary/5" : "border-slate-200 bg-white"
                       }`}
                       key={canal.key}
@@ -1578,7 +1579,7 @@ export function PosCheckout({
                           const elegida = tableId === mesa.id;
                           return (
                             <button
-                              className={`relative grid aspect-square place-items-center rounded-2xl border-2 text-xl font-black transition ${
+                              className={`relative grid aspect-square place-items-center rounded-2xl border-2 text-xl font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                                 elegida
                                   ? "border-primary bg-primary text-white shadow-sm shadow-primary/25"
                                   : "border-slate-200 bg-white text-slate-700"
@@ -1635,7 +1636,7 @@ export function PosCheckout({
                       <div className="flex items-center rounded-full bg-white p-1 ring-1 ring-slate-950/5">
                         <button
                           aria-label={`Restar ${item.name}`}
-                          className="flex size-8 items-center justify-center rounded-full text-slate-600 transition active:scale-90"
+                          className="flex size-11 items-center justify-center rounded-full text-slate-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                           onClick={() => decreaseProduct(item.productId)}
                           type="button"
                         >
@@ -1646,7 +1647,7 @@ export function PosCheckout({
                         </span>
                         <button
                           aria-label={`Sumar ${item.name}`}
-                          className="flex size-8 items-center justify-center rounded-full text-slate-600 transition active:scale-90"
+                          className="flex size-11 items-center justify-center rounded-full text-slate-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
                           onClick={() => addProduct(item.productId)}
                           type="button"
                         >
@@ -1659,7 +1660,7 @@ export function PosCheckout({
                     </p>
                     <button
                       aria-label={`Quitar ${item.name}`}
-                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition active:scale-90 hover:text-rose-600"
+                      className="flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90 hover:text-rose-600"
                       onClick={() => removeProduct(item.productId)}
                       type="button"
                     >
@@ -1756,7 +1757,7 @@ export function PosCheckout({
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-sm font-black uppercase tracking-wide text-slate-500">¿Cómo paga?</p>
                 <button
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black transition active:scale-95 ${
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95 ${
                     splitMode ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
                   }`}
                   onClick={toggleSplit}
@@ -1796,7 +1797,7 @@ export function PosCheckout({
                       {splitRows.length > 1 ? (
                         <button
                           aria-label="Quitar pago"
-                          className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition active:scale-90 hover:text-rose-600"
+                          className="flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90 hover:text-rose-600"
                           onClick={() => removeSplitRow(row.id)}
                           type="button"
                         >
@@ -1807,7 +1808,11 @@ export function PosCheckout({
                   ))}
                   <div className="flex items-center justify-between pt-1">
                     {splitRows.length < paymentOptions.length ? (
-                      <button className="text-sm font-black text-primary" onClick={addSplitRow} type="button">
+                      <button
+                        className="rounded-lg text-sm font-black text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                        onClick={addSplitRow}
+                        type="button"
+                      >
                         + Agregar método
                       </button>
                     ) : (
@@ -1828,7 +1833,7 @@ export function PosCheckout({
                     const active = singleMethod === option.value;
                     return (
                       <button
-                        className={`flex items-center gap-2.5 rounded-2xl px-4 py-4 text-base font-black transition active:scale-95 ${
+                        className={`flex items-center gap-2.5 rounded-2xl px-4 py-4 text-base font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95 ${
                           active ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-slate-100 text-slate-700"
                         }`}
                         key={option.value}
@@ -1850,7 +1855,7 @@ export function PosCheckout({
             {pasoActual === "confirmar" ? (
             <section>
               <button
-                className={`flex w-full items-center justify-between gap-2 rounded-2xl px-4 py-3 text-sm font-black transition active:scale-[0.99] ${
+                className={`flex w-full items-center justify-between gap-2 rounded-2xl px-4 py-3 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99] ${
                   wantsInvoice ? "bg-primary/10 text-primary ring-1 ring-primary/20" : "bg-slate-100 text-slate-600"
                 }`}
                 onClick={() => setWantsInvoice((value) => !value)}
@@ -1928,7 +1933,7 @@ export function PosCheckout({
 
                 <div className="flex flex-wrap gap-1.5">
                   <button
-                    className={`rounded-xl px-3 py-3 text-base font-black transition active:scale-95 ${
+                    className={`rounded-xl px-3 py-3 text-base font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95 ${
                       cashReceived === "" ? "bg-slate-900 text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"
                     }`}
                     onClick={() => setCashReceived("")}
@@ -1938,7 +1943,7 @@ export function PosCheckout({
                   </button>
                   {quickCashAmounts(total).map((amount) => (
                     <button
-                      className={`rounded-xl px-3 py-3 text-base font-black transition active:scale-95 ${
+                      className={`rounded-xl px-3 py-3 text-base font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95 ${
                         cashReceived === String(amount)
                           ? "bg-slate-900 text-white"
                           : "bg-white text-slate-700 ring-1 ring-slate-200"
@@ -2000,7 +2005,7 @@ export function PosCheckout({
                 cancela. Y siempre hay salida: quedarse trabado en un cobro con
                 el cliente enfrente es peor que cualquier paso de más. */}
             <button
-              className="shrink-0 rounded-2xl bg-slate-100 px-5 py-4 text-base font-black text-slate-600 transition active:scale-[0.98] disabled:opacity-50"
+              className="shrink-0 rounded-2xl bg-slate-100 px-5 py-4 text-base font-black text-slate-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] disabled:opacity-50"
               disabled={isPending}
               onClick={() => (pasoIdx === 0 ? setCheckoutOpen(false) : setPaso(pasoIdx - 1))}
               type="button"
@@ -2010,7 +2015,7 @@ export function PosCheckout({
 
             {esUltimoPaso ? (
               <button
-                className="flex flex-1 items-center justify-between gap-3 rounded-2xl bg-primary px-6 py-4 text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                className="flex flex-1 items-center justify-between gap-3 rounded-2xl bg-primary px-6 py-4 text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
                 disabled={!canConfirm || isPending}
                 onClick={confirm}
                 type="button"
@@ -2022,7 +2027,7 @@ export function PosCheckout({
               </button>
             ) : (
               <button
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
                 disabled={!puedeSeguir}
                 onClick={() => setPaso(pasoIdx + 1)}
                 type="button"
