@@ -275,6 +275,7 @@ export function BarcodeScanner({
             }}
           >
             <input
+              aria-label="Código de barras"
               autoComplete="off"
               className="min-w-0 flex-1 rounded-2xl bg-white/10 px-4 py-3 text-base font-bold text-white outline-none placeholder:text-white/40"
               inputMode="numeric"

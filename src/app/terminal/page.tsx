@@ -137,7 +137,7 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
                 </button>
               </form>
               <div className="mx-auto mt-5 flex w-full max-w-md flex-wrap gap-4 px-1 text-sm font-semibold text-slate-500">
-                <Link className="hover:text-primary" href="/login">
+                <Link className="rounded-lg hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" href="/login">
                   Administración
                 </Link>
               </div>

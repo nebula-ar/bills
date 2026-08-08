@@ -858,7 +858,7 @@ export function PosCheckout({
         {categorias.length > 1 ? (
           <div className="-mx-1 mb-2.5 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
-              className={`shrink-0 rounded-full px-4 py-2 text-base font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+              className={`flex min-h-11 shrink-0 items-center rounded-full px-4 py-2 text-base font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                 categoria === null ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
               }`}
               onClick={() => setCategoria(null)}
@@ -868,7 +868,7 @@ export function PosCheckout({
             </button>
             {categorias.map((c) => (
               <button
-                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-base font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                className={`flex min-h-11 shrink-0 items-center gap-2 rounded-full px-4 py-2 text-base font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                   categoria === c.nombre ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
                 }`}
                 key={c.nombre}
@@ -1100,7 +1100,7 @@ export function PosCheckout({
                     {features.packs && product.packSize && product.packSize > 1 && !byWeight ? (
                       <button
                         aria-label={`Agregar ${product.packLabel ?? "bulto"} de ${product.name}`}
-                        className="flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-slate-950 text-xs font-black text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.97]"
+                        className="flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-slate-950 text-xs font-black text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.97]"
                         onClick={() => addPack(product.productId, product.packSize as number)}
                         type="button"
                       >
@@ -1336,7 +1336,7 @@ export function PosCheckout({
                         {/* El bulto entero, sin tocar "+" doce veces. */}
                         {item.packSize && item.packSize > 1 ? (
                           <button
-                            className="mt-1 rounded-lg bg-slate-900 px-2.5 py-1.5 text-[11px] font-black text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
+                            className="mt-1 flex h-11 items-center justify-center rounded-lg bg-slate-900 px-3 text-[11px] font-black text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
                             onClick={() => addPack(item.productId, item.packSize as number)}
                             type="button"
                           >
