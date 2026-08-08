@@ -14,6 +14,8 @@ import {
   updateExpenseAction,
   type ActionResult,
 } from "@/app/expenses/actions";
+import { AnimatedMoney } from "@/components/animated-number";
+import { PeriodFade } from "@/components/period-fade";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import {
   ChevronDown,
@@ -86,6 +88,8 @@ export type ExpensesData = {
   monthLabel: string;
   prevMonthKey: string;
   nextMonthKey: string;
+  /** Total del mes en enteros (para el count-up). */
+  totalAmount: number;
   totalLabel: string;
   count: number;
   showsSuppliers: boolean;
@@ -527,18 +531,20 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
 
       {/* Total del mes: gastos + pagos a proveedores, nunca el total de una
           factura que todavía no se pagó. */}
-      <div className="mt-3 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 p-5 text-white shadow-lg shadow-rose-500/25">
-        <p className="flex items-center gap-1.5 text-sm font-medium text-rose-100">
-          <Wallet className="size-4" />
-          Total que salió este mes
-        </p>
-        <p className="mt-1.5 text-[2.2rem] font-black leading-none tracking-tight" style={{ fontVariantNumeric: "tabular-nums" }}>
-          {data.totalLabel}
-        </p>
-        <p className="mt-2 text-xs font-medium text-rose-100">
-          {data.count} {data.count === 1 ? "movimiento" : "movimientos"}
-        </p>
-      </div>
+      <PeriodFade period={`month-${data.monthKey}`}>
+        <div className="mt-3 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 p-5 text-white shadow-lg shadow-rose-500/25">
+          <p className="flex items-center gap-1.5 text-sm font-medium text-rose-100">
+            <Wallet className="size-4" />
+            Total que salió este mes
+          </p>
+          <p className="mt-1.5 text-[2.2rem] font-black leading-none tracking-tight" style={{ fontVariantNumeric: "tabular-nums" }}>
+            <AnimatedMoney value={data.totalAmount} />
+          </p>
+          <p className="mt-2 text-xs font-medium text-rose-100">
+            {data.count} {data.count === 1 ? "movimiento" : "movimientos"}
+          </p>
+        </div>
+      </PeriodFade>
 
       {/* Lo que se debe no depende del mes que se esté mirando. */}
       {data.showsSuppliers && data.hasDebt ? (
@@ -590,6 +596,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
 
       {/* Lo que salió, gasto o pago, en una sola lista */}
       <div className={`mt-4 ${isPending ? "pointer-events-none opacity-60 transition-opacity" : "transition-opacity"}`}>
+        <PeriodFade period={`outflows-${data.monthKey}`}>
         {data.outflows.length === 0 ? (
           <div className="mt-8 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/50 p-10 text-center">
             <div className="mb-4 flex size-20 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-950/5">
@@ -635,6 +642,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
             ))}
           </ul>
         )}
+        </PeriodFade>
       </div>
 
       {/* Qué querés cargar */}

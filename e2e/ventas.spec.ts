@@ -5,7 +5,7 @@ import { loginAsAdmin, elegirVendedor } from "./helpers";
 async function crearVenta(page: import("@playwright/test").Page) {
   await page.goto("/sales/new");
   await elegirVendedor(page);
-  await page.getByRole("button", { name: "Agregar Alfajor triple" }).first().click();
+  await page.getByRole("button", { name: /Alfajor triple/ }).first().click();
   await page.getByRole("button", { name: "Cobrar" }).click();
 
   // El cobro va por pasos y cuáles aparecen depende del negocio: "¿Dónde?" solo

@@ -296,3 +296,53 @@ textarea {
     transform: translateY(0);
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Motion: prefers-reduced-motion
+
+   La landing y el registro ya lo respetan; con esto el resto de la app (POS,
+   gestión) queda cubierto. Dos reglas:
+   - `animation: none` y `transition: none` matan las animaciones inline y las
+     utilidades `animate-in`/`duration-*` de tw-animate-css.
+   - El count-up de AnimatedMoney/AnimatedNumber ya salta directo al valor final
+     por JS; esta regla solo corta lo que va por CSS.
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Cascada del confetti (patrón de register-wizard, ahora compartido por el
+   POS). El nombre `bbFall` es idéntico al original para no duplicar keyframes. */
+@keyframes bbFall {
+  0% {
+    transform: translateY(-12%) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(115vh) rotate(540deg);
+    opacity: 0;
+  }
+}
+
+/* Pop del badge de ítems al sumar al carrito (POS y terminal): mismo rebote
+   del registro, para que "entró algo al pedido" se sienta y no se pierda. */
+@keyframes bbPop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}

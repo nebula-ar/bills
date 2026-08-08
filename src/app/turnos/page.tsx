@@ -1,4 +1,6 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { PeriodFade } from "@/components/period-fade";
+import { StatTiles } from "@/components/stat-tiles";
 import { AppointmentFormHandler } from "@/components/appointment-form-handler";
 import {
   Badge,
@@ -9,7 +11,6 @@ import {
   PrimaryButton,
   SectionCard,
   selectClass,
-  StatTiles,
   type Tone,
 } from "@/components/manager-ui";
 import { AppModule, AppointmentStatus } from "@/generated/prisma/client";
@@ -96,13 +97,26 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
 
       <StatTiles
         tiles={[
-          { label: "Turnos del día", value: String(appointments.length) },
-          { label: "Por atender", value: String(pending.length), tone: pending.length > 0 ? "info" : "neutral" },
-          { label: "Atendidos", value: String(done.length), tone: done.length > 0 ? "positive" : "neutral" },
+          { label: "Turnos del día", value: String(appointments.length), amount: appointments.length, kind: "int" },
+          {
+            label: "Por atender",
+            value: String(pending.length),
+            amount: pending.length,
+            kind: "int",
+            tone: pending.length > 0 ? "info" : "neutral",
+          },
+          {
+            label: "Atendidos",
+            value: String(done.length),
+            amount: done.length,
+            kind: "int",
+            tone: done.length > 0 ? "positive" : "neutral",
+          },
         ]}
       />
 
       <SectionCard title="Agenda" description="En orden de horario.">
+        <PeriodFade period={`day-${toISODate(day)}`}>
         {appointments.length === 0 ? (
           <EmptyState title="No hay turnos para este día." hint="Agendá uno abajo." />
         ) : (
@@ -178,6 +192,7 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
             })}
           </ul>
         )}
+        </PeriodFade>
       </SectionCard>
 
       <SectionCard title="Agendar un turno" description="Si el horario se pisa con otro, te avisamos antes de guardar.">

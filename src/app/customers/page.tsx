@@ -1,4 +1,5 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { StatTiles } from "@/components/stat-tiles";
 import {
   Badge,
   EmptyState,
@@ -8,7 +9,6 @@ import {
   PrimaryButton,
   SectionCard,
   selectClass,
-  StatTiles,
   TableWrap,
 } from "@/components/manager-ui";
 import { MoneyInput } from "@/components/money-input";
@@ -72,12 +72,20 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
 
       <StatTiles
         tiles={[
-          { label: "Clientes", value: String(customers.length) },
-          { label: "Te deben", value: formatMoney(totalDebt), tone: totalDebt > 0 ? "warning" : "neutral" },
-          { label: "Con deuda", value: String(debtors.length) },
+          { label: "Clientes", value: String(customers.length), amount: customers.length, kind: "int" },
+          {
+            label: "Te deben",
+            value: formatMoney(totalDebt),
+            amount: totalDebt,
+            kind: "money",
+            tone: totalDebt > 0 ? "warning" : "neutral",
+          },
+          { label: "Con deuda", value: String(debtors.length), amount: debtors.length, kind: "int" },
           {
             label: "Pasados de límite",
             value: String(overLimit.length),
+            amount: overLimit.length,
+            kind: "int",
             tone: overLimit.length > 0 ? "danger" : "neutral",
           },
         ]}

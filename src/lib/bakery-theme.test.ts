@@ -146,6 +146,27 @@ describe("los dos rubros conservan SU identidad", () => {
   it("ningún componente vuelve a hardcodear el azul de Bills", () => {
     // La regresión más fácil: alguien copia un botón viejo con bg-blue-600 y
     // esa pantalla deja de cambiar con el rubro.
+    //
+    // Matchea en case-insensitive (QA NEBU-17): el azul viejo apareció una vez
+    // como `#2563EB33`, en mayúsculas y con alpha, y el grep case-sensitive no
+    // lo vio. Tanto el hex viejo como el nuevo se detectan en cualquier caso.
+    //
+    // Excepciones deliberadas: no son colores de UI que el rubro deba cambiar.
+    // El azul de marca ES `#3158e8` desde NEBU-17, así que el hex tiene usos
+    // legítimos fuera de los componentes:
+    // - layout.tsx: el `themeColor` del viewport es un meta tag del navegador
+    //   (la barra de estado), no un color de componente.
+    // - reports-charts-colors.ts / reports-charts.tsx: paletas de visualización
+    //   de datos, que por diseño viven fuera del tema del rubro.
+    // - app/login/page.tsx y app/login/login-form.tsx: pantallas pre-auth, de
+    //   identidad de marca fija (azul de Bills + glows) que no se theman por rubro.
+    const EXENTOS = new Set([
+      "app/layout.tsx",
+      "components/reports-charts-colors.ts",
+      "components/reports-charts.tsx",
+      "app/login/page.tsx",
+      "app/login/login-form.tsx",
+    ]);
     const src = path.join(process.cwd(), "src");
     const sospechosos: string[] = [];
     const recorrer = (dir: string) => {
@@ -153,8 +174,10 @@ describe("los dos rubros conservan SU identidad", () => {
         const p = path.join(dir, e.name);
         if (e.isDirectory()) recorrer(p);
         else if (/\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name)) {
+          const rel = path.relative(src, p).split(path.sep).join("/");
+          if (EXENTOS.has(rel)) continue;
           const t = fs.readFileSync(p, "utf8");
-          if (/(bg|text|border|ring|shadow)-blue-\d|#3158e8/.test(t)) sospechosos.push(e.name);
+          if (/(bg|text|border|ring|shadow)-blue-\d|#2563eb|#3158e8/i.test(t)) sospechosos.push(rel);
         }
       }
     };

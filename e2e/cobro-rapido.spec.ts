@@ -12,7 +12,7 @@ test.describe("Cobrar rápido", () => {
   test("el mostrador calcula el vuelto y ofrece los montos con los que se paga", async ({ page }) => {
     await page.goto("/sales/new");
     await elegirVendedor(page);
-    await page.getByRole("button", { name: "Agregar Alfajor triple" }).first().click();
+    await page.getByRole("button", { name: /Alfajor triple/ }).first().click();
     await page.getByRole("button", { name: "Sumar Alfajor triple" }).first().click();
     await page.getByRole("button", { name: "Cobrar" }).click();
 
@@ -44,7 +44,7 @@ test.describe("Cobrar rápido", () => {
     await page.goto("/sales/new");
 
     await expect(page.getByRole("heading", { name: /¿Quién atiende\?/ })).toBeVisible();
-    await page.getByRole("button", { name: "Agregar Alfajor triple" }).first().click();
+    await page.getByRole("button", { name: /Alfajor triple/ }).first().click();
     await page.getByRole("button", { name: "Cobrar" }).click();
 
     // Sin empleado elegido no se puede confirmar.
@@ -89,7 +89,7 @@ test.describe("Encontrar el producto", () => {
     await elegirVendedor(page);
 
     await page.getByPlaceholder(/Buscar/).fill("mani");
-    await expect(page.getByRole("button", { name: "Agregar Maní salado" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Maní salado/ })).toBeVisible();
   });
 
   test("el catálogo también se puede buscar", async ({ page }) => {

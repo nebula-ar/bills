@@ -31,7 +31,7 @@ export function PaymentDonutChart({ data }: { data: { key: string; label: string
 const trendChartConfig = {
   total: {
     label: "Total",
-    color: "#2563eb",
+    color: "#3158e8",
   },
 } satisfies ChartConfig;
 

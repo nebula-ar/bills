@@ -154,6 +154,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
     monthLabel: capitalize(monthFormatter.format(from)),
     prevMonthKey: shiftMonth(monthKey, -1),
     nextMonthKey: shiftMonth(monthKey, 1),
+    totalAmount: total,
     totalLabel: moneyFormatter.format(total),
     count: timeline.length,
     showsSuppliers,

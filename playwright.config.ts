@@ -12,10 +12,12 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
-  timeout: 30_000,
+  // Contra Supabase Cloud (CI) la latencia de red suma segundos a cada render y
+  // query del POS; el default de 30s no alcanza. En local (Docker) sobra.
+  timeout: 60_000,
   // Las pantallas se renderizan en el servidor y consultan varias tablas: el
   // primer render de cada ruta puede tardar más que el default.
-  expect: { timeout: 15_000 },
+  expect: { timeout: 30_000 },
   use: {
     baseURL: BASE_URL,
     trace: "on-first-retry",

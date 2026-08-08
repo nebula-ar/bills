@@ -1,6 +1,7 @@
 "use client";
 
 import { checkEmailAvailableAction, registerBusinessAction } from "@/app/register/actions";
+import { Confetti } from "@/components/confetti";
 import { Vertical } from "@/generated/prisma/enums";
 import { VERTICAL_ORDER, VERTICAL_PRESETS, verticalPreset } from "@/lib/vertical";
 import { ArrowLeft, ArrowRight, Check, DynamicIcon, Loader2 } from "@/components/icons";
@@ -16,38 +17,6 @@ const inputClass =
 // Botón "chunky" con sombra sólida tipo Duolingo (se hunde al apretar).
 const primaryBtn =
   "flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-4 text-base font-black text-white shadow-[0_4px_0_var(--primary)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--primary)] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-[0_4px_0_#e2e8f0] disabled:active:translate-y-0 disabled:active:shadow-[0_4px_0_#e2e8f0]";
-
-const KEYFRAMES =
-  "@keyframes bbPop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}" +
-  "@keyframes bbFall{0%{transform:translateY(-12%) rotate(0);opacity:1}100%{transform:translateY(115vh) rotate(540deg);opacity:0}}";
-
-const CONFETTI = Array.from({ length: 18 }, (_, i) => ({
-  left: (i * 5.6 + (i % 4) * 3) % 100,
-  delay: (i % 6) * 0.12,
-  duration: 1.9 + (i % 4) * 0.25,
-  color: ["var(--primary)", "var(--accent-brand)", "#0f172a", "var(--primary)", "var(--accent-brand)"][i % 5],
-  size: 7 + (i % 3) * 4,
-}));
-
-function Confetti() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      {CONFETTI.map((piece, i) => (
-        <span
-          className="absolute top-0 rounded-sm"
-          key={i}
-          style={{
-            left: `${piece.left}%`,
-            width: piece.size,
-            height: piece.size * 1.6,
-            backgroundColor: piece.color,
-            animation: `bbFall ${piece.duration}s linear ${piece.delay}s forwards`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 // Entrada en cascada: cada elemento aparece con un pequeño retraso.
 function stagger(index: number) {
@@ -184,7 +153,6 @@ export function RegisterWizard() {
           : "flex h-[100dvh] flex-col bg-[var(--card)] text-slate-950 sm:h-auto sm:min-h-[100dvh] sm:items-center sm:justify-center sm:bg-[var(--background)] sm:p-6"
       }
     >
-      <style>{KEYFRAMES}</style>
       <section
         className={
           isWelcome
@@ -202,7 +170,7 @@ export function RegisterWizard() {
                   azul, pero no vuelve a clavar el color a mano. */}
               <div
                 aria-label="Bienvenida a Bills"
-                className="grid size-24 place-items-center rounded-2xl bg-linear-to-br from-blue-600 to-violet-600 shadow-lg shadow-primary/30"
+                className="grid size-24 place-items-center rounded-2xl bg-linear-to-br from-primary to-violet-600 shadow-lg shadow-primary/30"
                 role="img"
                 style={{ animation: "bbPop .6s cubic-bezier(.34,1.56,.64,1) both" }}
               >

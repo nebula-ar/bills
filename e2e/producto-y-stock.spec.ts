@@ -25,7 +25,7 @@ test.describe("El producto y su stock, en un solo lugar", () => {
 
     // La existencia queda cargada de una: la lista ya la muestra.
     const fila = page.getByRole("button").filter({ hasText: nombre });
-    await expect(fila).toBeVisible({ timeout: 20_000 });
+    await expect(fila).toBeVisible({ timeout: 40_000 });
     await expect(fila.getByText("12 un")).toBeVisible();
 
     // Y el movimiento quedó asentado en el libro, no apareció de la nada.
@@ -44,7 +44,7 @@ test.describe("El producto y su stock, en un solo lugar", () => {
     await page.getByLabel("Lo que hay").fill("77");
     await page.getByRole("button", { name: "Guardar", exact: true }).click();
 
-    await expect(page.getByText("Stock actualizado.")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("Stock actualizado.")).toBeVisible({ timeout: 40_000 });
     await expect(page.getByText("77 un").first()).toBeVisible();
   });
 
@@ -61,14 +61,14 @@ test.describe("El producto y su stock, en un solo lugar", () => {
     await page.getByRole("button", { name: "Conté", exact: true }).click();
     await page.getByLabel("Lo que hay").fill("50");
     await page.getByRole("button", { name: "Guardar", exact: true }).click();
-    await expect(stockSummary.getByText("50 un", { exact: true })).toBeVisible({ timeout: 20_000 });
+    await expect(stockSummary.getByText("50 un", { exact: true })).toBeVisible({ timeout: 40_000 });
 
     await page.getByRole("button", { name: "Se perdió" }).click();
     await page.getByLabel("Lo que se perdió").fill("3");
     await page.getByLabel("Motivo").fill("Se cayeron al piso");
     await page.getByRole("button", { name: "Guardar", exact: true }).click();
 
-    await expect(stockSummary.getByText("47 un", { exact: true })).toBeVisible({ timeout: 20_000 });
+    await expect(stockSummary.getByText("47 un", { exact: true })).toBeVisible({ timeout: 40_000 });
   });
 
   test("un rubro sin stock no muestra existencias en el producto", async ({ page }) => {
@@ -117,7 +117,7 @@ test("cargar un producto sin precio conserva el stock y el costo", async ({ page
   await page.getByRole("button", { name: "Listo" }).click();
 
   const fila = page.getByRole("button").filter({ hasText: nombre });
-  await expect(fila).toBeVisible({ timeout: 20_000 });
+  await expect(fila).toBeVisible({ timeout: 40_000 });
   await expect(fila.getByText("9 un")).toBeVisible();
 
   // Y el costo quedó guardado en la ficha.

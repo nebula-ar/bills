@@ -106,7 +106,7 @@ function ActiveToggle({ defaultOn }: { defaultOn: boolean }) {
         type="button"
       >
         <span
-          className="absolute left-1 top-1/2 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out"
+          className="absolute left-1 top-1/2 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
           style={{ transform: on ? "translateY(-50%) translateX(1.25rem)" : "translateY(-50%) translateX(0)" }}
         />
       </button>
@@ -133,7 +133,7 @@ function CashCloseToggle({ defaultOn }: { defaultOn: boolean }) {
         type="button"
       >
         <span
-          className="absolute left-1 top-1/2 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out"
+          className="absolute left-1 top-1/2 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
           style={{ transform: on ? "translateY(-50%) translateX(1.25rem)" : "translateY(-50%) translateX(0)" }}
         />
       </button>
