@@ -110,7 +110,7 @@ export default async function OpcionesPage({ searchParams }: OpcionesPageProps) 
                       <input name="modifierId" type="hidden" value={m.id} />
                       <button
                         aria-label={`Eliminar ${m.name}`}
-                        className="grid size-7 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive"
+                        className="grid size-11 place-items-center rounded-full text-slate-600 transition hover:bg-destructive/10 hover:text-destructive"
                         type="submit"
                       >
                         ×

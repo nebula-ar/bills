@@ -198,7 +198,7 @@ export function StockManager({
                         {/* Se opera desde la fila: el producto ya está elegido y
                             no hay que volver a buscarlo en un combo. */}
                         <button
-                          className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition active:scale-95 hover:bg-slate-200"
+                          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition active:scale-95 hover:bg-slate-200"
                           onClick={() => setAbierto(row.productId)}
                           type="button"
                         >

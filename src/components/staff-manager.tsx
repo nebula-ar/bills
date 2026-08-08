@@ -100,14 +100,14 @@ function ActiveToggle({ defaultOn }: { defaultOn: boolean }) {
       <button
         aria-checked={on}
         aria-label="Activo"
-        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-emerald-500" : "bg-slate-300"}`}
+        className={`relative h-11 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-emerald-500" : "bg-slate-300"}`}
         onClick={() => setOn((value) => !value)}
         role="switch"
         type="button"
       >
         <span
-          className="absolute left-1 top-1 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out"
-          style={{ transform: on ? "translateX(1.25rem)" : "translateX(0)" }}
+          className="absolute left-1 top-1/2 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out"
+          style={{ transform: on ? "translateY(-50%) translateX(1.25rem)" : "translateY(-50%) translateX(0)" }}
         />
       </button>
     </div>
@@ -127,14 +127,14 @@ function CashCloseToggle({ defaultOn }: { defaultOn: boolean }) {
       <button
         aria-checked={on}
         aria-label="Puede cerrar caja"
-        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-primary" : "bg-slate-300"}`}
+        className={`relative h-11 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-primary" : "bg-slate-300"}`}
         onClick={() => setOn((value) => !value)}
         role="switch"
         type="button"
       >
         <span
-          className="absolute left-1 top-1 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out"
-          style={{ transform: on ? "translateX(1.25rem)" : "translateX(0)" }}
+          className="absolute left-1 top-1/2 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out"
+          style={{ transform: on ? "translateY(-50%) translateX(1.25rem)" : "translateY(-50%) translateX(0)" }}
         />
       </button>
     </div>
