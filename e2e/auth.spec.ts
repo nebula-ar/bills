@@ -53,6 +53,10 @@ test.describe("Autenticación admin", () => {
       const business = await client.query<{ id: string }>('SELECT id FROM "Business" ORDER BY "createdAt" LIMIT 1');
       const businessId = business.rows[0]?.id;
       if (!businessId) throw new Error("El seed no creó un negocio para la prueba de identidad.");
+      // Idempotente: contra una base persistente (Supabase Cloud) los IDs fijos
+      // pueden sobrevivir de una corrida anterior; se borran antes de insertar.
+      await client.query(`DELETE FROM "AuthProvisionJob" WHERE id = 'unlinked-registration-job-e2e'`);
+      await client.query(`DELETE FROM "User" WHERE id = 'unlinked-admin-e2e'`);
       await client.query(
         `INSERT INTO "User" (
           id, "businessId", name, email, role, active, "updatedAt"

@@ -33,6 +33,12 @@ const ONE = 1000;
 const DEMO_OWNER_EMAIL = "owner@bills.local";
 const DEMO_OWNER_PASSWORD = "admin123";
 
+// Identidad del tenant demo. En modo local (Docker descartable) el seed borraba
+// TODA la base; en Supabase Cloud esa base es compartida con datos de QA reales,
+// así que el borrado va scoped a este negocio. El `publicToken` es único y fijo,
+// lo que lo convierte en la llave estable para encontrar (y limpiar) el tenant.
+const DEMO_BUSINESS_PUBLIC_TOKEN = "demo-kiosco-el-rulo";
+
 type BranchSeed = { name: string; address: string };
 type StaffSeed = { name: string; branchName: string; pin: string };
 
@@ -124,36 +130,101 @@ async function createDemoAuthUser(input: { businessId: string; userId: string })
   return data.user;
 }
 
+// Borra el tenant demo completo respetando las FKs (hijos antes que padres).
+// Filtra por businessId / branchId para no tocar los demás negocios de una base
+// compartida (Supabase Cloud con datos de QA).
+async function deleteDemoTenant() {
+  const business = await prisma.business.findUnique({
+    where: { publicToken: DEMO_BUSINESS_PUBLIC_TOKEN },
+    select: { id: true },
+  });
+  if (!business) return;
+
+  const { id: businessId } = business;
+
+  // Las filas con FK hacia Branch (Sale, etc.) se borran por sucursal; el resto
+  // del subárbol cuelga del negocio. Mismo orden que el borrado global histórico.
+  const branches = await prisma.branch.findMany({
+    where: { businessId },
+    select: { id: true },
+  });
+  const branchIds = branches.map((branch) => branch.id);
+  // Los IDs son cuid generados por Prisma (alfanuméricos): interpolarlos en SQL
+  // no abre riesgo de inyección. El borrado va por SQL directo porque los
+  // deleteMany de Prisma con filtros de relación no respetan las FKs Restrict
+  // hacia Branch/User en el pooler, y una $transaction interactiva expira a los
+  // 5s en Supabase Cloud.
+  const bid = branchIds.length > 0 ? branchIds.map((id) => `'${id}'`).join(",") : "''";
+
+  const deleteSteps = [
+    // ── Hijos de ventas (por sucursal) ──
+    `delete from "CustomerAccountEntry" where "branchId" in (${bid}) or "customerId" in (select id from "Customer" where "businessId" = '${businessId}')`,
+    `delete from "StockMovement" where "branchId" in (${bid})`,
+    `delete from "StockLevel" where "branchId" in (${bid})`,
+    `delete from "SaleItemModifier" where "saleItemId" in (select id from "SaleItem" where "saleId" in (select id from "Sale" where "branchId" in (${bid})))`,
+    `delete from "SaleItem" where "saleId" in (select id from "Sale" where "branchId" in (${bid}))`,
+    `delete from "SalePayment" where "saleId" in (select id from "Sale" where "branchId" in (${bid}))`,
+    `delete from "SaleDiscount" where "saleId" in (select id from "Sale" where "branchId" in (${bid}))`,
+    `delete from "SaleReturnItem" where "returnId" in (select id from "SaleReturn" where "branchId" in (${bid}))`,
+    `delete from "SaleReturn" where "branchId" in (${bid})`,
+    `delete from "Sale" where "branchId" in (${bid})`,
+    // ── Compras y proveedores ──
+    `delete from "PurchasePayment" where "purchaseId" in (select id from "Purchase" where "businessId" = '${businessId}')`,
+    `delete from "PurchaseItem" where "purchaseId" in (select id from "Purchase" where "businessId" = '${businessId}')`,
+    `delete from "PurchaseCredit" where "purchaseId" in (select id from "Purchase" where "businessId" = '${businessId}')`,
+    `delete from "Purchase" where "businessId" = '${businessId}'`,
+    `delete from "Supplier" where "businessId" = '${businessId}'`,
+    // ── Caja y cuentas ──
+    `delete from "Expense" where "businessId" = '${businessId}'`,
+    `delete from "CashCloseLine" where "closeId" in (select id from "CashClose" where "businessId" = '${businessId}')`,
+    `delete from "CashClose" where "businessId" = '${businessId}'`,
+    `delete from "AccountTransfer" where "businessId" = '${businessId}'`,
+    `delete from "AccountOpeningBalance" where "businessId" = '${businessId}'`,
+    `delete from "LoyaltyEntry" where "businessId" = '${businessId}'`,
+    `delete from "Customer" where "businessId" = '${businessId}'`,
+    // ── Productos, precios y terminales ──
+    `delete from "BranchProductPrice" where "branchId" in (${bid})`,
+    `delete from "Terminal" where "branchId" in (${bid})`,
+    `delete from "ProductImage" where "productId" in (select id from "Product" where "businessId" = '${businessId}')`,
+    `delete from "AiImageDailyUsage" where "businessId" = '${businessId}'`,
+    `delete from "RecipeItem" where "productId" in (select id from "Product" where "businessId" = '${businessId}')`,
+    `delete from "Production" where "businessId" = '${businessId}'`,
+    `delete from "Waste" where "businessId" = '${businessId}'`,
+    `delete from "Product" where "businessId" = '${businessId}'`,
+    `delete from "ProductFamily" where "businessId" = '${businessId}'`,
+    `delete from "ProductCategory" where "businessId" = '${businessId}'`,
+    `delete from "BusinessModuleAccess" where "businessId" = '${businessId}'`,
+    // ── Mesas, órdenes y cocina ──
+    `delete from "OrderItemModifier" where "orderItemId" in (select id from "OrderItem" where "orderId" in (select id from "Order" where "businessId" = '${businessId}'))`,
+    `delete from "OrderItem" where "orderId" in (select id from "Order" where "businessId" = '${businessId}')`,
+    `delete from "Order" where "businessId" = '${businessId}'`,
+    `delete from "Table" where "businessId" = '${businessId}'`,
+    `delete from "Sector" where "businessId" = '${businessId}'`,
+    // ── Presupuestos y turnos ──
+    `delete from "QuoteItem" where "quoteId" in (select id from "Quote" where "businessId" = '${businessId}')`,
+    `delete from "Quote" where "businessId" = '${businessId}'`,
+    `delete from "Appointment" where "businessId" = '${businessId}'`,
+    `delete from "AppLog" where "businessId" = '${businessId}'`,
+    // ── Modificadores ──
+    `delete from "Modifier" where "businessId" = '${businessId}'`,
+    `delete from "ModifierGroup" where "businessId" = '${businessId}'`,
+    // ── Identidad y tronco ──
+    `delete from "AuthProvisionAttempt" where "jobId" in (select id from "AuthProvisionJob" where "userId" in (select id from "User" where "businessId" = '${businessId}'))`,
+    `delete from "AuthProvisionJob" where "userId" in (select id from "User" where "businessId" = '${businessId}')`,
+    `delete from "User" where "businessId" = '${businessId}'`,
+    `delete from "Branch" where "businessId" = '${businessId}'`,
+    `delete from "Business" where id = '${businessId}'`,
+  ];
+
+  for (const sql of deleteSteps) {
+    await prisma.$executeRawUnsafe(sql);
+  }
+}
+
 async function main() {
-  // Orden de borrado respetando las FKs (hijos antes que padres).
-  await prisma.customerAccountEntry.deleteMany();
-  await prisma.stockMovement.deleteMany();
-  await prisma.stockLevel.deleteMany();
-  await prisma.purchasePayment.deleteMany();
-  await prisma.purchaseItem.deleteMany();
-  await prisma.purchase.deleteMany();
-  await prisma.supplier.deleteMany();
-  await prisma.saleDiscount.deleteMany();
-  await prisma.promotionTarget.deleteMany();
-  await prisma.promotionBranch.deleteMany();
-  await prisma.promotion.deleteMany();
-  await prisma.salePayment.deleteMany();
-  await prisma.saleItem.deleteMany();
-  await prisma.sale.deleteMany();
-  await prisma.customer.deleteMany();
-  await prisma.expense.deleteMany();
-  await prisma.cashCloseLine.deleteMany();
-  await prisma.cashClose.deleteMany();
-  await prisma.accountTransfer.deleteMany();
-  await prisma.accountOpeningBalance.deleteMany();
-  await prisma.branchProductPrice.deleteMany();
-  await prisma.terminal.deleteMany();
-  await prisma.product.deleteMany();
-  await prisma.productCategory.deleteMany();
-  await prisma.businessModuleAccess.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.branch.deleteMany();
-  await prisma.business.deleteMany();
+  // El borrado va scoped al tenant demo (ver DEMO_BUSINESS_PUBLIC_TOKEN). En una
+  // base compartida de Cloud no se toca el resto de los negocios.
+  await deleteDemoTenant();
 
   const business = await prisma.business.create({
     data: {

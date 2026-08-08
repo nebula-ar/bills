@@ -12,7 +12,7 @@ test.describe("Devoluciones", () => {
   async function venderDos(page: import("@playwright/test").Page) {
     await page.goto("/sales/new");
     await elegirVendedor(page);
-    await page.getByRole("button", { name: "Agregar Alfajor triple" }).first().click();
+    await page.getByRole("button", { name: /Alfajor triple/ }).first().click();
     await page.getByRole("button", { name: "Sumar Alfajor triple" }).first().click();
     await page.getByRole("button", { name: "Cobrar" }).click();
     await page.getByRole("button", { name: /Confirmar venta/ }).click();

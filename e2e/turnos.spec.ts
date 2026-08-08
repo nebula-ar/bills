@@ -35,7 +35,7 @@ test.describe("Turnos", () => {
     await alta.locator('select[name="staffId"]').selectOption({ label: "Nico Fernández" });
     await alta.getByRole("button", { name: "Agendar" }).click({ noWaitAfter: true });
 
-    await expect(page.getByText("Rodrigo E2E")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Rodrigo E2E")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText("11:30")).toBeVisible();
   });
 
@@ -50,7 +50,7 @@ test.describe("Turnos", () => {
     await alta.locator('select[name="staffId"]').selectOption({ label: "Nico Fernández" });
     await alta.getByRole("button", { name: "Agendar" }).click({ noWaitAfter: true });
 
-    await expect(page.getByText(/Se pisa con el turno/)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/Se pisa con el turno/)).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText("Segundo E2E")).toHaveCount(0);
   });
 
@@ -63,21 +63,21 @@ test.describe("Turnos", () => {
     await alta.locator('select[name="staffId"]').selectOption({ label: "Nico Fernández" });
     await alta.locator('select[name="productId"]').selectOption({ label: "Alfajor triple" });
     await alta.getByRole("button", { name: "Agendar" }).click({ noWaitAfter: true });
-    await expect(page.getByText("Cobrar E2E")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Cobrar E2E")).toBeVisible({ timeout: 30_000 });
 
     const turno = page.getByRole("listitem").filter({ hasText: "Cobrar E2E" });
     await turno.getByRole("link", { name: "Cobrar" }).click();
 
     // El POS arranca con el servicio del turno ya cargado.
     await elegirVendedor(page);
-    await expect(page.getByRole("button", { name: "Cobrar" }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: "Cobrar" }).first()).toBeVisible({ timeout: 30_000 });
     await page.getByRole("button", { name: "Cobrar" }).first().click();
     await page.getByRole("button", { name: /Confirmar venta/ }).click();
-    await expect(page.getByText("¡Venta registrada!")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("¡Venta registrada!")).toBeVisible({ timeout: 30_000 });
 
     await page.goto(`/turnos?day=${appointmentDay}`);
     await expect(page.getByRole("listitem").filter({ hasText: "Cobrar E2E" }).getByText("Cobrado")).toBeVisible({
-      timeout: 15_000,
+      timeout: 30_000,
     });
   });
 });

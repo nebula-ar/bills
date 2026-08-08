@@ -25,9 +25,9 @@ test("un negocio nuevo carga su catálogo desde adentro de la app", async ({ pag
   await page.getByRole("button", { name: /Crear mi negocio/ }).click();
 
   // Cae en el desvío (panel o mostrador). El aviso del catálogo vive en el panel.
-  await page.getByRole("link", { name: /^Panel/ }).click({ timeout: 20_000 });
+  await page.getByRole("link", { name: /^Panel/ }).click({ timeout: 40_000 });
   const aviso = page.getByRole("link", { name: /Cargá tus productos/ });
-  await expect(aviso).toBeVisible({ timeout: 20_000 });
+  await expect(aviso).toBeVisible({ timeout: 40_000 });
   await aviso.click();
 
   // El catálogo vacío ofrece las tres salidas.
@@ -44,7 +44,7 @@ test("un negocio nuevo carga su catálogo desde adentro de la app", async ({ pag
   // Los productos quedan cargados con su unidad de venta (la banana va por kg).
   // `exact` porque el catálogo de verdulería trae variantes del mismo nombre
   // (Tomate, Tomate cherry, Tomate perita) y sin eso el locator matchea tres.
-  await expect(page.getByText("Banana", { exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("Banana", { exact: true })).toBeVisible({ timeout: 40_000 });
   await expect(page.getByText("Tomate", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Todavía no cargaste tus/i })).toHaveCount(0);
 
@@ -81,15 +81,15 @@ test("lo que se siembra se puede vender el mismo día", async ({ page }) => {
   await page.getByPlaceholder("Al menos 6 caracteres").fill("secret123");
   await continuar.click();
   await page.getByRole("button", { name: /Crear mi negocio/ }).click();
-  await page.waitForURL(/\/entrar$|dashboard/, { timeout: 20_000 });
+  await page.waitForURL(/\/entrar$|dashboard/, { timeout: 40_000 });
 
   await page.goto("/catalog");
   await page.getByRole("button", { name: /^Traer los/ }).click();
-  await expect(page.getByText("Banana", { exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("Banana", { exact: true })).toBeVisible({ timeout: 40_000 });
 
   // Y llegan al mostrador con su precio, listos para cobrar.
   await page.goto("/sales/new");
-  await expect(page.getByText("Banana", { exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("Banana", { exact: true })).toBeVisible({ timeout: 40_000 });
   await expect(page.getByText("$ 2.400").first()).toBeVisible();
 });
 
@@ -111,13 +111,13 @@ test("el catálogo sugerido habla el idioma del rubro y no se duplica", async ({
   await continuar.click();
   await page.getByRole("button", { name: /Crear mi negocio/ }).click();
 
-  await page.waitForURL(/\/entrar$|dashboard/, { timeout: 20_000 });
+  await page.waitForURL(/\/entrar$|dashboard/, { timeout: 40_000 });
   await page.goto("/catalog");
 
   // Una barbería cotiza servicios: el texto lo dice.
   await expect(page.getByText(/Traer los servicios de barbería o peluquería/i)).toBeVisible();
   await page.getByRole("button", { name: /^Traer los/ }).click();
-  await expect(page.getByText("Corte clásico")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("Corte clásico")).toBeVisible({ timeout: 40_000 });
 
   // Cada servicio aparece una sola vez (el alta es idempotente por nombre) y el
   // onboarding ya no se muestra, porque el catálogo dejó de estar vacío.
@@ -146,7 +146,7 @@ test("una barbería no muestra el escáner ni en el catálogo ni en el mostrador
   await page.getByPlaceholder("Al menos 6 caracteres").fill("secret123");
   await continuar.click();
   await page.getByRole("button", { name: /Crear mi negocio/ }).click();
-  await page.waitForURL(/\/entrar$|dashboard/, { timeout: 20_000 });
+  await page.waitForURL(/\/entrar$|dashboard/, { timeout: 40_000 });
 
   await page.goto("/catalog");
   // Ni el botón del header, ni la opción de escanear del catálogo vacío, ni el
@@ -158,7 +158,7 @@ test("una barbería no muestra el escáner ni en el catálogo ni en el mostrador
   await expect(page.getByText(/Traer los servicios de barbería/i)).toBeVisible();
 
   await page.getByRole("button", { name: /^Traer los/ }).click();
-  await expect(page.getByText("Corte clásico")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("Corte clásico")).toBeVisible({ timeout: 40_000 });
   // "Corte clásico" también aparece en la vista previa del catálogo sugerido;
   // esperamos a que esa vista desaparezca para saber que la acción terminó.
   await expect(page.getByRole("heading", { name: /Todavía no cargaste tus/i })).toHaveCount(0);
