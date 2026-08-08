@@ -51,7 +51,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#070A19] lg:hidden">
         {/* Halos radiales azul y violeta de fondo */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-          <div className="absolute left-[-80px] top-[72px] h-[210px] w-[240px] rounded-full bg-[radial-gradient(circle_at_center,#2563EB80_0%,#2563EB00_70%)] blur-[28px]" />
+          <div className="absolute left-[-80px] top-[72px] h-[210px] w-[240px] rounded-full bg-[radial-gradient(circle_at_center,#3158e880_0%,#3158e800_70%)] blur-[28px]" />
           <div className="absolute right-[-60px] top-[104px] h-[190px] w-[210px] rounded-full bg-[radial-gradient(circle_at_center,#7C3AED70_0%,#7C3AED00_70%)] blur-[28px]" />
         </div>
 
@@ -116,7 +116,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         {/* Panel editorial */}
         <aside className="relative hidden w-[50%] max-w-[900px] shrink-0 flex-col justify-between overflow-hidden bg-[#070A19] p-8 lg:flex">
           {/* Glows radiales */}
-          <div aria-hidden="true" className="pointer-events-none absolute left-[15%] top-[25%] h-[260px] w-[270px] rounded-full bg-[radial-gradient(circle_at_center,#2563EB66_0%,#2563EB00_70%)] blur-[26px]" />
+          <div aria-hidden="true" className="pointer-events-none absolute left-[15%] top-[25%] h-[260px] w-[270px] rounded-full bg-[radial-gradient(circle_at_center,#3158e866_0%,#3158e800_70%)] blur-[26px]" />
           <div aria-hidden="true" className="pointer-events-none absolute left-[44%] top-[8%] h-[180px] w-[210px] rounded-full bg-[radial-gradient(circle_at_center,#7C3AED55_0%,#7C3AED00_70%)] blur-[24px]" />
 
           {/* Puntos editoriales */}
