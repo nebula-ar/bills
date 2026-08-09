@@ -3,7 +3,6 @@
 import { Eye, EyeOff, Loader2 } from "@/components/icons";
 import { LoginErrorCode } from "@/lib/auth-errors";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 
 import { googleSignInAction, loginAction } from "./actions";
@@ -39,7 +38,6 @@ function GoogleLogo({ size = 20 }: { size?: number }) {
 }
 
 export function LoginForm({ callbackUrl, variant, showGoogle }: LoginFormProps) {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -70,8 +68,11 @@ export function LoginForm({ callbackUrl, variant, showGoogle }: LoginFormProps) 
           return;
         }
 
-        router.push(callbackUrl);
-        router.refresh();
+        // Navegación completa, igual que el alta en register-wizard: la sesión
+        // recién nacida vive en cookies que el árbol cacheado en el cliente no
+        // conoce. Con router.push, `/` se pinta con el RSC de deslogueado —la
+        // landing— y el router.refresh() posterior llega tarde.
+        window.location.assign(callbackUrl);
       } catch {
         setError(resolveErrorMessage(LoginErrorCode.Network));
       }
