@@ -64,6 +64,7 @@ export function ExportPanel({
                   download
                   href={`/api/export?dataset=${dataset.value}&format=${format}&from=${from}&to=${to}`}
                   key={format}
+                  tabIndex={invalid ? -1 : undefined}
                 >
                   {formatIcon(format)}
                   {formatLabel(format)}

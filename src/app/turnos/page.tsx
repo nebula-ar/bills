@@ -2,6 +2,7 @@ import { AppShell, PageHeader } from "@/components/app-shell";
 import { PeriodFade } from "@/components/period-fade";
 import { StatTiles } from "@/components/stat-tiles";
 import { AppointmentFormHandler } from "@/components/appointment-form-handler";
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import {
   Badge,
   EmptyState,
@@ -183,7 +184,8 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
                       <form action={deleteAppointmentFormAction}>
                         <input name="appointmentId" type="hidden" value={appointment.id} />
                         <input name="day" type="hidden" value={toISODate(day)} />
-                        <GhostButton>Borrar</GhostButton>
+                        {/* Dos toques: borrar un turno no se puede deshacer. */}
+                        <ConfirmSubmit>Borrar</ConfirmSubmit>
                       </form>
                     </div>
                   </div>

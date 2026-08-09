@@ -9,6 +9,7 @@ import {
   type Tone,
 } from "@/components/manager-ui";
 import { QuoteShare } from "@/components/quote-share";
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import { AppModule, QuoteStatus } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { formatQuantity } from "@/lib/quantity";
@@ -170,7 +171,8 @@ export default async function PresupuestosPage() {
 
                         <form action={deleteQuoteAction}>
                           <input name="quoteId" type="hidden" value={quote.id} />
-                          <GhostButton>Borrar</GhostButton>
+                          {/* Dos toques: borrar un presupuesto no se puede deshacer. */}
+                          <ConfirmSubmit>Borrar</ConfirmSubmit>
                         </form>
                       </div>
                     </div>
