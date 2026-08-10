@@ -17,7 +17,7 @@ import { ArrowLeft, ArrowRight, Check, CircleSlash, DynamicIcon, Loader2, Plus, 
 import { SelectField } from "@/components/ui/select-field";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 
 export type ProductBranchConfig = {
   branchId: string;
@@ -170,6 +170,15 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   // mismo <form> y sólo se muestra el del paso actual: así los valores se
   // conservan al ir y volver sin duplicar estado, y `MoneyInput` —que maneja su
   // propio formato y no admite `value`— sigue funcionando tal cual.
+  //
+  // El form NO tiene `action` y bloquea su propio submit: el alta se dispara
+  // sólo desde el botón del último paso, leyendo los campos por este ref. Con
+  // `action` puesto, "Seguir" creaba el producto en el anteúltimo paso: React
+  // reutiliza el mismo nodo de botón para "Seguir" y "Crear" —están en la misma
+  // posición del árbol— y le cambia el `type` durante el re-render síncrono del
+  // click, así que el navegador terminaba ejecutando el submit sobre el botón ya
+  // convertido. También cierra la puerta al Enter dentro de un campo.
+  const newFormRef = useRef<HTMLFormElement>(null);
   const [newStep, setNewStep] = useState(0);
   // Del nombre sí guardamos copia: es lo único obligatorio y hay que saber si se
   // puede avanzar antes de que el form se mande.
@@ -286,7 +295,10 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 
   // Un solo commit al final: el form ya trae todos los pasos, se crea el
   // producto y recién ahí —ya con id— se sube la foto que venía en memoria.
-  function submitNewProduct(formData: FormData) {
+  function submitNewProduct() {
+    const form = newFormRef.current;
+    if (!form) return;
+    const formData = new FormData(form);
     setNewError(null);
     startCreating(async () => {
       const result = await createProduct(formData);
@@ -545,7 +557,11 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             </div>
           </div>
         ) : (
-        <form action={submitNewProduct} className="flex min-h-0 flex-1 flex-col">
+        <form
+          className="flex min-h-0 flex-1 flex-col"
+          onSubmit={(event) => event.preventDefault()}
+          ref={newFormRef}
+        >
           <input name="branchId" type="hidden" value={newBranchId} />
           <div className="flex items-start justify-between gap-3 px-5 pt-6">
             <div className="min-w-0">
@@ -731,11 +747,17 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   <ArrowLeft className="size-5" />
                 </button>
               ) : null}
+              {/* Los `key` distintos son a propósito: sin ellos React reutiliza
+                  el mismo nodo para "Seguir" y para "Crear" —misma posición del
+                  árbol— y el botón cambia de identidad debajo del dedo del
+                  usuario en pleno click. */}
               {esUltimoPaso ? (
                 <button
                   className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:opacity-60"
                   disabled={isCreating}
-                  type="submit"
+                  key="crear"
+                  onClick={submitNewProduct}
+                  type="button"
                 >
                   {isCreating ? <Loader2 className="size-5 animate-spin" /> : null}
                   {isCreating ? "Creando…" : `Crear ${data.catalogSingular.toLowerCase()}`}
@@ -743,6 +765,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               ) : (
                 <button
                   className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
+                  key="seguir"
                   onClick={avanzar}
                   type="button"
                 >
