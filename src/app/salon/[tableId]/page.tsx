@@ -32,7 +32,12 @@ const uno = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) 
 
 type ComandaPageProps = {
   params: Promise<{ tableId: string }>;
-  searchParams: Promise<{ cat?: string | string[]; estado?: string | string[]; mensaje?: string | string[] }>;
+  searchParams: Promise<{
+    cat?: string | string[];
+    q?: string | string[];
+    estado?: string | string[];
+    mensaje?: string | string[];
+  }>;
 };
 
 export default async function ComandaPage({ params, searchParams }: ComandaPageProps) {
@@ -50,7 +55,17 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
 
   const categorias = [...new Set(productos.map((p) => p.categoria))];
   const catActiva = uno(query.cat);
-  const visibles = catActiva ? productos.filter((p) => p.categoria === catActiva) : productos;
+  // Buscar sin acentos y sin distinguir mayúsculas, igual que el catálogo y el
+  // mostrador: "medialuna" tiene que encontrar "Medialuna" y "cafe" el "Café".
+  const normalizar = (v: string) =>
+    v
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase();
+  const busqueda = normalizar(uno(query.q).trim());
+  const visibles = productos
+    .filter((p) => (catActiva ? p.categoria === catActiva : true))
+    .filter((p) => (busqueda ? normalizar(p.name).includes(busqueda) : true));
 
   const todos = comanda?.items ?? [];
   // Lo que el cliente cargó por el QR y todavía no confirmó nadie. NO cuenta
@@ -90,6 +105,34 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
             }`}
           >
             {mensaje}
+          </p>
+        ) : null}
+
+        {/* Buscador. Con una carta larga, tocar categoría por categoría hasta
+            encontrar el producto es lo que hace lenta la toma del pedido con el
+            cliente esperando en la mesa. Va por query igual que las categorías,
+            que ya funcionan así. El teclado del celular manda "Buscar" y con
+            eso alcanza: no hace falta un botón que ocupe ancho. */}
+        <form action={`/salon/${tableId}`} className="mb-3">
+          {catActiva ? <input name="cat" type="hidden" value={catActiva} /> : null}
+          <input
+            autoComplete="off"
+            className="w-full rounded-full border border-slate-200 bg-white px-4 py-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:ring-4 focus:ring-primary/15"
+            defaultValue={uno(query.q)}
+            enterKeyHint="search"
+            name="q"
+            placeholder="Buscar en la carta…"
+            type="search"
+          />
+        </form>
+
+        {busqueda ? (
+          <p className="mb-3 flex items-center gap-2 text-sm text-slate-500">
+            <span className="font-bold text-slate-950">{visibles.length}</span>
+            {visibles.length === 1 ? "resultado" : "resultados"}
+            <Link className="font-bold text-primary underline" href={`/salon/${tableId}`}>
+              Limpiar
+            </Link>
           </p>
         ) : null}
 
@@ -185,7 +228,7 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
 
           `sticky` y no `fixed`: sigue ocupando su lugar en el flujo, así que
           no tapa el final del catálogo ni hace falta compensarlo con padding. */}
-      <aside className="sticky bottom-0 z-10 flex max-h-[52dvh] w-full shrink-0 flex-col gap-3 border-t border-slate-200 bg-white p-4 pb-28 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] lg:static lg:max-h-none lg:w-[26rem] lg:border-l lg:border-t-0 lg:p-6 lg:pb-28 lg:shadow-none">
+      <aside className="sticky bottom-0 z-10 flex max-h-[34dvh] w-full shrink-0 flex-col gap-2 border-t border-slate-200 bg-white p-3 pb-24 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] lg:static lg:max-h-none lg:gap-3 lg:w-[26rem] lg:border-l lg:border-t-0 lg:p-6 lg:pb-28 lg:shadow-none">
         <h2 className="shrink-0 text-lg font-black tracking-tight text-slate-950">Comanda</h2>
 
         {carrito.length > 0 ? (
