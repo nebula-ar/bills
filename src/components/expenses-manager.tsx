@@ -18,7 +18,6 @@ import { AnimatedMoney } from "@/components/animated-number";
 import { PeriodFade } from "@/components/period-fade";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import {
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -30,8 +29,9 @@ import {
 import { MoneyInput } from "@/components/money-input";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
+import { SelectField as UiSelect } from "@/components/ui/select-field";
 
 // Un renglón de lo que salió este mes. Puede ser un gasto suelto (ya pago) o el
 // pago de una factura de proveedor: en la lista se ven igual porque para el
@@ -191,22 +191,17 @@ function SelectField({
   label,
   name,
   defaultValue,
-  children,
+  options,
 }: {
   label: string;
   name: string;
   defaultValue?: string;
-  children: ReactNode;
+  options: { value: string; label: string }[];
 }) {
   return (
     <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
       {label}
-      <div className="relative">
-        <select className={`w-full appearance-none pr-11 ${sheetField}`} defaultValue={defaultValue} name={name}>
-          {children}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-      </div>
+      <UiSelect ariaLabel={label} defaultValue={defaultValue} name={name} options={options} />
     </label>
   );
 }
@@ -256,24 +251,26 @@ function ExpenseFields({
       <Chips label="¿De qué cuenta salió?" onChange={setPaymentMethod} options={data.paymentMethods} value={paymentMethod} />
 
       {data.showsSuppliers && data.suppliers.length > 0 ? (
-        <SelectField defaultValue={row?.supplierId ?? ""} label="Proveedor (opcional)" name="supplierId">
-          <option value="">Sin proveedor</option>
-          {data.suppliers.map((supplier) => (
-            <option key={supplier.id} value={supplier.id}>
-              {supplier.name}
-            </option>
-          ))}
-        </SelectField>
+        <SelectField
+          defaultValue={row?.supplierId ?? ""}
+          label="Proveedor (opcional)"
+          name="supplierId"
+          options={[
+            { value: "", label: "Sin proveedor" },
+            ...data.suppliers.map((supplier) => ({ value: supplier.id, label: supplier.name })),
+          ]}
+        />
       ) : null}
 
-      <SelectField defaultValue={row?.branchId ?? ""} label="Sucursal" name="branchId">
-        <option value="">General (todo el negocio)</option>
-        {data.branches.map((branch) => (
-          <option key={branch.id} value={branch.id}>
-            {branch.name}
-          </option>
-        ))}
-      </SelectField>
+      <SelectField
+        defaultValue={row?.branchId ?? ""}
+        label="Sucursal"
+        name="branchId"
+        options={[
+          { value: "", label: "General (todo el negocio)" },
+          ...data.branches.map((branch) => ({ value: branch.id, label: branch.name })),
+        ]}
+      />
 
       <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
         Fecha
@@ -309,15 +306,13 @@ function PurchaseFields({ data }: { data: ExpensesData }) {
     <div className="space-y-4">
       <input name="expenseCategory" type="hidden" value={category} />
 
-      <SelectField label="Proveedor" name="supplierId">
-        {data.suppliers
+      <SelectField
+        label="Proveedor"
+        name="supplierId"
+        options={data.suppliers
           .filter((supplier) => supplier.active)
-          .map((supplier) => (
-            <option key={supplier.id} value={supplier.id}>
-              {supplier.name}
-            </option>
-          ))}
-      </SelectField>
+          .map((supplier) => ({ value: supplier.id, label: supplier.name }))}
+      />
 
       {/* Qué se compró decide todo lo demás: la mercadería entra al stock y se
           vuelve costo al venderse; un servicio es gasto del mes y no entra a
@@ -348,14 +343,14 @@ function PurchaseFields({ data }: { data: ExpensesData }) {
           <input className={sheetField} name="dueAt" type="date" />
         </label>
         {isMerchandise ? (
-          <SelectField label="Entra en" name="branchId">
-            <option value="">Sin impacto en stock</option>
-            {data.purchaseBranches.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.name}
-              </option>
-            ))}
-          </SelectField>
+          <SelectField
+            label="Entra en"
+            name="branchId"
+            options={[
+              { value: "", label: "Sin impacto en stock" },
+              ...data.purchaseBranches.map((branch) => ({ value: branch.id, label: branch.name })),
+            ]}
+          />
         ) : null}
         <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
           Total del comprobante
@@ -388,14 +383,14 @@ function PurchaseFields({ data }: { data: ExpensesData }) {
           {Array.from({ length: rows }).map((_, index) => (
             <div className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50/60 p-3" key={index}>
               {isMerchandise ? (
-                <select aria-label="Producto" className={`w-full appearance-none ${sheetField}`} name="itemProductId">
-                  <option value="">— Ítem sin producto —</option>
-                  {data.products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.label}
-                    </option>
-                  ))}
-                </select>
+                <UiSelect
+                  ariaLabel="Producto"
+                  name="itemProductId"
+                  options={[
+                    { value: "", label: "— Ítem sin producto —" },
+                    ...data.products.map((product) => ({ value: product.id, label: product.label })),
+                  ]}
+                />
               ) : (
                 <input name="itemProductId" type="hidden" value="" />
               )}
@@ -408,13 +403,11 @@ function PurchaseFields({ data }: { data: ExpensesData }) {
                   name="itemQuantity"
                   placeholder="Cant."
                 />
-                <select aria-label="Unidad" className={`appearance-none ${sheetField}`} name="itemUnit">
-                  {data.units.map((unit) => (
-                    <option key={unit.value} value={unit.value}>
-                      {unit.label}
-                    </option>
-                  ))}
-                </select>
+                <UiSelect
+                  ariaLabel="Unidad"
+                  name="itemUnit"
+                  options={data.units.map((unit) => ({ value: unit.value, label: unit.label }))}
+                />
                 <MoneyInput aria-label="Costo unitario" className={sheetField} name="itemUnitCost" placeholder="Costo $" />
               </div>
             </div>
@@ -805,13 +798,11 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <select aria-label="Cuenta" className={`appearance-none ${sheetField}`} name="method">
-                    {data.paymentMethods.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                  <UiSelect
+                      ariaLabel="Cuenta"
+                      name="method"
+                      options={data.paymentMethods.map((option) => ({ value: option.value, label: option.label }))}
+                    />
                   <input aria-label="Fecha del pago" className={sheetField} defaultValue={data.todayValue} name="paidAt" type="date" />
                 </div>
                 <button
@@ -927,13 +918,11 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                           name="amount"
                           placeholder="$"
                         />
-                        <select aria-label="Cuenta" className={`appearance-none ${sheetField}`} name="method">
-                          {data.paymentMethods.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
+                        <UiSelect
+                      ariaLabel="Cuenta"
+                      name="method"
+                      options={data.paymentMethods.map((option) => ({ value: option.value, label: option.label }))}
+                    />
                         <button
                           className="rounded-2xl bg-primary px-4 py-3 text-sm font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
                           disabled={isPending}

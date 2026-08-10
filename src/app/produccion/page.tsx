@@ -7,7 +7,6 @@ import {
   inputClass,
   PrimaryButton,
   SectionCard,
-  selectClass,
 } from "@/components/manager-ui";
 import { AppModule } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";

@@ -8,7 +8,6 @@ import {
   inputClass,
   PrimaryButton,
   SectionCard,
-  selectClass,
   TableWrap,
 } from "@/components/manager-ui";
 import { MoneyInput } from "@/components/money-input";
@@ -26,6 +25,7 @@ import { WhatsappButton } from "@/components/whatsapp-button";
 import Link from "next/link";
 
 import { createCustomerAction, deleteCustomerAction, registerPaymentAction, updateCustomerAction } from "./actions";
+import { SelectField } from "@/components/ui/select-field";
 
 const dateFormatter = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "short", year: "2-digit" });
 
@@ -150,23 +150,19 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                     <MoneyInput className={inputClass} name="amount" placeholder="$" required />
                   </Field>
                   <Field label="Cobrado en">
-                    <select className={selectClass} name="method">
-                      {PAYMENT_METHOD_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    <SelectField
+                      ariaLabel="Cuenta"
+                      name="method"
+                      options={PAYMENT_METHOD_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+                    />
                   </Field>
                   {branches.length > 1 ? (
                     <Field label="Sucursal" className="sm:col-span-2">
-                      <select className={selectClass} name="branchId">
-                        {branches.map((branch) => (
-                          <option key={branch.id} value={branch.id}>
-                            {branch.name}
-                          </option>
-                        ))}
-                      </select>
+                      <SelectField
+                        ariaLabel="Sucursal"
+                        name="branchId"
+                        options={branches.map((branch) => ({ value: branch.id, label: branch.name }))}
+                      />
                     </Field>
                   ) : (
                     <input name="branchId" type="hidden" value={branches[0]?.id ?? ""} />
@@ -223,14 +219,15 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                   <input className={inputClass} defaultValue={detail.customer.taxId ?? ""} name="taxId" />
                 </Field>
                 <Field label="Condición IVA">
-                  <select className={selectClass} defaultValue={detail.customer.taxCondition ?? ""} name="taxCondition">
-                    <option value="">Sin especificar</option>
-                    {Object.entries(TAX_CONDITION_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
+                  <SelectField
+                    ariaLabel="Condición frente al IVA"
+                    defaultValue={detail.customer.taxCondition ?? ""}
+                    name="taxCondition"
+                    options={[
+                      { value: "", label: "Sin especificar" },
+                      ...Object.entries(TAX_CONDITION_LABELS).map(([value, label]) => ({ value, label })),
+                    ]}
+                  />
                 </Field>
                 <Field label="Límite de crédito" hint="Vacío = sin tope">
                   <MoneyInput

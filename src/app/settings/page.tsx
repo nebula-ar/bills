@@ -1,7 +1,7 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { SelectField } from "@/components/ui/select-field";
 import { RefreshActionForm } from "@/components/refresh-action-form";
-import { Badge, Field, GhostButton, PrimaryButton, SectionCard, selectClass } from "@/components/manager-ui";
+import { Badge, Field, GhostButton, PrimaryButton, SectionCard } from "@/components/manager-ui";
 import { CONFIGURABLE_MODULES, MODULE_INFO } from "@/lib/app-modules";
 import { requireBusinessContext } from "@/lib/business-context";
 import { verticalPreset, VERTICAL_ORDER, VERTICAL_PRESETS } from "@/lib/vertical";

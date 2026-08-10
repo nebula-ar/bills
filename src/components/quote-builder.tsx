@@ -3,7 +3,7 @@
 import { createQuoteAction } from "@/app/presupuestos/actions";
 import { AnimatedMoney } from "@/components/animated-number";
 import { Check, Loader2, Plus, Trash2 } from "@/components/icons";
-import { inputClass, selectClass } from "@/components/manager-ui";
+import { inputClass } from "@/components/manager-ui";
 import { Unit } from "@/generated/prisma/enums";
 import { formatAmountInput } from "@/lib/money";
 import { formatQuantity, lineTotal, ONE, parseQuantityInput, unitShort } from "@/lib/quantity";
@@ -11,6 +11,7 @@ import { quoteTotals } from "@/modules/quotes/quote.logic";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { SelectField } from "@/components/ui/select-field";
 
 // Armador de presupuestos.
 //
@@ -146,38 +147,34 @@ export function QuoteBuilder({
         {branches.length > 1 ? (
           <label className="grid gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
             Sucursal
-            <select className={selectClass} onChange={(event) => setBranchId(event.target.value)} value={branchId}>
-              {branches.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
+            <SelectField
+              ariaLabel="Sucursal"
+              defaultValue={branchId}
+              onChange={setBranchId}
+              options={branches.map((item) => ({ value: item.id, label: item.name }))}
+            />
           </label>
         ) : null}
 
         {customers.length > 0 ? (
           <label className="grid gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
             Cliente de la ficha
-            <select
-              className={selectClass}
-              onChange={(event) => {
-                setCustomerId(event.target.value);
-                const found = customers.find((item) => item.id === event.target.value);
+            <SelectField
+              ariaLabel="Cliente"
+              defaultValue={customerId}
+              onChange={(value) => {
+                setCustomerId(value);
+                const found = customers.find((item) => item.id === value);
                 if (found) {
                   setCustomerName("");
                   setCustomerPhone(found.phone ?? "");
                 }
               }}
-              value={customerId}
-            >
-              <option value="">Sin cliente cargado</option>
-              {customers.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "Sin cliente cargado" },
+                ...customers.map((item) => ({ value: item.id, label: item.name })),
+              ]}
+            />
           </label>
         ) : null}
 
@@ -223,19 +220,15 @@ export function QuoteBuilder({
             <div className="rounded-2xl border border-slate-200 p-3" key={line.key}>
               <div className="grid gap-2 sm:grid-cols-[1.6fr_repeat(3,minmax(0,1fr))_auto]">
                 <div className="grid gap-1.5">
-                  <select
-                    aria-label="Producto del catálogo"
-                    className={selectClass}
-                    onChange={(event) => pickProduct(line.key, event.target.value)}
-                    value={line.productId ?? ""}
-                  >
-                    <option value="">Renglón libre (mano de obra, flete…)</option>
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name}
-                      </option>
-                    ))}
-                  </select>
+                  <SelectField
+                    ariaLabel="Producto del catálogo"
+                    defaultValue={line.productId ?? ""}
+                    onChange={(value) => pickProduct(line.key, value)}
+                    options={[
+                      { value: "", label: "Renglón libre (mano de obra, flete…)" },
+                      ...products.map((product) => ({ value: product.id, label: product.name })),
+                    ]}
+                  />
                   <input
                     aria-label="Descripción"
                     className={inputClass}

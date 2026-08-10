@@ -3,10 +3,11 @@
 import { createTerminalAction, deleteTerminalAction, renameTerminalAction } from "@/app/terminals/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { copyText } from "@/lib/clipboard";
-import { Check, ChevronDown, Copy, Monitor, Pencil, Plus, Smartphone, Tag, Trash2, X } from "@/components/icons";
+import { Check, Copy, Monitor, Pencil, Plus, Smartphone, Tag, Trash2, X } from "@/components/icons";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ComponentType } from "react";
+import { SelectField } from "@/components/ui/select-field";
 
 type Staff = { id: string; name: string };
 type CustomTerminal = { id: string; name: string; staffId: string | null; staffName: string | null };
@@ -119,28 +120,18 @@ function Select({
   name,
   value,
   onChange,
-  children,
+  options,
 }: {
   label: string;
   name?: string;
   value: string;
   onChange: (value: string) => void;
-  children: React.ReactNode;
+  options: { value: string; label: string }[];
 }) {
   return (
     <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
       {label}
-      <div className="relative">
-        <select
-          className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-11 text-base font-bold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-          name={name}
-          onChange={(event) => onChange(event.target.value)}
-          value={value}
-        >
-          {children}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-      </div>
+      <SelectField ariaLabel={label} defaultValue={value} name={name} onChange={onChange} options={options} />
     </label>
   );
 }
@@ -187,14 +178,9 @@ function TerminalForm({
             setBranchId(value);
             setStaffId("");
           }}
+          options={branches.map((item) => ({ value: item.id, label: item.name }))}
           value={branchId}
-        >
-          {branches.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </Select>
+        />
       ) : (
         <div className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
           Sucursal
@@ -202,14 +188,20 @@ function TerminalForm({
         </div>
       )}
 
-      <Select label="Empleado" name="staffId" onChange={setStaffId} value={staffId}>
-        <option value="">Cualquiera (mostrador)</option>
-        {staffs.map((staff) => (
-          <option key={staff.id} value={staff.id}>
-            {staff.name}
-          </option>
-        ))}
-      </Select>
+      {/* `key={branchId}`: cambiar de sucursal resetea el empleado a "" y el
+          desplegable propio es interno-no-controlado, así que sin remontarlo
+          seguiría mostrando el empleado de la sucursal anterior. */}
+      <Select
+        key={branchId}
+        label="Empleado"
+        name="staffId"
+        onChange={setStaffId}
+        options={[
+          { value: "", label: "Cualquiera (mostrador)" },
+          ...staffs.map((staff) => ({ value: staff.id, label: staff.name })),
+        ]}
+        value={staffId}
+      />
       <p className="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
         Si asignás un empleado, la terminal ya viene con su perfil y solo pide el PIN. Si la dejás en «Cualquiera»,
         funciona como mostrador (cada uno elige su perfil).

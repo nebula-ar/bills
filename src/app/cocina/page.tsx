@@ -1,6 +1,6 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { SelectField } from "@/components/ui/select-field";
-import { EmptyState, Field, GhostButton, selectClass } from "@/components/manager-ui";
+import { EmptyState, Field, GhostButton } from "@/components/manager-ui";
 import { AppModule, KdsStatus } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { formatQuantity } from "@/lib/quantity";

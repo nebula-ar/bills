@@ -45,6 +45,7 @@ import {
   DynamicIcon,
 } from "@/components/icons";
 import { useEffect, useMemo, useState, useTransition, type ComponentType } from "react";
+import { SelectField } from "@/components/ui/select-field";
 
 export type PosProduct = {
   productId: string;
@@ -1732,20 +1733,18 @@ export function PosCheckout({
             {pasoActual === "pago" && customers.length > 0 ? (
               <section>
                 <p className="mb-2 text-sm font-black uppercase tracking-wide text-slate-500">¿Quién compra?</p>
-                <select
-                  aria-label="Cliente"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
-                  onChange={(event) => setCustomerId(event.target.value)}
-                  value={customerId}
-                >
-                  <option value="">Cliente ocasional</option>
-                  {customers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name}
-                      {customer.balance > 0 ? ` — debe ${money(customer.balance)}` : ""}
-                    </option>
-                  ))}
-                </select>
+                <SelectField
+                  ariaLabel="Cliente"
+                  defaultValue={customerId}
+                  onChange={setCustomerId}
+                  options={[
+                    { value: "", label: "Cliente ocasional" },
+                    ...customers.map((customer) => ({
+                      value: customer.id,
+                      label: `${customer.name}${customer.balance > 0 ? ` — debe ${money(customer.balance)}` : ""}`,
+                    })),
+                  ]}
+                />
                 {selectedCustomer && selectedCustomer.creditLimit !== null ? (
                   <p className="mt-1.5 text-xs font-semibold text-slate-500">
                     Puede fiar hasta {money(Math.max(selectedCustomer.creditLimit - selectedCustomer.balance, 0))} más.
@@ -1780,17 +1779,15 @@ export function PosCheckout({
                 <div className="space-y-2.5">
                   {splitRows.map((row) => (
                     <div className="flex items-center gap-2" key={row.id}>
-                      <select
-                        className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-950 outline-none focus:border-primary/40 focus:bg-white"
-                        onChange={(event) => updateSplitRow(row.id, { method: event.target.value })}
-                        value={row.method}
-                      >
-                        {paymentOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="min-w-0 flex-1">
+                        <SelectField
+                          ariaLabel="Método de pago"
+                          defaultValue={row.method}
+                          onChange={(value) => updateSplitRow(row.id, { method: value })}
+                          options={paymentOptions.map((option) => ({ value: option.value, label: option.label }))}
+                          size="sm"
+                        />
+                      </div>
                       <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 px-2 focus-within:border-primary/40 focus-within:bg-white">
                         <span className="text-sm font-bold text-slate-400">$</span>
                         <input
@@ -1897,17 +1894,15 @@ export function PosCheckout({
                   />
                   {customerTaxIdHasError ? <p className="text-xs font-semibold text-rose-600">CUIT/DNI inválido.</p> : null}
                   {customerTaxIdCheck?.kind === "CUIT" && customerTaxIdCheck.valid ? (
-                    <select
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:ring-4 focus:ring-primary/15"
-                      onChange={(event) => setCustomerTaxCondition(event.target.value as TaxCondition)}
-                      value={customerTaxCondition}
-                    >
-                      {Object.values(TaxCondition).map((condition) => (
-                        <option key={condition} value={condition}>
-                          {TAX_CONDITION_LABELS[condition]}
-                        </option>
-                      ))}
-                    </select>
+                    <SelectField
+                      ariaLabel="Condición frente al IVA"
+                      defaultValue={customerTaxCondition}
+                      onChange={(value) => setCustomerTaxCondition(value as TaxCondition)}
+                      options={Object.values(TaxCondition).map((condition) => ({
+                        value: condition,
+                        label: TAX_CONDITION_LABELS[condition],
+                      }))}
+                    />
                   ) : null}
                   <p className="text-xs text-slate-500">Sin CUIT, se factura a Consumidor Final.</p>
                 </div>

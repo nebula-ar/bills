@@ -11,7 +11,6 @@ import {
   inputClass,
   PrimaryButton,
   SectionCard,
-  selectClass,
   type Tone,
 } from "@/components/manager-ui";
 import { AppModule, AppointmentStatus } from "@/generated/prisma/client";
@@ -24,6 +23,7 @@ import { getStaffsForManagement } from "@/modules/staff/get-staff-for-management
 import Link from "next/link";
 
 import { deleteAppointmentFormAction, setStatusFormAction } from "./actions";
+import { SelectField } from "@/components/ui/select-field";
 
 const timeFormatter = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
 const dayFormatter = new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "numeric", month: "long" });
@@ -207,24 +207,23 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
           </Field>
 
           <Field label="Duración">
-            <select className={selectClass} defaultValue="30" name="durationMinutes">
-              {DURATIONS.map((minutes) => (
-                <option key={minutes} value={minutes}>
-                  {minutes} min
-                </option>
-              ))}
-            </select>
+            <SelectField
+              ariaLabel="Duración"
+              defaultValue="30"
+              name="durationMinutes"
+              options={DURATIONS.map((minutes) => ({ value: String(minutes), label: `${minutes} min` }))}
+            />
           </Field>
 
           <Field label={business.labels.staffSingular}>
-            <select className={selectClass} name="staffId">
-              <option value="">Sin asignar</option>
-              {activeStaff.map((staff) => (
-                <option key={staff.id} value={staff.id}>
-                  {staff.name}
-                </option>
-              ))}
-            </select>
+            <SelectField
+              ariaLabel="Quién atiende"
+              name="staffId"
+              options={[
+                { value: "", label: "Sin asignar" },
+                ...activeStaff.map((staff) => ({ value: staff.id, label: staff.name })),
+              ]}
+            />
           </Field>
 
           <Field label="Cliente" hint="Si no está en la ficha, escribí el nombre">
@@ -237,37 +236,35 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
 
           {customers.length > 0 ? (
             <Field label="…o un cliente ya cargado">
-              <select className={selectClass} name="customerId">
-                <option value="">Ninguno</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name}
-                  </option>
-                ))}
-              </select>
+              <SelectField
+                ariaLabel="Cliente"
+                name="customerId"
+                options={[
+                  { value: "", label: "Ninguno" },
+                  ...customers.map((customer) => ({ value: customer.id, label: customer.name })),
+                ]}
+              />
             </Field>
           ) : null}
 
           <Field label={business.labels.catalogSingular}>
-            <select className={selectClass} name="productId">
-              <option value="">Sin especificar</option>
-              {catalog.products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name}
-                </option>
-              ))}
-            </select>
+            <SelectField
+              ariaLabel="Servicio"
+              name="productId"
+              options={[
+                { value: "", label: "Sin especificar" },
+                ...catalog.products.map((product) => ({ value: product.id, label: product.name })),
+              ]}
+            />
           </Field>
 
           {activeBranches.length > 1 ? (
             <Field label="Sucursal">
-              <select className={selectClass} name="branchId">
-                {activeBranches.map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </option>
-                ))}
-              </select>
+              <SelectField
+                ariaLabel="Sucursal"
+                name="branchId"
+                options={activeBranches.map((branch) => ({ value: branch.id, label: branch.name }))}
+              />
             </Field>
           ) : (
             <input name="branchId" type="hidden" value={activeBranches[0]?.id ?? ""} />

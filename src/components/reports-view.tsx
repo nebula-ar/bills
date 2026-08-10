@@ -28,6 +28,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ComponentType, type ReactNode } from "react";
+import { SelectField } from "@/components/ui/select-field";
 
 // Charts basados en recharts (dependencia grande): se cargan en el cliente, on
 // demand, para no engordar el bundle inicial del dashboard.
@@ -746,19 +747,17 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                 <Users className="size-4 text-primary" />
                 Empleado
               </label>
-              <select
-                className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-                id="filter-staff"
-                onChange={(event) => setStaffId(event.target.value)}
-                value={staffId}
-              >
-                <option value="">Todos los empleados</option>
-                {data.staffOptions.map((staff) => (
-                  <option key={staff.id} value={staff.id}>
-                    {staff.name}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-3">
+                <SelectField
+                  ariaLabel="Filtrar por empleado"
+                  defaultValue={staffId}
+                  onChange={setStaffId}
+                  options={[
+                    { value: "", label: "Todos los empleados" },
+                    ...data.staffOptions.map((staff) => ({ value: staff.id, label: staff.name })),
+                  ]}
+                />
+              </div>
             </section>
 
             {/* Método de pago */}
@@ -767,19 +766,17 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                 <CreditCard className="size-4 text-primary" />
                 Método de pago
               </label>
-              <select
-                className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-                id="filter-payment"
-                onChange={(event) => setPaymentMethod(event.target.value)}
-                value={paymentMethod}
-              >
-                <option value="">Todos los métodos</option>
-                {data.paymentOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-3">
+                <SelectField
+                  ariaLabel="Filtrar por método de pago"
+                  defaultValue={paymentMethod}
+                  onChange={setPaymentMethod}
+                  options={[
+                    { value: "", label: "Todos los métodos" },
+                    ...data.paymentOptions.map((option) => ({ value: option.value, label: option.label })),
+                  ]}
+                />
+              </div>
             </section>
           </div>
 

@@ -27,6 +27,7 @@ import { findCatalogForPromotions } from "@/modules/catalog/product.repository";
 import { getPromotionsForManagement } from "@/modules/promotions/promotion.use-cases";
 
 import { createPromotionAction, deletePromotionAction, togglePromotionAction } from "./actions";
+import { SelectField } from "@/components/ui/select-field";
 
 const dateFormatter = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "short", year: "2-digit" });
 
@@ -127,23 +128,22 @@ export default async function PromotionsPage({ searchParams }: PromotionsPagePro
             </Field>
 
             <Field label="Tipo">
-              <select className={selectClass} name="type">
-                {PROMOTION_TYPE_ORDER.map((type) => (
-                  <option key={type} value={type}>
-                    {PROMOTION_TYPE_LABELS[type]}
-                  </option>
-                ))}
-              </select>
+              <SelectField
+                ariaLabel="Tipo de promoción"
+                name="type"
+                options={PROMOTION_TYPE_ORDER.map((type) => ({ value: type, label: PROMOTION_TYPE_LABELS[type] }))}
+              />
             </Field>
 
             <Field label="Aplica a">
-              <select className={selectClass} name="scope">
-                {Object.values(PromotionScope).map((scope) => (
-                  <option key={scope} value={scope}>
-                    {PROMOTION_SCOPE_LABELS[scope]}
-                  </option>
-                ))}
-              </select>
+              <SelectField
+                ariaLabel="Alcance"
+                name="scope"
+                options={Object.values(PromotionScope).map((scope) => ({
+                  value: scope,
+                  label: PROMOTION_SCOPE_LABELS[scope],
+                }))}
+              />
             </Field>
           </div>
 

@@ -11,7 +11,6 @@ import {
   inputClass,
   PrimaryButton,
   SectionCard,
-  selectClass,
 } from "@/components/manager-ui";
 import { RefreshActionForm } from "@/components/refresh-action-form";
 import { StockEmpty, StockManager } from "@/components/stock-manager";
@@ -23,6 +22,7 @@ import { getBranchesForManagement } from "@/modules/branches/get-branches-for-ma
 import { getBranchStockOverview, getStockMovements } from "@/modules/stock/stock.use-cases";
 
 import { transferStockAction } from "./actions";
+import { SelectField } from "@/components/ui/select-field";
 
 const dateFormatter = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
 
@@ -78,13 +78,12 @@ export default async function StockPage({ searchParams }: StockPageProps) {
       {activeBranches.length > 1 ? (
         <form className="flex flex-wrap items-end gap-3" action="/stock">
           <Field label="Sucursal" className="min-w-[12rem] flex-1">
-            <select className={selectClass} defaultValue={branch.id} name="branchId">
-              {activeBranches.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
+            <SelectField
+              ariaLabel="Sucursal"
+              defaultValue={branch.id}
+              name="branchId"
+              options={activeBranches.map((item) => ({ value: item.id, label: item.name }))}
+            />
           </Field>
           <GhostButton className="mb-0.5">Ver</GhostButton>
         </form>
@@ -180,24 +179,23 @@ export default async function StockPage({ searchParams }: StockPageProps) {
             <RefreshActionForm action={transferStockAction} className="grid gap-3 sm:grid-cols-2" resetOnSuccess>
               <input name="branchId" type="hidden" value={branch.id} />
               <Field label="Producto" className="sm:col-span-2">
-                <select className={selectClass} name="productId" required>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name} ({unitShort(product.unit)})
-                    </option>
-                  ))}
-                </select>
+                <SelectField
+                  ariaLabel="Producto"
+                  name="productId"
+                  options={products.map((product) => ({
+                    value: product.id,
+                    label: `${product.name} (${unitShort(product.unit)})`,
+                  }))}
+                />
               </Field>
               <Field label="Hacia">
-                <select className={selectClass} name="toBranchId" required>
-                  {activeBranches
+                <SelectField
+                  ariaLabel="Sucursal destino"
+                  name="toBranchId"
+                  options={activeBranches
                     .filter((item) => item.id !== branch.id)
-                    .map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                </select>
+                    .map((item) => ({ value: item.id, label: item.name }))}
+                />
               </Field>
               <Field label="Cantidad">
                 <input className={inputClass} inputMode="decimal" name="quantity" placeholder="0" required />
