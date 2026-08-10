@@ -31,7 +31,7 @@ export async function crearMesaAction(input: {
   sectorId: string | null;
   name: string;
   seats: number;
-}): Promise<Resultado> {
+}): Promise<Resultado & { mesaId?: string }> {
   const { session } = await requireModule(AppModule.TABLES);
 
   const resultado = await crearMesa({

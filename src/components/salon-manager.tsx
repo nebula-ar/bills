@@ -104,6 +104,22 @@ function MesaCard({
 export function SalonManager({ data }: { data: SalonData }) {
   const router = useRouter();
   const [filtro, setFiltro] = useState<Filtro>("todas");
+  // Copia local del tablero: crear un sector/mesa o alternar ocupación
+  // actualiza esto DIRECTO con el resultado ya confirmado por el servidor, sin
+  // depender de que `router.refresh()` vuelva a pedir el árbol. En este fork
+  // de Next ese refresh no siempre repinta la pantalla que ya está montada
+  // -es la misma causa que ya se documentó en la comanda-, así que acá no es
+  // el único mecanismo: es un best-effort. Se resincroniza durante el render
+  // (no en un efecto: React lo pide así para "ajustar estado cuando cambia
+  // una prop", sin la pasada de más que dispara un `useEffect`) cuando sí
+  // trae datos nuevos (cambiar de sucursal, "Actualizar").
+  const [tablero, setTablero] = useState<SectorVM[]>(data.tablero);
+  const [tableroPrevio, setTableroPrevio] = useState(data.tablero);
+  if (data.tablero !== tableroPrevio) {
+    setTableroPrevio(data.tablero);
+    setTablero(data.tablero);
+  }
+
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(data.tablero.map((s) => [sectorKey(s), s.mesas.length > 0])),
   );
@@ -122,6 +138,8 @@ export function SalonManager({ data }: { data: SalonData }) {
 
   function alternarMesa(mesa: MesaVM) {
     setError(null);
+    const nuevoStatus = mesa.status === TableStatus.OCCUPIED ? TableStatus.FREE : TableStatus.OCCUPIED;
+
     startTransition(async () => {
       const resultado = await alternarOcupacionAction({
         tableId: mesa.id,
@@ -132,6 +150,14 @@ export function SalonManager({ data }: { data: SalonData }) {
         setError(resultado.error);
         return;
       }
+      setTablero((actual) =>
+        actual.map((sector) => ({
+          ...sector,
+          mesas: sector.mesas.map((m) =>
+            m.id === mesa.id ? { ...m, status: nuevoStatus, ocupada: nuevoStatus === TableStatus.OCCUPIED } : m,
+          ),
+        })),
+      );
       router.refresh();
     });
   }
@@ -147,9 +173,12 @@ export function SalonManager({ data }: { data: SalonData }) {
         setError(resultado.error);
         return;
       }
+
+      const nuevoId = resultado.sectorId ?? null;
+      setTablero((actual) => [...actual, { id: nuevoId, name: nombre, mesas: [] }]);
       // Se abre solo: si no, el sector nuevo aparece plegado y parece que la
       // mesa que se cree a continuación se perdió.
-      if (resultado.sectorId) setAbiertos((actual) => ({ ...actual, [resultado.sectorId as string]: true }));
+      if (nuevoId) setAbiertos((actual) => ({ ...actual, [nuevoId]: true }));
       setCrear(null);
       router.refresh();
     });
@@ -174,16 +203,30 @@ export function SalonManager({ data }: { data: SalonData }) {
         setError(resultado.error);
         return;
       }
+
+      if (resultado.mesaId) {
+        const nuevaMesa: MesaVM = {
+          id: resultado.mesaId,
+          name: nombre,
+          seats,
+          status: TableStatus.FREE,
+          ocupada: false,
+          consumo: null,
+        };
+        setTablero((actual) =>
+          actual.map((sector) => (sector.id === sectorId ? { ...sector, mesas: [...sector.mesas, nuevaMesa] } : sector)),
+        );
+      }
       setCrear(null);
       router.refresh();
     });
   }
 
-  const mesas = data.tablero.flatMap((s) => s.mesas);
+  const mesas = tablero.flatMap((s) => s.mesas);
   const ocupadas = mesas.filter((m) => m.ocupada);
   const consumoPendiente = ocupadas.reduce((suma, m) => suma + (m.consumo?.total ?? 0), 0);
 
-  const sectoresReales = data.tablero.filter((s): s is SectorVM & { id: string } => s.id !== null);
+  const sectoresReales = tablero.filter((s): s is SectorVM & { id: string } => s.id !== null);
   const primerSectorId = sectoresReales[0]?.id ?? "";
 
   return (
@@ -270,13 +313,13 @@ export function SalonManager({ data }: { data: SalonData }) {
       </div>
 
       <div className="mt-4 flex flex-col gap-3">
-        {data.tablero.length === 0 ? (
+        {tablero.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center">
             <p className="text-sm font-bold text-slate-700">Todavía no hay mesas</p>
             <p className="mt-1 text-xs text-slate-500">Tocá el botón «+» para crear el primer sector.</p>
           </div>
         ) : (
-          data.tablero.map((sector) => {
+          tablero.map((sector) => {
             const key = sectorKey(sector);
             const abierto = abiertos[key] ?? false;
             const visibles = sector.mesas.filter((m) => pasaFiltro(m, filtro));

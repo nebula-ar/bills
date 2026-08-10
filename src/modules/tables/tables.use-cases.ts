@@ -102,7 +102,7 @@ export async function crearMesa(input: {
   name: string;
   seats: number;
   userId: string;
-}): Promise<Resultado> {
+}): Promise<Resultado & { mesaId?: string }> {
   const name = input.name.trim();
 
   if (!name) return { ok: false, error: "Poné un nombre o número para la mesa" };
@@ -116,7 +116,7 @@ export async function crearMesa(input: {
     return { ok: false, error: `Ya hay una mesa "${name}" en esta sucursal` };
   }
 
-  await createTable({
+  const tabla = await createTable({
     ...input,
     name,
     // Aleatorio y largo: el token ES la credencial de la carta pública, no hay
@@ -124,7 +124,7 @@ export async function crearMesa(input: {
     publicToken: randomUUID().replace(/-/g, ""),
   });
 
-  return { ok: true };
+  return { ok: true, mesaId: tabla.id };
 }
 
 /**
