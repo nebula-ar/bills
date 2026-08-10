@@ -346,3 +346,18 @@ textarea {
     transform: scale(1);
   }
 }
+
+/* iOS Safari hace zoom automático al enfocar cualquier campo de menos de 16px y
+   deja la vista corrida después. Eso NO se arregla en el viewport —Safari ignora
+   `user-scalable=no` desde iOS 10—: el único remedio es que el campo mida 16px.
+   Va sólo en punteros gruesos (touch) para no agrandar los formularios en
+   escritorio, y fuera de `@layer` a propósito: en Tailwind v4 las utilidades
+   viven en la capa `utilities`, y lo que está sin capa le gana igual, así que
+   pisa a `text-sm`/`text-[13px]` sin ensuciar nada con `!important`. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

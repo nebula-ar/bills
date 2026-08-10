@@ -69,14 +69,19 @@ export const metadata: Metadata = {
   },
 };
 
-// Permitimos el zoom del usuario (accesibilidad, WCAG 1.4.4). El doble-tap-zoom
-// accidental ya se evita con `touch-action: manipulation` en el CSS global, así
-// que dejar pellizcar para acercar no desconfigura la vista tipo POS.
+// Zoom deshabilitado por decisión de producto: en el mostrador se cobra con una
+// mano y el pellizco accidental descuadraba la vista, que es la pantalla con la
+// que se factura. Se sacrifica WCAG 1.4.4 a conciencia.
+//
+// Dos cosas a saber antes de tocar esto: iOS Safari IGNORA `userScalable: false`
+// para el pellizco desde la versión 10, así que ahí el zoom manual va a seguir
+// andando. Y el salto automático al enfocar un campo NO se arregla acá: iOS lo
+// hace con cualquier input de menos de 16px, y se resuelve en el CSS del input.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
+  maximumScale: 1,
+  userScalable: false,
   themeColor: "#3158e8",
 };
 
