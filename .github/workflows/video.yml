@@ -1,0 +1,61 @@
+# Renderiza el video de marketing en Linux y lo deja como artifact.
+#
+# Existe porque los binarios nativos de Remotion no arrancan en cualquier
+# Windows (Defender los bloquea y fallan con STATUS_DLL_INIT_FAILED). Acá el
+# render deja de depender de la máquina y del antivirus de quien lo corre.
+#
+# Es manual a propósito: un video de marketing se rehace cada tanto, no en cada
+# push. No toca el deploy ni los tests.
+name: Render video
+
+on:
+  workflow_dispatch:
+    inputs:
+      composition:
+        description: "Id de la composición a renderizar (ver remotion/Root.tsx)"
+        required: true
+        default: Promo
+  # TEMPORAL, mientras se itera el promo: GitHub sólo ofrece workflow_dispatch
+  # para workflows que ya están en la rama por defecto, y éste todavía no llegó
+  # a master. Sacar este trigger antes de mergear.
+  push:
+    branches: [feat/motion-video]
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Chrome Headless Shell, que es quien pinta cada frame, necesita estas
+      # librerías del sistema: sin ellas el render muere sin decir por qué.
+      - name: Dependencias de sistema para Chrome headless
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libnss3 libdbus-1-3 libatk1.0-0 libasound2t64 libxrandr2 \
+            libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 \
+            libgbm-dev libcups2 libcairo2 libpango-1.0-0 libatk-bridge2.0-0
+
+      - run: npm ci
+
+      # CI=true apaga la barra de progreso: sin TTY, el renderizador de
+      # Remotion revienta con EPIPE a los pocos frames.
+      - name: Renderizar
+        env:
+          CI: "true"
+          # En `push` no hay inputs: se renderiza el promo completo.
+          COMPOSICION: ${{ inputs.composition || 'Promo' }}
+        run: npx remotion render remotion/index.ts "$COMPOSICION" "out/$COMPOSICION.mp4"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: video-${{ inputs.composition || 'Promo' }}
+          path: out/${{ inputs.composition || 'Promo' }}.mp4
+          if-no-files-found: error
+          retention-days: 30

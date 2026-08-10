@@ -29,7 +29,9 @@
     "db:studio": "prisma studio",
     "db:pg:generate": "prisma generate",
     "db:pg:deploy": "prisma migrate deploy",
-    "db:pg:seed": "prisma db seed"
+    "db:pg:seed": "prisma db seed",
+    "video:studio": "remotion studio remotion/index.ts",
+    "video:render": "remotion render remotion/index.ts BillsIntro out/bills-intro.mp4"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",
@@ -63,6 +65,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
+    "@remotion/cli": "^4.0.507",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
@@ -75,6 +78,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "prisma": "^7.8.0",
+    "remotion": "^4.0.507",
     "supabase": "2.111.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.0",
