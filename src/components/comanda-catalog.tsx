@@ -472,8 +472,7 @@ export function ComandaCatalog({
                         {i.quantity > QUANTITY_SCALE ? (
                           <button
                             aria-label={`Sacar una unidad de ${i.description}`}
-                            className="grid size-7 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-slate-950/5 hover:text-slate-700 disabled:opacity-50"
-                            disabled={isPending}
+                            className="grid size-7 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-slate-950/5 hover:text-slate-700"
                             onClick={() => restarUnaUnidad(i.id)}
                             type="button"
                           >
@@ -482,8 +481,7 @@ export function ComandaCatalog({
                         ) : null}
                         <button
                           aria-label={`Quitar ${i.description}`}
-                          className="grid size-7 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                          disabled={isPending}
+                          className="grid size-7 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive"
                           onClick={() => quitarBorrador(i.id)}
                           type="button"
                         >
@@ -498,16 +496,14 @@ export function ComandaCatalog({
             <div className="mt-2 flex gap-2">
               {/* Acá arranca el workflow: recién con esto la cocina lo ve. */}
               <button
-                className="h-11 flex-1 rounded-full bg-primary text-sm font-black text-primary-foreground disabled:opacity-60"
-                disabled={isPending}
+                className="h-11 flex-1 rounded-full bg-primary text-sm font-black text-primary-foreground"
                 onClick={confirmarCarrito}
                 type="button"
               >
                 Confirmar pedido
               </button>
               <button
-                className="h-11 rounded-full px-4 text-sm font-bold text-slate-500 disabled:opacity-60"
-                disabled={isPending}
+                className="h-11 rounded-full px-4 text-sm font-bold text-slate-500"
                 onClick={descartarCarrito}
                 type="button"
               >
@@ -549,8 +545,7 @@ export function ComandaCatalog({
                   ) : (
                     <button
                       aria-label={`Quitar ${i.description}`}
-                      className="grid size-8 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                      disabled={isPending}
+                      className="grid size-8 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => quitarConfirmado(i.id)}
                       type="button"
                     >
@@ -590,8 +585,7 @@ export function ComandaCatalog({
 
           {comandaId ? (
             <button
-              className="h-10 w-full rounded-full text-sm font-bold text-slate-500 transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-              disabled={isPending}
+              className="h-10 w-full rounded-full text-sm font-bold text-slate-500 transition hover:bg-destructive/10 hover:text-destructive"
               onClick={cancelarComanda}
               type="button"
             >
