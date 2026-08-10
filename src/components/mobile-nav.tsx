@@ -97,7 +97,9 @@ export function MobileNav({ nav }: { nav: Nav }) {
         </button>
       </nav>
 
-      <BottomSheet onClose={() => setMoreOpen(false)} open={moreOpen}>
+      {/* `dialog` y no el sheet angosto: en escritorio la lista de módulos entra
+          de un vistazo en vez de pedir scroll, y los hints dejan de cortarse. */}
+      <BottomSheet onClose={() => setMoreOpen(false)} open={moreOpen} size="dialog">
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex items-center justify-between px-5 pt-6">
             <h3 className="text-xl font-black tracking-tight text-slate-950">Todo el sistema</h3>

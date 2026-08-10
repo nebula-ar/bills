@@ -126,7 +126,10 @@ export const MODULE_INFO: Record<AppModule, ModuleInfo> = {
     module: AppModule.RECIPES,
     label: "Recetas",
     hint: "Qué ingrediente consume cada producto, producción y mermas",
-    icon: "solar:cookbook-bold",
+    // `solar:cookbook-bold` no existe en el set: Iconify devolvía not_found y
+    // las tres entradas de Recetas (recetario, producción y mermas) salían con
+    // el cuadrado de color vacío, sin dibujo.
+    icon: "solar:notebook-bold",
     tint: "amber",
   },
 };
