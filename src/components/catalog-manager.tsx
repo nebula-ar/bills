@@ -1,6 +1,8 @@
 "use client";
 
-import { createProduct, updateProduct } from "@/app/catalog/actions";
+import { createProduct, updateProduct, uploadProductImage } from "@/app/catalog/actions";
+import { resizeImageForUpload } from "@/lib/image-resize";
+import { newProductSteps, puedeAvanzar } from "@/modules/catalog/new-product-steps.logic";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { MoneyInput } from "@/components/money-input";
 import { CatalogScanButton } from "@/components/catalog-scan-button";
@@ -11,11 +13,11 @@ import { ProductPhotoField } from "@/components/product-photo-field";
 import { ProductAnalyticsTab } from "@/components/product-analytics-tab";
 import { formatQuantity } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
-import { Check, CircleSlash, DynamicIcon, Plus, Search, X } from "@/components/icons";
+import { ArrowLeft, ArrowRight, Check, CircleSlash, DynamicIcon, Loader2, Plus, Search, Trash2, X } from "@/components/icons";
 import { SelectField } from "@/components/ui/select-field";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 export type ProductBranchConfig = {
   branchId: string;
@@ -164,6 +166,18 @@ export function ProductsManager({ data }: { data: ProductsData }) {
     name: string;
     description: string | null;
   } | null>(null);
+  // Alta paso a paso. Los campos de todos los pasos quedan montados dentro de un
+  // mismo <form> y sólo se muestra el del paso actual: así los valores se
+  // conservan al ir y volver sin duplicar estado, y `MoneyInput` —que maneja su
+  // propio formato y no admite `value`— sigue funcionando tal cual.
+  const [newStep, setNewStep] = useState(0);
+  // Del nombre sí guardamos copia: es lo único obligatorio y hay que saber si se
+  // puede avanzar antes de que el form se mande.
+  const [nuevoNombre, setNuevoNombre] = useState("");
+  // La foto viaja ya redimensionada (mismo helper que la ficha) y se sube recién
+  // cuando el producto existe: `saveProductImage` lo busca en la base y sin id
+  // no hay dónde guardarla.
+  const [foto, setFoto] = useState<{ file: File; preview: string } | null>(null);
   // El catálogo es la puerta de entrada a cambiar un precio y a corregir stock.
   // Con 60 productos, sin buscador es scroll puro — y el mostrador ya tenía uno.
   const [search, setSearch] = useState("");
@@ -194,10 +208,33 @@ export function ProductsManager({ data }: { data: ProductsData }) {
       )
     : data.products;
 
+  // Qué se pregunta y en qué orden lo decide el rubro, no este componente.
+  const pasos = useMemo(
+    () =>
+      newProductSteps({
+        features: { barcodes: data.features.barcodes, stock: data.features.stock },
+        hasCategories: data.categories.length > 0,
+        catalogSingular: data.catalogSingular,
+        branchName: data.branches.length > 1 ? newBranchName : null,
+      }),
+    [data.features.barcodes, data.features.stock, data.categories.length, data.catalogSingular, data.branches.length, newBranchName],
+  );
+
+  const pasoActual = pasos[Math.min(newStep, pasos.length - 1)];
+  const esUltimoPaso = newStep >= pasos.length - 1;
+
+  function resetNew() {
+    setNewStep(0);
+    setNuevoNombre("");
+    if (foto) URL.revokeObjectURL(foto.preview);
+    setFoto(null);
+  }
+
   function openNew() {
     setNewBranchId(data.selectedBranchId);
     setNewError(null);
     setCreatedProduct(null);
+    resetNew();
     setNewOpen(true);
   }
 
@@ -205,9 +242,50 @@ export function ProductsManager({ data }: { data: ProductsData }) {
     setNewOpen(false);
     setNewError(null);
     setCreatedProduct(null);
+    resetNew();
     router.refresh();
   }
 
+  // Vuelve al primer paso con todo en blanco, sin cerrar el sheet.
+  function crearOtro() {
+    setCreatedProduct(null);
+    setNewError(null);
+    resetNew();
+  }
+
+  async function elegirFoto(file: File | undefined) {
+    if (!file) return;
+    setNewError(null);
+    try {
+      const resized = await resizeImageForUpload(file);
+      if (foto) URL.revokeObjectURL(foto.preview);
+      setFoto({ file: resized, preview: URL.createObjectURL(resized) });
+    } catch {
+      setNewError("No pudimos preparar esa imagen. Probá con otra.");
+    }
+  }
+
+  function quitarFoto() {
+    if (foto) URL.revokeObjectURL(foto.preview);
+    setFoto(null);
+  }
+
+  function avanzar() {
+    if (!puedeAvanzar(pasoActual, nuevoNombre)) {
+      setNewError("Poné el nombre para poder seguir.");
+      return;
+    }
+    setNewError(null);
+    setNewStep((actual) => Math.min(pasos.length - 1, actual + 1));
+  }
+
+  function retroceder() {
+    setNewError(null);
+    setNewStep((actual) => Math.max(0, actual - 1));
+  }
+
+  // Un solo commit al final: el form ya trae todos los pasos, se crea el
+  // producto y recién ahí —ya con id— se sube la foto que venía en memoria.
   function submitNewProduct(formData: FormData) {
     setNewError(null);
     startCreating(async () => {
@@ -215,6 +293,18 @@ export function ProductsManager({ data }: { data: ProductsData }) {
       if (!result.ok) {
         setNewError(result.error);
         return;
+      }
+
+      if (foto) {
+        const imagen = new FormData();
+        imagen.set("productId", result.productId);
+        imagen.set("file", foto.file);
+        const subida = await uploadProductImage(imagen);
+        // El producto ya está creado y es lo que importa: si la foto falla se
+        // avisa, pero no se pierde el alta ni se deja al dueño repitiéndola.
+        if (!subida.ok) {
+          setNewError("Se creó, pero la foto no subió. Cargala desde la ficha.");
+        }
       }
 
       setCreatedProduct({ id: result.productId, name: result.name, description: result.description });
@@ -396,14 +486,19 @@ export function ProductsManager({ data }: { data: ProductsData }) {
         )}
       </div>
 
-      {/* Alta de un ítem del catálogo */}
-      <BottomSheet onClose={closeNew} open={newOpen}>
+      {/* Alta de un ítem del catálogo. `dialog` como el sheet de edición: el
+          formulario usa `sm:grid-cols-2`, que mira el ANCHO DE PANTALLA, no el
+          del panel. En escritorio se partía en dos columnas dentro de un panel
+          de 460px y "¿Cuánto te cuesta?" quedaba cortado con scroll horizontal. */}
+      <BottomSheet onClose={closeNew} open={newOpen} size="dialog">
         {createdProduct ? (
+          /* Confirmación y nada más. La foto ya se preguntó como paso del alta:
+             volver a pedirla acá era hacerle el mismo trámite dos veces. */
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="flex items-start justify-between gap-3 px-5 pt-6">
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-wide text-emerald-600">Producto creado</p>
-                <h3 className="truncate text-xl font-black tracking-tight text-slate-950">Foto de {createdProduct.name}</h3>
+                <p className="text-xs font-black uppercase tracking-wide text-emerald-600">Listo</p>
+                <h3 className="truncate text-xl font-black tracking-tight text-slate-950">{createdProduct.name}</h3>
               </div>
               <button
                 aria-label="Cerrar"
@@ -415,83 +510,151 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5">
-              <ProductPhotoField
-                aiEnabled={data.aiImagesEnabled}
-                // Recién creado a mano: no viene del catálogo de rubro, así que
-                // no hay imagen genérica que mostrar.
-                catalogSlug={null}
-                hasPhoto={false}
-                productDescription={createdProduct.description}
-                productId={createdProduct.id}
-                productName={createdProduct.name}
-                version={null}
-              />
-              <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-                La foto es opcional. Podés cargarla ahora o hacerlo más adelante desde la ficha del producto.
-              </p>
+              <div className="flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-4">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                  <Check className="size-6" />
+                </span>
+                <p className="text-sm font-bold leading-6 text-emerald-900">
+                  Ya está en tu {data.catalogPlural.toLowerCase()}. Podés cambiarle lo que sea desde su ficha.
+                </p>
+              </div>
+              {newError ? (
+                <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">{newError}</p>
+              ) : null}
             </div>
             <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
-              <button
-                className="w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
-                onClick={closeNew}
-                type="button"
-              >
-                Listo
-              </button>
+              <div className="flex items-center gap-3">
+                {/* Cargar catálogo es una tarea repetitiva: obligar a cerrar y
+                    volver a abrir por cada ítem es cobrarle dos toques a algo
+                    que se hace veinte veces seguidas. */}
+                <button
+                  className="flex-1 rounded-2xl border border-slate-200 px-4 py-4 text-base font-black text-slate-700 transition hover:bg-slate-50 active:scale-[0.99]"
+                  onClick={crearOtro}
+                  type="button"
+                >
+                  Cargar otro
+                </button>
+                <button
+                  className="flex-1 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
+                  onClick={closeNew}
+                  type="button"
+                >
+                  Listo
+                </button>
+              </div>
             </div>
           </div>
         ) : (
         <form action={submitNewProduct} className="flex min-h-0 flex-1 flex-col">
           <input name="branchId" type="hidden" value={newBranchId} />
-          <div className="flex items-center justify-between px-5 pt-6">
-            <h3 className="text-xl font-black tracking-tight text-slate-950">Nuevo {data.catalogSingular.toLowerCase()}</h3>
+          <div className="flex items-start justify-between gap-3 px-5 pt-6">
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-wide text-primary">
+                Paso {newStep + 1} de {pasos.length}
+              </p>
+              <h3 className="mt-1 text-xl font-black leading-tight tracking-tight text-slate-950">{pasoActual.title}</h3>
+              <p className="mt-1 text-sm leading-6 text-slate-500">{pasoActual.subtitle}</p>
+            </div>
             <button
               aria-label="Cerrar"
-              className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
               onClick={closeNew}
               type="button"
             >
               <X className="size-5" />
             </button>
           </div>
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 pt-5">
-            <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-              Nombre
-              <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-                name="name"
-                placeholder="Ej: Corte clásico"
-                required
-                type="text"
+
+          <div className="px-5 pt-4">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
+                style={{ width: `${((newStep + 1) / pasos.length) * 100}%` }}
               />
-            </label>
-            <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-              Descripción (opcional)
-              <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-                name="description"
-                placeholder="Ej: incluye lavado"
-                type="text"
-              />
-            </label>
-            {data.branches.length > 1 ? (
-              <BranchSelect branches={data.branches} onChange={setNewBranchId} value={newBranchId} />
-            ) : null}
-            <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-              {newBranchName ? `Precio en ${newBranchName} (opcional)` : "Precio (opcional)"}
-              <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
-                <span className="text-lg font-black text-slate-600">$</span>
-                <MoneyInput
-                  className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
-                  name="price"
-                  placeholder="0"
+            </div>
+          </div>
+
+          {/* Los campos de TODOS los pasos quedan montados; sólo se muestra el
+              del paso actual. Así volver atrás no borra lo cargado y el submit
+              final manda todo junto, sin duplicar el valor en estado. */}
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5">
+            <div className="space-y-4" hidden={pasoActual.id !== "identidad"}>
+              <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                Nombre
+                <input
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
+                  name="name"
+                  onChange={(event) => setNuevoNombre(event.target.value)}
+                  placeholder={`Ej: ${data.catalogSingular}`}
+                  type="text"
+                  value={nuevoNombre}
                 />
-              </div>
-            </label>
+              </label>
+              <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                Descripción (opcional)
+                <input
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
+                  name="description"
+                  placeholder="Ej: incluye lavado"
+                  type="text"
+                />
+              </label>
+            </div>
+
+            <div className="space-y-4" hidden={pasoActual.id !== "foto"}>
+              {foto ? (
+                <div className="space-y-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- blob local, todavía no hay producto ni URL servida */}
+                  <img
+                    alt={`Vista previa de ${nuevoNombre || "la foto"}`}
+                    className="mx-auto aspect-square w-full max-w-xs rounded-3xl object-cover shadow-sm"
+                    src={foto.preview}
+                  />
+                  <button
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-50"
+                    onClick={quitarFoto}
+                    type="button"
+                  >
+                    <Trash2 className="size-4" />
+                    Quitar la foto
+                  </button>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center transition hover:border-primary/40 hover:bg-white">
+                  <Plus className="size-8 text-slate-400" />
+                  <span className="text-sm font-black text-slate-600">Elegir una foto</span>
+                  <span className="text-xs text-slate-500">Se guarda recién al crear. Podés saltear este paso.</span>
+                  <input
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(event) => elegirFoto(event.target.files?.[0])}
+                    type="file"
+                  />
+                </label>
+              )}
+            </div>
+
+            <div className="space-y-4" hidden={pasoActual.id !== "precio"}>
+              {data.branches.length > 1 ? (
+                <BranchSelect branches={data.branches} onChange={setNewBranchId} value={newBranchId} />
+              ) : null}
+              <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                {newBranchName ? `Precio en ${newBranchName} (opcional)` : "Precio (opcional)"}
+                <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
+                  <span className="text-lg font-black text-slate-600">$</span>
+                  <MoneyInput
+                    className="w-full bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
+                    name="price"
+                    placeholder="0"
+                  />
+                </div>
+              </label>
+            </div>
+
             {/* Cuántos tenés, acá y ahora. Sin esto hay que ir a Stock y
                 buscar el producto de nuevo, uno por uno. */}
             {data.features.stock ? (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-4" hidden={pasoActual.id !== "existencia"}>
                 <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                   ¿Cuántos tenés? (opcional)
                   <input
@@ -509,41 +672,86 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                     placeholder="$"
                   />
                 </label>
+                <p className="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
+                  El costo es lo que pagaste, no lo que cobrás. Sin él la ganancia queda inflada y te lo vamos a avisar
+                  en el panel.
+                </p>
+              </div>
+            ) : null}
+
+            {/* El código va en el alta y no sólo en la edición: donde se escanea,
+                crear el ítem y tener que volver a abrirlo para cargarle el
+                código es hacer dos viajes por lo mismo. */}
+            {data.features.barcodes ? (
+              <div className="space-y-4" hidden={pasoActual.id !== "codigo"}>
+                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                  Código de barras (opcional)
+                  <input
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
+                    inputMode="numeric"
+                    name="barcode"
+                    placeholder="779…"
+                    type="text"
+                  />
+                </label>
               </div>
             ) : null}
 
             {data.categories.length > 0 ? (
-              <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                Categoría (opcional)
-                <select
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
-                  name="categoryId"
-                >
-                  <option value="">Sin categoría</option>
-                  {data.categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="space-y-4" hidden={pasoActual.id !== "categoria"}>
+                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                  Categoría (opcional)
+                  <select
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
+                    name="categoryId"
+                  >
+                    <option value="">Sin categoría</option>
+                    {data.categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
             ) : null}
-
-            <p className="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-              Se agrega al catálogo del negocio. Si le ponés precio, queda listo para vender
-              {newBranchName ? ` en ${newBranchName}` : ""}. Si no, cargalo después en cada sucursal.
-            </p>
           </div>
+
           <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
             {newError ? (
               <p className="mb-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">{newError}</p>
             ) : null}
-            <button
-              className="w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
-              type="submit"
-            >
-              {isCreating ? "Creando…" : `Crear y agregar foto`}
-            </button>
+            <div className="flex items-center gap-3">
+              {newStep > 0 ? (
+                <button
+                  className="flex size-14 shrink-0 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:bg-slate-50 active:scale-95"
+                  aria-label="Volver al paso anterior"
+                  onClick={retroceder}
+                  type="button"
+                >
+                  <ArrowLeft className="size-5" />
+                </button>
+              ) : null}
+              {esUltimoPaso ? (
+                <button
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:opacity-60"
+                  disabled={isCreating}
+                  type="submit"
+                >
+                  {isCreating ? <Loader2 className="size-5 animate-spin" /> : null}
+                  {isCreating ? "Creando…" : `Crear ${data.catalogSingular.toLowerCase()}`}
+                </button>
+              ) : (
+                <button
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
+                  onClick={avanzar}
+                  type="button"
+                >
+                  Seguir
+                  <ArrowRight className="size-5" />
+                </button>
+              )}
+            </div>
           </div>
         </form>
         )}

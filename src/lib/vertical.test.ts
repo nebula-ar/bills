@@ -24,6 +24,7 @@ describe("verticalFeatures", () => {
         variants: false,
         barcodes: false,
         packs: false,
+        goods: false,
         publicPage: "booking",
       });
     }
@@ -36,11 +37,34 @@ describe("verticalFeatures", () => {
     }
   });
 
+  it("el rubro dice si un ítem nuevo es mercadería o un servicio", () => {
+    // De esto depende que un alta quede con control de stock. Cuando se
+    // adivinaba mirando si el dueño había tipeado una cantidad, una medialuna
+    // cargada sin el número quedaba guardada como servicio y desaparecía del
+    // stock y de la ganancia sin avisar.
+    for (const vertical of [Vertical.BARBERSHOP, Vertical.BEAUTY]) {
+      expect(verticalFeatures(vertical).goods).toBe(false);
+    }
+
+    for (const vertical of [
+      Vertical.KIOSK,
+      Vertical.GROCERY,
+      Vertical.HABERDASHERY,
+      Vertical.HARDWARE,
+      Vertical.CLOTHING,
+      Vertical.BAKERY,
+      Vertical.GENERAL,
+    ]) {
+      expect(verticalFeatures(vertical).goods).toBe(true);
+    }
+  });
+
   it("la ropa se escanea pero no se vende por bulto", () => {
     expect(verticalFeatures(Vertical.CLOTHING)).toEqual({
       variants: true,
       barcodes: true,
       packs: false,
+      goods: true,
       publicPage: "catalog",
     });
   });
@@ -61,6 +85,7 @@ describe("verticalFeatures", () => {
       variants: false,
       barcodes: true,
       packs: false,
+      goods: true,
       publicPage: null,
     });
   });

@@ -37,6 +37,13 @@ export type VerticalFeatures = {
   barcodes: boolean;
   // Venta y compra por bulto (la caja de 24). Es de quien repone por cajón.
   packs: boolean;
+  // Qué es un ítem nuevo por defecto: mercadería que se cuenta, o un servicio.
+  // Antes esto se adivinaba mirando si el dueño había tipeado una cantidad al
+  // darlo de alta, y una medialuna cargada sin poner cuántas tenía quedaba
+  // guardada como SERVICIO sin control de stock. En silencio, y encima invisible
+  // después: un servicio sin costo no avisa que le falta costo, así que el
+  // agujero tampoco aparecía en la ganancia.
+  goods: boolean;
   // Qué muestra la página pública del negocio, la que se comparte en el
   // Instagram o el estado de WhatsApp. Es lo único de la app pensado para traer
   // gente nueva, y cambia por completo según el rubro:
@@ -51,9 +58,9 @@ export function verticalFeatures(vertical: Vertical): VerticalFeatures {
 }
 
 // Servicios: se agenda y se cobra, no se escanea ni viene en cajas.
-const SERVICE_FEATURES: VerticalFeatures = { variants: false, barcodes: false, packs: false, publicPage: "booking" };
+const SERVICE_FEATURES: VerticalFeatures = { variants: false, barcodes: false, packs: false, goods: false, publicPage: "booking" };
 // Comercio que repone mercadería por bulto y la pasa por lector.
-const RESTOCK_FEATURES: VerticalFeatures = { variants: false, barcodes: true, packs: true, publicPage: null };
+const RESTOCK_FEATURES: VerticalFeatures = { variants: false, barcodes: true, packs: true, goods: true, publicPage: null };
 
 export type SeedProduct = {
   name: string;
@@ -203,7 +210,7 @@ export const VERTICAL_PRESETS: Record<Vertical, VerticalPreset> = {
     staffIcon: "solar:users-group-rounded-bold",
     catalogIcon: "solar:t-shirt-bold",
     modules: [...RETAIL_MODULES, AppModule.INVOICING],
-    features: { variants: true, barcodes: true, packs: false, publicPage: "catalog" },
+    features: { variants: true, barcodes: true, packs: false, goods: true, publicPage: "catalog" },
     labels: RETAIL_LABELS,
     categories: ["Remeras", "Pantalones", "Camperas", "Calzado", "Accesorios"],
     catalog: [
@@ -343,7 +350,7 @@ export const VERTICAL_PRESETS: Record<Vertical, VerticalPreset> = {
     staffIcon: "solar:users-group-rounded-bold",
     catalogIcon: "solar:box-bold",
     modules: [AppModule.CASH, AppModule.EXPENSES, AppModule.STOCK, AppModule.MARKETING],
-    features: { variants: false, barcodes: true, packs: false, publicPage: null },
+    features: { variants: false, barcodes: true, packs: false, goods: true, publicPage: null },
     labels: RETAIL_LABELS,
     categories: ["General"],
     catalog: [],

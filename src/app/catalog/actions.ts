@@ -1,7 +1,9 @@
 "use server";
 
-import { ProductKind, Unit } from "@/generated/prisma/client";
+import { AppModule, ProductKind, Unit } from "@/generated/prisma/client";
 import { requireAdminSession } from "@/lib/auth";
+import { requireBusinessContext } from "@/lib/business-context";
+import { verticalFeatures } from "@/lib/vertical";
 import { parseQuantityInput } from "@/lib/quantity";
 import { logError } from "@/lib/logger";
 import { getProductErrorMessage } from "@/lib/catalog-error-messages";
@@ -22,7 +24,7 @@ export type CreateProductResult =
   | { ok: false; error: string };
 
 export async function createProduct(formData: FormData): Promise<CreateProductResult> {
-  const session = await requireAdminSession();
+  const { session, business } = await requireBusinessContext();
 
   const branchId = parseRequiredString(formData, "branchId");
   const name = parseRequiredString(formData, "name");
@@ -45,6 +47,14 @@ export async function createProduct(formData: FormData): Promise<CreateProductRe
   // lo demás (ver src/lib/quantity.ts).
   const stock = stockRaw ? parseQuantityInput(stockRaw) : null;
 
+  // Qué es lo que se está dando de alta lo decide el RUBRO, no si el dueño se
+  // acordó de tipear cuántos tenía: en una panadería una medialuna es mercadería
+  // aunque todavía no sepa el número. La cantidad inicial queda como escape
+  // hatch para el caso inverso —la barbería que además vende shampoo—, donde el
+  // rubro es de servicios pero ese ítem puntual sí se cuenta.
+  const features = verticalFeatures(business.vertical);
+  const esMercaderia = features.goods || (stock !== null && stock > 0);
+
   try {
     // Un solo camino: el ítem, su precio (si lo puso) y la existencia inicial
     // con su movimiento, todo en una transacción. Es lo que evita que después
@@ -52,14 +62,15 @@ export async function createProduct(formData: FormData): Promise<CreateProductRe
     const product = await createFullProduct({
       businessId: session.user.businessId,
       branchId,
+      code: parseOptionalString(formData, "barcode") ?? undefined,
       name,
       description,
       price,
       cost: costRaw ? parseWholeAmount(costRaw) : null,
       stock,
       categoryId: parseOptionalString(formData, "categoryId") ?? null,
-      trackStock: stock !== null && stock > 0,
-      kind: stock !== null && stock > 0 ? ProductKind.GOOD : ProductKind.SERVICE,
+      trackStock: esMercaderia && business.has(AppModule.STOCK),
+      kind: esMercaderia ? ProductKind.GOOD : ProductKind.SERVICE,
       reason: "Carga inicial",
       userId: session.user.id,
     });
