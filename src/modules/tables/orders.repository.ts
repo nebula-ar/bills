@@ -232,24 +232,26 @@ export function agregarRenglon(input: {
         quantity: input.quantity,
         total: input.total,
         note: input.note,
-        kdsStatus: KdsStatus.PENDING,
+        // Nace en BORRADOR, no en cocina. Antes cada toque mandaba el renglón
+        // derecho al cocinero: el mozo no podía revisar el pedido con el
+        // cliente antes de que empezaran a prepararlo, y una equivocación ya
+        // era materia prima gastada. Ahora se junta el pedido y se confirma
+        // entero (ver confirmarCarrito).
+        kdsStatus: KdsStatus.CART,
       },
     });
 
+    // El total cuenta SOLO lo confirmado: un borrador todavía no se pidió, y
+    // si sumara, el cajero podría cobrar un pedido que la cocina nunca vio.
     const renglones = await tx.orderItem.findMany({
-      where: { orderId: input.orderId },
+      where: { orderId: input.orderId, kdsStatus: { not: KdsStatus.CART } },
       select: { total: true },
     });
     const subtotal = renglones.reduce((suma, r) => suma + r.total, 0);
 
     await tx.order.update({
       where: { id: input.orderId },
-      data: {
-        subtotal,
-        total: subtotal,
-        version: { increment: 1 },
-        updatedById: input.staffId,
-      },
+      data: { subtotal, total: subtotal, version: { increment: 1 }, updatedById: input.staffId },
     });
   });
 }
@@ -258,8 +260,9 @@ export function quitarRenglon(input: { orderId: string; itemId: string; staffId:
   return prisma.$transaction(async (tx) => {
     await tx.orderItem.deleteMany({ where: { id: input.itemId, orderId: input.orderId } });
 
+    // Mismo criterio que al agregar: el total es lo confirmado.
     const renglones = await tx.orderItem.findMany({
-      where: { orderId: input.orderId },
+      where: { orderId: input.orderId, kdsStatus: { not: KdsStatus.CART } },
       select: { total: true },
     });
     const subtotal = renglones.reduce((suma, r) => suma + r.total, 0);
@@ -317,13 +320,15 @@ export function agregarRenglonConOpciones(input: {
         quantity: input.quantity,
         total: input.total,
         note: input.note,
-        kdsStatus: KdsStatus.PENDING,
+        // Igual que `agregarRenglon`: nace en borrador y se manda a cocina
+        // cuando el mozo confirma el pedido entero.
+        kdsStatus: KdsStatus.CART,
         modifiers: { create: input.opciones },
       },
     });
 
     const renglones = await tx.orderItem.findMany({
-      where: { orderId: input.orderId },
+      where: { orderId: input.orderId, kdsStatus: { not: KdsStatus.CART } },
       select: { total: true },
     });
     const subtotal = renglones.reduce((suma, r) => suma + r.total, 0);

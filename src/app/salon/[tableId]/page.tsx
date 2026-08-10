@@ -37,9 +37,10 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
   ]);
 
   const todos = comanda?.items ?? [];
-  // Lo que el cliente cargó por el QR y todavía no confirmó nadie. NO cuenta
-  // para el total ni fue a cocina.
-  const carrito = todos.filter((i) => i.kdsStatus === "CART");
+  // Borrador: lo cargado y todavía sin confirmar —tanto lo que toca el mozo
+  // como lo que el cliente manda por el QR—. NO fue a cocina y NO cuenta para
+  // el total: recién al confirmar el pedido pasa a ser deuda de la mesa.
+  const borrador = todos.filter((i) => i.kdsStatus === "CART");
   const items = todos.filter((i) => i.kdsStatus !== "CART");
   const puedeCobrar = capabilitiesOf(session.user.role).includes("sell");
 
@@ -50,7 +51,16 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
     <main className="flex min-h-[100dvh] flex-col bg-background lg:h-screen lg:flex-row">
       <ComandaCatalog
         branchId={mesa.branchId}
-        carrito={carrito.map((i) => ({ id: i.id, description: i.description, modifiers: i.modifiers }))}
+        borradorInicial={borrador.map((i) => ({
+          id: i.id,
+          productId: i.productId,
+          description: i.description,
+          unitPrice: i.unitPrice,
+          quantity: i.quantity,
+          total: i.total,
+          note: i.note,
+          modifiers: i.modifiers.map((m) => ({ id: m.id, name: m.name })),
+        }))}
         comandaId={comanda?.id ?? null}
         descuento={comanda?.discount ?? 0}
         encabezado={

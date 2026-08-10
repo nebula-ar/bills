@@ -48,12 +48,6 @@ export type ComandaItem = {
   modifiers: { id: string; name: string }[];
 };
 
-export type ComandaCarritoItem = {
-  id: string;
-  description: string;
-  modifiers: { id: string; name: string }[];
-};
-
 function money(value: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
 }
@@ -62,7 +56,7 @@ export function ComandaCatalog({
   encabezado,
   productos,
   itemsIniciales,
-  carrito,
+  borradorInicial,
   tableId,
   branchId,
   comandaId,
@@ -75,8 +69,11 @@ export function ComandaCatalog({
   // sueltas ni para que este componente sepa de dónde salen.
   encabezado: ReactNode;
   productos: ComandaProduct[];
+  // Ya confirmado y en cocina. No se toca desde acá.
   itemsIniciales: ComandaItem[];
-  carrito: ComandaCarritoItem[];
+  // Borrador: cargado y todavía sin mandar. Es lo que el mozo revisa con el
+  // cliente antes de confirmar.
+  borradorInicial: ComandaItem[];
   tableId: string;
   branchId: string;
   comandaId: string | null;
@@ -94,12 +91,13 @@ export function ComandaCatalog({
   const avisoTimer = useRef<number | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // El renglón entra acá en el mismo toque y se reemplaza por el real cuando
-  // el servidor contesta y el árbol se refresca.
-  const [items, addOptimistic] = useOptimistic(itemsIniciales, (actuales: ComandaItem[], nuevo: ComandaItem) => [
+  // Lo que se toca entra al BORRADOR, en el mismo toque, y se reemplaza por el
+  // renglón real cuando el servidor contesta y el árbol se refresca.
+  const [borrador, addOptimistic] = useOptimistic(borradorInicial, (actuales: ComandaItem[], nuevo: ComandaItem) => [
     ...actuales,
     nuevo,
   ]);
+  const items = itemsIniciales;
 
   const categorias = useMemo(() => [...new Set(productos.map((p) => p.categoria))], [productos]);
 
@@ -120,15 +118,20 @@ export function ComandaCatalog({
   // tiene que reflejar el toque en el acto, igual que la lista.
   const enComanda = useMemo(() => {
     const cuenta: Record<string, number> = {};
-    for (const item of items) {
+    // Cuenta borrador Y confirmado: la tarjeta dice cuánto lleva cargado el
+    // producto, sin importar si ya se mandó a cocina.
+    for (const item of [...items, ...borrador]) {
       if (!item.productId) continue;
       cuenta[item.productId] = (cuenta[item.productId] ?? 0) + item.quantity / QUANTITY_SCALE;
     }
     return cuenta;
-  }, [items]);
+  }, [items, borrador]);
 
+  // El total es lo CONFIRMADO: un borrador todavía no se pidió, y cobrarlo
+  // sería cobrar algo que la cocina nunca vio.
   const subtotal = items.reduce((suma, i) => suma + i.total, 0);
   const total = Math.max(0, subtotal - descuento) + propina;
+  const totalBorrador = borrador.reduce((suma, i) => suma + i.total, 0);
 
   function agregar(producto: ComandaProduct) {
     setError(null);
@@ -137,7 +140,7 @@ export function ComandaCatalog({
       addOptimistic({
         // Id temporal: solo vive hasta que el servidor confirme y el árbol se
         // repinte con el renglón real.
-        id: `optimista-${producto.id}-${items.length}`,
+        id: `optimista-${producto.id}-${borrador.length}`,
         productId: producto.id,
         description: producto.name,
         unitPrice: producto.price,
@@ -290,39 +293,66 @@ export function ComandaCatalog({
         ) : null}
 
         <div className="flex shrink-0 items-baseline justify-between">
-          <h2 className="text-lg font-black tracking-tight text-slate-950">Comanda</h2>
+          <h2 className="text-lg font-black tracking-tight text-slate-950">En cocina</h2>
           <span className="text-sm font-bold text-slate-500">
             {items.length} {items.length === 1 ? "ítem" : "ítems"}
           </span>
         </div>
 
-        {carrito.length > 0 ? (
+        {/* El borrador: lo cargado y todavía sin mandar. Es lo que el mozo
+            repasa con el cliente antes de que la cocina empiece. */}
+        {borrador.length > 0 ? (
           <section className="shrink-0 rounded-xl border border-primary/40 bg-primary/10 p-3">
-            <p className="text-sm font-black text-slate-950">
-              La mesa pidió {carrito.length} {carrito.length === 1 ? "cosa" : "cosas"} por el QR
-            </p>
-            <ul className="mt-1 flex flex-col gap-0.5">
-              {carrito.map((i) => (
-                <li className="text-sm font-semibold text-slate-700" key={i.id}>
-                  {i.description}
-                  {i.modifiers.length > 0 ? (
-                    <span className="ml-1 text-xs font-bold text-primary">
-                      {i.modifiers.map((m) => m.name).join(" · ")}
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-sm font-black text-slate-950">
+                Sin confirmar · {borrador.length} {borrador.length === 1 ? "ítem" : "ítems"}
+              </p>
+              <span className="text-sm font-black text-primary">{money(totalBorrador)}</span>
+            </div>
+            <ul className="mt-1.5 flex max-h-32 flex-col gap-1 overflow-y-auto">
+              {borrador.map((i) => {
+                const enVuelo = i.id.startsWith("optimista-");
+                return (
+                  <li className="flex items-center gap-2 text-sm font-semibold text-slate-700" key={i.id}>
+                    <span className="shrink-0 text-xs font-black text-slate-500">{formatQuantity(i.quantity)}×</span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {i.description}
+                      {i.modifiers.length > 0 ? (
+                        <span className="ml-1 text-xs font-bold text-primary">
+                          {i.modifiers.map((m) => m.name).join(" · ")}
+                        </span>
+                      ) : null}
                     </span>
-                  ) : null}
-                </li>
-              ))}
+                    {enVuelo ? (
+                      <span className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    ) : (
+                      <form action={quitarProductoAction}>
+                        <input name="tableId" type="hidden" value={tableId} />
+                        <input name="itemId" type="hidden" value={i.id} />
+                        <button
+                          aria-label={`Quitar ${i.description}`}
+                          className="grid size-7 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive"
+                          type="submit"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </form>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
             <div className="mt-2 flex gap-2">
+              {/* Acá arranca el workflow: recién con esto la cocina lo ve. */}
               <form action={confirmarCarritoAction} className="flex-1">
                 <input name="tableId" type="hidden" value={tableId} />
-                <button className="h-10 w-full rounded-full bg-primary text-sm font-black text-primary-foreground" type="submit">
-                  Mandar a cocina
+                <button className="h-11 w-full rounded-full bg-primary text-sm font-black text-primary-foreground" type="submit">
+                  Confirmar pedido
                 </button>
               </form>
               <form action={descartarCarritoAction}>
                 <input name="tableId" type="hidden" value={tableId} />
-                <button className="h-10 rounded-full px-4 text-sm font-bold text-slate-500" type="submit">
+                <button className="h-11 rounded-full px-4 text-sm font-bold text-slate-500" type="submit">
                   Descartar
                 </button>
               </form>
@@ -331,7 +361,7 @@ export function ComandaCatalog({
         ) : null}
 
         {items.length === 0 ? (
-          <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Tocá un producto para abrir la comanda.</p>
+          <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">{borrador.length > 0 ? "Confirmá el pedido para que la cocina lo vea." : "Tocá un producto para abrir la comanda."}</p>
         ) : (
           <ul className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
             {items.map((i) => {
