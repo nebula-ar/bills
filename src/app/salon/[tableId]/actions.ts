@@ -12,6 +12,7 @@ import {
   agregarProductoConOpciones,
   cancelar,
   quitarProducto,
+  restarUnidad,
   type Resultado,
 } from "@/modules/tables/orders.use-cases";
 
@@ -60,6 +61,23 @@ export async function quitarProductoAction(formData: FormData) {
   const tableId = texto(formData, "tableId");
 
   const resultado = await quitarProducto({
+    tableId,
+    itemId: texto(formData, "itemId"),
+    staffId: session.user.id,
+  });
+
+  revalidatePath(`/salon/${tableId}`);
+  revalidatePath("/salon");
+
+  if (!resultado.ok) volver(tableId, "error", resultado.error);
+  redirect(`/salon/${tableId}`);
+}
+
+export async function restarUnidadAction(formData: FormData) {
+  const { session } = await requireModule(AppModule.TABLES);
+  const tableId = texto(formData, "tableId");
+
+  const resultado = await restarUnidad({
     tableId,
     itemId: texto(formData, "itemId"),
     staffId: session.user.id,

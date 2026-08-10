@@ -12,6 +12,7 @@ import {
   findOrderForCheckout,
   findPrecioEnSucursal,
   quitarRenglon,
+  restarUnidadRenglon,
 } from "./orders.repository";
 import { motivoParaNoCancelar, totalesDeComanda, validarCantidad } from "./order-lifecycle";
 import { effectiveUnitPrice, validarSeleccion } from "@/modules/catalog/modifiers";
@@ -84,6 +85,19 @@ export async function quitarProducto(input: {
   if (!comanda) return { ok: false, error: "Esta mesa no tiene una comanda abierta" };
 
   await quitarRenglon({ orderId: comanda.id, itemId: input.itemId, staffId: input.staffId });
+
+  return { ok: true };
+}
+
+export async function restarUnidad(input: {
+  tableId: string;
+  itemId: string;
+  staffId: string;
+}): Promise<Resultado> {
+  const comanda = await findOpenOrder(input.tableId);
+  if (!comanda) return { ok: false, error: "Esta mesa no tiene una comanda abierta" };
+
+  await restarUnidadRenglon({ orderId: comanda.id, itemId: input.itemId, staffId: input.staffId });
 
   return { ok: true };
 }

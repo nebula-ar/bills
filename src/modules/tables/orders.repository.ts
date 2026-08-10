@@ -1,4 +1,5 @@
 import { KdsStatus, OrderStatus, ProductKind, TableStatus } from "@/generated/prisma/enums";
+import { lineTotal, QUANTITY_SCALE } from "@/lib/quantity";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -223,23 +224,47 @@ export function agregarRenglon(input: {
   staffId: string;
 }) {
   return prisma.$transaction(async (tx) => {
-    await tx.orderItem.create({
-      data: {
+    // Fusiona con un renglón sin opciones del mismo producto que siga en
+    // borrador y tenga la misma nota: tres toques a "Medialuna" son una fila
+    // con cantidad 3, no tres filas iguales que hay que sumar a ojo. Con
+    // opciones o nota distinta entra aparte, porque ahí "lo mismo" ya no es
+    // obvio —una nota corta puede ser para ESE consumo, no para todos.
+    const existente = await tx.orderItem.findFirst({
+      where: {
         orderId: input.orderId,
         productId: input.productId,
-        description: input.description,
-        unitPrice: input.unitPrice,
-        quantity: input.quantity,
-        total: input.total,
-        note: input.note,
-        // Nace en BORRADOR, no en cocina. Antes cada toque mandaba el renglón
-        // derecho al cocinero: el mozo no podía revisar el pedido con el
-        // cliente antes de que empezaran a prepararlo, y una equivocación ya
-        // era materia prima gastada. Ahora se junta el pedido y se confirma
-        // entero (ver confirmarCarrito).
         kdsStatus: KdsStatus.CART,
+        note: input.note,
+        modifiers: { none: {} },
       },
+      select: { id: true, quantity: true, unitPrice: true },
     });
+
+    if (existente) {
+      const nuevaCantidad = existente.quantity + input.quantity;
+      await tx.orderItem.update({
+        where: { id: existente.id },
+        data: { quantity: nuevaCantidad, total: lineTotal(existente.unitPrice, nuevaCantidad) },
+      });
+    } else {
+      await tx.orderItem.create({
+        data: {
+          orderId: input.orderId,
+          productId: input.productId,
+          description: input.description,
+          unitPrice: input.unitPrice,
+          quantity: input.quantity,
+          total: input.total,
+          note: input.note,
+          // Nace en BORRADOR, no en cocina. Antes cada toque mandaba el renglón
+          // derecho al cocinero: el mozo no podía revisar el pedido con el
+          // cliente antes de que empezaran a prepararlo, y una equivocación ya
+          // era materia prima gastada. Ahora se junta el pedido y se confirma
+          // entero (ver confirmarCarrito).
+          kdsStatus: KdsStatus.CART,
+        },
+      });
+    }
 
     // El total cuenta SOLO lo confirmado: un borrador todavía no se pidió, y
     // si sumara, el cajero podría cobrar un pedido que la cocina nunca vio.
@@ -252,6 +277,39 @@ export function agregarRenglon(input: {
     await tx.order.update({
       where: { id: input.orderId },
       data: { subtotal, total: subtotal, version: { increment: 1 }, updatedById: input.staffId },
+    });
+  });
+}
+
+/**
+ * Baja una unidad de un renglón en borrador. Si llega a cero, lo borra.
+ *
+ * Solo toca CART: un renglón ya confirmado es materia prima que la cocina
+ * ya vio, y bajarle unidades ahí sin dejar rastro sería la misma pérdida sin
+ * justificar que ya se resuelve con permiso de anulación en otro lado.
+ */
+export function restarUnidadRenglon(input: { orderId: string; itemId: string; staffId: string }) {
+  return prisma.$transaction(async (tx) => {
+    const item = await tx.orderItem.findFirst({
+      where: { id: input.itemId, orderId: input.orderId, kdsStatus: KdsStatus.CART },
+      select: { quantity: true, unitPrice: true },
+    });
+    if (!item) return;
+
+    const nuevaCantidad = item.quantity - QUANTITY_SCALE;
+
+    if (nuevaCantidad <= 0) {
+      await tx.orderItem.delete({ where: { id: input.itemId } });
+    } else {
+      await tx.orderItem.update({
+        where: { id: input.itemId },
+        data: { quantity: nuevaCantidad, total: lineTotal(item.unitPrice, nuevaCantidad) },
+      });
+    }
+
+    await tx.order.update({
+      where: { id: input.orderId },
+      data: { version: { increment: 1 }, updatedById: input.staffId },
     });
   });
 }

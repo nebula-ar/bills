@@ -6,8 +6,9 @@ import {
   confirmarCarritoAction,
   descartarCarritoAction,
   quitarProductoAction,
+  restarUnidadAction,
 } from "@/app/salon/[tableId]/actions";
-import { Check, Search, Trash2 } from "@/components/icons";
+import { Check, Minus, Search, Trash2 } from "@/components/icons";
 import { formatQuantity, QUANTITY_SCALE } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import { useMemo, useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
@@ -93,10 +94,24 @@ export function ComandaCatalog({
 
   // Lo que se toca entra al BORRADOR, en el mismo toque, y se reemplaza por el
   // renglón real cuando el servidor contesta y el árbol se refresca.
-  const [borrador, addOptimistic] = useOptimistic(borradorInicial, (actuales: ComandaItem[], nuevo: ComandaItem) => [
-    ...actuales,
-    nuevo,
-  ]);
+  //
+  // Si ya hay un renglón sin opciones del mismo producto, se fusiona en vez de
+  // agregar otra fila: así el optimista se ve igual que lo que el servidor va
+  // a devolver (ver `agregarRenglon`), y no hay un parpadeo de "3 filas" que
+  // se convierten en "1 fila" al refrescar.
+  const [borrador, addOptimistic] = useOptimistic(borradorInicial, (actuales: ComandaItem[], nuevo: ComandaItem) => {
+    const existente = actuales.find((item) => item.productId === nuevo.productId && item.modifiers.length === 0);
+
+    if (existente) {
+      return actuales.map((item) =>
+        item === existente
+          ? { ...item, quantity: item.quantity + nuevo.quantity, total: item.total + nuevo.total }
+          : item,
+      );
+    }
+
+    return [...actuales, nuevo];
+  });
   const items = itemsIniciales;
 
   const categorias = useMemo(() => [...new Set(productos.map((p) => p.categoria))], [productos]);
@@ -326,17 +341,34 @@ export function ComandaCatalog({
                     {enVuelo ? (
                       <span className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                     ) : (
-                      <form action={quitarProductoAction}>
-                        <input name="tableId" type="hidden" value={tableId} />
-                        <input name="itemId" type="hidden" value={i.id} />
-                        <button
-                          aria-label={`Quitar ${i.description}`}
-                          className="grid size-7 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive"
-                          type="submit"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </form>
+                      <>
+                        {/* Baja de a una unidad la fila fusionada, sin tener que
+                            borrarla entera para sacar solo una. */}
+                        {i.quantity > QUANTITY_SCALE ? (
+                          <form action={restarUnidadAction}>
+                            <input name="tableId" type="hidden" value={tableId} />
+                            <input name="itemId" type="hidden" value={i.id} />
+                            <button
+                              aria-label={`Sacar una unidad de ${i.description}`}
+                              className="grid size-7 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-slate-950/5 hover:text-slate-700"
+                              type="submit"
+                            >
+                              <Minus className="size-3.5" />
+                            </button>
+                          </form>
+                        ) : null}
+                        <form action={quitarProductoAction}>
+                          <input name="tableId" type="hidden" value={tableId} />
+                          <input name="itemId" type="hidden" value={i.id} />
+                          <button
+                            aria-label={`Quitar ${i.description}`}
+                            className="grid size-7 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive"
+                            type="submit"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </form>
+                      </>
                     )}
                   </li>
                 );
