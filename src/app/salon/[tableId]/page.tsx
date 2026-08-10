@@ -175,9 +175,18 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
         </div>
       </section>
 
-      {/* ── La comanda ────────────────────────────────────────────────── */}
-      <aside className="flex w-full shrink-0 flex-col gap-3 border-t border-slate-200 bg-white p-4 pb-28 lg:w-[26rem] lg:border-l lg:border-t-0 lg:p-6 lg:pb-28">
-        <h2 className="text-lg font-black tracking-tight text-slate-950">Comanda</h2>
+      {/* ── La comanda ──────────────────────────────────────────────────
+          En escritorio es la columna de la derecha y se ve entera. En el
+          celular estaba DEBAJO del catálogo: para ver lo cargado había que
+          scrollear toda la grilla de productos, que es justo lo que el mozo
+          hace veinte veces por mesa. Ahora queda anclada abajo con su propio
+          scroll —el mismo recurso que usa el POS con su barra de total—, así
+          el catálogo pasa por detrás y lo pedido está siempre a la vista.
+
+          `sticky` y no `fixed`: sigue ocupando su lugar en el flujo, así que
+          no tapa el final del catálogo ni hace falta compensarlo con padding. */}
+      <aside className="sticky bottom-0 z-10 flex max-h-[52dvh] w-full shrink-0 flex-col gap-3 border-t border-slate-200 bg-white p-4 pb-28 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] lg:static lg:max-h-none lg:w-[26rem] lg:border-l lg:border-t-0 lg:p-6 lg:pb-28 lg:shadow-none">
+        <h2 className="shrink-0 text-lg font-black tracking-tight text-slate-950">Comanda</h2>
 
         {carrito.length > 0 ? (
           <section className="rounded-xl border border-primary/40 bg-primary/10 p-3">
@@ -216,12 +225,15 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
           </section>
         ) : null}
 
+        {/* La lista es lo único que scrollea adentro de la comanda: el título y
+            el botón de cobrar quedan fijos. Con `max-h` fija se comía el alto
+            del botón cuando la mesa pedía mucho. */}
         {items.length === 0 ? (
           <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
             Tocá un producto para abrir la comanda.
           </p>
         ) : (
-          <ul className="flex max-h-[40vh] flex-col gap-2 overflow-y-auto lg:max-h-none lg:flex-1">
+          <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
             {items.map((i) => (
               <li className="flex items-start gap-3 rounded-xl bg-slate-50 p-3" key={i.id}>
                 <div className="min-w-0 flex-1">
