@@ -1,4 +1,5 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { SelectField } from "@/components/ui/select-field";
 import {
   EmptyState,
   Field,
@@ -72,13 +73,11 @@ export default async function ProduccionPage({ searchParams }: ProduccionPagePro
             <form action={producirAction} className="flex flex-wrap items-end gap-3">
               <input name="branchId" type="hidden" value={branchId} />
               <Field label="Qué se hizo">
-                <select className={selectClass} name="productId">
-                  {conReceta.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
+                <SelectField
+                  ariaLabel="Qué se hizo"
+                  name="productId"
+                  options={conReceta.map((p) => ({ value: p.id, label: p.name }))}
+                />
               </Field>
               <Field label="Cuántas unidades">
                 <input className={inputClass} defaultValue={12} min={1} name="unidades" type="number" />

@@ -1,4 +1,5 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { SelectField } from "@/components/ui/select-field";
 import { PeriodFade } from "@/components/period-fade";
 import { StatTiles } from "@/components/stat-tiles";
 import {
@@ -130,17 +131,16 @@ export default async function ComisionesPage({ searchParams }: ComisionesPagePro
                             defaultValue={row.commission}
                             name="amount"
                           />
-                          <select
-                            aria-label="Cuenta"
-                            className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold"
+                          {/* Compacto: vive dentro de una fila de la tabla. */}
+                          <SelectField
+                            ariaLabel="Cuenta"
                             name="method"
-                          >
-                            {PAYMENT_METHOD_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
+                            options={PAYMENT_METHOD_OPTIONS.map((option) => ({
+                              value: option.value,
+                              label: option.label,
+                            }))}
+                            size="sm"
+                          />
                           <GhostButton>Pagar</GhostButton>
                         </RefreshActionForm>
                       ) : null}

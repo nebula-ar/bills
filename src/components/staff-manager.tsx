@@ -2,8 +2,9 @@
 
 import { createStaff, updateStaff } from "@/app/staff/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { Check, ChevronDown, DynamicIcon, KeyRound, MapPin, Plus, X } from "@/components/icons";
+import { Check, DynamicIcon, KeyRound, MapPin, Plus, X } from "@/components/icons";
 import { useState } from "react";
+import { SelectField } from "@/components/ui/select-field";
 
 export type StaffRow = {
   id: string;
@@ -48,20 +49,18 @@ function BranchField({
     <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
       Sucursal
       <div className="relative">
-        <select
-          className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-11 text-base font-bold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
+        {/* Sin `required` nativo: el desplegable propio manda el valor por un
+            input oculto. La sucursal vacía la rechaza el servidor
+            (src/app/staff/actions.ts), así que no entra un dato malo. */}
+        <SelectField
+          ariaLabel="Sucursal"
           defaultValue={defaultValue}
           name="branchId"
-          required
-        >
-          {includeEmpty ? <option value="">Elegí una sucursal</option> : null}
-          {branches.map((branch) => (
-            <option key={branch.id} value={branch.id}>
-              {branch.name}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+          options={[
+            ...(includeEmpty ? [{ value: "", label: "Elegí una sucursal" }] : []),
+            ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
+          ]}
+        />
       </div>
     </label>
   );

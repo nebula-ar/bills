@@ -1,4 +1,5 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { SelectField } from "@/components/ui/select-field";
 import { RefreshActionForm } from "@/components/refresh-action-form";
 import { Badge, Field, GhostButton, PrimaryButton, SectionCard, selectClass } from "@/components/manager-ui";
 import { CONFIGURABLE_MODULES, MODULE_INFO } from "@/lib/app-modules";
@@ -43,13 +44,15 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
       >
         <RefreshActionForm action={changeVerticalAction} className="grid gap-3 sm:grid-cols-2">
           <Field label="Cambiar rubro">
-            <select className={selectClass} defaultValue={business.vertical} name="vertical">
-              {VERTICAL_ORDER.map((vertical) => (
-                <option key={vertical} value={vertical}>
-                  {VERTICAL_PRESETS[vertical].label}
-                </option>
-              ))}
-            </select>
+            <SelectField
+              ariaLabel="Cambiar rubro"
+              defaultValue={business.vertical}
+              name="vertical"
+              options={VERTICAL_ORDER.map((vertical) => ({
+                value: vertical,
+                label: VERTICAL_PRESETS[vertical].label,
+              }))}
+            />
           </Field>
           <div className="flex flex-col justify-end gap-2">
             <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">

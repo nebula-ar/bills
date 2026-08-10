@@ -6,9 +6,10 @@ import { PeriodFade } from "@/components/period-fade";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { MoneyInput } from "@/components/money-input";
 import { ConfirmSubmit } from "@/components/confirm-submit";
-import { ArrowRight, ChevronDown, Lock, PiggyBank, Trash2, Wallet, X } from "@/components/icons";
+import { ArrowRight, Lock, PiggyBank, Trash2, Wallet, X } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { SelectField } from "@/components/ui/select-field";
 
 type Account = {
   method: string;
@@ -433,18 +434,7 @@ function MethodSelect({
     <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
       {label}
       <div className="relative">
-        <select
-          className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-11 text-base font-bold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-          defaultValue={defaultValue}
-          name={name}
-        >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+        <SelectField ariaLabel={name} defaultValue={defaultValue} name={name} options={options} />
       </div>
     </label>
   );

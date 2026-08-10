@@ -4,6 +4,7 @@ import { bookPublicAppointmentAction } from "@/app/n/[token]/actions";
 import { Check, DynamicIcon, Loader2, MapPin } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { SelectField } from "@/components/ui/select-field";
 
 // Reserva pública de turno. La abre el cliente desde el link del negocio, sin
 // cuenta y casi siempre desde el celular: por eso es elegir día → horario →
@@ -211,14 +212,18 @@ export function PublicBooking(props: PublicBookingProps) {
           {props.services.length > 0 ? (
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               ¿Qué te vas a hacer? <span className="font-bold normal-case text-slate-400">(opcional)</span>
-              <select className={input} onChange={(event) => setServiceId(event.target.value)} value={serviceId}>
-                <option value="">Lo vemos ahí</option>
-                {props.services.map((service) => (
-                  <option key={service.id} value={service.id}>
-                    {service.name} · {money(service.price)}
-                  </option>
-                ))}
-              </select>
+              <SelectField
+                ariaLabel="Servicio"
+                defaultValue={serviceId}
+                onChange={setServiceId}
+                options={[
+                  { value: "", label: "Lo vemos ahí" },
+                  ...props.services.map((service) => ({
+                    value: service.id,
+                    label: `${service.name} · ${money(service.price)}`,
+                  })),
+                ]}
+              />
             </label>
           ) : null}
 

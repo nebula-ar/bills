@@ -20,19 +20,31 @@ import { Check, ChevronDown } from "@/components/icons";
 
 export type SelectOption = { value: string; label: string };
 
+// Dos tamaños y no un `className` libre: los desplegables que viven dentro de
+// una fila de tabla (comisiones, promociones) no entran con el alto del campo
+// de un formulario, y dejar pasar clases sueltas termina en veinte variantes
+// distintas del mismo control.
+const TAMANOS = {
+  md: { boton: "rounded-2xl px-4 py-3.5 text-base", opcion: "rounded-xl px-3 py-2.5 text-sm", alto: 44 },
+  sm: { boton: "rounded-lg px-2.5 py-1.5 text-xs", opcion: "rounded-lg px-2.5 py-2 text-xs", alto: 36 },
+} as const;
+
 export function SelectField({
   name,
   defaultValue,
   options,
   ariaLabel,
   onChange,
+  size = "md",
 }: {
   name?: string;
   defaultValue?: string;
   options: SelectOption[];
   ariaLabel?: string;
   onChange?: (value: string) => void;
+  size?: keyof typeof TAMANOS;
 }) {
+  const tamano = TAMANOS[size];
   const [value, setValue] = useState(defaultValue ?? options[0]?.value ?? "");
   const [open, setOpen] = useState(false);
   const [caja, setCaja] = useState<{ top: number; left: number; width: number; arriba: boolean } | null>(null);
@@ -47,11 +59,11 @@ export function SelectField({
   useLayoutEffect(() => {
     if (!open || !botonRef.current) return;
     const r = botonRef.current.getBoundingClientRect();
-    const altoEstimado = Math.min(options.length * 44 + 12, 280);
+    const altoEstimado = Math.min(options.length * tamano.alto + 12, 280);
     // Si abajo no entra, se abre hacia arriba en vez de quedar cortado.
     const arriba = r.bottom + altoEstimado > window.innerHeight && r.top > altoEstimado;
     setCaja({ top: arriba ? r.top : r.bottom + 6, left: r.left, width: r.width, arriba });
-  }, [open, options.length]);
+  }, [open, options.length, tamano.alto]);
 
   useEffect(() => {
     if (!open) return;
@@ -97,7 +109,7 @@ export function SelectField({
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={ariaLabel}
-        className={`flex w-full min-w-0 items-center justify-between gap-2 rounded-2xl border bg-slate-50 px-4 py-3.5 text-left text-base font-semibold text-slate-950 outline-none transition ${
+        className={`flex w-full min-w-0 items-center justify-between gap-2 border bg-slate-50 text-left font-semibold text-slate-950 outline-none transition ${tamano.boton} ${
           open ? "border-primary/40 bg-white ring-4 ring-primary/15" : "border-slate-200"
         }`}
         onClick={() => setOpen((abierto) => !abierto)}
@@ -126,7 +138,7 @@ export function SelectField({
                 return (
                   <button
                     aria-selected={activa}
-                    className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition ${
+                    className={`flex w-full items-center gap-2.5 text-left font-bold transition ${tamano.opcion} ${
                       activa ? "bg-primary/10 text-primary" : "text-slate-700 hover:bg-slate-50"
                     }`}
                     key={option.value}

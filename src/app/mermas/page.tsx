@@ -1,4 +1,5 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { SelectField } from "@/components/ui/select-field";
 import {
   Badge,
   EmptyState,
@@ -86,14 +87,14 @@ export default async function MermasPage({ searchParams }: MermasPageProps) {
         <form action={registrarMermaAction} className="flex flex-wrap items-end gap-3">
           <input name="branchId" type="hidden" value={branchId} />
           <Field label="Qué se tiró">
-            <select className={selectClass} name="productId">
-              {productos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                  {p.kind === ProductKind.INGREDIENT ? " (insumo)" : ""}
-                </option>
-              ))}
-            </select>
+            <SelectField
+              ariaLabel="Qué se tiró"
+              name="productId"
+              options={productos.map((p) => ({
+                value: p.id,
+                label: `${p.name}${p.kind === ProductKind.INGREDIENT ? " (insumo)" : ""}`,
+              }))}
+            />
           </Field>
           <Field label="Cuánto">
             <input className={inputClass} inputMode="decimal" name="cantidad" placeholder="2" required />

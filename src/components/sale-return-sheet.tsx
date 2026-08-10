@@ -8,6 +8,7 @@ import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER } from "@/lib/payment-label
 import type { Unit } from "@/generated/prisma/enums";
 import { allowsFraction, formatQuantity, ONE, parseQuantityInput } from "@/lib/quantity";
 import { useEffect, useState, useTransition } from "react";
+import { SelectField } from "@/components/ui/select-field";
 
 // Devolución parcial: el cliente trae parte de lo que compró.
 //
@@ -172,17 +173,15 @@ export function SaleReturnSheet({ saleId, onClose, onDone }: SaleReturnSheetProp
             <>
               <label className="grid gap-2 pt-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 ¿Cómo se le devuelve?
-                <select
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none"
-                  onChange={(event) => setMethod(event.target.value)}
-                  value={method}
-                >
-                  {methods.map((option) => (
-                    <option key={option} value={option}>
-                      {option === "ACCOUNT" ? "A cuenta del cliente" : PAYMENT_METHOD_LABELS[option]}
-                    </option>
-                  ))}
-                </select>
+                <SelectField
+                  ariaLabel="Cómo se devuelve"
+                  defaultValue={method}
+                  onChange={setMethod}
+                  options={methods.map((option) => ({
+                    value: option,
+                    label: option === "ACCOUNT" ? "A cuenta del cliente" : PAYMENT_METHOD_LABELS[option],
+                  }))}
+                />
               </label>
 
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">

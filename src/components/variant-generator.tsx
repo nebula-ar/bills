@@ -8,6 +8,7 @@ import { generateVariants, parseAxisValues } from "@/modules/catalog/variants.lo
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { SelectField } from "@/components/ui/select-field";
 
 // Alta de un modelo con talles y colores.
 //
@@ -192,14 +193,15 @@ export function VariantGenerator({
               </label>
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Categoría
-                <select className={input} onChange={(event) => setCategoryId(event.target.value)} value={categoryId}>
-                  <option value="">Sin categoría</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                <SelectField
+                  ariaLabel="Categoría"
+                  defaultValue={categoryId}
+                  onChange={setCategoryId}
+                  options={[
+                    { value: "", label: "Sin categoría" },
+                    ...categories.map((category) => ({ value: category.id, label: category.name })),
+                  ]}
+                />
               </label>
             </div>
 

@@ -1,4 +1,5 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { SelectField } from "@/components/ui/select-field";
 import {
   Badge,
   EmptyState,
@@ -127,10 +128,14 @@ export default async function OpcionesPage({ searchParams }: OpcionesPageProps) 
                 <input className={inputClass} name="name" placeholder="Ej: De almendras" required />
               </Field>
               <Field label="Ajuste">
-                <select className={selectClass} name="signo">
-                  <option value="+">Suma</option>
-                  <option value="-">Resta</option>
-                </select>
+                <SelectField
+                  ariaLabel="Ajuste"
+                  name="signo"
+                  options={[
+                    { value: "+", label: "Suma" },
+                    { value: "-", label: "Resta" },
+                  ]}
+                />
               </Field>
               <Field label="Monto">
                 <input className={inputClass} defaultValue="0" inputMode="numeric" name="priceDelta" />

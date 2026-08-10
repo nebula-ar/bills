@@ -7,6 +7,7 @@ import { TaxCondition } from "@/generated/prisma/enums";
 import { CheckCircle2, Eye, EyeOff, KeyRound, Loader2, Lock, ReceiptText } from "@/components/icons";
 import { TAX_CONDITION_LABELS } from "@/lib/invoice-labels";
 import { validateTaxId } from "@/lib/tax-id";
+import { SelectField } from "@/components/ui/select-field";
 
 export type FiscalProfileData = {
   businessName: string;
@@ -97,18 +98,18 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
 
           <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
             Condición frente al IVA
-            <select
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
+            <SelectField
+              ariaLabel="Condición frente al IVA"
               defaultValue={data.taxCondition ?? ""}
               name="taxCondition"
-            >
-              <option value="">Elegí una opción</option>
-              {TAX_CONDITION_OPTIONS.map((condition) => (
-                <option key={condition} value={condition}>
-                  {TAX_CONDITION_LABELS[condition]}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "Elegí una opción" },
+                ...TAX_CONDITION_OPTIONS.map((condition) => ({
+                  value: condition,
+                  label: TAX_CONDITION_LABELS[condition],
+                })),
+              ]}
+            />
           </label>
 
           <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">

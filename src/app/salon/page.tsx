@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { SelectField } from "@/components/ui/select-field";
 import { StatTiles } from "@/components/stat-tiles";
 import {
   Badge,
@@ -121,13 +122,12 @@ export default async function SalonPage({ searchParams }: SalonPageProps) {
           sucursales.length > 1 ? (
             <form className="flex items-end gap-2">
               <Field label="Sucursal">
-                <select className={selectClass} defaultValue={branchId} name="branchId">
-                  {sucursales.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
+                <SelectField
+                  ariaLabel="Sucursal"
+                  defaultValue={branchId}
+                  name="branchId"
+                  options={sucursales.map((s) => ({ value: s.id, label: s.name }))}
+                />
               </Field>
               <GhostButton>Ver</GhostButton>
             </form>
