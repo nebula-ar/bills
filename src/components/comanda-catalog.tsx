@@ -53,6 +53,48 @@ function money(value: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
 }
 
+type AccionCarrito =
+  | { type: "agregar"; item: ComandaItem }
+  | { type: "quitar"; itemId: string }
+  | { type: "restar"; itemId: string };
+
+/**
+ * Cómo se ve el borrador el instante después de tocar, antes de que el
+ * servidor conteste. Tiene que coincidir con lo que hacen `agregarRenglon` y
+ * `restarUnidadRenglon` del lado del servidor, o el `router.refresh()`
+ * posterior se nota como un salto.
+ */
+function aplicarAccionCarrito(actuales: ComandaItem[], accion: AccionCarrito): ComandaItem[] {
+  if (accion.type === "quitar") {
+    return actuales.filter((item) => item.id !== accion.itemId);
+  }
+
+  if (accion.type === "restar") {
+    return actuales.flatMap((item) => {
+      if (item.id !== accion.itemId) return [item];
+
+      const cantidad = item.quantity - QUANTITY_SCALE;
+      if (cantidad <= 0) return [];
+
+      return [{ ...item, quantity: cantidad, total: Math.round((item.unitPrice * cantidad) / QUANTITY_SCALE) }];
+    });
+  }
+
+  // Fusiona con un renglón sin opciones del mismo producto, igual que hace
+  // agregarRenglon del lado del servidor.
+  const existente = actuales.find((item) => item.productId === accion.item.productId && item.modifiers.length === 0);
+
+  if (existente) {
+    return actuales.map((item) =>
+      item === existente
+        ? { ...item, quantity: item.quantity + accion.item.quantity, total: item.total + accion.item.total }
+        : item,
+    );
+  }
+
+  return [...actuales, accion.item];
+}
+
 export function ComandaCatalog({
   encabezado,
   productos,
@@ -92,27 +134,18 @@ export function ComandaCatalog({
   const avisoTimer = useRef<number | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // Lo que se toca entra al BORRADOR, en el mismo toque, y se reemplaza por el
-  // renglón real cuando el servidor contesta y el árbol se refresca.
-  //
-  // Si ya hay un renglón sin opciones del mismo producto, se fusiona en vez de
-  // agregar otra fila: así el optimista se ve igual que lo que el servidor va
-  // a devolver (ver `agregarRenglon`), y no hay un parpadeo de "3 filas" que
-  // se convierten en "1 fila" al refrescar.
-  const [borrador, addOptimistic] = useOptimistic(borradorInicial, (actuales: ComandaItem[], nuevo: ComandaItem) => {
-    const existente = actuales.find((item) => item.productId === nuevo.productId && item.modifiers.length === 0);
-
-    if (existente) {
-      return actuales.map((item) =>
-        item === existente
-          ? { ...item, quantity: item.quantity + nuevo.quantity, total: item.total + nuevo.total }
-          : item,
-      );
-    }
-
-    return [...actuales, nuevo];
-  });
-  const items = itemsIniciales;
+  // Agregar, quitar y restar entran a la lista en el mismo toque, y el
+  // servidor confirma atrás. Antes solo agregar era optimista: quitar y
+  // restar esperaban la ida y vuelta contra una base remota para moverse, y
+  // eso —no la acción en sí— era la lentitud que se sentía.
+  const [borrador, aplicarBorrador] = useOptimistic(borradorInicial, (actuales: ComandaItem[], accion: AccionCarrito) =>
+    aplicarAccionCarrito(actuales, accion),
+  );
+  // Ya confirmado: la única acción posible acá es quitar (arrepentirse antes
+  // de cobrar), así que alcanza con un filtro.
+  const [items, aplicarItems] = useOptimistic(itemsIniciales, (actuales: ComandaItem[], itemId: string) =>
+    actuales.filter((item) => item.id !== itemId),
+  );
 
   const categorias = useMemo(() => [...new Set(productos.map((p) => p.categoria))], [productos]);
 
@@ -152,17 +185,20 @@ export function ComandaCatalog({
     setError(null);
 
     startTransition(async () => {
-      addOptimistic({
-        // Id temporal: solo vive hasta que el servidor confirme y el árbol se
-        // repinte con el renglón real.
-        id: `optimista-${producto.id}-${borrador.length}`,
-        productId: producto.id,
-        description: producto.name,
-        unitPrice: producto.price,
-        quantity: QUANTITY_SCALE,
-        total: producto.price,
-        note: null,
-        modifiers: [],
+      aplicarBorrador({
+        type: "agregar",
+        item: {
+          // Id temporal: solo vive hasta que el servidor confirme y el árbol se
+          // repinte con el renglón real.
+          id: `optimista-${producto.id}-${borrador.length}`,
+          productId: producto.id,
+          description: producto.name,
+          unitPrice: producto.price,
+          quantity: QUANTITY_SCALE,
+          total: producto.price,
+          note: null,
+          modifiers: [],
+        },
       });
 
       const resultado = await agregarProductoRapido({ tableId, branchId, productId: producto.id });
@@ -185,14 +221,36 @@ export function ComandaCatalog({
     });
   }
 
-  // Quitar, restar, confirmar, descartar y cancelar comparten el mismo trato:
-  // llamar a la acción directo (sin <form action>, que redirigía a la MISMA
-  // ruta ya en pantalla y por eso no refrescaba nada) y, si sale bien, pedirle
-  // al cliente que refresque. Cancelar es la excepción: la mesa se libera, así
-  // que en vez de refrescar esta pantalla navega a la lista de mesas.
-  function quitar(itemId: string) {
+  // Confirmar, descartar y cancelar llaman a la acción directo (sin
+  // <form action>, que redirigía a la MISMA ruta ya en pantalla y por eso no
+  // refrescaba nada) y, si sale bien, piden que el cliente refresque.
+  // Cancelar es la excepción: la mesa se libera, así que en vez de refrescar
+  // esta pantalla navega a la lista de mesas.
+  //
+  // Quitar y restar además actualizan el optimista ANTES de llamar al
+  // servidor, igual que agregar: la espera contra una base remota (~150-300ms
+  // desde el celular) es la misma, pero ahora no se nota, porque la fila ya
+  // se movió en el toque. Si el servidor rechaza, `router.refresh()` no se
+  // llama y React vuelve solo al último estado real.
+  function quitarBorrador(itemId: string) {
     setError(null);
     startTransition(async () => {
+      aplicarBorrador({ type: "quitar", itemId });
+
+      const resultado = await quitarProductoAction({ tableId, itemId });
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  function quitarConfirmado(itemId: string) {
+    setError(null);
+    startTransition(async () => {
+      aplicarItems(itemId);
+
       const resultado = await quitarProductoAction({ tableId, itemId });
       if (!resultado.ok) {
         setError(resultado.error);
@@ -205,6 +263,8 @@ export function ComandaCatalog({
   function restarUnaUnidad(itemId: string) {
     setError(null);
     startTransition(async () => {
+      aplicarBorrador({ type: "restar", itemId });
+
       const resultado = await restarUnidadAction({ tableId, itemId });
       if (!resultado.ok) {
         setError(resultado.error);
@@ -424,7 +484,7 @@ export function ComandaCatalog({
                           aria-label={`Quitar ${i.description}`}
                           className="grid size-7 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
                           disabled={isPending}
-                          onClick={() => quitar(i.id)}
+                          onClick={() => quitarBorrador(i.id)}
                           type="button"
                         >
                           <Trash2 className="size-3.5" />
@@ -491,7 +551,7 @@ export function ComandaCatalog({
                       aria-label={`Quitar ${i.description}`}
                       className="grid size-8 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
                       disabled={isPending}
-                      onClick={() => quitar(i.id)}
+                      onClick={() => quitarConfirmado(i.id)}
                       type="button"
                     >
                       <Trash2 className="size-3.5" />
