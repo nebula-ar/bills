@@ -46,6 +46,7 @@ import {
 } from "@/components/icons";
 import { useEffect, useMemo, useState, useTransition, type ComponentType } from "react";
 import { SelectField } from "@/components/ui/select-field";
+import Link from "next/link";
 
 export type PosProduct = {
   productId: string;
@@ -771,6 +772,26 @@ export function PosCheckout({
           renglones de alto que no informan nada, y acá el alto es el catálogo.
           Para volver está el nav de abajo, que además marca dónde estás. El
           título de la primera tarjeta oficia de título de la pantalla. */}
+      {/* Atajo al salón. Cobrar una mesa empieza en el salón —hay que ver cuál
+          está ocupada y qué consumió— y desde acá el camino era el nav de
+          abajo, dos toques y una pantalla intermedia. Es un solo renglón y
+          aparece únicamente donde hay mesas: en un kiosco sería ruido. */}
+      {usesTables ? (
+        <Link
+          className="mb-3 flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.99] lg:mb-4"
+          href="/salon"
+        >
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+            <TableService className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-black text-slate-950">Cobrar una mesa</span>
+            <span className="block text-xs text-slate-500">Mirá el salón y cerrá la cuenta desde ahí</span>
+          </span>
+          <ArrowRight className="size-5 shrink-0 text-slate-400" />
+        </Link>
+      ) : null}
+
       <div className="lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_22rem] lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:gap-6">
         <div className="lg:flex lg:min-h-0 lg:min-w-0 lg:flex-col">
       {branches.length > 1 ? (
