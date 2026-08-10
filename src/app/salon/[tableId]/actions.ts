@@ -21,11 +21,6 @@ function texto(formData: FormData, key: string) {
   return typeof valor === "string" ? valor.trim() : "";
 }
 
-function volver(tableId: string, estado: "ok" | "error", mensaje: string): never {
-  const params = new URLSearchParams({ estado, mensaje });
-  redirect(`/salon/${tableId}?${params.toString()}`);
-}
-
 // Sin `redirect()`, a diferencia del resto de las acciones de esta pantalla:
 // agregar productos es lo que MÁS se toca acá, y una navegación completa por
 // toque es el parpadeo que hace que se sienta distinta al mostrador (que
@@ -56,55 +51,60 @@ export async function agregarProductoRapido(input: {
   return resultado;
 }
 
-export async function quitarProductoAction(formData: FormData) {
+// Igual que `agregarProductoRapido`: sin `redirect()`. Redirigir a la MISMA
+// ruta que ya está en pantalla no vuelve a pedir el árbol en este fork de
+// Next —es la causa documentada de los ajustes de stock que "no se
+// aplicaban"—, así que quitar y cancelar se quedaban escritos en la base
+// pero invisibles en la pantalla. El cliente llama a `router.refresh()`.
+export async function quitarProductoAction(input: { tableId: string; itemId: string }): Promise<Resultado> {
   const { session } = await requireModule(AppModule.TABLES);
-  const tableId = texto(formData, "tableId");
 
   const resultado = await quitarProducto({
-    tableId,
-    itemId: texto(formData, "itemId"),
+    tableId: input.tableId,
+    itemId: input.itemId,
     staffId: session.user.id,
   });
 
-  revalidatePath(`/salon/${tableId}`);
-  revalidatePath("/salon");
+  if (resultado.ok) {
+    revalidatePath(`/salon/${input.tableId}`);
+    revalidatePath("/salon");
+  }
 
-  if (!resultado.ok) volver(tableId, "error", resultado.error);
-  redirect(`/salon/${tableId}`);
+  return resultado;
 }
 
-export async function restarUnidadAction(formData: FormData) {
+export async function restarUnidadAction(input: { tableId: string; itemId: string }): Promise<Resultado> {
   const { session } = await requireModule(AppModule.TABLES);
-  const tableId = texto(formData, "tableId");
 
   const resultado = await restarUnidad({
-    tableId,
-    itemId: texto(formData, "itemId"),
+    tableId: input.tableId,
+    itemId: input.itemId,
     staffId: session.user.id,
   });
 
-  revalidatePath(`/salon/${tableId}`);
-  revalidatePath("/salon");
+  if (resultado.ok) {
+    revalidatePath(`/salon/${input.tableId}`);
+    revalidatePath("/salon");
+  }
 
-  if (!resultado.ok) volver(tableId, "error", resultado.error);
-  redirect(`/salon/${tableId}`);
+  return resultado;
 }
 
-export async function cancelarComandaAction(formData: FormData) {
+export async function cancelarComandaAction(input: { tableId: string }): Promise<Resultado> {
   const { session } = await requireModule(AppModule.TABLES);
-  const tableId = texto(formData, "tableId");
 
   const resultado = await cancelar({
-    tableId,
+    tableId: input.tableId,
     capacidades: capabilitiesOf(session.user.role),
     staffId: session.user.id,
   });
 
-  revalidatePath(`/salon/${tableId}`);
-  revalidatePath("/salon");
+  if (resultado.ok) {
+    revalidatePath(`/salon/${input.tableId}`);
+    revalidatePath("/salon");
+  }
 
-  if (!resultado.ok) volver(tableId, "error", resultado.error);
-  redirect("/salon?estado=ok&mensaje=Comanda+cancelada");
+  return resultado;
 }
 
 export async function agregarConOpcionesAction(formData: FormData) {
@@ -138,25 +138,27 @@ export async function agregarConOpcionesAction(formData: FormData) {
   redirect(`/salon/${tableId}`);
 }
 
-export async function confirmarCarritoAction(formData: FormData) {
+export async function confirmarCarritoAction(input: { tableId: string }): Promise<Resultado> {
   const { session } = await requireModule(AppModule.TABLES);
-  const tableId = texto(formData, "tableId");
 
-  const comanda = await findOpenOrder(tableId);
-  if (comanda) await confirmarCarrito(comanda.id, session.user.id);
+  const comanda = await findOpenOrder(input.tableId);
+  if (!comanda) return { ok: false, error: "Esta mesa no tiene una comanda abierta" };
 
-  revalidatePath(`/salon/${tableId}`);
+  await confirmarCarrito(comanda.id, session.user.id);
+
+  revalidatePath(`/salon/${input.tableId}`);
   revalidatePath("/cocina");
-  redirect(`/salon/${tableId}`);
+  return { ok: true };
 }
 
-export async function descartarCarritoAction(formData: FormData) {
+export async function descartarCarritoAction(input: { tableId: string }): Promise<Resultado> {
   await requireModule(AppModule.TABLES);
-  const tableId = texto(formData, "tableId");
 
-  const comanda = await findOpenOrder(tableId);
-  if (comanda) await descartarCarrito(comanda.id);
+  const comanda = await findOpenOrder(input.tableId);
+  if (!comanda) return { ok: false, error: "Esta mesa no tiene una comanda abierta" };
 
-  revalidatePath(`/salon/${tableId}`);
-  redirect(`/salon/${tableId}`);
+  await descartarCarrito(comanda.id);
+
+  revalidatePath(`/salon/${input.tableId}`);
+  return { ok: true };
 }

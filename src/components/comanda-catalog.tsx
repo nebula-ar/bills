@@ -185,6 +185,71 @@ export function ComandaCatalog({
     });
   }
 
+  // Quitar, restar, confirmar, descartar y cancelar comparten el mismo trato:
+  // llamar a la acción directo (sin <form action>, que redirigía a la MISMA
+  // ruta ya en pantalla y por eso no refrescaba nada) y, si sale bien, pedirle
+  // al cliente que refresque. Cancelar es la excepción: la mesa se libera, así
+  // que en vez de refrescar esta pantalla navega a la lista de mesas.
+  function quitar(itemId: string) {
+    setError(null);
+    startTransition(async () => {
+      const resultado = await quitarProductoAction({ tableId, itemId });
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  function restarUnaUnidad(itemId: string) {
+    setError(null);
+    startTransition(async () => {
+      const resultado = await restarUnidadAction({ tableId, itemId });
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  function confirmarCarrito() {
+    setError(null);
+    startTransition(async () => {
+      const resultado = await confirmarCarritoAction({ tableId });
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  function descartarCarrito() {
+    setError(null);
+    startTransition(async () => {
+      const resultado = await descartarCarritoAction({ tableId });
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  function cancelarComanda() {
+    setError(null);
+    startTransition(async () => {
+      const resultado = await cancelarComandaAction({ tableId });
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+      router.push("/salon?estado=ok&mensaje=Comanda+cancelada");
+    });
+  }
+
   return (
     <>
       {/* ── La carta ──────────────────────────────────────────────────── */}
@@ -345,29 +410,25 @@ export function ComandaCatalog({
                         {/* Baja de a una unidad la fila fusionada, sin tener que
                             borrarla entera para sacar solo una. */}
                         {i.quantity > QUANTITY_SCALE ? (
-                          <form action={restarUnidadAction}>
-                            <input name="tableId" type="hidden" value={tableId} />
-                            <input name="itemId" type="hidden" value={i.id} />
-                            <button
-                              aria-label={`Sacar una unidad de ${i.description}`}
-                              className="grid size-7 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-slate-950/5 hover:text-slate-700"
-                              type="submit"
-                            >
-                              <Minus className="size-3.5" />
-                            </button>
-                          </form>
-                        ) : null}
-                        <form action={quitarProductoAction}>
-                          <input name="tableId" type="hidden" value={tableId} />
-                          <input name="itemId" type="hidden" value={i.id} />
                           <button
-                            aria-label={`Quitar ${i.description}`}
-                            className="grid size-7 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive"
-                            type="submit"
+                            aria-label={`Sacar una unidad de ${i.description}`}
+                            className="grid size-7 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-slate-950/5 hover:text-slate-700 disabled:opacity-50"
+                            disabled={isPending}
+                            onClick={() => restarUnaUnidad(i.id)}
+                            type="button"
                           >
-                            <Trash2 className="size-3.5" />
+                            <Minus className="size-3.5" />
                           </button>
-                        </form>
+                        ) : null}
+                        <button
+                          aria-label={`Quitar ${i.description}`}
+                          className="grid size-7 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                          disabled={isPending}
+                          onClick={() => quitar(i.id)}
+                          type="button"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
                       </>
                     )}
                   </li>
@@ -376,18 +437,22 @@ export function ComandaCatalog({
             </ul>
             <div className="mt-2 flex gap-2">
               {/* Acá arranca el workflow: recién con esto la cocina lo ve. */}
-              <form action={confirmarCarritoAction} className="flex-1">
-                <input name="tableId" type="hidden" value={tableId} />
-                <button className="h-11 w-full rounded-full bg-primary text-sm font-black text-primary-foreground" type="submit">
-                  Confirmar pedido
-                </button>
-              </form>
-              <form action={descartarCarritoAction}>
-                <input name="tableId" type="hidden" value={tableId} />
-                <button className="h-11 rounded-full px-4 text-sm font-bold text-slate-500" type="submit">
-                  Descartar
-                </button>
-              </form>
+              <button
+                className="h-11 flex-1 rounded-full bg-primary text-sm font-black text-primary-foreground disabled:opacity-60"
+                disabled={isPending}
+                onClick={confirmarCarrito}
+                type="button"
+              >
+                Confirmar pedido
+              </button>
+              <button
+                className="h-11 rounded-full px-4 text-sm font-bold text-slate-500 disabled:opacity-60"
+                disabled={isPending}
+                onClick={descartarCarrito}
+                type="button"
+              >
+                Descartar
+              </button>
             </div>
           </section>
         ) : null}
@@ -422,17 +487,15 @@ export function ComandaCatalog({
                   {enVuelo ? (
                     <span className="mt-0.5 size-4 shrink-0 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   ) : (
-                    <form action={quitarProductoAction}>
-                      <input name="tableId" type="hidden" value={tableId} />
-                      <input name="itemId" type="hidden" value={i.id} />
-                      <button
-                        aria-label={`Quitar ${i.description}`}
-                        className="grid size-8 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive"
-                        type="submit"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </form>
+                    <button
+                      aria-label={`Quitar ${i.description}`}
+                      className="grid size-8 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                      disabled={isPending}
+                      onClick={() => quitar(i.id)}
+                      type="button"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
                   )}
                 </li>
               );
@@ -466,15 +529,14 @@ export function ComandaCatalog({
           ) : null}
 
           {comandaId ? (
-            <form action={cancelarComandaAction}>
-              <input name="tableId" type="hidden" value={tableId} />
-              <button
-                className="h-10 w-full rounded-full text-sm font-bold text-slate-500 transition hover:bg-destructive/10 hover:text-destructive"
-                type="submit"
-              >
-                Cancelar comanda
-              </button>
-            </form>
+            <button
+              className="h-10 w-full rounded-full text-sm font-bold text-slate-500 transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+              disabled={isPending}
+              onClick={cancelarComanda}
+              type="button"
+            >
+              Cancelar comanda
+            </button>
           ) : null}
         </div>
       </aside>
