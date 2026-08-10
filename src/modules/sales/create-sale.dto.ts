@@ -48,4 +48,8 @@ export type CreateSaleDto = {
   // porque cambió una ficha.
   tableName?: string | null;
   waiterName?: string | null;
+  // Propina del mozo, en pesos enteros. Va SUMADA al total que se cobra (el
+  // arqueo cuenta lo que entró al cajón) pero no toca `subtotal`/`discountTotal`,
+  // que son la economía de la mercadería. Sin mesa, no hay propina.
+  tip?: number;
 };

@@ -138,7 +138,11 @@ export async function createSale(input: CreateSaleDto) {
     };
   });
 
-  const saleTotal = priced.total;
+  // La propina se SUMA al total que se cobra y se valida: el arqueo cuenta lo
+  // que entró al cajón, y ahí entra junto con el resto. No toca `subtotal` ni
+  // `discountTotal`, que son la economía de la mercadería, no del mozo.
+  const tip = Number.isInteger(input.tip) && (input.tip ?? 0) > 0 ? (input.tip as number) : 0;
+  const saleTotal = priced.total + tip;
 
   // 3) Stock: si algo descuenta y no alcanza, frenamos antes de cobrar.
   if (!input.allowNegativeStock) {
@@ -197,6 +201,7 @@ export async function createSale(input: CreateSaleDto) {
     subtotal: priced.subtotal,
     discountTotal: priced.discountTotal,
     total: saleTotal,
+    tip,
     items: saleItems,
     payments,
     discounts: priced.discounts.map((discount) => ({

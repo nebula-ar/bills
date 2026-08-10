@@ -10,10 +10,16 @@ import { getSaleEntryBranches } from "@/modules/sales/get-sale-entry-options.use
 import { findTopSellingProductIds } from "@/modules/sales/sale.repository";
 import { findStockLevelsForBranches } from "@/modules/stock/stock.repository";
 import { findMesasParaCobrar, resumenDeMesasAbiertas } from "@/modules/tables/tables.repository";
+import { getOrderForCheckout } from "@/modules/tables/orders.use-cases";
 import { PosCheckout, type PosBranch, type PosCustomer } from "@/components/pos-checkout";
 
 type NewSalePageProps = {
-  searchParams: Promise<{ branchId?: string | string[]; appointment?: string | string[]; quote?: string | string[] }>;
+  searchParams: Promise<{
+    branchId?: string | string[];
+    appointment?: string | string[];
+    quote?: string | string[];
+    orderId?: string | string[];
+  }>;
 };
 
 export default async function NewSalePage({ searchParams }: NewSalePageProps) {
@@ -23,6 +29,13 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
   const rawBranchId = Array.isArray(params.branchId) ? params.branchId[0] : params.branchId;
   const rawAppointment = Array.isArray(params.appointment) ? params.appointment[0] : params.appointment;
   const rawQuote = Array.isArray(params.quote) ? params.quote[0] : params.quote;
+  const rawOrderId = Array.isArray(params.orderId) ? params.orderId[0] : params.orderId;
+
+  const usesCustomers = business.has(AppModule.CUSTOMERS);
+  const usesStock = business.has(AppModule.STOCK);
+  // Solo el rubro con salón elige mesa al cobrar. Una barbería no tiene por qué
+  // ver un paso preguntando dónde se sentó el cliente.
+  const usesTables = business.has(AppModule.TABLES);
 
   // Cobro de un turno: el POS arranca con todo elegido y, al confirmar, la venta
   // queda enlazada al turno (ver submitSale).
@@ -38,13 +51,17 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
       ? await getQuoteForCheckout(rawQuote, business.id).catch(() => null)
       : null;
 
-  const initialBranchId = quote?.branchId ?? appointment?.branchId ?? (rawBranchId && rawBranchId.length > 0 ? rawBranchId : undefined);
+  // Cobro de una comanda: viene del botón "Cobrar" del salón. El pedido entra
+  // cargado, la mesa ya está dicha (sin pasos de más) y, al confirmar, la
+  // comanda queda pagada y la mesa se libera (ver submitSale).
+  const order =
+    rawOrderId && usesTables ? await getOrderForCheckout(business.id, rawOrderId).catch(() => null) : null;
 
-  const usesCustomers = business.has(AppModule.CUSTOMERS);
-  const usesStock = business.has(AppModule.STOCK);
-  // Solo el rubro con salón elige mesa al cobrar. Una barbería no tiene por qué
-  // ver un paso preguntando dónde se sentó el cliente.
-  const usesTables = business.has(AppModule.TABLES);
+  const initialBranchId =
+    order?.branchId ??
+    quote?.branchId ??
+    appointment?.branchId ??
+    (rawBranchId && rawBranchId.length > 0 ? rawBranchId : undefined);
 
   const branches = await getSaleEntryBranches(business.id);
 
@@ -140,6 +157,11 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
           : null
       }
       quote={quote ? { id: quote.id, customerId: quote.customerId, items: quote.items } : null}
+      order={
+        order
+          ? { id: order.id, tableId: order.tableId, tableName: order.tableName, waiterName: order.waiterName, items: order.items }
+          : null
+      }
       features={verticalFeatures(business.vertical)}
       salesRank={Object.fromEntries(salesRank)}
       usesTables={usesTables}

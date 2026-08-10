@@ -23,12 +23,16 @@ export function pasosDelCobro(input: {
   // tarjeta se cobra justo, y en un pago dividido no hay un "con cuánto paga"
   // único porque son varios montos.
   pagaEnEfectivo: boolean;
+  // Se está cobrando una comanda que YA tiene mesa: "dónde" y "qué mesa" no se
+  // preguntan porque la respuesta ya está en la comanda, y preguntarla nomás
+  // para reescribir el mismo dato es un toque de más con el cliente esperando.
+  mesaFija?: boolean;
 }): PasoDeCobro[] {
   return [
-    ...(input.usaSalon ? ([{ key: "donde", titulo: "¿Dónde?" }] as const) : []),
+    ...(input.usaSalon && !input.mesaFija ? ([{ key: "donde", titulo: "¿Dónde?" }] as const) : []),
     // La mesa solo se pregunta si ya se dijo que es una mesa. Preguntarla
     // siempre obligaría a saltearla en cada venta de mostrador.
-    ...(input.usaSalon && input.canal === SaleChannel.TABLE
+    ...(input.usaSalon && !input.mesaFija && input.canal === SaleChannel.TABLE
       ? ([{ key: "mesa", titulo: "¿Qué mesa?" }] as const)
       : []),
     { key: "pago", titulo: "¿Cómo paga?" },

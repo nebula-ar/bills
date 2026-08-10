@@ -2,22 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { formatMoney } from "@/components/manager-ui";
+import { ComandaCatalog } from "@/components/comanda-catalog";
 import { AppModule } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { capabilitiesOf } from "@/lib/capabilities";
-import { formatQuantity } from "@/lib/quantity";
-import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
+import { formatQuantity, QUANTITY_SCALE } from "@/lib/quantity";
 import { findOpenOrder, findProductosVendibles, findTable } from "@/modules/tables/orders.repository";
 import { totalesDe } from "@/modules/tables/orders.use-cases";
 
-import {
-  agregarProductoAction,
-  cancelarComandaAction,
-  cobrarAction,
-  confirmarCarritoAction,
-  descartarCarritoAction,
-  quitarProductoAction,
-} from "./actions";
+import { cancelarComandaAction, confirmarCarritoAction, descartarCarritoAction, quitarProductoAction } from "./actions";
 
 /**
  * La comanda de una mesa: tocar el producto lo agrega.
@@ -32,12 +25,7 @@ const uno = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) 
 
 type ComandaPageProps = {
   params: Promise<{ tableId: string }>;
-  searchParams: Promise<{
-    cat?: string | string[];
-    q?: string | string[];
-    estado?: string | string[];
-    mensaje?: string | string[];
-  }>;
+  searchParams: Promise<{ estado?: string | string[]; mensaje?: string | string[] }>;
 };
 
 export default async function ComandaPage({ params, searchParams }: ComandaPageProps) {
@@ -53,20 +41,6 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
     findOpenOrder(tableId),
   ]);
 
-  const categorias = [...new Set(productos.map((p) => p.categoria))];
-  const catActiva = uno(query.cat);
-  // Buscar sin acentos y sin distinguir mayúsculas, igual que el catálogo y el
-  // mostrador: "medialuna" tiene que encontrar "Medialuna" y "cafe" el "Café".
-  const normalizar = (v: string) =>
-    v
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .toLowerCase();
-  const busqueda = normalizar(uno(query.q).trim());
-  const visibles = productos
-    .filter((p) => (catActiva ? p.categoria === catActiva : true))
-    .filter((p) => (busqueda ? normalizar(p.name).includes(busqueda) : true));
-
   const todos = comanda?.items ?? [];
   // Lo que el cliente cargó por el QR y todavía no confirmó nadie. NO cuenta
   // para el total ni fue a cocina.
@@ -74,6 +48,17 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
   const items = todos.filter((i) => i.kdsStatus !== "CART");
   const totales = totalesDe(items, comanda?.discount ?? 0, comanda?.tip ?? 0);
   const puedeCobrar = capabilitiesOf(session.user.role).includes("sell");
+
+  // Cuánto de cada producto ya está en la comanda, para el aviso en su
+  // tarjeta ("3 en la comanda"). Cada toque crea un renglón propio —no se
+  // funden en uno solo—, así que esto es la SUMA de todos esos renglones.
+  // `quantity` viene en milésimas (ver src/lib/quantity.ts): acá siempre son
+  // enteras (el salón vende unidades, no fracciones), así que dividir alcanza.
+  const enComanda: Record<string, number> = {};
+  for (const item of items) {
+    if (!item.productId) continue;
+    enComanda[item.productId] = (enComanda[item.productId] ?? 0) + item.quantity / QUANTITY_SCALE;
+  }
 
   const mensaje = uno(query.mensaje);
   const estado = uno(query.estado);
@@ -108,114 +93,7 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
           </p>
         ) : null}
 
-        {/* Buscador. Con una carta larga, tocar categoría por categoría hasta
-            encontrar el producto es lo que hace lenta la toma del pedido con el
-            cliente esperando en la mesa. Va por query igual que las categorías,
-            que ya funcionan así. El teclado del celular manda "Buscar" y con
-            eso alcanza: no hace falta un botón que ocupe ancho. */}
-        <form action={`/salon/${tableId}`} className="mb-3">
-          {catActiva ? <input name="cat" type="hidden" value={catActiva} /> : null}
-          <input
-            autoComplete="off"
-            className="w-full rounded-full border border-slate-200 bg-white px-4 py-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:ring-4 focus:ring-primary/15"
-            defaultValue={uno(query.q)}
-            enterKeyHint="search"
-            name="q"
-            placeholder="Buscar en la carta…"
-            type="search"
-          />
-        </form>
-
-        {busqueda ? (
-          <p className="mb-3 flex items-center gap-2 text-sm text-slate-500">
-            <span className="font-bold text-slate-950">{visibles.length}</span>
-            {visibles.length === 1 ? "resultado" : "resultados"}
-            <Link className="font-bold text-primary underline" href={`/salon/${tableId}`}>
-              Limpiar
-            </Link>
-          </p>
-        ) : null}
-
-        {categorias.length > 1 ? (
-          <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-            <Link
-              className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition ${
-                !catActiva ? "bg-primary text-primary-foreground" : "bg-white text-slate-600 hover:bg-slate-100"
-              }`}
-              href={`/salon/${tableId}`}
-            >
-              Todo
-            </Link>
-            {categorias.map((c) => (
-              <Link
-                key={c}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition ${
-                  catActiva === c ? "bg-primary text-primary-foreground" : "bg-white text-slate-600 hover:bg-slate-100"
-                }`}
-                href={`/salon/${tableId}?cat=${encodeURIComponent(c)}`}
-              >
-                {c}
-              </Link>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="min-h-0 flex-1 lg:overflow-y-auto">
-          {visibles.length === 0 ? (
-            <p className="rounded-2xl bg-white p-6 text-center text-sm text-slate-500">
-              No hay productos con precio en esta sucursal.
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-              {visibles.map((p) => {
-                const foto = productImageSrc({
-                  id: p.id,
-                  imageVersion: p.imageVersion,
-                  catalogSlug: p.catalogSlug,
-                });
-
-                const tarjeta = (
-                  <>
-                      <span className="block aspect-square w-full overflow-hidden bg-slate-100">
-                        {foto ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img alt="" className="size-full object-cover" src={foto} />
-                        ) : (
-                          <span className="grid size-full place-items-center text-3xl">🍞</span>
-                        )}
-                      </span>
-                    <span className="flex flex-1 flex-col gap-1 p-3">
-                      <span className="text-sm font-bold leading-tight text-slate-950">{p.name}</span>
-                      <span className="text-base font-black text-primary">{formatMoney(p.price)}</span>
-                    </span>
-                  </>
-                );
-
-                const clase =
-                  "group flex w-full flex-col overflow-hidden rounded-2xl bg-white text-center shadow-sm ring-1 ring-slate-200 transition active:scale-[0.98]";
-
-                // Con opciones se va a elegirlas; sin opciones se agrega de una.
-                // Meter un diálogo para "sin azúcar" cuando no hay nada que
-                // elegir sería un toque de más en la pantalla que más se toca.
-                return p.tieneOpciones ? (
-                  <Link className={clase} href={`/salon/${tableId}/opciones/${p.id}`} key={p.id}>
-                    {tarjeta}
-                  </Link>
-                ) : (
-                  <form action={agregarProductoAction} key={p.id}>
-                    <input name="tableId" type="hidden" value={tableId} />
-                    <input name="branchId" type="hidden" value={mesa.branchId} />
-                    <input name="productId" type="hidden" value={p.id} />
-                    <input name="unidades" type="hidden" value={1} />
-                    <button className={clase} type="submit">
-                      {tarjeta}
-                    </button>
-                  </form>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <ComandaCatalog branchId={mesa.branchId} enComanda={enComanda} productos={productos} tableId={tableId} />
       </section>
 
       {/* ── La comanda ──────────────────────────────────────────────────
@@ -314,29 +192,17 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
             <span className="text-3xl font-black text-primary">{formatMoney(totales.total)}</span>
           </div>
 
-          {items.length > 0 && puedeCobrar ? (
-            <form action={cobrarAction} className="flex flex-col gap-2">
-              <input name="tableId" type="hidden" value={tableId} />
-              {/* La propina es del mozo y va aparte del subtotal: sumarla a lo
-                  facturado infla la contabilidad del negocio con plata ajena. */}
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-                Propina
-                <input
-                  className="h-10 w-28 rounded-xl border border-slate-200 px-3 text-right font-bold text-slate-950"
-                  defaultValue={0}
-                  min={0}
-                  name="propina"
-                  step={100}
-                  type="number"
-                />
-              </label>
-              <button
-                className="grid h-12 place-items-center rounded-full bg-primary text-base font-black text-primary-foreground transition hover:bg-primary-strong"
-                type="submit"
-              >
-                Cobrar {formatMoney(totales.total)}
-              </button>
-            </form>
+          {items.length > 0 && puedeCobrar && comanda ? (
+            // Cobrar es del cajero, y ahora pasa por el cobro real: medio de
+            // pago, pago dividido, propina, factura, y con stock y costo
+            // congelado —lo que `cobrarComanda` nunca hizo—. Mismo botón, mismo
+            // lugar; adentro ya no es una implementación aparte.
+            <Link
+              className="grid h-12 place-items-center rounded-full bg-primary text-base font-black text-primary-foreground transition hover:bg-primary-strong"
+              href={`/sales/new?orderId=${comanda.id}`}
+            >
+              Cobrar {formatMoney(totales.total)}
+            </Link>
           ) : null}
 
           {items.length > 0 && !puedeCobrar ? (

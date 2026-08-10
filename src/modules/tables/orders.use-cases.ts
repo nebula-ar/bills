@@ -6,8 +6,10 @@ import {
   agregarRenglon,
   agregarRenglonConOpciones,
   cancelarComanda,
+  cerrarComandaCobrada,
   contarRenglonesEnCocina,
   findOpenOrder,
+  findOrderForCheckout,
   findPrecioEnSucursal,
   quitarRenglon,
 } from "./orders.repository";
@@ -110,6 +112,47 @@ export async function cancelar(input: {
 /** Totales de lo que hay cargado, para mostrar en pantalla. */
 export function totalesDe(items: { total: number }[], discount = 0, tip = 0) {
   return totalesDeComanda(items, discount, tip);
+}
+
+/**
+ * La comanda para precargar el cobro real. `null` = no hay nada que cobrar
+ * (ya se cobró, se canceló, o no existe): la pantalla de cobro no tiene por
+ * qué distinguir el motivo, solo decir que no hay nada.
+ */
+export async function getOrderForCheckout(businessId: string, orderId: string) {
+  const comanda = await findOrderForCheckout(businessId, orderId);
+  // Sin mesa no hay qué liberar al cobrar: no debería pasar (toda comanda nace
+  // de una mesa), pero si pasara, no hay nada seguro que precargar.
+  if (!comanda || comanda.items.length === 0 || !comanda.tableId) return null;
+
+  return {
+    id: comanda.id,
+    branchId: comanda.branchId,
+    tableId: comanda.tableId,
+    tableName: comanda.table?.name ?? null,
+    waiterName: comanda.staff?.name ?? null,
+    items: comanda.items.map((item) => ({ productId: item.productId as string, quantity: item.quantity })),
+  };
+}
+
+/**
+ * Cierra la comanda después de cobrarla por el POS real: marca la venta,
+ * libera la mesa. La plata, el stock y el costo ya quedaron bien en
+ * `createSale`; esto es solo la parte que le toca al salón.
+ *
+ * Deliberadamente sin transacción con la venta: la plata ya se cobró y
+ * devolvió éxito. Si cerrar la comanda falla, se reintenta el cierre solo —no
+ * se vuelve a cobrar, que sería el doble cobro que hay que evitar siempre.
+ */
+export function closeOrderAfterSale(input: {
+  orderId: string;
+  tableId: string;
+  saleId: string;
+  total: number;
+  tip: number;
+  staffId: string;
+}) {
+  return cerrarComandaCobrada(input);
 }
 
 /**

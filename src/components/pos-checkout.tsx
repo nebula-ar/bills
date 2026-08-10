@@ -120,6 +120,16 @@ type PosCheckoutProps = {
   // Presupuesto que se está cobrando: precarga el pedido completo y, al cobrar,
   // queda marcado como convertido.
   quote?: { id: string; customerId: string | null; items: { productId: string; quantity: number }[] } | null;
+  // Comanda que se está cobrando (viene del botón "Cobrar" del salón): precarga
+  // el pedido, fija la mesa —sin pasos de más preguntando algo que ya se sabe—
+  // y, al cobrar, la comanda queda pagada y la mesa se libera (ver submitSale).
+  order?: {
+    id: string;
+    tableId: string;
+    tableName: string | null;
+    waiterName: string | null;
+    items: { productId: string; quantity: number }[];
+  } | null;
 };
 
 type SplitRow = { id: number; method: string; amount: string };
@@ -199,6 +209,7 @@ export function PosCheckout({
   catalogIcon = "solar:box-bold",
   appointment = null,
   quote = null,
+  order = null,
   sellsAsStaffId = null,
   features = { barcodes: true, packs: true },
   salesRank = {},
@@ -255,11 +266,14 @@ export function PosCheckout({
     // Cobrando un turno, el servicio ya está en el pedido: el barbero no tiene
     // que volver a buscarlo con el cliente enfrente.
     // Cobrando un presupuesto, entra el pedido entero tal como se cotizó.
+    // Cobrando una comanda, entra lo que ya se sirvió en la mesa.
     quote
       ? Object.fromEntries(quote.items.map((item) => [item.productId, item.quantity]))
-      : appointment?.productId
-        ? { [appointment.productId]: ONE }
-        : {},
+      : order
+        ? Object.fromEntries(order.items.map((item) => [item.productId, item.quantity]))
+        : appointment?.productId
+          ? { [appointment.productId]: ONE }
+          : {},
   );
   const [customerId, setCustomerId] = useState(quote?.customerId ?? appointment?.customerId ?? "");
   const [search, setSearch] = useState("");
@@ -277,8 +291,14 @@ export function PosCheckout({
   // El cobro va por pasos: una sola pantalla larga obliga a scrollear con el
   // cliente enfrente y se cobra con el método que quedó de la venta anterior.
   const [paso, setPaso] = useState(0);
-  const [channel, setChannel] = useState<SaleChannel>(SaleChannel.COUNTER);
-  const [tableId, setTableId] = useState<string | null>(null);
+  // Cobrando una comanda, "dónde" ya se sabe: mesa, y esta mesa. Arranca ahí en
+  // vez de mostrador para que los pasos "donde"/"mesa" queden bien saltados.
+  const [channel, setChannel] = useState<SaleChannel>(order ? SaleChannel.TABLE : SaleChannel.COUNTER);
+  const [tableId, setTableId] = useState<string | null>(order?.tableId ?? null);
+  // Propina del mozo. Solo se pregunta cobrando una comanda: en el mostrador no
+  // hay a quién dejársela. Texto crudo, como `cashReceived`: se parsea al usar.
+  const [tip, setTip] = useState("");
+  const tipAmount = Number(tip.replace(/\D/g, "")) || 0;
   const [splitMode, setSplitMode] = useState(false);
   const [singleMethod, setSingleMethod] = useState(paymentOptions[0]?.value ?? "");
   const [splitRows, setSplitRows] = useState<SplitRow[]>([]);
@@ -438,7 +458,11 @@ export function PosCheckout({
   }, [branch?.id, cartKey, hasItems]);
 
   const livePreview = hasItems && preview?.key === cartKey ? preview : null;
-  const total = livePreview?.total ?? listTotal;
+  // La propina se suma al total que se cobra: el arqueo cuenta lo que entró al
+  // cajón, y ahí entra junto con el resto (ver create-sale.use-case). Es 0 en
+  // cualquier venta que no sea una comanda, así que no cambia nada fuera de ese
+  // caso.
+  const total = (livePreview?.total ?? listTotal) + tipAmount;
   const discountTotal = livePreview?.discountTotal ?? 0;
 
   const splitAssigned = splitRows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
@@ -469,7 +493,7 @@ export function PosCheckout({
   // Solo el efectivo en un pago necesita vuelto: con tarjeta se cobra justo, y
   // en un pago dividido no hay un "con cuánto paga" único.
   const pagaEnEfectivo = !splitMode && singleMethod === "CASH" && total > 0;
-  const pasos = pasosDelCobro({ usaSalon: usesTables, canal: channel, pagaEnEfectivo });
+  const pasos = pasosDelCobro({ usaSalon: usesTables, canal: channel, pagaEnEfectivo, mesaFija: Boolean(order) });
   const pasoIdx = Math.min(paso, pasos.length - 1);
   const pasoActual = pasos[pasoIdx].key;
   const esUltimoPaso = pasoIdx === pasos.length - 1;
@@ -480,7 +504,9 @@ export function PosCheckout({
     pagoValido: splitValid && accountReady,
   });
 
-  const branchStep = branches.length > 1 ? 1 : 0;
+  // Cobrando una comanda el paso de sucursal no se muestra (ver más abajo), así
+  // que no puede contar para la numeración de los que sí se ven.
+  const branchStep = branches.length > 1 && !order ? 1 : 0;
   // Preguntar "¿quién atiende?" cuando hay UNA sola opción es un toque de más
   // antes de cobrar, y la respuesta ya la sabemos. Mismo criterio que la
   // sucursal acá arriba: el paso aparece solo si hay algo que elegir.
@@ -677,8 +703,13 @@ export function PosCheckout({
     // Siempre desde el primer paso: si quedara donde lo dejó la venta anterior,
     // la siguiente se cobraría con la mesa de la anterior.
     setPaso(0);
-    setChannel(SaleChannel.COUNTER);
-    setTableId(null);
+    // Cobrando una comanda, "dónde" y "mesa" ya están fijos (ver `order` más
+    // arriba) y no hay que resetearlos: son la única venta que se va a cobrar
+    // en esta pantalla, la de esta mesa.
+    if (!order) {
+      setChannel(SaleChannel.COUNTER);
+      setTableId(null);
+    }
     setCheckoutOpen(true);
   }
 
@@ -720,6 +751,9 @@ export function PosCheckout({
         customerId: customerId || undefined,
         appointmentId: appointment?.id,
         quoteId: quote?.id,
+        orderId: order?.id,
+        tableId: order?.tableId,
+        tip: order ? tipAmount : undefined,
         items: cartItems.map((item) => ({ productId: item.productId, quantity: item.quantity })),
         payments,
         ...(wantsInvoice
@@ -730,9 +764,11 @@ export function PosCheckout({
               channel,
               // El mozo es el que atiende, no un dato aparte: la venta ya sabe
               // quién la hizo. Van los NOMBRES porque el ticket tiene que seguir
-              // diciendo "Mesa 4 · Nico" aunque después borren la mesa.
+              // diciendo "Mesa 4 · Nico" aunque después borren la mesa. Cobrando
+              // una comanda, el mozo que la tomó puede no ser quien la cobra: el
+              // nombre de la comanda manda sobre quien esté elegido en pantalla.
               ...(channel === SaleChannel.TABLE
-                ? { tableName: mesaElegida?.name, waiterName: selectedStaff?.name }
+                ? { tableName: order?.tableName ?? mesaElegida?.name, waiterName: order?.waiterName ?? selectedStaff?.name }
                 : {}),
             }
           : {}),
@@ -746,6 +782,7 @@ export function PosCheckout({
         setCustomerTaxId("");
         setCustomerId("");
         setCustomerTaxCondition(TaxCondition.CONSUMIDOR_FINAL);
+        setTip("");
         setCheckoutOpen(false);
         setSuccess(true);
         window.setTimeout(() => setSuccess(false), 1700);
@@ -807,7 +844,10 @@ export function PosCheckout({
 
       <div className="lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_22rem] lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:gap-6">
         <div className="lg:flex lg:min-h-0 lg:min-w-0 lg:flex-col">
-      {branches.length > 1 ? (
+      {/* Cobrando una comanda no se elige sucursal: la mesa es de UNA, y
+          cambiarla vaciaría el pedido que se está por cobrar (ver
+          selectBranch). */}
+      {branches.length > 1 && !order ? (
         <Step icon={Store} step={branchStep} title="Sucursal" delay={80}>
           <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {branches.map((item) => (
@@ -1751,12 +1791,15 @@ export function PosCheckout({
                     {CANALES.find((canal) => canal.key === channel)?.label}
                   </span>
                 </div>
-                {channel === SaleChannel.TABLE && mesaElegida ? (
+                {channel === SaleChannel.TABLE && (order?.tableName ?? mesaElegida?.name) ? (
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-slate-500">Mesa</span>
                     <span className="font-black text-slate-950">
-                      {mesaElegida.name}
-                      {selectedStaff ? ` · ${selectedStaff.name}` : ""}
+                      {order?.tableName ?? mesaElegida?.name}
+                      {/* El mozo que tomó el pedido, no quien lo está cobrando:
+                          son roles distintos y el ticket tiene que decir quién
+                          atendió. */}
+                      {(order?.waiterName ?? selectedStaff?.name) ? ` · ${order?.waiterName ?? selectedStaff?.name}` : ""}
                     </span>
                   </div>
                 ) : null}
@@ -1795,6 +1838,29 @@ export function PosCheckout({
             {/* Pago */}
             {pasoActual === "pago" ? (
             <section>
+              {/* Solo cobrando una comanda: en el mostrador no hay a quién
+                  dejársela. Va antes de elegir el medio porque cambia el total
+                  a cobrar, y el total tiene que estar cerrado antes de mirar
+                  "¿cubre lo que pagó?". */}
+              {order ? (
+                <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3.5">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-slate-950">Propina</p>
+                    <p className="text-xs text-slate-500">Del mozo. Se suma al total, aparte de lo vendido.</p>
+                  </div>
+                  <label className="flex shrink-0 items-center rounded-xl border border-slate-200 bg-white px-3">
+                    <span className="text-sm font-bold text-slate-400">$</span>
+                    <input
+                      aria-label="Propina"
+                      className="w-24 bg-transparent px-1.5 py-2.5 text-right text-base font-black text-slate-950 outline-none"
+                      inputMode="numeric"
+                      onChange={(event) => setTip(event.target.value.replace(/\D/g, ""))}
+                      placeholder="0"
+                      value={formatAmountInput(tip)}
+                    />
+                  </label>
+                </div>
+              ) : null}
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-sm font-black uppercase tracking-wide text-slate-500">¿Cómo paga?</p>
                 <button

@@ -51,6 +51,7 @@ export type CreateSaleRepositoryInput = {
   channel?: SaleChannel;
   tableName?: string | null;
   waiterName?: string | null;
+  tip?: number;
   userId?: string | null;
 };
 
@@ -566,6 +567,7 @@ export function createSaleTransaction(input: CreateSaleRepositoryInput) {
         channel: input.channel,
         tableName: input.tableName,
         waiterName: input.waiterName,
+        tip: input.tip ?? 0,
         items: {
           create: input.items.map((item) => ({
             productId: item.productId,

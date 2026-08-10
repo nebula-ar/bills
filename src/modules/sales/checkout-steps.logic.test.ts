@@ -4,7 +4,7 @@ import { SaleChannel } from "@/generated/prisma/enums";
 
 import { pasosDelCobro, puedeAvanzar } from "./checkout-steps.logic";
 
-const claves = (input: { usaSalon: boolean; canal: SaleChannel; pagaEnEfectivo?: boolean }) =>
+const claves = (input: { usaSalon: boolean; canal: SaleChannel; pagaEnEfectivo?: boolean; mesaFija?: boolean }) =>
   pasosDelCobro({ pagaEnEfectivo: false, ...input }).map((paso) => paso.key);
 
 describe("qué pasos tiene el cobro", () => {
@@ -85,6 +85,12 @@ describe("qué pasos tiene el cobro", () => {
         }
       }
     }
+  });
+
+  it("cobrando una comanda con mesa fija no se pregunta dónde ni qué mesa", () => {
+    // La mesa ya está dicha por la comanda; volver a preguntarla es reescribir
+    // un dato que ya se sabe.
+    expect(claves({ usaSalon: true, canal: SaleChannel.TABLE, mesaFija: true })).toEqual(["pago", "confirmar"]);
   });
 
   it("el vuelto va siempre justo antes de confirmar", () => {

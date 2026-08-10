@@ -144,6 +144,61 @@ export function abrirOReusarComanda(input: {
   });
 }
 
+/**
+ * La comanda para precargar el cobro real (POS), igual que un turno o un
+ * presupuesto. Solo lo abierto: una comanda ya cobrada o cancelada no tiene
+ * nada que precargar.
+ */
+export function findOrderForCheckout(businessId: string, orderId: string) {
+  return prisma.order.findFirst({
+    where: { id: orderId, businessId, status: OrderStatus.OPEN, deleted: false },
+    select: {
+      id: true,
+      branchId: true,
+      tableId: true,
+      table: { select: { name: true } },
+      staff: { select: { name: true } },
+      items: {
+        where: { kdsStatus: { not: KdsStatus.CART } },
+        select: { productId: true, quantity: true },
+      },
+    },
+  });
+}
+
+/**
+ * Cierra la comanda después de cobrarla por el POS de verdad: la venta ya
+ * quedó grabada con sus pagos, su stock y su costo (eso lo hizo `createSale`),
+ * acá solo se deja constancia de qué comanda fue y se libera la mesa.
+ */
+export function cerrarComandaCobrada(input: {
+  orderId: string;
+  tableId: string;
+  saleId: string;
+  total: number;
+  tip: number;
+  staffId: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    await tx.order.update({
+      where: { id: input.orderId },
+      data: {
+        status: OrderStatus.PAID,
+        saleId: input.saleId,
+        total: input.total,
+        tip: input.tip,
+        closedAt: new Date(),
+        updatedById: input.staffId,
+      },
+    });
+
+    await tx.table.update({
+      where: { id: input.tableId },
+      data: { status: TableStatus.FREE, updatedById: input.staffId },
+    });
+  });
+}
+
 export function findPrecioEnSucursal(productId: string, branchId: string) {
   return prisma.branchProductPrice.findFirst({
     where: { productId, branchId, active: true, deleted: false },

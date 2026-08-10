@@ -10,6 +10,7 @@ import { createSale } from "@/modules/sales/create-sale.use-case";
 import { createSimpleSale } from "@/modules/sales/create-simple-sale.use-case";
 import { previewSaleTotals } from "@/modules/sales/preview-sale.use-case";
 import { markQuoteConverted } from "@/modules/quotes/quote.use-cases";
+import { closeOrderAfterSale } from "@/modules/tables/orders.use-cases";
 import { SaleError } from "@/modules/sales/sale.errors";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -25,6 +26,9 @@ export type SubmitSaleInput = {
   appointmentId?: string;
   // Presupuesto que se está cobrando, si la venta salió de una cotización.
   quoteId?: string;
+  // Comanda que se está cobrando, si la venta salió del salón. Al confirmar,
+  // la comanda queda pagada y la mesa se libera (ver closeOrderAfterSale).
+  orderId?: string;
   // `quantity` viene en milésimas de unidad (ver src/lib/quantity.ts).
   items: { productId: string; quantity: number }[];
   payments: { method: PaymentMethod; amount: number }[];
@@ -36,6 +40,11 @@ export type SubmitSaleInput = {
   channel?: SaleChannel;
   tableName?: string;
   waiterName?: string;
+  // Propina del mozo. Solo tiene sentido cobrando una comanda.
+  tip?: number;
+  // El id de la mesa (no el nombre): hace falta para liberarla al cerrar la
+  // comanda. Solo se manda junto con `orderId`.
+  tableId?: string;
 };
 
 export type SubmitSaleResult = { ok: true } | { ok: false; error: string };
@@ -73,7 +82,31 @@ export async function submitSale(input: SubmitSaleInput): Promise<SubmitSaleResu
       channel: input.channel,
       tableName: input.tableName,
       waiterName: input.waiterName,
+      tip: input.tip,
     });
+
+    // La comanda queda pagada y la mesa se libera. La plata, el stock y el
+    // costo ya quedaron bien arriba, en createSale: esto es solo lo que le
+    // toca al salón. Deliberadamente sin deshacer la venta si esto falla —la
+    // plata ya se cobró, y reintentar el cobro sería cobrar dos veces.
+    if (input.orderId && input.tableId) {
+      await closeOrderAfterSale({
+        orderId: input.orderId,
+        tableId: input.tableId,
+        saleId: sale.id,
+        total: sale.total,
+        tip: sale.tip,
+        staffId: session.user.id,
+      }).catch((error) => {
+        void logError("table.close-after-sale", error, {
+          businessId: session.user.businessId,
+          userId: session.user.id,
+          context: { orderId: input.orderId, saleId: sale.id },
+        });
+      });
+      revalidatePath("/salon");
+      revalidatePath(`/salon/${input.tableId}`);
+    }
 
     // El turno queda cobrado y enlazado: la agenda del día lo muestra así.
     if (input.appointmentId) {
