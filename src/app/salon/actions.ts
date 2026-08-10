@@ -1,83 +1,68 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { AppModule, TableStatus } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
-import { alternarOcupacion, crearMesa, crearSector } from "@/modules/tables/tables.use-cases";
+import { alternarOcupacion, crearMesa, crearSector, type Resultado } from "@/modules/tables/tables.use-cases";
 
-function texto(formData: FormData, key: string) {
-  const valor = formData.get(key);
-  return typeof valor === "string" ? valor.trim() : "";
-}
-
-/**
- * Vuelve al tablero con el resultado a la vista.
- *
- * El sector queda en la URL para que después de crear una mesa el mozo siga
- * parado donde estaba: mandarlo al primer sector le hace pensar que la mesa se
- * creó en otro lado, que es exactamente el bug que ya vivimos en Migas.
- */
-function volver(branchId: string, sectorId: string, estado: "ok" | "error", mensaje: string): never {
-  const params = new URLSearchParams({ estado, mensaje });
-  if (branchId) params.set("branchId", branchId);
-  if (sectorId) params.set("sector", sectorId);
-
-  redirect(`/salon?${params.toString()}`);
-}
-
-export async function crearSectorAction(formData: FormData) {
+// Sin `redirect()`: `/salon?estado=...&mensaje=...` es la MISMA ruta que ya
+// está en pantalla, y en este fork de Next eso no vuelve a pedir el árbol
+// (la causa ya documentada de los ajustes de stock que "no se aplicaban", y
+// la misma que tenían quitar/cancelar en la comanda). Las tres devuelven
+// Resultado y el cliente llama a `router.refresh()`.
+export async function crearSectorAction(input: { branchId: string; name: string }): Promise<Resultado & { sectorId?: string }> {
   const { session } = await requireModule(AppModule.TABLES);
-  const branchId = texto(formData, "branchId");
 
   const resultado = await crearSector({
     businessId: session.user.businessId,
-    branchId,
-    name: texto(formData, "name"),
+    branchId: input.branchId,
+    name: input.name,
     userId: session.user.id,
   });
 
-  revalidatePath("/salon");
+  if (resultado.ok) revalidatePath("/salon");
 
-  if (!resultado.ok) volver(branchId, "", "error", resultado.error);
-
-  // Se vuelve PARADO en el sector nuevo: si no, la mesa que se cree a
-  // continuación parece perderse.
-  volver(branchId, resultado.sectorId ?? "", "ok", "Sector creado");
+  return resultado;
 }
 
-export async function crearMesaAction(formData: FormData) {
+export async function crearMesaAction(input: {
+  branchId: string;
+  sectorId: string | null;
+  name: string;
+  seats: number;
+}): Promise<Resultado> {
   const { session } = await requireModule(AppModule.TABLES);
-  const branchId = texto(formData, "branchId");
-  const sectorId = texto(formData, "sectorId");
-  const seats = Number(texto(formData, "seats") || "4");
 
   const resultado = await crearMesa({
     businessId: session.user.businessId,
-    branchId,
-    sectorId: sectorId || null,
-    name: texto(formData, "name"),
-    seats,
+    branchId: input.branchId,
+    sectorId: input.sectorId,
+    name: input.name,
+    seats: input.seats,
     userId: session.user.id,
   });
 
-  revalidatePath("/salon");
-  volver(branchId, sectorId, resultado.ok ? "ok" : "error", resultado.ok ? "Mesa creada" : resultado.error);
+  if (resultado.ok) revalidatePath("/salon");
+
+  return resultado;
 }
 
-export async function alternarOcupacionAction(formData: FormData) {
+export async function alternarOcupacionAction(input: {
+  tableId: string;
+  status: TableStatus;
+  tieneComandaAbierta: boolean;
+}): Promise<Resultado> {
   const { session } = await requireModule(AppModule.TABLES);
-  const branchId = texto(formData, "branchId");
-  const sectorId = texto(formData, "sectorId");
 
   const resultado = await alternarOcupacion({
-    tableId: texto(formData, "tableId"),
-    status: texto(formData, "status") as TableStatus,
-    tieneComandaAbierta: texto(formData, "tieneComanda") === "1",
+    tableId: input.tableId,
+    status: input.status,
+    tieneComandaAbierta: input.tieneComandaAbierta,
     userId: session.user.id,
   });
 
-  revalidatePath("/salon");
-  volver(branchId, sectorId, resultado.ok ? "ok" : "error", resultado.ok ? "Mesa actualizada" : resultado.error);
+  if (resultado.ok) revalidatePath("/salon");
+
+  return resultado;
 }
