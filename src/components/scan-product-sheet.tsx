@@ -2,6 +2,7 @@
 
 import { createProductFromScan } from "@/app/catalog/scan-actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { SelectField } from "@/components/ui/select-field";
 import { Check, Loader2, X } from "@/components/icons";
 import { formatAmountInput } from "@/lib/money";
 import { unitLabel } from "@/lib/quantity";
@@ -264,21 +265,21 @@ export function ScanProductSheet({
 
           {step === 4 ? (
             <div className="grid gap-3">
-              <label className="grid gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
-                Categoría
-                <select
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none"
-                  onChange={(event) => setCategoryId(event.target.value)}
-                  value={categoryId}
-                >
-                  <option value="">Sin categoría</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {/* Desplegable propio: la lista de un <select> nativo la dibuja el
+                  sistema operativo y no hay CSS que la toque. El sheet se
+                  desmonta al cerrar, así que `defaultValue` vuelve a "" solo. */}
+              <div className="grid gap-1.5">
+                <span className="text-xs font-black uppercase tracking-wide text-slate-500">Categoría</span>
+                <SelectField
+                  ariaLabel="Categoría"
+                  defaultValue={categoryId}
+                  onChange={setCategoryId}
+                  options={[
+                    { value: "", label: "Sin categoría" },
+                    ...categories.map((category) => ({ value: category.id, label: category.name })),
+                  ]}
+                />
+              </div>
               <label className="grid gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                 Avisarme cuando queden menos de
                 <input
