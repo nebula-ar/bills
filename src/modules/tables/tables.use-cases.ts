@@ -7,9 +7,14 @@ import {
   createTable,
   findSectorByName,
   findTableByName,
+  findTableForManage,
   getSectorsWithTables,
   getTablesWithoutSector,
   setTableStatus,
+  softDeleteSector,
+  softDeleteTable,
+  updateSector,
+  updateTable,
 } from "./tables.repository";
 
 /**
@@ -147,6 +152,91 @@ export async function alternarOcupacion(input: {
     input.status === TableStatus.OCCUPIED ? TableStatus.FREE : TableStatus.OCCUPIED;
 
   await setTableStatus(input.tableId, siguiente, input.userId);
+
+  return { ok: true };
+}
+
+export async function editarMesa(input: {
+  tableId: string;
+  businessId: string;
+  branchId: string;
+  sectorId: string | null;
+  name: string;
+  seats: number;
+  userId: string;
+}): Promise<Resultado> {
+  const name = input.name.trim();
+
+  if (!name) return { ok: false, error: "Poné un nombre o número para la mesa" };
+  if (!Number.isInteger(input.seats) || input.seats < 1 || input.seats > 40) {
+    return { ok: false, error: "Los lugares tienen que ser un número de 1 a 40" };
+  }
+
+  // Único nombre por sucursal, salvo contra sí misma: si no, la mesa que se
+  // edita choca con su propio nombre de antes.
+  const existente = await findTableByName(input.businessId, input.branchId, name);
+  if (existente && existente.id !== input.tableId) {
+    return { ok: false, error: `Ya hay una mesa "${name}" en esta sucursal` };
+  }
+
+  await updateTable({ tableId: input.tableId, name, seats: input.seats, sectorId: input.sectorId, userId: input.userId });
+
+  return { ok: true };
+}
+
+/**
+ * Elimina una mesa (soft-delete).
+ *
+ * Bloqueada si está ocupada o tiene comanda abierta: borrarla ahí no borra la
+ * plata que hay sentada, solo la esconde. Libérala o cobrala primero, mismo
+ * criterio que `alternarOcupacion`.
+ */
+export async function eliminarMesa(input: { tableId: string; userId: string }): Promise<Resultado> {
+  const mesa = await findTableForManage(input.tableId);
+  if (!mesa) return { ok: false, error: "Esa mesa ya no existe" };
+
+  if (mesa.status === TableStatus.OCCUPIED || mesa.orders.length > 0) {
+    return { ok: false, error: "La mesa está ocupada: liberala antes de eliminarla" };
+  }
+
+  await softDeleteTable({ tableId: input.tableId, userId: input.userId });
+
+  return { ok: true };
+}
+
+export async function editarSector(input: {
+  sectorId: string;
+  businessId: string;
+  branchId: string;
+  name: string;
+  userId: string;
+}): Promise<Resultado> {
+  const name = input.name.trim();
+
+  if (!name) return { ok: false, error: "Poné un nombre para el sector" };
+  if (name.length > 40) return { ok: false, error: "El nombre es muy largo" };
+
+  const existente = await findSectorByName(input.businessId, input.branchId, name);
+  if (existente && existente.id !== input.sectorId) {
+    return { ok: false, error: `Ya existe un sector "${name}"` };
+  }
+
+  await updateSector({ sectorId: input.sectorId, name, userId: input.userId });
+
+  return { ok: true };
+}
+
+/**
+ * Elimina un sector (soft-delete). Sus mesas NO se tocan: quedan sueltas,
+ * "sin sector", para no volverse invisibles (ver `softDeleteSector`).
+ */
+export async function eliminarSector(input: {
+  sectorId: string;
+  businessId: string;
+  branchId: string;
+  userId: string;
+}): Promise<Resultado> {
+  await softDeleteSector(input);
 
   return { ok: true };
 }

@@ -4,12 +4,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState, useTransition } from "react";
 
-import { alternarOcupacionAction, crearMesaAction, crearSectorAction } from "@/app/salon/actions";
+import {
+  alternarOcupacionAction,
+  crearMesaAction,
+  crearSectorAction,
+  editarMesaAction,
+  editarSectorAction,
+  eliminarMesaAction,
+  eliminarSectorAction,
+} from "@/app/salon/actions";
 import { Badge, formatMoney, inputClass } from "@/components/manager-ui";
 import { StatTiles } from "@/components/stat-tiles";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { SelectField } from "@/components/ui/select-field";
-import { ChevronDown, MapPin, Plus, RotateCcw, TableService, X } from "@/components/icons";
+import { ChevronDown, MapPin, MoreHorizontal, Pencil, Plus, RotateCcw, TableService, Trash2, X } from "@/components/icons";
 import { TableStatus } from "@/generated/prisma/enums";
 
 /**
@@ -26,6 +34,7 @@ export type MesaVM = {
   seats: number;
   status: TableStatus;
   ocupada: boolean;
+  sectorId: string | null;
   consumo: { total: number; items: number; esperaMin: number } | null;
 };
 
@@ -56,20 +65,33 @@ function pasaFiltro(mesa: MesaVM, filtro: Filtro) {
 function MesaCard({
   mesa,
   onAlternar,
+  onAcciones,
 }: {
   mesa: MesaVM;
   onAlternar: (mesa: MesaVM) => void;
+  onAcciones: (mesa: MesaVM) => void;
 }) {
   return (
     <div
-      className={`flex flex-col gap-2 rounded-2xl border p-4 transition ${
+      className={`relative flex flex-col gap-2 rounded-2xl border p-4 transition ${
         mesa.ocupada ? "border-primary/40 bg-primary/10" : "border-slate-200 bg-white"
       }`}
     >
+      {/* Fuera del Link a propósito: un botón no puede anidarse en un link, y
+          esto tiene que abrir el menú, no navegar a la comanda. */}
+      <button
+        aria-label={`Acciones de ${mesa.name}`}
+        className="absolute right-2 top-2 z-10 grid size-7 place-items-center rounded-full text-slate-400 transition hover:bg-slate-950/10 hover:text-slate-700"
+        onClick={() => onAcciones(mesa)}
+        type="button"
+      >
+        <MoreHorizontal className="size-4" />
+      </button>
+
       {/* La tarjeta entera lleva a la comanda: el mozo toca la mesa, no busca
           un botón adentro de la tarjeta. */}
       <Link className="flex flex-col gap-2" href={`/salon/${mesa.id}`}>
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-2 pr-7">
           <div className="min-w-0">
             <p className="text-lg font-black leading-tight tracking-tight text-slate-950">{mesa.name}</p>
             <p className="text-xs text-slate-500">{mesa.seats} lugares</p>
@@ -124,6 +146,10 @@ export function SalonManager({ data }: { data: SalonData }) {
     Object.fromEntries(data.tablero.map((s) => [sectorKey(s), s.mesas.length > 0])),
   );
   const [crear, setCrear] = useState<null | "elegir" | "mesa" | "sector">(null);
+  const [accionSector, setAccionSector] = useState<{ sector: SectorVM; paso: "menu" | "editar" | "eliminar" } | null>(
+    null,
+  );
+  const [accionMesa, setAccionMesa] = useState<{ mesa: MesaVM; paso: "menu" | "editar" | "eliminar" } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -211,6 +237,7 @@ export function SalonManager({ data }: { data: SalonData }) {
           seats,
           status: TableStatus.FREE,
           ocupada: false,
+          sectorId: sectorId || null,
           consumo: null,
         };
         setTablero((actual) =>
@@ -218,6 +245,117 @@ export function SalonManager({ data }: { data: SalonData }) {
         );
       }
       setCrear(null);
+      router.refresh();
+    });
+  }
+
+  function cerrarAccionSector() {
+    setAccionSector(null);
+    setError(null);
+  }
+
+  function editarSectorSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const sectorId = accionSector?.sector.id;
+    if (!sectorId) return;
+    const nombre = String(new FormData(event.currentTarget).get("name") ?? "").trim();
+
+    setError(null);
+    startTransition(async () => {
+      const resultado = await editarSectorAction({ sectorId, branchId: data.branchId, name: nombre });
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+      setTablero((actual) => actual.map((s) => (s.id === sectorId ? { ...s, name: nombre } : s)));
+      setAccionSector(null);
+      router.refresh();
+    });
+  }
+
+  function eliminarSectorConfirm() {
+    const sectorId = accionSector?.sector.id;
+    if (!sectorId) return;
+
+    setError(null);
+    startTransition(async () => {
+      const resultado = await eliminarSectorAction({ sectorId, branchId: data.branchId });
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+      // Las mesas del sector no se borran: caen en "Sin sector", mismo
+      // criterio que ya usa el servidor (softDeleteSector) para no volverlas
+      // invisibles.
+      setTablero((actual) => {
+        const sector = actual.find((s) => s.id === sectorId);
+        if (!sector) return actual;
+        const resto = actual.filter((s) => s.id !== sectorId);
+        if (sector.mesas.length === 0) return resto;
+
+        const idxSinSector = resto.findIndex((s) => s.id === null);
+        if (idxSinSector >= 0) {
+          return resto.map((s, i) => (i === idxSinSector ? { ...s, mesas: [...s.mesas, ...sector.mesas] } : s));
+        }
+        return [...resto, { id: null, name: "Sin sector", mesas: sector.mesas }];
+      });
+      setAccionSector(null);
+      router.refresh();
+    });
+  }
+
+  function cerrarAccionMesa() {
+    setAccionMesa(null);
+    setError(null);
+  }
+
+  function editarMesaSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const mesaId = accionMesa?.mesa.id;
+    if (!mesaId) return;
+    const datos = new FormData(event.currentTarget);
+    const nombre = String(datos.get("name") ?? "").trim();
+    const sectorId = String(datos.get("sectorId") ?? "") || null;
+    const seats = Number(datos.get("seats") || 4);
+
+    setError(null);
+    startTransition(async () => {
+      const resultado = await editarMesaAction({ tableId: mesaId, branchId: data.branchId, sectorId, name: nombre, seats });
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+      setTablero((actual) => {
+        let mesaActualizada: MesaVM | null = null;
+        const sinLaMesa = actual.map((sector) => {
+          const encontrada = sector.mesas.find((m) => m.id === mesaId);
+          if (!encontrada) return sector;
+          mesaActualizada = { ...encontrada, name: nombre, seats, sectorId };
+          return { ...sector, mesas: sector.mesas.filter((m) => m.id !== mesaId) };
+        });
+        if (!mesaActualizada) return actual;
+        return sinLaMesa.map((sector) =>
+          sector.id === sectorId ? { ...sector, mesas: [...sector.mesas, mesaActualizada as MesaVM] } : sector,
+        );
+      });
+      setAccionMesa(null);
+      router.refresh();
+    });
+  }
+
+  function eliminarMesaConfirm() {
+    const mesaId = accionMesa?.mesa.id;
+    if (!mesaId) return;
+
+    setError(null);
+    startTransition(async () => {
+      const resultado = await eliminarMesaAction({ tableId: mesaId });
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+      setTablero((actual) => actual.map((sector) => ({ ...sector, mesas: sector.mesas.filter((m) => m.id !== mesaId) })));
+      setAccionMesa(null);
       router.refresh();
     });
   }
@@ -327,26 +465,42 @@ export function SalonManager({ data }: { data: SalonData }) {
 
             return (
               <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" key={key}>
-                <button
-                  className="flex w-full items-center justify-between gap-3 text-left"
-                  onClick={() => toggleSector(key)}
-                  type="button"
-                >
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-lg font-black tracking-tight text-slate-950">{sector.name}</h2>
-                      {ocupadasEnSector > 0 ? (
-                        <Badge tone="info">
-                          {ocupadasEnSector} {ocupadasEnSector === 1 ? "ocupada" : "ocupadas"}
-                        </Badge>
-                      ) : null}
+                <div className="flex items-center gap-1">
+                  <button
+                    className="flex flex-1 items-center justify-between gap-3 text-left"
+                    onClick={() => toggleSector(key)}
+                    type="button"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-lg font-black tracking-tight text-slate-950">{sector.name}</h2>
+                        {ocupadasEnSector > 0 ? (
+                          <Badge tone="info">
+                            {ocupadasEnSector} {ocupadasEnSector === 1 ? "ocupada" : "ocupadas"}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {sector.mesas.length === 1
+                          ? "1 mesa en este sector"
+                          : `${sector.mesas.length} mesas en este sector`}
+                      </p>
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {sector.mesas.length === 1 ? "1 mesa en este sector" : `${sector.mesas.length} mesas en este sector`}
-                    </p>
-                  </div>
-                  <ChevronDown className={`size-5 shrink-0 text-slate-400 transition ${abierto ? "rotate-180" : ""}`} />
-                </button>
+                    <ChevronDown className={`size-5 shrink-0 text-slate-400 transition ${abierto ? "rotate-180" : ""}`} />
+                  </button>
+                  {/* "Sin sector" es un balde sintético para mesas huérfanas, no
+                      un sector real: no se edita ni se elimina. */}
+                  {sector.id ? (
+                    <button
+                      aria-label={`Acciones de ${sector.name}`}
+                      className="grid size-9 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-slate-950/5 hover:text-slate-700"
+                      onClick={() => setAccionSector({ sector, paso: "menu" })}
+                      type="button"
+                    >
+                      <MoreHorizontal className="size-4" />
+                    </button>
+                  ) : null}
+                </div>
 
                 {abierto ? (
                   <div className="mt-3">
@@ -357,7 +511,12 @@ export function SalonManager({ data }: { data: SalonData }) {
                     ) : (
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                         {visibles.map((mesa) => (
-                          <MesaCard key={mesa.id} mesa={mesa} onAlternar={alternarMesa} />
+                          <MesaCard
+                            key={mesa.id}
+                            mesa={mesa}
+                            onAcciones={(m) => setAccionMesa({ mesa: m, paso: "menu" })}
+                            onAlternar={alternarMesa}
+                          />
                         ))}
                       </div>
                     )}
@@ -495,6 +654,287 @@ export function SalonManager({ data }: { data: SalonData }) {
             </button>
           </div>
         </form>
+      </BottomSheet>
+
+      {/* Acciones de sector: editar / eliminar */}
+      <BottomSheet onClose={cerrarAccionSector} open={accionSector !== null}>
+        {accionSector ? (
+          accionSector.paso === "menu" ? (
+            <>
+              <div className="flex items-center justify-between px-5 pt-6">
+                <h3 className="min-w-0 truncate text-xl font-black tracking-tight text-slate-950">
+                  {accionSector.sector.name}
+                </h3>
+                <button
+                  aria-label="Cerrar"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+                  onClick={cerrarAccionSector}
+                  type="button"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+              <div className="flex flex-col gap-2.5 px-5 pb-6 pt-5">
+                <button
+                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition active:scale-[0.99]"
+                  onClick={() => setAccionSector({ sector: accionSector.sector, paso: "editar" })}
+                  type="button"
+                >
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <Pencil className="size-5" />
+                  </span>
+                  <span className="text-sm font-black text-slate-950">Editar nombre</span>
+                </button>
+                <button
+                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition active:scale-[0.99]"
+                  onClick={() => setAccionSector({ sector: accionSector.sector, paso: "eliminar" })}
+                  type="button"
+                >
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+                    <Trash2 className="size-5" />
+                  </span>
+                  <span className="text-sm font-black text-destructive">Eliminar sector</span>
+                </button>
+              </div>
+            </>
+          ) : accionSector.paso === "editar" ? (
+            <form className="flex min-h-0 flex-1 flex-col" key={accionSector.sector.id} onSubmit={editarSectorSubmit}>
+              <div className="flex items-center justify-between px-5 pt-6">
+                <h3 className="text-xl font-black tracking-tight text-slate-950">Editar sector</h3>
+                <button
+                  aria-label="Cerrar"
+                  className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+                  onClick={cerrarAccionSector}
+                  type="button"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+              {error ? (
+                <p className="mx-5 mt-3 rounded-xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</p>
+              ) : null}
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 pt-5">
+                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                  Nombre
+                  <input
+                    className={inputClass}
+                    defaultValue={accionSector.sector.name}
+                    maxLength={40}
+                    name="name"
+                    required
+                    type="text"
+                  />
+                </label>
+              </div>
+              <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
+                <button
+                  className="w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:opacity-60"
+                  disabled={isPending}
+                  type="submit"
+                >
+                  Guardar cambios
+                </button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <div className="flex items-center justify-between px-5 pt-6">
+                <h3 className="text-xl font-black tracking-tight text-slate-950">Eliminar sector</h3>
+                <button
+                  aria-label="Cerrar"
+                  className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+                  onClick={cerrarAccionSector}
+                  type="button"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+              {error ? (
+                <p className="mx-5 mt-3 rounded-xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</p>
+              ) : null}
+              <div className="px-5 pb-6 pt-5">
+                <p className="text-sm text-slate-700">
+                  ¿Eliminar <span className="font-black">{accionSector.sector.name}</span>?
+                </p>
+                {accionSector.sector.mesas.length > 0 ? (
+                  <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+                    Sus {accionSector.sector.mesas.length} {accionSector.sector.mesas.length === 1 ? "mesa" : "mesas"} no
+                    se borran: quedan en «Sin sector».
+                  </p>
+                ) : null}
+                <div className="mt-4 flex gap-2">
+                  <button
+                    className="h-11 flex-1 rounded-full border border-slate-200 text-sm font-bold text-slate-600"
+                    onClick={() => setAccionSector({ sector: accionSector.sector, paso: "menu" })}
+                    type="button"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="h-11 flex-1 rounded-full bg-destructive text-sm font-black text-white disabled:opacity-60"
+                    disabled={isPending}
+                    onClick={eliminarSectorConfirm}
+                    type="button"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </>
+          )
+        ) : null}
+      </BottomSheet>
+
+      {/* Acciones de mesa: editar / eliminar */}
+      <BottomSheet onClose={cerrarAccionMesa} open={accionMesa !== null}>
+        {accionMesa ? (
+          accionMesa.paso === "menu" ? (
+            <>
+              <div className="flex items-center justify-between px-5 pt-6">
+                <h3 className="min-w-0 truncate text-xl font-black tracking-tight text-slate-950">
+                  {accionMesa.mesa.name}
+                </h3>
+                <button
+                  aria-label="Cerrar"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+                  onClick={cerrarAccionMesa}
+                  type="button"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+              <div className="flex flex-col gap-2.5 px-5 pb-6 pt-5">
+                <button
+                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition active:scale-[0.99]"
+                  onClick={() => setAccionMesa({ mesa: accionMesa.mesa, paso: "editar" })}
+                  type="button"
+                >
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <Pencil className="size-5" />
+                  </span>
+                  <span className="text-sm font-black text-slate-950">Editar mesa</span>
+                </button>
+                <button
+                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition active:scale-[0.99]"
+                  onClick={() => setAccionMesa({ mesa: accionMesa.mesa, paso: "eliminar" })}
+                  type="button"
+                >
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+                    <Trash2 className="size-5" />
+                  </span>
+                  <span className="text-sm font-black text-destructive">Eliminar mesa</span>
+                </button>
+              </div>
+            </>
+          ) : accionMesa.paso === "editar" ? (
+            <form className="flex min-h-0 flex-1 flex-col" key={accionMesa.mesa.id} onSubmit={editarMesaSubmit}>
+              <div className="flex items-center justify-between px-5 pt-6">
+                <h3 className="text-xl font-black tracking-tight text-slate-950">Editar mesa</h3>
+                <button
+                  aria-label="Cerrar"
+                  className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+                  onClick={cerrarAccionMesa}
+                  type="button"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+              {error ? (
+                <p className="mx-5 mt-3 rounded-xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</p>
+              ) : null}
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 pt-5">
+                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                  Sector
+                  <SelectField
+                    ariaLabel="Sector"
+                    defaultValue={accionMesa.mesa.sectorId ?? ""}
+                    name="sectorId"
+                    options={[
+                      { value: "", label: "Sin sector" },
+                      ...sectoresReales.map((s) => ({ value: s.id, label: s.name })),
+                    ]}
+                  />
+                </label>
+                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                  Nombre
+                  <input
+                    className={inputClass}
+                    defaultValue={accionMesa.mesa.name}
+                    maxLength={40}
+                    name="name"
+                    required
+                    type="text"
+                  />
+                </label>
+                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                  Lugares
+                  <input
+                    className={inputClass}
+                    defaultValue={accionMesa.mesa.seats}
+                    max={40}
+                    min={1}
+                    name="seats"
+                    type="number"
+                  />
+                </label>
+              </div>
+              <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
+                <button
+                  className="w-full rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99] disabled:opacity-60"
+                  disabled={isPending}
+                  type="submit"
+                >
+                  Guardar cambios
+                </button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <div className="flex items-center justify-between px-5 pt-6">
+                <h3 className="text-xl font-black tracking-tight text-slate-950">Eliminar mesa</h3>
+                <button
+                  aria-label="Cerrar"
+                  className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
+                  onClick={cerrarAccionMesa}
+                  type="button"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+              {error ? (
+                <p className="mx-5 mt-3 rounded-xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</p>
+              ) : null}
+              <div className="px-5 pb-6 pt-5">
+                {accionMesa.mesa.ocupada ? (
+                  <p className="rounded-xl bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
+                    Esta mesa está ocupada. Liberala antes de eliminarla.
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-700">
+                    ¿Eliminar <span className="font-black">{accionMesa.mesa.name}</span>?
+                  </p>
+                )}
+                <div className="mt-4 flex gap-2">
+                  <button
+                    className="h-11 flex-1 rounded-full border border-slate-200 text-sm font-bold text-slate-600"
+                    onClick={() => setAccionMesa({ mesa: accionMesa.mesa, paso: "menu" })}
+                    type="button"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="h-11 flex-1 rounded-full bg-destructive text-sm font-black text-white disabled:opacity-60"
+                    disabled={isPending || accionMesa.mesa.ocupada}
+                    onClick={eliminarMesaConfirm}
+                    type="button"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </>
+          )
+        ) : null}
       </BottomSheet>
 
       <button

@@ -39,6 +39,7 @@ export default async function SalonPage({ searchParams }: SalonPageProps) {
         name: mesa.name,
         seats: mesa.seats,
         status: mesa.status,
+        sectorId: sector.id,
         ocupada: mesa.status === TableStatus.OCCUPIED || mesa.comanda !== null,
         consumo: mesa.comanda
           ? { total: mesa.comanda.total, items: mesa.comanda.items, esperaMin: minutosDesde(mesa.comanda.abiertaDesde) }

@@ -180,3 +180,64 @@ export function findTokensDeMesas(businessId: string, branchId: string) {
     select: { id: true, name: true, publicToken: true, sector: { select: { name: true } } },
   });
 }
+
+/** Lo que hace falta para decidir si una mesa se puede eliminar. */
+export function findTableForManage(tableId: string) {
+  return prisma.table.findFirst({
+    where: { id: tableId, deleted: false },
+    select: {
+      status: true,
+      orders: { where: { status: OrderStatus.OPEN, deleted: false }, select: { id: true }, take: 1 },
+    },
+  });
+}
+
+export function updateTable(input: {
+  tableId: string;
+  name: string;
+  seats: number;
+  sectorId: string | null;
+  userId: string;
+}) {
+  return prisma.table.update({
+    where: { id: input.tableId },
+    data: { name: input.name, seats: input.seats, sectorId: input.sectorId, updatedById: input.userId },
+    select: { id: true },
+  });
+}
+
+export function softDeleteTable(input: { tableId: string; userId: string }) {
+  return prisma.table.update({
+    where: { id: input.tableId },
+    data: { deleted: true, deletedAt: new Date(), deletedById: input.userId },
+    select: { id: true },
+  });
+}
+
+export function updateSector(input: { sectorId: string; name: string; userId: string }) {
+  return prisma.sector.update({
+    where: { id: input.sectorId },
+    data: { name: input.name, updatedById: input.userId },
+    select: { id: true },
+  });
+}
+
+/**
+ * Borra el sector y suelta sus mesas a "sin sector", en la misma transacción.
+ *
+ * No las borra ni las deja apuntando a un sector que ya no existe (por eso
+ * es una transacción y no dos escrituras sueltas): una mesa invisible es una
+ * mesa que no se cobra, mismo criterio que ya vale para `getTablesWithoutSector`.
+ */
+export function softDeleteSector(input: { sectorId: string; businessId: string; branchId: string; userId: string }) {
+  return prisma.$transaction([
+    prisma.table.updateMany({
+      where: { sectorId: input.sectorId, businessId: input.businessId, branchId: input.branchId, deleted: false },
+      data: { sectorId: null, updatedById: input.userId },
+    }),
+    prisma.sector.update({
+      where: { id: input.sectorId },
+      data: { deleted: true, deletedAt: new Date(), deletedById: input.userId },
+    }),
+  ]);
+}
