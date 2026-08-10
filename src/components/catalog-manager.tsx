@@ -699,20 +699,19 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 
             {data.categories.length > 0 ? (
               <div className="space-y-4" hidden={pasoActual.id !== "categoria"}>
-                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                  Categoría (opcional)
-                  <select
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
+                {/* El desplegable propio y no un <select>: la lista nativa la
+                    dibuja el sistema operativo y no hay CSS que la toque. */}
+                <div className="grid gap-2">
+                  <span className="text-xs font-black uppercase tracking-wide text-slate-500">Categoría (opcional)</span>
+                  <SelectField
+                    ariaLabel="Categoría"
                     name="categoryId"
-                  >
-                    <option value="">Sin categoría</option>
-                    {data.categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    options={[
+                      { value: "", label: "Sin categoría" },
+                      ...data.categories.map((category) => ({ value: category.id, label: category.name })),
+                    ]}
+                  />
+                </div>
               </div>
             ) : null}
           </div>
