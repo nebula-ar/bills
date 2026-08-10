@@ -416,7 +416,7 @@ export function ComandaCatalog({
             </span>
           </div>
 
-          {items.length > 0 && puedeCobrar && comandaId ? (
+          {items.length > 0 && borrador.length === 0 && puedeCobrar && comandaId ? (
             <Link
               className={`grid h-12 place-items-center rounded-full bg-primary text-base font-black text-primary-foreground transition hover:bg-primary-strong ${
                 isPending ? "pointer-events-none opacity-60" : ""
@@ -427,7 +427,7 @@ export function ComandaCatalog({
             </Link>
           ) : null}
 
-          {items.length > 0 && !puedeCobrar ? (
+          {items.length > 0 && borrador.length === 0 && !puedeCobrar ? (
             <p className="rounded-xl bg-slate-50 px-3 py-2 text-center text-sm text-slate-500">
               Avisale al cajero para cobrar esta mesa.
             </p>
