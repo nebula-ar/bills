@@ -48,6 +48,30 @@ export function findMesasParaCobrar(businessId: string, branchId: string) {
   });
 }
 
+/**
+ * Cuánta plata hay sentada en el salón: comandas abiertas y su total.
+ *
+ * Es para el atajo del mostrador. Un agregado y no las comandas enteras: el que
+ * está por cobrar no necesita el detalle, necesita saber si hay algo sin cerrar
+ * antes de irse. Solo cuenta las que están en una mesa; el mostrador y el
+ * takeaway se cobran en el acto y nunca quedan abiertos.
+ */
+export async function resumenDeMesasAbiertas(businessId: string, branchId: string) {
+  const abierto = await prisma.order.aggregate({
+    where: {
+      businessId,
+      branchId,
+      status: OrderStatus.OPEN,
+      deleted: false,
+      tableId: { not: null },
+    },
+    _count: { _all: true },
+    _sum: { total: true },
+  });
+
+  return { mesas: abierto._count._all, total: abierto._sum.total ?? 0 };
+}
+
 /** Mesas sin sector: existen si alguien borró el sector que las contenía. */
 export function getTablesWithoutSector(businessId: string, branchId: string) {
   return prisma.table.findMany({

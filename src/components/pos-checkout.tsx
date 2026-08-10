@@ -79,6 +79,8 @@ export type PosBranch = {
   // Mesas del salón, para decir a cuál fue lo que se cobró. Vacío en los rubros
   // que no usan el módulo.
   tables: { id: string; name: string; sector: string | null }[];
+  // Comandas abiertas en mesa y su total: plata servida y todavía sin cobrar.
+  openTables?: { mesas: number; total: number };
   products: PosProduct[];
 };
 
@@ -462,6 +464,8 @@ export function PosCheckout({
   // Los pasos y sus condiciones viven en checkout-steps.logic, con tests: son
   // reglas de negocio ("sin salón no se pregunta la mesa"), no maquetado.
   const mesas = branch?.tables ?? [];
+  const abiertas = branch?.openTables?.mesas ?? 0;
+  const totalAbierto = branch?.openTables?.total ?? 0;
   // Solo el efectivo en un pago necesita vuelto: con tarjeta se cobra justo, y
   // en un pago dividido no hay un "con cuánto paga" único.
   const pagaEnEfectivo = !splitMode && singleMethod === "CASH" && total > 0;
@@ -785,9 +789,18 @@ export function PosCheckout({
             <TableService className="size-5" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-black text-slate-950">Cobrar una mesa</span>
-            <span className="block text-xs text-slate-500">Mirá el salón y cerrá la cuenta desde ahí</span>
+            <span className="block text-sm font-black text-slate-950">
+              {abiertas > 0
+                ? `${abiertas} ${abiertas === 1 ? "mesa abierta" : "mesas abiertas"}`
+                : "Cobrar una mesa"}
+            </span>
+            <span className="block text-xs text-slate-500">
+              {abiertas > 0 ? `${money(totalAbierto)} servidos sin cobrar` : "Mirá el salón y cerrá la cuenta desde ahí"}
+            </span>
           </span>
+          {abiertas > 0 ? (
+            <span className="shrink-0 rounded-full bg-primary px-2.5 py-1 text-xs font-black text-white">{abiertas}</span>
+          ) : null}
           <ArrowRight className="size-5 shrink-0 text-slate-400" />
         </Link>
       ) : null}

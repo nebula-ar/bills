@@ -9,7 +9,7 @@ import { findUserWithSellsAs } from "@/modules/auth/user.repository";
 import { getSaleEntryBranches } from "@/modules/sales/get-sale-entry-options.use-case";
 import { findTopSellingProductIds } from "@/modules/sales/sale.repository";
 import { findStockLevelsForBranches } from "@/modules/stock/stock.repository";
-import { findMesasParaCobrar } from "@/modules/tables/tables.repository";
+import { findMesasParaCobrar, resumenDeMesasAbiertas } from "@/modules/tables/tables.repository";
 import { PosCheckout, type PosBranch, type PosCustomer } from "@/components/pos-checkout";
 
 type NewSalePageProps = {
@@ -60,7 +60,7 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
 
   // Existencias y clientes solo si el negocio usa esos módulos: una barbería no
   // necesita cargar nada de esto para cobrar un corte.
-  const [stockLevels, customers, mesasPorSucursal] = await Promise.all([
+  const [stockLevels, customers, mesasPorSucursal, abiertasPorSucursal] = await Promise.all([
     usesStock ? findStockLevelsForBranches(branches.map((branch) => branch.id)) : new Map<string, number>(),
     usesCustomers ? getCustomersForSale(business.id) : Promise.resolve([]),
     usesTables
@@ -68,6 +68,13 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
           branches.map(async (branch) => [branch.id, await findMesasParaCobrar(business.id, branch.id)] as const),
         ).then((pares) => new Map(pares))
       : new Map<string, { id: string; name: string; sector: { name: string } | null }[]>(),
+    // Cuánta plata quedó sentada en el salón. Es lo que convierte el atajo en un
+    // aviso: sin el número hay que ir a mirar para saber si hay algo sin cerrar.
+    usesTables
+      ? Promise.all(
+          branches.map(async (branch) => [branch.id, await resumenDeMesasAbiertas(business.id, branch.id)] as const),
+        ).then((pares) => new Map(pares))
+      : new Map<string, { mesas: number; total: number }>(),
   ]);
 
   const posBranches: PosBranch[] = branches.map((branch) => ({
@@ -79,6 +86,7 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
       name: mesa.name,
       sector: mesa.sector?.name ?? null,
     })),
+    openTables: abiertasPorSucursal.get(branch.id) ?? { mesas: 0, total: 0 },
     products: branch.productPrices.map((productPrice) => ({
       productId: productPrice.productId,
       name: productPrice.product.name,
