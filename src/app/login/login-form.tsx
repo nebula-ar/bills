@@ -157,11 +157,9 @@ export function LoginForm({ callbackUrl, variant, showGoogle }: LoginFormProps) 
             />
             <span className="text-xs font-semibold text-slate-500">Recordarme</span>
           </label>
-          {/* El flujo de recuperación de contraseña es follow-up: hoy el enlace
-              lleva a Contacto (no hay página de reset todavía). */}
           <Link
             className="text-xs font-bold text-primary transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            href="/contact"
+            href="/forgot-password"
           >
             ¿Olvidaste tu clave?
           </Link>
@@ -169,7 +167,7 @@ export function LoginForm({ callbackUrl, variant, showGoogle }: LoginFormProps) 
       ) : (
         <Link
           className="text-center text-xs font-bold text-primary transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-          href="/contact"
+          href="/forgot-password"
         >
           ¿Olvidaste tu contraseña?
         </Link>
