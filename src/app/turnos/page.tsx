@@ -192,7 +192,7 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
                             No se puede deshacer.
                           </>
                         }
-                        fields={{ appointmentId: appointment.id, day: toISODate(day) }}
+                        fields={{ appointmentId: appointment.id }}
                         successMessage="Turno borrado."
                         title="¿Borrar el turno?"
                       >

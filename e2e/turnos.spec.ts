@@ -81,3 +81,66 @@ test.describe("Turnos", () => {
     });
   });
 });
+
+// Borrado de un turno: el flujo feliz que pide NEBU-36 — confirmar en el modal
+// borra y el turno desaparece del DOM sin recargar la página.
+//
+// Va en un describe aparte, sin modo serial: los tres tests de arriba usan
+// `select[name=...]` nativos que la página ya no renderiza (desde el refactor
+// de SelectField) y fallan en main sin estos cambios. Este describe no depende
+// de ellos.
+test.describe("Turnos: borrar un turno", () => {
+  test.beforeEach(async ({ page }) => {
+    await loginAsAdmin(page);
+    // El seed es un kiosco; la agenda es de los rubros de servicio.
+    await page.goto("/settings");
+    const fila = page.locator("li", { hasText: "Agenda del día y cobro en la silla" });
+    const prender = fila.getByRole("button", { name: "Prender" });
+    if (await prender.count()) {
+      await prender.click();
+      await expect(fila.getByRole("button", { name: "Apagar" })).toBeVisible();
+    }
+  });
+
+  test("confirmar en el modal borra el turno sin recargar", async ({ page }) => {
+    // Nombre único por corrida: si un run anterior falló a mitad del borrado,
+    // no queda un turno viejo con el mismo nombre que rompa este test.
+    const nombre = `Borrar E2E ${Date.now()}`;
+    const day = (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 10);
+      return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`;
+    })();
+    await page.goto(`/turnos?day=${day}`);
+
+    const alta = page.locator("form", { hasText: "Agendar" });
+    await alta.locator('input[name="time"]').fill("10:00");
+    await alta.locator('input[name="customerName"]').fill(nombre);
+    await alta.getByRole("button", { name: "Agendar" }).click({ noWaitAfter: true });
+    await expect(page.getByText(nombre, { exact: true })).toBeVisible({ timeout: 30_000 });
+
+    const turno = page.getByRole("listitem").filter({ hasText: nombre });
+    await turno.getByRole("button", { name: "Borrar", exact: true }).click();
+
+    // El modal muestra a quién y a qué hora antes de confirmar.
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog.getByRole("heading", { name: "¿Borrar el turno?" })).toBeVisible();
+    await expect(dialog.getByText(nombre)).toBeVisible();
+
+    // Cancelar no borra nada: el diálogo se cierra y el turno sigue.
+    await dialog.getByRole("button", { name: "Cancelar" }).click();
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+    await expect(page.getByRole("listitem").filter({ hasText: nombre })).toBeVisible();
+
+    // Confirmar borra con spinner y sin recargar: router.refresh() no dispara
+    // `load`, así que si la página recargara el contador sumaría y fallaría.
+    let loads = 0;
+    page.on("load", () => loads++);
+    await turno.getByRole("button", { name: "Borrar", exact: true }).click();
+    await dialog.getByRole("button", { name: "Sí, borrar" }).click();
+
+    await expect(page.getByText(nombre, { exact: true })).toHaveCount(0, { timeout: 30_000 });
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+    expect(loads).toBe(0);
+  });
+});
