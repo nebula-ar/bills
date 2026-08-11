@@ -76,23 +76,25 @@ export async function setQuoteStatusAction(formData: FormData) {
   back("success", status === QuoteStatus.ACCEPTED ? "Presupuesto aceptado." : "Presupuesto actualizado.");
 }
 
-export async function deleteQuoteAction(formData: FormData) {
+export type QuoteActionResult = { ok: boolean; message: string };
+
+export async function deleteQuoteAction(formData: FormData): Promise<QuoteActionResult> {
   const { session } = await requireModule(AppModule.QUOTES);
 
   const quoteId = text(formData, "quoteId");
 
   if (!quoteId) {
-    back("error", "No pudimos borrar el presupuesto.");
+    return { ok: false, message: "No pudimos borrar el presupuesto." };
   }
 
   try {
     await deleteQuote({ quoteId, businessId: session.user.businessId, userId: session.user.id });
   } catch (error) {
     await logError("quote.delete", error, { businessId: session.user.businessId, userId: session.user.id });
-    back("error", "No pudimos borrar el presupuesto.");
+    return { ok: false, message: "No pudimos borrar el presupuesto." };
   }
 
-  back("success", "Presupuesto borrado.");
+  return { ok: true, message: "Presupuesto borrado." };
 }
 
 function text(formData: FormData, key: string) {

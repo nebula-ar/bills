@@ -5,13 +5,13 @@ import { AlertDialog as AlertDialogPrimitive } from "radix-ui";
 import { toast } from "sonner";
 import { Check, Loader2, TriangleAlert } from "@/components/icons";
 
-// Diálogo de confirmación para acciones de cuenta / irreversibles (NEBU-33).
+// Diálogo de confirmación para acciones destructivas / irreversibles (NEBU-33).
 //
-// Dos niveles de confirmación, con criterio explícito:
-//  - Nivel 1 (ConfirmSubmit, dos toques inline): borrados dentro de formularios.
-//  - Nivel 2 (este diálogo): acciones de cuenta o irreversibles donde el usuario
-//    debe entender las consecuencias ANTES de confirmar. Cerrar sesión es el
-//    caso P0; también sirve para desactivar un empleado o anular una venta.
+// Un solo nivel desde NEBU-36: los borrados (turno, cliente, presupuesto,
+// promoción, transferencia, terminal) también pasan por acá vía
+// ConfirmDeleteButton — el modal explica las consecuencias ANTES de confirmar,
+// muestra un spinner mientras corre la acción y refresca el árbol al terminar.
+// Cerrar sesión sigue siendo el caso P0 original.
 //
 // Estados: idle → loading (spinner en el botón primario, ambos deshabilitados,
 // sin doble envío) → éxito (check breve) → cierre/redirect. Si la acción falla,
@@ -75,10 +75,12 @@ export function ConfirmDialog({
         onOpenChange(false);
         onSuccess?.();
       }, SUCCESS_MS);
-    } catch {
+    } catch (error) {
       // El diálogo queda abierto para reintentar; el error se ve en el toast.
+      // Si la acción tiró un Error con mensaje (p. ej. un delete que devolvió
+      // ok:false), se muestra ese mensaje real en vez de uno genérico.
       setStatus("idle");
-      toast.error("No se pudo completar la acción. Intentá de nuevo.");
+      toast.error(error instanceof Error ? error.message : "No se pudo completar la acción. Intentá de nuevo.");
     }
   }
 

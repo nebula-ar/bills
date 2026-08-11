@@ -109,10 +109,6 @@ export async function setStatusFormAction(formData: FormData): Promise<void> {
   await setStatusAction(formData);
 }
 
-export async function deleteAppointmentFormAction(formData: FormData): Promise<void> {
-  await deleteAppointmentAction(formData);
-}
-
 async function handle(error: unknown, businessId: string, userId: string): Promise<AppointmentActionResult> {
   if (error instanceof AppointmentError) return { ok: false, message: message(error) };
 

@@ -19,7 +19,7 @@ import { getCustomerDetail, getCustomersForManagement } from "@/modules/customer
 import { getCustomerPoints } from "@/modules/marketing/marketing.use-cases";
 import { loyaltyEnabled } from "@/modules/marketing/loyalty.logic";
 import { LoyaltyRedeem } from "@/components/loyalty-redeem";
-import { ConfirmSubmit } from "@/components/confirm-submit";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { debtReminderMessage } from "@/modules/messaging/whatsapp.logic";
 import { WhatsappButton } from "@/components/whatsapp-button";
 import Link from "next/link";
@@ -305,12 +305,21 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                       )}
                     </td>
                     <td className="py-2.5 text-right">
-                      {/* Dos toques: borrar un cliente se lleva su historial
-                          y no hay forma de traerlo de vuelta. */}
-                      <form action={deleteCustomerAction}>
-                        <input name="customerId" type="hidden" value={customer.id} />
-                        <ConfirmSubmit>Eliminar</ConfirmSubmit>
-                      </form>
+                      <ConfirmDeleteButton
+                        action={deleteCustomerAction}
+                        confirmLabel="Sí, borrar"
+                        description={
+                          <>
+                            Se borra a <span className="font-black">{customer.name}</span> y con él su
+                            historial y su saldo. No se puede deshacer.
+                          </>
+                        }
+                        fields={{ customerId: customer.id }}
+                        successMessage="Cliente eliminado."
+                        title="¿Eliminar el cliente?"
+                      >
+                        Eliminar
+                      </ConfirmDeleteButton>
                     </td>
                   </tr>
                 ))}

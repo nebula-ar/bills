@@ -52,7 +52,7 @@ test.describe("Cobrar rápido", () => {
   });
 });
 
-test.describe("Borrar cuesta dos toques", () => {
+test.describe("Borrar pide confirmación", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
   });
@@ -63,9 +63,33 @@ test.describe("Borrar cuesta dos toques", () => {
     const fila = page.getByRole("row").filter({ hasText: "Carla Suárez" });
     await fila.getByRole("button", { name: "Eliminar" }).click();
 
-    // El botón cambia de cara en vez de ejecutar.
-    await expect(fila.getByRole("button", { name: "Sí, borrar" })).toBeVisible();
+    // El modal pide confirmación antes de ejecutar el borrado.
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog.getByRole("button", { name: "Sí, borrar" })).toBeVisible();
+
+    // Cancelar no borra nada: el cliente sigue en la lista.
+    await dialog.getByRole("button", { name: "Cancelar" }).click();
     await expect(page.getByRole("link", { name: "Carla Suárez" })).toBeVisible();
+  });
+
+  test("confirmar borra el cliente sin recargar", async ({ page }) => {
+    await page.goto("/customers");
+
+    const fila = page.getByRole("row").filter({ hasText: "Carla Suárez" });
+    await fila.getByRole("button", { name: "Eliminar" }).click();
+
+    // router.refresh() no dispara `load`: si la página recargara, este contador
+    // sumaría y el test fallaría — es el criterio de "DOM actualizado sin recargar".
+    let loads = 0;
+    page.on("load", () => loads++);
+
+    const dialog = page.getByRole("alertdialog");
+    await dialog.getByRole("button", { name: "Sí, borrar" }).click();
+
+    // El diálogo se cierra y la fila desaparece del DOM sin recargar.
+    await expect(fila).toHaveCount(0, { timeout: 30_000 });
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+    expect(loads).toBe(0);
   });
 });
 

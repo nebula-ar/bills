@@ -5,7 +5,7 @@ import { AnimatedMoney } from "@/components/animated-number";
 import { PeriodFade } from "@/components/period-fade";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { MoneyInput } from "@/components/money-input";
-import { ConfirmSubmit } from "@/components/confirm-submit";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { ArrowRight, Lock, PiggyBank, Trash2, Wallet, X } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -169,16 +169,24 @@ export function CashManager({ data }: { data: CashData }) {
                     <span className="shrink-0 text-sm font-black text-slate-950" style={tabular}>
                       {money(transfer.amount)}
                     </span>
-                    <form action={deleteTransferAction}>
-                      <input name="branchId" type="hidden" value={branchField} />
-                      <input name="transferId" type="hidden" value={transfer.id} />
-                      <ConfirmSubmit
-                        className="flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition active:scale-90 hover:text-rose-600"
-                        confirmLabel="Sí"
-                      >
-                        <Trash2 className="size-4" />
-                      </ConfirmSubmit>
-                    </form>
+                    <ConfirmDeleteButton
+                      action={deleteTransferAction}
+                      ariaLabel="Borrar transferencia"
+                      className="flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition active:scale-90 hover:text-rose-600"
+                      confirmLabel="Sí"
+                      description={
+                        <>
+                          Se borra la transferencia de <span className="font-black">{transfer.fromLabel}</span> a{" "}
+                          <span className="font-black">{transfer.toLabel}</span> por{" "}
+                          <span className="font-black">{money(transfer.amount)}</span>. No se puede deshacer.
+                        </>
+                      }
+                      fields={{ transferId: transfer.id }}
+                      successMessage="Transferencia borrada."
+                      title="¿Borrar la transferencia?"
+                    >
+                      <Trash2 className="size-4" />
+                    </ConfirmDeleteButton>
                   </li>
                 ))}
               </ul>
