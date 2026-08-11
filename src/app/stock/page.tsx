@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { PeriodFade } from "@/components/period-fade";
+import { Reveal } from "@/components/reveal";
 import { StatTiles } from "@/components/stat-tiles";
 import {
   Badge,
@@ -65,6 +66,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
         description={`El depósito de ${branch.name}: qué falta, qué se movió y traspasos entre sucursales.`}
       />
 
+      <Reveal>
       {/* Lo de un producto puntual se resuelve en su propia ficha: ir y venir
           entre dos pantallas para una cosa que es una sola era el problema. */}
       <p className="rounded-2xl bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
@@ -205,7 +207,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
           </SectionCard>
         ) : null}
       </div>
-
+      </Reveal>
     </AppShell>
   );
 }

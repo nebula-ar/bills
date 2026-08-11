@@ -36,7 +36,7 @@ export default async function EntrarPage() {
   const destinos = destinosDelHub(capabilitiesOf(session.user.role));
 
   return (
-    <main className="flex min-h-[100dvh] flex-col bg-[var(--background)] pb-24 text-slate-950 sm:items-center sm:justify-center sm:px-6 sm:py-10 sm:pb-32">
+    <main className="flex min-h-[100dvh] flex-col bg-[var(--background)] text-slate-950 sm:items-center sm:justify-center sm:px-6 sm:py-10 sm:pb-32">
       {/* En celular ocupa toda la pantalla (es una PWA y esta es la primera
           pantalla real de la sesión); de sm para arriba se vuelve tarjeta. */}
       <section className="flex w-full flex-1 flex-col bg-[var(--card)] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:min-h-0 sm:max-w-[26rem] sm:flex-none sm:rounded-3xl sm:border sm:border-slate-950/10 sm:px-8 sm:py-10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]">

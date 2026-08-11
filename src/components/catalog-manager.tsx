@@ -4,6 +4,7 @@ import { createProduct, updateProduct, uploadProductImage } from "@/app/catalog/
 import { resizeImageForUpload } from "@/lib/image-resize";
 import { newProductSteps, puedeAvanzar } from "@/modules/catalog/new-product-steps.logic";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { Reveal } from "@/components/reveal";
 import { MoneyInput } from "@/components/money-input";
 import { CatalogScanButton } from "@/components/catalog-scan-button";
 import { VariantGenerator } from "@/components/variant-generator";
@@ -345,7 +346,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-none lg:px-8">
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -428,16 +429,13 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               </p>
             ) : null}
 
-          <ul className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
-            {visibleProducts.map((product, index) => {
+          <Reveal>
+            <ul className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
+              {visibleProducts.map((product) => {
               const imageSrc = productImageSrc(product);
 
               return (
-              <li
-                className="duration-500 animate-in fade-in slide-in-from-bottom-2"
-                key={product.id}
-                style={{ animationDelay: `${Math.min(index * 40, 320)}ms`, animationFillMode: "backwards" }}
-              >
+              <li data-reveal-item key={product.id}>
                 <button
                   className="flex w-full items-center gap-3 rounded-2xl bg-white p-3.5 text-left shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.99]"
                   onClick={() => openEdit(product.id)}
@@ -493,7 +491,8 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               </li>
               );
             })}
-          </ul>
+            </ul>
+          </Reveal>
           </>
         )}
       </div>

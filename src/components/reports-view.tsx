@@ -24,6 +24,7 @@ import {
   X,
 } from "@/components/icons";
 import { logoutAction } from "@/app/login/actions";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -153,6 +154,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
   const [customTo, setCustomTo] = useState(data.range.toValue);
   const [staffId, setStaffId] = useState(data.activeFilters.staffId ?? "");
   const [paymentMethod, setPaymentMethod] = useState(data.activeFilters.paymentMethod ?? "");
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   const maxStaffTotal = Math.max(...data.totalsByStaff.map((b) => b.total), 0);
   const maxBranchTotal = Math.max(...data.salesByBranch.map((b) => b.total), 0);
@@ -197,7 +199,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
   const customInvalid = rangeKey === DashboardRange.Custom && (!customFrom || !customTo || customFrom > customTo);
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-none lg:px-8">
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
       {/* Header */}
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
@@ -215,7 +217,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           <button
             aria-label="Cerrar sesión"
             className="flex size-11 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-950/5 transition active:scale-95"
-            onClick={() => void logoutAction().then(() => window.location.assign("/login"))}
+            onClick={() => setLogoutOpen(true)}
             type="button"
           >
             <LogOut className="size-5" />
@@ -800,6 +802,20 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           </div>
         </div>
       </BottomSheet>
+      <ConfirmDialog
+        cancelLabel="Cancelar"
+        confirmLabel="Sí, cerrar sesión"
+        description="Se cierra tu sesión en este dispositivo. El turno de caja en curso no se pierde: podés volver a entrar con tu usuario y contraseña."
+        onConfirm={async () => {
+          await logoutAction();
+        }}
+        onOpenChange={setLogoutOpen}
+        onSuccess={() => {
+          window.location.assign("/login");
+        }}
+        open={logoutOpen}
+        title="¿Cerrar sesión?"
+      />
     </main>
   );
 }

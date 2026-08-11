@@ -8,6 +8,7 @@ import { parsePeriodo, PERIODO_LABELS, rangoDelPeriodo } from "@/modules/sales/s
 import { findBusinessForInvoicing } from "@/modules/business/business.repository";
 import { SalesList } from "@/components/sales-list";
 import { SalesSummaryBar } from "@/components/sales-summary-bar";
+import { Reveal } from "@/components/reveal";
 import { loadMoreSalesAction } from "@/app/sales/actions";
 import { Plus } from "@/components/icons";
 import Link from "next/link";
@@ -45,7 +46,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
     // Sin tope de ancho en escritorio, igual que el mostrador: el historial es
     // una tabla, y una tabla encajonada en 1080px desperdicia media pantalla
     // mientras la columna del detalle corta los nombres con puntos suspensivos.
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-none lg:px-8">
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div>
           <p className="text-sm font-medium text-slate-500">Historial</p>
@@ -53,15 +54,16 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
         </div>
       </header>
 
-      <SalesSummaryBar
-        etiquetasDePago={PAYMENT_METHOD_LABELS}
-        metodo={metodo}
-        metodosDisponibles={metodosDisponibles}
-        periodo={periodo}
-        totales={totales}
-      />
+      <Reveal>
+        <SalesSummaryBar
+          etiquetasDePago={PAYMENT_METHOD_LABELS}
+          metodo={metodo}
+          metodosDisponibles={metodosDisponibles}
+          periodo={periodo}
+          totales={totales}
+        />
 
-      <SalesList
+        <SalesList
         businessName={context.business.name}
         emptyHint={
           metodo
@@ -76,6 +78,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
         totalDelPeriodo={totales.facturado}
         ventasDelPeriodo={totales.cantidad}
       />
+      </Reveal>
 
       <Link
         aria-label="Nueva venta"
