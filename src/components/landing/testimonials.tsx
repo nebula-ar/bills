@@ -13,12 +13,12 @@ export function TestimonialsSection() {
               Menos tiempo haciendo cuentas. Más tiempo atendiendo tu negocio.
             </h2>
           </div>
-          <p className="max-w-xs text-sm leading-6 text-slate-500">Una misma base para equipos de productos, servicios y comercios de barrio.</p>
+          <p className="max-w-xs text-sm leading-6 text-slate-600">Una misma base para equipos de productos, servicios y comercios de barrio.</p>
         </div>
 
         <div data-motion="stagger" className="mt-14 grid gap-4 md:grid-cols-3">
           {landingTestimonials.map((testimonial) => (
-            <article data-motion-item key={testimonial.author} className="flex min-h-[275px] flex-col justify-between rounded-3xl border border-slate-200 bg-bills-paper p-7">
+            <article data-motion-item key={testimonial.author} className="flex min-h-[275px] flex-col justify-between rounded-3xl border border-slate-200 bg-bills-paper p-7 transition-transform duration-200 hover:-translate-y-1 hover:shadow-[0_24px_50px_-24px_rgba(17,19,21,0.25)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-none">
               <div>
                 <Quote className="h-6 w-6 text-[var(--primary)]" aria-hidden="true" />
                 <p className="mt-7 text-base font-semibold leading-7 text-slate-700">“{testimonial.quote}”</p>
@@ -27,7 +27,7 @@ export function TestimonialsSection() {
                 <div className="grid h-10 w-10 place-items-center rounded-full bg-[var(--accent-brand)] text-sm font-black text-slate-950">{testimonial.author.charAt(0)}</div>
                 <div>
                   <p className="text-sm font-black text-slate-950">{testimonial.author}</p>
-                  <p className="text-xs font-semibold text-slate-500">{testimonial.role} · {testimonial.business}</p>
+                  <p className="text-xs font-semibold text-slate-600">{testimonial.role} · {testimonial.business}</p>
                 </div>
               </div>
             </article>

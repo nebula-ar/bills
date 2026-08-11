@@ -20,6 +20,7 @@
   --color-bills-paper: #f5f4ef;
   --color-bills-canvas: #fffef9;
   --color-bills-blue: #3158e8;
+  --color-bills-blue-strong: #1e3abf;
   --color-bills-blue-soft: #e8e9ff;
   --color-bills-lime: #d7ef62;
   --color-sidebar-ring: var(--sidebar-ring);
@@ -315,6 +316,15 @@ textarea {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* Guard de la landing: los reveals salen de `autoAlpha: 0` por JS. Si GSAP
+     no corre o la hidratación falla, el contenido quedaría invisible sin una
+     regla que lo fuerce a verse. En reduce nunca se anima, así que se muestra
+     directo. */
+  [data-motion] {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 

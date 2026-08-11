@@ -90,6 +90,10 @@ export function LandingMotion({ children }: { children: ReactNode }) {
                   start: "top 86%",
                   once: true,
                 },
+                // Al terminar, saca el transform inline: las cards/figures
+                // animadas vuelven a su estado natural y los hovers CSS
+                // (elevación) pueden actuar después del reveal.
+                clearProps: "all",
               });
             },
           );
@@ -110,6 +114,9 @@ export function LandingMotion({ children }: { children: ReactNode }) {
                   start: "top 82%",
                   once: true,
                 },
+                // Mismo motivo que arriba: sin esto, el transform inline que
+                // deja GSAP pisaría el hover de las cards (pricing/testimonios).
+                clearProps: "all",
               });
             },
           );

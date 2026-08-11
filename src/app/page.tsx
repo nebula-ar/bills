@@ -55,8 +55,14 @@ export default async function LandingPage() {
       <div className="min-h-screen bg-bills-paper font-sans text-bills-ink selection:bg-bills-lime">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <a
+        href="#contenido"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-slate-950 focus:px-4 focus:py-2.5 focus:text-sm focus:font-black focus:text-white"
+      >
+        Saltar al contenido
+      </a>
       <Navbar />
-      <main>
+      <main id="contenido">
         <HeroSection />
         <FeaturesSection />
         <AdaptableSection />
