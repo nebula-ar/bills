@@ -368,7 +368,7 @@ export function SalonManager({ data }: { data: SalonData }) {
   const primerSectorId = sectoresReales[0]?.id ?? "";
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-2xl overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-4xl lg:px-8">
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-2xl overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-4xl lg:px-8">
       <header className="flex flex-wrap items-start justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-primary">Bills</p>

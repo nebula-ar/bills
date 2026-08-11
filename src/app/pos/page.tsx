@@ -1,4 +1,5 @@
 import { PosTerminals } from "@/components/pos-terminals";
+import { Reveal } from "@/components/reveal";
 import { requireBusinessContext } from "@/lib/business-context";
 import { getSaleEntryBranches } from "@/modules/sales/get-sale-entry-options.use-case";
 import { diagnoseNoSaleBranches } from "@/modules/sales/sale.repository";
@@ -44,7 +45,7 @@ export default async function PosLauncherPage() {
   const businessName = branches[0]?.business.name ?? "Bills";
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-none lg:px-8">
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
       <header className="duration-500 animate-in fade-in slide-in-from-top-2">
         <p className="truncate text-sm font-medium text-slate-500">{businessName}</p>
         <h1 className="mt-0.5 text-2xl font-black tracking-tight text-slate-950">Puntos de venta</h1>
@@ -59,12 +60,13 @@ export default async function PosLauncherPage() {
           </Link>
         </div>
       ) : (
+        <Reveal>
         <ul className="mt-5 space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
-          {branches.map((branch, index) => (
+          {branches.map((branch) => (
             <li
-              className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-950/5 duration-500 animate-in fade-in slide-in-from-bottom-3"
+              className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-950/5"
+              data-reveal-item
               key={branch.id}
-              style={{ animationDelay: `${Math.min(index * 60, 360)}ms`, animationFillMode: "backwards" }}
             >
               <Link className="flex items-center gap-4 transition active:scale-[0.99]" href={`/sales/new?branchId=${branch.id}`}>
                 <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-sm shadow-primary/25">
@@ -100,6 +102,7 @@ export default async function PosLauncherPage() {
             </li>
           ))}
         </ul>
+        </Reveal>
       )}
     </main>
   );

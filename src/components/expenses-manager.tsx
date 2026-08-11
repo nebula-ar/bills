@@ -16,6 +16,7 @@ import {
 } from "@/app/expenses/actions";
 import { AnimatedMoney } from "@/components/animated-number";
 import { PeriodFade } from "@/components/period-fade";
+import { Reveal } from "@/components/reveal";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import {
   ChevronLeft,
@@ -484,7 +485,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-28 pt-6 text-slate-950 lg:max-w-none lg:px-8">
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -599,13 +600,10 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
             <p className="mt-1 text-xs text-slate-500">Tocá el botón «+» abajo para registrar lo primero.</p>
           </div>
         ) : (
+          <Reveal>
           <ul className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
-            {data.outflows.map((row, index) => (
-              <li
-                className="duration-500 animate-in fade-in slide-in-from-bottom-2"
-                key={`${row.kind}-${row.id}`}
-                style={{ animationDelay: `${Math.min(index * 30, 240)}ms`, animationFillMode: "backwards" }}
-              >
+            {data.outflows.map((row) => (
+              <li data-reveal-item key={`${row.kind}-${row.id}`}>
                 <button
                   className="flex w-full items-center gap-3 rounded-2xl bg-white p-3.5 text-left shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.99]"
                   onClick={() => (row.kind === "EXPENSE" ? setEditId(row.id) : setPayableId(row.purchaseId ?? null))}
@@ -634,6 +632,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
               </li>
             ))}
           </ul>
+          </Reveal>
         )}
         </PeriodFade>
       </div>
