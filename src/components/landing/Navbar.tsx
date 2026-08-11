@@ -69,7 +69,7 @@ export function Navbar() {
         <Link href="/" className="inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper">
           <BrandLogo variant="blue" height={32} className="-rotate-3" />
         </Link>
-        <div className="hidden items-center gap-7 text-sm font-bold text-slate-500 md:flex">
+        <div className="hidden items-center gap-7 text-sm font-bold text-slate-600 md:flex">
           <Link href="/#producto" className="rounded-lg transition hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper">Producto</Link>
           <Link href="/#rubros" className="rounded-lg transition hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper">Rubros</Link>
           <Link href="/#precios" className="rounded-lg transition hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper">Precios</Link>

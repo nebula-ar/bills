@@ -13,7 +13,7 @@ export function Footer() {
           <p className="mt-4 max-w-xs text-sm leading-6 text-slate-400">Gestión simple para negocios que quieren trabajar con más claridad.</p>
         </div>
         <div>
-          <p className="mb-4 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Producto</p>
+          <p className="mb-4 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Producto</p>
           <div className="space-y-2 text-sm font-semibold text-slate-300">
             <Link className="block rounded-lg transition hover:text-[var(--accent-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950" href="/#producto">Funciones</Link>
             <Link className="block rounded-lg transition hover:text-[var(--accent-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950" href="/#rubros">Rubros</Link>
@@ -21,7 +21,7 @@ export function Footer() {
           </div>
         </div>
         <div>
-          <p className="mb-4 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Empresa</p>
+          <p className="mb-4 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Empresa</p>
           <div className="space-y-2 text-sm font-semibold text-slate-300">
             <Link className="block rounded-lg transition hover:text-[var(--accent-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950" href="/about">Sobre Bills</Link>
             <Link className="block rounded-lg transition hover:text-[var(--accent-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950" href="/contact">Contacto</Link>
@@ -29,7 +29,7 @@ export function Footer() {
           </div>
         </div>
       </div>
-      <div className="mx-auto mt-14 flex max-w-7xl flex-col gap-2 border-t border-slate-800 pt-5 text-xs font-semibold text-slate-500 sm:flex-row sm:justify-between">
+      <div className="mx-auto mt-14 flex max-w-7xl flex-col gap-2 border-t border-slate-800 pt-5 text-xs font-semibold text-slate-400 sm:flex-row sm:justify-between">
         <span>© {new Date().getFullYear()} Bills</span>
         <span>Hecho para negocios de Argentina</span>
       </div>
