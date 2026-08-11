@@ -15,15 +15,15 @@ export function PricingSection() {
 
         <div data-motion="stagger" className="mt-14 grid items-start gap-4 lg:grid-cols-3">
           {landingPlans.map((plan) => (
-            <article data-motion-item key={plan.name} className={`relative flex h-full flex-col rounded-3xl border p-7 ${plan.highlighted ? "border-slate-950 bg-slate-950 text-white shadow-[0_24px_60px_-22px_rgba(17,19,21,0.7)] lg:-translate-y-3" : "border-slate-300 bg-bills-canvas"}`}>
+            <article data-motion-item key={plan.name} className={`relative flex h-full flex-col rounded-3xl border p-7 transition-transform duration-200 motion-reduce:transition-none ${plan.highlighted ? "border-slate-950 bg-slate-950 text-white shadow-[0_24px_60px_-22px_rgba(17,19,21,0.7)] lg:-translate-y-3 lg:hover:-translate-y-4" : "border-slate-300 bg-bills-canvas hover:-translate-y-1"}`}>
               {plan.highlighted ? <span className="absolute -top-3 left-7 rounded-full bg-[var(--accent-brand)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-slate-950">Más elegido</span> : null}
               <h3 className="text-xl font-black tracking-[-0.04em]">{plan.name}</h3>
-              <p className={`mt-3 min-h-12 text-sm leading-6 ${plan.highlighted ? "text-slate-300" : "text-slate-500"}`}>{plan.description}</p>
-              <div className="mt-7 flex items-baseline gap-2"><strong className="text-4xl font-black tracking-[-0.07em]">$ {plan.price}</strong><span className={plan.highlighted ? "text-slate-400" : "text-slate-500"}>ARS {plan.period}</span></div>
+              <p className={`mt-3 min-h-12 text-sm leading-6 ${plan.highlighted ? "text-slate-300" : "text-slate-600"}`}>{plan.description}</p>
+              <div className="mt-7 flex items-baseline gap-2"><strong className="text-4xl font-black tracking-[-0.07em]">$ {plan.price}</strong><span className={plan.highlighted ? "text-slate-400" : "text-slate-600"}>ARS {plan.period}</span></div>
               <ul className="mt-8 flex flex-1 flex-col gap-3">
                 {plan.features.map((feature) => <li key={feature} className={`flex items-start gap-2 text-sm leading-5 ${plan.highlighted ? "text-slate-200" : "text-slate-600"}`}><Check className={`mt-0.5 h-4 w-4 shrink-0 ${plan.highlighted ? "text-[var(--accent-brand)]" : "text-[var(--primary)]"}`} aria-hidden="true" />{feature}</li>)}
               </ul>
-              <Link href={plan.cta === "Hablar con ventas" ? "/contact" : "/register"} className={`mt-8 inline-flex min-h-12 items-center justify-center rounded-xl px-5 text-sm font-black transition hover:-translate-y-0.5 active:scale-95 ${plan.highlighted ? "bg-[var(--accent-brand)] text-slate-950 hover:bg-white" : "border border-slate-950 bg-slate-950 text-white hover:bg-[var(--primary)]"}`}>{plan.cta}</Link>
+              <Link href={plan.cta === "Hablar con ventas" ? "/contact" : "/register"} className={`mt-8 inline-flex min-h-12 items-center justify-center rounded-xl px-5 text-sm font-black transition hover:-translate-y-0.5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${plan.highlighted ? "bg-[var(--accent-brand)] text-slate-950 hover:bg-white focus-visible:ring-[var(--accent-brand)] focus-visible:ring-offset-slate-950" : "border border-slate-950 bg-slate-950 text-white hover:bg-[var(--primary)] focus-visible:ring-bills-blue focus-visible:ring-offset-bills-canvas"}`}>{plan.cta}</Link>
             </article>
           ))}
         </div>

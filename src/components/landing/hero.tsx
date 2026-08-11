@@ -35,7 +35,11 @@ function ExampleIcon({ example }: { example: RubroExample }) {
 
 function DashboardPreview({ example }: { example: RubroExample }) {
   return (
-    <div className="relative w-full max-w-[590px]">
+    // Mockup decorativo: los datos (nombres, montos, etiquetas) son de
+    // ejemplo y ya se anuncian por el copy real (aria-live del selector de
+    // rubro). Si el SR lo leyera completo, el árbol de headings quedaría con
+    // un H2 falso y la navegación leería todo el tablero.
+    <div aria-hidden="true" className="relative w-full max-w-[590px]">
       <div className="absolute -right-4 top-2 hidden rotate-3 text-xs font-bold text-slate-500 sm:block">
         Vista de ejemplo · se adapta a tu rubro
       </div>
@@ -57,7 +61,7 @@ function DashboardPreview({ example }: { example: RubroExample }) {
           </div>
         </div>
 
-        <div className="grid min-h-[395px] grid-cols-[88px_1fr] sm:grid-cols-[132px_1fr]">
+        <div className="grid min-h-[320px] grid-cols-[88px_1fr] sm:min-h-[395px] sm:grid-cols-[132px_1fr]">
           <aside className="border-r border-slate-200/80 px-1 py-5 sm:px-2">
             <div className="mb-6 flex items-center gap-2 px-1 text-xs font-black text-slate-950">
               <BrandLogo iconOnly height={24} variant="blue" />
@@ -165,9 +169,9 @@ export function HeroSection() {
 
   return (
     <section id="hero" className="relative overflow-hidden bg-bills-paper text-slate-950">
-      <div className="mx-auto grid min-h-[760px] max-w-7xl items-center gap-12 px-5 pb-20 pt-32 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20 lg:px-12 lg:pb-28 lg:pt-44">
+      <div className="mx-auto grid min-h-[640px] max-w-7xl items-center gap-10 px-5 pb-16 pt-28 sm:min-h-[760px] sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20 lg:px-12 lg:pb-28 lg:pt-44">
         <div data-motion="hero-copy">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/50 px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 sm:text-xs">
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/50 px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-slate-600 sm:text-xs">
             <span className="h-2 w-2 rounded-full bg-[var(--primary)] shadow-[0_0_0_4px_rgba(49,88,232,0.14)]" />
             {landingHero.eyebrow}
           </div>
@@ -178,17 +182,23 @@ export function HeroSection() {
             {heroDescription}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/register" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[var(--primary)] active:scale-95">
-              Empezar gratis <ArrowUpRight className="h-4 w-4" />
+            <Link
+              href="/register"
+              className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[var(--primary)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper"
+            >
+              Probá gratis <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transition-none" aria-hidden="true" />
             </Link>
-            <Link href="/#producto" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 px-5 text-sm font-black text-slate-700 transition hover:-translate-y-0.5 hover:bg-white active:scale-95">
+            <Link
+              href="/#producto"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 px-5 text-sm font-black text-slate-700 transition hover:-translate-y-0.5 hover:bg-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper"
+            >
               Ver cómo funciona
             </Link>
           </div>
-          <p className="mt-4 text-xs font-semibold text-slate-400">{landingHero.finePrint}</p>
+          <p className="mt-4 text-xs font-semibold text-slate-600">{landingHero.finePrint}</p>
 
           <div id="ejemplos" className="mt-10">
-            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">Elegí un ejemplo</p>
+            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.12em] text-slate-600">Elegí un ejemplo</p>
             <div className="flex flex-wrap gap-2" role="group" aria-label="Ejemplos por rubro">
               {rubroExamples.map((example) => {
                 const active = example.id === selectedId;
@@ -220,7 +230,7 @@ export function HeroSection() {
             aria-hidden="true"
             className="absolute right-0 top-[26%] hidden rotate-2 rounded-2xl bg-bills-blue px-4 py-3 text-white shadow-lg shadow-primary/25 sm:block lg:-right-7"
           >
-            <span className="block text-[9px] font-black uppercase tracking-[0.14em] text-primary-foreground/75">Ventas en vivo</span>
+            <span className="block text-[9px] font-black uppercase tracking-[0.14em] text-white">Ventas en vivo</span>
             <strong className="mt-1 block text-lg font-black tracking-[-0.05em]">+ $ 24.800</strong>
           </div>
           <div
@@ -228,7 +238,7 @@ export function HeroSection() {
             aria-hidden="true"
             className="absolute bottom-[27%] left-0 hidden -rotate-3 rounded-2xl border border-bills-ink bg-bills-lime px-4 py-3 text-bills-ink shadow-[6px_7px_0_var(--color-bills-ink)] sm:block lg:-left-8"
           >
-            <span className="block text-[9px] font-black uppercase tracking-[0.14em] text-slate-600">Stock al día</span>
+            <span className="block text-[9px] font-black uppercase tracking-[0.14em] text-bills-ink">Stock al día</span>
             <strong className="mt-1 block text-sm font-black">Sin sorpresas</strong>
           </div>
         </div>

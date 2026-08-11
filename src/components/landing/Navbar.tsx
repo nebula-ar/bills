@@ -66,18 +66,18 @@ export function Navbar() {
       }`}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
-        <Link href="/" className="inline-flex items-center gap-2.5">
+        <Link href="/" className="inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper">
           <BrandLogo variant="blue" height={32} className="-rotate-3" />
         </Link>
         <div className="hidden items-center gap-7 text-sm font-bold text-slate-500 md:flex">
-          <Link href="/#producto" className="transition hover:text-slate-950">Producto</Link>
-          <Link href="/#rubros" className="transition hover:text-slate-950">Rubros</Link>
-          <Link href="/#precios" className="transition hover:text-slate-950">Precios</Link>
-          <Link href="/#testimonios" className="transition hover:text-slate-950">Historias</Link>
+          <Link href="/#producto" className="rounded-lg transition hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper">Producto</Link>
+          <Link href="/#rubros" className="rounded-lg transition hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper">Rubros</Link>
+          <Link href="/#precios" className="rounded-lg transition hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper">Precios</Link>
+          <Link href="/#testimonios" className="rounded-lg transition hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper">Historias</Link>
         </div>
         <div className="flex items-center gap-4 text-sm font-extrabold">
-          <Link href="/login" className="hidden text-slate-600 transition hover:text-[var(--primary)] sm:inline">Iniciar sesión</Link>
-          <Link href="/register" className="rounded-full bg-slate-950 px-4 py-2.5 text-xs text-white transition hover:bg-[var(--primary)] active:scale-95 sm:px-5 sm:text-sm">Probá gratis</Link>
+          <Link href="/login" className="hidden rounded-lg text-slate-600 transition hover:text-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper sm:inline">Iniciar sesión</Link>
+          <Link href="/register" className="inline-flex min-h-11 items-center rounded-full bg-slate-950 px-4 py-2.5 text-xs text-white transition hover:bg-[var(--primary)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper sm:px-5 sm:text-sm">Probá gratis</Link>
           <button
             ref={menuButtonRef}
             type="button"
@@ -104,7 +104,7 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   onClick={closeMenu}
-                  className="py-3.5 text-sm font-bold text-slate-600 transition hover:text-slate-950"
+                  className="rounded-lg py-3.5 text-sm font-bold text-slate-600 transition hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper"
                 >
                   {link.label}
                 </Link>
@@ -112,7 +112,7 @@ export function Navbar() {
               <Link
                 href="/login"
                 onClick={closeMenu}
-                className="py-3.5 text-sm font-bold text-slate-600 transition hover:text-slate-950"
+                className="rounded-lg py-3.5 text-sm font-bold text-slate-600 transition hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bills-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bills-paper"
               >
                 Iniciar sesión
               </Link>

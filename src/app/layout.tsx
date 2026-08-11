@@ -52,10 +52,36 @@ const funnelSans = Funnel_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://barber-bills-tawny.vercel.app"),
+  // Dominio de producción propio (VPS). Sin esto, Next resuelve los OG/URLs
+  // relativos contra el host de despliegue viejo (Vercel) y compartir en
+  // redes sale con la URL equivocada.
+  metadataBase: new URL("https://bills.com.ar"),
   title: "Bills",
   description: "Ventas, caja, stock, clientes y proveedores para tu negocio",
   applicationName: "Bills",
+  openGraph: {
+    title: "Bills — gestioná tu negocio, no un Excel",
+    description:
+      "Ventas, caja, stock y clientes en un solo lugar. Se adapta a barberías, kioscos, tiendas y servicios de Argentina.",
+    url: "/",
+    siteName: "Bills",
+    locale: "es_AR",
+    type: "website",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Bills — gestión simple para tu negocio",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Bills — gestioná tu negocio, no un Excel",
+    description: "Ventas, caja, stock y clientes en un solo lugar.",
+    images: ["/og.png"],
+  },
   // Habilita "Agregar a inicio" en iOS a pantalla completa (modo standalone).
   appleWebApp: {
     capable: true,
