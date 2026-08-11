@@ -4,14 +4,11 @@ import { useEffect, useRef, useState } from "react";
 
 // Borrar en dos toques.
 //
-// Estos botones —eliminar un cliente, borrar un gasto, deshacer una
-// transferencia— ejecutaban al primer toque y no hay forma de recuperar lo
-// borrado. Anular una venta ya pedía confirmación; el resto no, sin ninguna
-// razón.
-//
-// Es un segundo toque y no un diálogo a propósito: los carteles de "¿estás
-// seguro?" se acumulan y la gente aprende a aceptarlos sin leer. Acá el propio
-// botón cambia de cara y se arrepiente solo a los pocos segundos.
+// Desde NEBU-36 los borrados de registros pasan por el ConfirmDialog (modal
+// con spinner y refresco del árbol, ver ConfirmDeleteButton). Queda para
+// acciones dentro de formularios que ya manejan estado y refresco desde el
+// cliente (p. ej. gastos): el propio botón cambia de cara y se arrepiente
+// solo a los pocos segundos.
 
 const REVERT_MS = 4000;
 

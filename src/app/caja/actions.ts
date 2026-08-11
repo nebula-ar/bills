@@ -80,19 +80,20 @@ export async function createTransferAction(formData: FormData) {
   redirectWithMessage("success", "Transferencia registrada.", branchId);
 }
 
-export async function deleteTransferAction(formData: FormData) {
+export type CashActionResult = { ok: boolean; message: string };
+
+export async function deleteTransferAction(formData: FormData): Promise<CashActionResult> {
   const session = await requireAdminSession();
-  const branchId = parseBranchId(formData);
   const transferId = parseString(formData, "transferId");
 
   try {
     await deleteBusinessTransfer({ businessId: session.user.businessId, transferId });
   } catch (error) {
     await logError("cash.transfer.delete", error, { businessId: session.user.businessId, userId: session.user.id });
-    redirectWithMessage("error", "No pudimos borrar la transferencia.", branchId);
+    return { ok: false, message: "No pudimos borrar la transferencia." };
   }
 
-  redirectWithMessage("success", "Transferencia borrada.", branchId);
+  return { ok: true, message: "Transferencia borrada." };
 }
 
 export async function createCashCloseAction(formData: FormData) {

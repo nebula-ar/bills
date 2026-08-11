@@ -2,7 +2,7 @@ import { AppShell, PageHeader } from "@/components/app-shell";
 import { PeriodFade } from "@/components/period-fade";
 import { StatTiles } from "@/components/stat-tiles";
 import { AppointmentFormHandler } from "@/components/appointment-form-handler";
-import { ConfirmSubmit } from "@/components/confirm-submit";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import {
   Badge,
   EmptyState,
@@ -22,7 +22,7 @@ import { getCustomersForSale } from "@/modules/customers/customer.use-cases";
 import { getStaffsForManagement } from "@/modules/staff/get-staff-for-management.use-case";
 import Link from "next/link";
 
-import { deleteAppointmentFormAction, setStatusFormAction } from "./actions";
+import { deleteAppointmentAction, setStatusFormAction } from "./actions";
 import { SelectField } from "@/components/ui/select-field";
 
 const timeFormatter = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -181,12 +181,23 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
                         </form>
                       ) : null}
 
-                      <form action={deleteAppointmentFormAction}>
-                        <input name="appointmentId" type="hidden" value={appointment.id} />
-                        <input name="day" type="hidden" value={toISODate(day)} />
-                        {/* Dos toques: borrar un turno no se puede deshacer. */}
-                        <ConfirmSubmit>Borrar</ConfirmSubmit>
-                      </form>
+                      <ConfirmDeleteButton
+                        action={deleteAppointmentAction}
+                        confirmLabel="Sí, borrar"
+                        description={
+                          <>
+                            Se va a borrar el turno de{" "}
+                            <span className="font-black">{who}</span> a las{" "}
+                            <span className="font-black">{timeFormatter.format(appointment.startsAt)}</span>.
+                            No se puede deshacer.
+                          </>
+                        }
+                        fields={{ appointmentId: appointment.id, day: toISODate(day) }}
+                        successMessage="Turno borrado."
+                        title="¿Borrar el turno?"
+                      >
+                        Borrar
+                      </ConfirmDeleteButton>
                     </div>
                   </div>
                 </li>

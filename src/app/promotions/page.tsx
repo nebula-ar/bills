@@ -1,7 +1,6 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
 import {
   Badge,
-  DangerButton,
   EmptyState,
   Field,
   formatMoney,
@@ -12,6 +11,7 @@ import {
   selectClass,
 } from "@/components/manager-ui";
 import { MoneyInput } from "@/components/money-input";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { AppModule, PromotionScope, PromotionType } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import {
@@ -105,10 +105,22 @@ export default async function PromotionsPage({ searchParams }: PromotionsPagePro
                       <input name="active" type="hidden" value={String(!promotion.active)} />
                       <GhostButton>{promotion.active ? "Pausar" : "Activar"}</GhostButton>
                     </form>
-                    <form action={deletePromotionAction}>
-                      <input name="promotionId" type="hidden" value={promotion.id} />
-                      <DangerButton>Eliminar</DangerButton>
-                    </form>
+                    <ConfirmDeleteButton
+                      action={deletePromotionAction}
+                      className="inline-flex min-h-11 items-center justify-center rounded-xl bg-rose-600 px-3 py-2 text-xs font-black text-white transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2 active:scale-95"
+                      confirmLabel="Sí, eliminar"
+                      description={
+                        <>
+                          Se elimina la promoción <span className="font-black">{promotion.name}</span> y deja de
+                          aplicarse al cobrar. No se puede deshacer.
+                        </>
+                      }
+                      fields={{ promotionId: promotion.id }}
+                      successMessage="Promoción eliminada."
+                      title="¿Eliminar la promoción?"
+                    >
+                      Eliminar
+                    </ConfirmDeleteButton>
                   </div>
                 </div>
               </li>

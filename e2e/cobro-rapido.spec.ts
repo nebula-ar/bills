@@ -52,7 +52,7 @@ test.describe("Cobrar rápido", () => {
   });
 });
 
-test.describe("Borrar cuesta dos toques", () => {
+test.describe("Borrar pide confirmación", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
   });
@@ -63,8 +63,12 @@ test.describe("Borrar cuesta dos toques", () => {
     const fila = page.getByRole("row").filter({ hasText: "Carla Suárez" });
     await fila.getByRole("button", { name: "Eliminar" }).click();
 
-    // El botón cambia de cara en vez de ejecutar.
-    await expect(fila.getByRole("button", { name: "Sí, borrar" })).toBeVisible();
+    // El modal pide confirmación antes de ejecutar el borrado.
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog.getByRole("button", { name: "Sí, borrar" })).toBeVisible();
+
+    // Cancelar no borra nada: el cliente sigue en la lista.
+    await dialog.getByRole("button", { name: "Cancelar" }).click();
     await expect(page.getByRole("link", { name: "Carla Suárez" })).toBeVisible();
   });
 });

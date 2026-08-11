@@ -120,16 +120,25 @@ export async function togglePromotionAction(formData: FormData) {
   back("success", "Listo.");
 }
 
-export async function deletePromotionAction(formData: FormData) {
+export type PromotionActionResult = { ok: boolean; message: string };
+
+export async function deletePromotionAction(formData: FormData): Promise<PromotionActionResult> {
   const { session } = await requireModule(AppModule.PROMOTIONS);
 
   try {
     await deletePromotion(text(formData, "promotionId"), session.user.businessId, session.user.id);
   } catch (error) {
-    handle(error, "promotion.delete", session.user.businessId, session.user.id);
+    return handleDelete(error, session.user.businessId, session.user.id);
   }
 
-  back("success", "Promoción eliminada.");
+  return { ok: true, message: "Promoción eliminada." };
+}
+
+function handleDelete(error: unknown, businessId: string, userId: string): PromotionActionResult {
+  if (error instanceof PromotionError) return { ok: false, message: getPromotionErrorMessageFor(error) };
+
+  void logError("promotion.delete", error, { businessId, userId });
+  return { ok: false, message: "No pudimos completar la operación. Intentá de nuevo." };
 }
 
 function handle(error: unknown, event: string, businessId: string, userId: string): never {

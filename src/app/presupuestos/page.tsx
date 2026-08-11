@@ -9,7 +9,7 @@ import {
   type Tone,
 } from "@/components/manager-ui";
 import { QuoteShare } from "@/components/quote-share";
-import { ConfirmSubmit } from "@/components/confirm-submit";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { AppModule, QuoteStatus } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { formatQuantity } from "@/lib/quantity";
@@ -169,11 +169,21 @@ export default async function PresupuestosPage() {
                           </>
                         ) : null}
 
-                        <form action={deleteQuoteAction}>
-                          <input name="quoteId" type="hidden" value={quote.id} />
-                          {/* Dos toques: borrar un presupuesto no se puede deshacer. */}
-                          <ConfirmSubmit>Borrar</ConfirmSubmit>
-                        </form>
+                        <ConfirmDeleteButton
+                          action={deleteQuoteAction}
+                          confirmLabel="Sí, borrar"
+                          description={
+                            <>
+                              Se borra el presupuesto <span className="font-black">#{quote.number}</span> de{" "}
+                              <span className="font-black">{who}</span>. No se puede deshacer.
+                            </>
+                          }
+                          fields={{ quoteId: quote.id }}
+                          successMessage="Presupuesto borrado."
+                          title="¿Borrar el presupuesto?"
+                        >
+                          Borrar
+                        </ConfirmDeleteButton>
                       </div>
                     </div>
                   </div>

@@ -75,16 +75,25 @@ export async function updateCustomerAction(formData: FormData) {
   back("success", "Cliente actualizado.", customerId);
 }
 
-export async function deleteCustomerAction(formData: FormData) {
+export async function deleteCustomerAction(formData: FormData): Promise<CustomerActionResult> {
   const { session } = await requireModule(AppModule.CUSTOMERS);
 
   try {
     await deleteCustomer(text(formData, "customerId"), session.user.businessId, session.user.id);
   } catch (error) {
-    handle(error, "customer.delete", session.user.businessId, session.user.id);
+    return handleDelete(error, session.user.businessId, session.user.id);
   }
 
-  back("success", "Cliente eliminado.");
+  return { ok: true, message: "Cliente eliminado." };
+}
+
+export type CustomerActionResult = { ok: boolean; message: string };
+
+function handleDelete(error: unknown, businessId: string, userId: string): CustomerActionResult {
+  if (error instanceof CustomerError) return { ok: false, message: getCustomerErrorMessageFor(error) };
+
+  void logError("customer.delete", error, { businessId, userId });
+  return { ok: false, message: "No pudimos completar la operación. Intentá de nuevo." };
 }
 
 // Cobro de fiado: entra plata de verdad, así que impacta en la caja de la sucursal.

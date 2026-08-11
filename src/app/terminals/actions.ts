@@ -57,24 +57,25 @@ export async function renameTerminalAction(formData: FormData) {
   redirectWithMessage("success", "Terminal actualizada.", branchId);
 }
 
-export async function deleteTerminalAction(formData: FormData) {
+export type TerminalActionResult = { ok: boolean; message: string };
+
+export async function deleteTerminalAction(formData: FormData): Promise<TerminalActionResult> {
   const session = await requireAdminSession();
 
-  const branchId = parseString(formData, "branchId");
   const terminalId = parseString(formData, "terminalId");
 
   if (!terminalId) {
-    redirectWithMessage("error", "No encontramos la terminal.", branchId);
+    return { ok: false, message: "No encontramos la terminal." };
   }
 
   try {
     await deleteBranchTerminal({ businessId: session.user.businessId, terminalId });
   } catch (error) {
     await logError("terminal.delete", error, { businessId: session.user.businessId, userId: session.user.id });
-    redirectWithMessage("error", "No pudimos borrar la terminal. Intentá de nuevo.", branchId);
+    return { ok: false, message: "No pudimos borrar la terminal. Intentá de nuevo." };
   }
 
-  redirectWithMessage("success", "Terminal borrada.", branchId);
+  return { ok: true, message: "Terminal borrada." };
 }
 
 function redirectWithMessage(status: "error" | "success", message: string, branchId?: string): never {
