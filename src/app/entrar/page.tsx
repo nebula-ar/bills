@@ -94,11 +94,11 @@ export default async function EntrarPage() {
               </p>
             )}
           </div>
+          </div>
+        </div>
 
-          <div className="shrink-0 border-t border-slate-200 pt-6 sm:mt-8">
-            <LogoutButton className="-ml-2 px-2" />
-          </div>
-          </div>
+        <div className="shrink-0 border-t border-slate-200 pt-6 sm:mt-8">
+          <LogoutButton className="-ml-2 px-2" />
         </div>
       </section>
     </main>
