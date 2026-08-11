@@ -40,7 +40,11 @@ test.describe("Autenticación admin", () => {
     await page.reload();
     await expect(page.getByRole("link", { name: /^Panel/ })).toBeVisible();
 
+    // NEBU-33: cerrar sesión pasa por el diálogo de confirmación informativo
+    // (ConfirmDialog) antes de redirigir a /login.
     await page.getByRole("button", { name: "Cerrar sesión" }).click();
+    await page.getByRole("alertdialog").waitFor();
+    await page.getByRole("button", { name: "Sí, cerrar sesión" }).click();
     await expect(page).toHaveURL(/\/login/);
     await page.goto("/sales");
     await expect(page).toHaveURL(/\/login/);
