@@ -40,7 +40,8 @@ export default async function EntrarPage() {
       {/* En celular ocupa toda la pantalla (es una PWA y esta es la primera
           pantalla real de la sesión); de sm para arriba se vuelve tarjeta. */}
       <section className="flex w-full flex-1 flex-col bg-[var(--card)] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:min-h-0 sm:max-w-[26rem] sm:flex-none sm:rounded-3xl sm:border sm:border-slate-950/10 sm:px-8 sm:py-10 sm:shadow-[0_30px_80px_-20px_rgba(17,19,21,0.32)]">
-        <div className="flex flex-1 flex-col justify-center gap-7 sm:flex-none">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto sm:flex-none">
+          <div className="m-auto flex w-full flex-col gap-7 sm:m-0">
           <div className="grid gap-5">
             {/* La marca real de master reemplaza a la "B" dibujada a mano. */}
             <span className="inline-flex w-fit items-center gap-2.5">
@@ -93,10 +94,11 @@ export default async function EntrarPage() {
               </p>
             )}
           </div>
-        </div>
 
-        <div className="shrink-0 border-t border-slate-200 pt-6 sm:mt-8">
-          <LogoutButton className="-ml-2 px-2" />
+          <div className="shrink-0 border-t border-slate-200 pt-6 sm:mt-8">
+            <LogoutButton className="-ml-2 px-2" />
+          </div>
+          </div>
         </div>
       </section>
     </main>
