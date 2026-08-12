@@ -48,7 +48,11 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       {/* Sin tope de ancho en escritorio, igual que el mostrador: el historial es
           una tabla, y una tabla encajonada en 1080px desperdicia media pantalla
           mientras la columna del detalle corta los nombres con puntos suspensivos. */}
-      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
+      {/* En mobile el botón «+» flota a 96px del borde y mide 56px (tope a
+          152px). El colchón de abajo tiene que dejar el último ítem por
+          ENCIMA de ese tope, o el «+» tapa el importe de la última fila
+          (NEBU-42). 11rem = 176px: 24px de aire sobre el botón. */}
+      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+11rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 lg:pb-[calc(env(safe-area-inset-bottom)+7rem)]">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div>
           <p className="text-sm font-medium text-slate-500">Historial</p>
