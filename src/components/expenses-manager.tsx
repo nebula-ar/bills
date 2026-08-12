@@ -488,7 +488,10 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
 
   return (
     <PageEnter>
-      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
+      {/* El colchón de abajo deja el último ítem por encima del botón «+»
+          flotante (96px + 56px = tope a 152px; 11rem = 176px le da 24px de
+          aire). Sin esto el «+» tapa la última fila (NEBU-42). */}
+      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+11rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 lg:pb-[calc(env(safe-area-inset-bottom)+7rem)]">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -982,7 +985,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
 // placeholder en las posiciones de los datos.
 export function ExpensesManagerSkeleton() {
   return (
-    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+11rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 lg:pb-[calc(env(safe-area-inset-bottom)+7rem)]">
       <header className="flex items-center justify-between gap-4">
         <div className="min-w-0">
           <Skeleton className="h-4 w-32" />
