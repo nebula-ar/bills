@@ -2,6 +2,8 @@
 
 import { createStaff, updateStaff } from "@/app/staff/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { PageEnter } from "@/components/page-enter";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Check, DynamicIcon, KeyRound, MapPin, Plus, X } from "@/components/icons";
 import { useState } from "react";
 import { SelectField } from "@/components/ui/select-field";
@@ -133,7 +135,8 @@ export function StaffsManager({ data }: { data: StaffsData }) {
   const noBranches = data.branches.length === 0;
 
   return (
-    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 duration-300 animate-in fade-in">
+    <PageEnter>
+      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -338,6 +341,40 @@ export function StaffsManager({ data }: { data: StaffsData }) {
       >
         <Plus className="size-6" />
       </button>
+    </main>
+    </PageEnter>
+  );
+}
+
+// Estado skeleton de StaffManager: mismo shell, header y filas de empleado
+// (icono, nombre, sucursal, chips de estado) que el componente real.
+export function StaffManagerSkeleton() {
+  return (
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
+      <header className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="mt-2 h-7 w-32" />
+        </div>
+      </header>
+
+      <div className="mt-4 space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div className="flex w-full items-center gap-3 rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-slate-950/5" key={index}>
+            <Skeleton className="size-11 shrink-0 rounded-2xl" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-4 w-1/3 max-w-40" />
+              <Skeleton className="h-3 w-1/2 max-w-32" />
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-1.5">
+              <Skeleton className="h-5 w-14 rounded-full" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <Skeleton className="fixed bottom-[96px] right-4 z-40 size-14 rounded-full md:bottom-8 md:right-8" />
     </main>
   );
 }

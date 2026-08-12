@@ -3,6 +3,8 @@
 import { useMemo, useState, useTransition } from "react";
 
 import { generateCertificate, updateFiscalData } from "@/app/facturacion/actions";
+import { PageEnter } from "@/components/page-enter";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TaxCondition } from "@/generated/prisma/enums";
 import { CheckCircle2, Eye, EyeOff, KeyRound, Loader2, Lock, ReceiptText } from "@/components/icons";
 import { TAX_CONDITION_LABELS } from "@/lib/invoice-labels";
@@ -41,7 +43,8 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
   }
 
   return (
-    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-[720px] lg:px-8 duration-300 animate-in fade-in">
+    <PageEnter>
+      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-[720px] lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -208,6 +211,47 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
             </button>
           </form>
         )}
+      </div>
+    </main>
+    </PageEnter>
+  );
+}
+
+// Estado skeleton de FiscalProfileManager: mismo shell, header y tarjeta de
+// datos fiscales (CUIT, condición IVA, punto de venta, botones) que el
+// componente real.
+export function FiscalProfileManagerSkeleton() {
+  return (
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-[720px] lg:px-8">
+      <header className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="mt-2 h-7 w-36" />
+        </div>
+      </header>
+
+      {/* Datos fiscales */}
+      <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-950/5">
+        <div className="mb-4 flex items-center gap-2.5">
+          <Skeleton className="size-9 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-56" />
+          </div>
+          <Skeleton className="h-5 w-16 shrink-0 rounded-full" />
+        </div>
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div className="space-y-2" key={index}>
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-12 w-full rounded-2xl" />
+            </div>
+          ))}
+          <div className="flex gap-3">
+            <Skeleton className="h-11 w-32 rounded-xl" />
+            <Skeleton className="h-11 flex-1 rounded-xl" />
+          </div>
+        </div>
       </div>
     </main>
   );

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { SelectField } from "@/components/ui/select-field";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ProductStockPanel } from "@/components/product-stock-panel";
 import { Package, Plus, Search, TriangleAlert, X } from "@/components/icons";
 import type { Unit } from "@/generated/prisma/enums";
@@ -464,6 +465,70 @@ export function StockEmpty() {
       <p className="mt-1 text-xs text-slate-500">
         Marcalo como producto físico en su ficha para empezar a contarlo.
       </p>
+    </div>
+  );
+}
+
+// Estado skeleton de StockManager: banner de sin stock, pestañas, buscador,
+// chips de filtro y filas de producto (foto redonda, nombre, badge, categoría,
+// cantidad y botón) en las mismas posiciones del componente real.
+export function StockManagerSkeleton() {
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Banner sin stock */}
+      <div className="flex items-center justify-between gap-3 rounded-2xl bg-rose-50 px-4 py-3.5">
+        <div className="flex min-w-0 items-center gap-3">
+          <Skeleton className="size-9 shrink-0 rounded-full" />
+          <div className="min-w-0 space-y-1.5">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-64 max-w-full" />
+          </div>
+        </div>
+        <Skeleton className="h-4 w-24 shrink-0" />
+      </div>
+
+      {/* Pestañas + botón */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200">
+        <div className="flex gap-2">
+          {["w-24", "w-20"].map((width, index) => (
+            <Skeleton className={`-mb-px h-8 border-b-2 border-transparent ${width}`} key={index} />
+          ))}
+        </div>
+        <Skeleton className="mb-1.5 h-9 w-28 rounded-full" />
+      </div>
+
+      {/* Buscador */}
+      <div className="relative">
+        <Skeleton className="h-11 w-full rounded-2xl" />
+      </div>
+
+      {/* Chips de filtro */}
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {["w-20", "w-24", "w-28", "w-28"].map((width, index) => (
+          <Skeleton className={`h-9 shrink-0 rounded-full ${width}`} key={index} />
+        ))}
+      </div>
+
+      {/* Filas de producto */}
+      <ul className="flex flex-col gap-2.5">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <li className="flex items-center gap-3 rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-slate-950/5" key={index}>
+            <Skeleton className="size-11 shrink-0 rounded-full" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Skeleton className="h-4 w-1/3 max-w-36" />
+                <Skeleton className="h-4 w-14 rounded-full" />
+              </div>
+              <Skeleton className="h-3 w-2/3 max-w-48" />
+            </div>
+            <div className="hidden shrink-0 space-y-1.5 text-right sm:block">
+              <Skeleton className="ml-auto h-4 w-14" />
+              <Skeleton className="ml-auto h-3 w-20" />
+            </div>
+            <Skeleton className="h-9 w-20 shrink-0 rounded-xl" />
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

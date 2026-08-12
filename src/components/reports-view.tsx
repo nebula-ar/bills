@@ -3,6 +3,7 @@
 import { AnimatedMoney } from "@/components/animated-number";
 import { PAYMENT_DONUT_COLORS } from "@/components/reports-charts-colors";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 import { DASHBOARD_RANGE_LABELS, DashboardRange, type DashboardRangeKey } from "@/lib/dashboard-range";
 import { formatQuantity } from "@/lib/quantity";
 import {
@@ -30,8 +31,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ComponentType, type ReactNode } from "react";
 import { SelectField } from "@/components/ui/select-field";
-
-import { Skeleton } from "@/components/ui/skeleton";
 
 // Charts basados en recharts (dependencia grande): se cargan en el cliente, on
 // demand, para no engordar el bundle inicial del dashboard.
@@ -901,3 +900,79 @@ function Empty({ children }: { children: ReactNode }) {
   return <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">{children}</p>;
 }
 
+
+// Estado skeleton de ReportsView (dashboard): mismo shell, header, chips de
+// período, hero + KPIs, paneles de análisis y últimas ventas que el componente
+// real — con bloques placeholder en las posiciones de los datos.
+export function ReportsViewSkeleton() {
+  return (
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
+      {/* Header */}
+      <header className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="mt-2 h-7 w-32" />
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Skeleton className="size-11 rounded-full" />
+          <Skeleton className="size-11 rounded-full" />
+        </div>
+      </header>
+
+      {/* Chips de período + filtro */}
+      <div className="mt-5 flex items-center gap-2">
+        <Skeleton className="h-9 w-16 rounded-full" />
+        <Skeleton className="h-9 w-14 rounded-full" />
+        <Skeleton className="h-9 w-14 rounded-full" />
+        <Skeleton className="ml-auto size-10 rounded-full" />
+      </div>
+
+      {/* Hero + KPIs */}
+      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-12">
+        <Skeleton className="h-44 rounded-3xl lg:col-span-7" />
+        <div className="grid grid-cols-2 gap-3 lg:col-span-5 lg:content-start">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton className="h-24 rounded-2xl" key={index} />
+          ))}
+        </div>
+      </div>
+
+      {/* Paneles de análisis */}
+      <div className="mt-4 space-y-3 lg:columns-2 lg:gap-4">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div className="mb-4 break-inside-avoid rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-950/5" key={index}>
+            <div className="flex items-center gap-2">
+              <Skeleton className="size-4 rounded-full" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <div className="mt-4 space-y-3">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Últimas ventas */}
+      <div className="mb-4 mt-4 space-y-3">
+        <Skeleton className="h-5 w-32" />
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div className="flex items-center gap-3 px-4 py-3" key={index}>
+              <Skeleton className="size-11 shrink-0 rounded-2xl" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4 w-1/3 max-w-40" />
+                <Skeleton className="h-3 w-2/3 max-w-56" />
+              </div>
+              <div className="shrink-0 space-y-2 text-right">
+                <Skeleton className="ml-auto h-4 w-16" />
+                <Skeleton className="ml-auto h-3 w-12" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
