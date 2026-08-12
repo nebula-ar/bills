@@ -3,6 +3,7 @@
 import { cancelSaleAction, emitInvoiceAction } from "@/app/sales/actions";
 import { AfipQrCode } from "@/components/afip-qr-code";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { AfipStatus, InvoiceType } from "@/generated/prisma/client";
 import { AFIP_STATUS_LABELS } from "@/lib/invoice-labels";
 import { Ban, CheckCircle2, Loader2, QrCode, ReceiptText, TriangleAlert, X, RotateCcw } from "@/components/icons";
@@ -530,6 +531,79 @@ export function SalesList({
         }}
         saleId={returning}
       />
+    </>
+  );
+}
+
+// Estado skeleton de SalesList: la tabla de escritorio (Hora / Atendió /
+// Detalle / Pago / Comprobante / Total) y las tarjetas del celular, con
+// bloques placeholder en las mismas posiciones que el componente real.
+export function SalesListSkeleton() {
+  return (
+    <>
+      <div className="mt-4 hidden overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5 lg:block">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-slate-100 text-left">
+              {["Hora", "Atendió", "Detalle", "Pago", "Comprobante", "Total"].map((col) => (
+                <th className="px-4 py-3 text-xs font-bold text-slate-400" key={col}>
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 8 }).map((_, index) => (
+              <tr className="border-b border-slate-50 last:border-0" key={index}>
+                <td className="px-4 py-3">
+                  <Skeleton className="h-4 w-12" />
+                </td>
+                <td className="px-4 py-3">
+                  <Skeleton className="h-4 w-24" />
+                </td>
+                <td className="w-full max-w-0 px-4 py-3">
+                  <Skeleton className="h-4 w-full max-w-64" />
+                </td>
+                <td className="px-4 py-3">
+                  <Skeleton className="h-4 w-16" />
+                </td>
+                <td className="px-4 py-3">
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <Skeleton className="ml-auto h-4 w-16" />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-slate-100 bg-slate-50">
+              <td className="px-4 py-3" colSpan={4}>
+                <Skeleton className="h-4 w-32" />
+              </td>
+              <td colSpan={2}>
+                <Skeleton className="ml-auto h-5 w-24" />
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <ul className="mt-4 space-y-2.5 lg:hidden">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <li className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-slate-950/5" key={index}>
+            <Skeleton className="size-11 shrink-0 rounded-2xl" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-4 w-1/3 max-w-40" />
+              <Skeleton className="h-3 w-2/3 max-w-56" />
+            </div>
+            <div className="shrink-0 space-y-2 text-right">
+              <Skeleton className="ml-auto h-4 w-16" />
+              <Skeleton className="ml-auto h-3 w-12" />
+            </div>
+          </li>
+        ))}
+      </ul>
     </>
   );
 }

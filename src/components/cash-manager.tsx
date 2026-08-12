@@ -2,7 +2,9 @@
 
 import { createCashCloseAction, createTransferAction, deleteTransferAction, saveOpeningBalancesAction } from "@/app/caja/actions";
 import { AnimatedMoney } from "@/components/animated-number";
+import { PageEnter } from "@/components/page-enter";
 import { PeriodFade } from "@/components/period-fade";
+import { Skeleton } from "@/components/ui/skeleton";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { MoneyInput } from "@/components/money-input";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
@@ -66,7 +68,8 @@ export function CashManager({ data }: { data: CashData }) {
   }
 
   return (
-    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 duration-300 animate-in fade-in">
+    <PageEnter>
+      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -349,6 +352,7 @@ export function CashManager({ data }: { data: CashData }) {
         </form>
       </BottomSheet>
     </main>
+    </PageEnter>
   );
 }
 
@@ -445,5 +449,87 @@ function MethodSelect({
         <SelectField ariaLabel={name} defaultValue={defaultValue} name={name} options={options} />
       </div>
     </label>
+  );
+}
+
+// Estado skeleton de CashManager: mismo shell, header, chips de sucursal, hero
+// de saldo, acciones y paneles que el componente real — con bloques placeholder
+// en las posiciones de los datos. Co-locado: el skeleton respeta el layout.
+export function CashManagerSkeleton() {
+  return (
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
+      <header className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="mt-2 h-7 w-20" />
+        </div>
+      </header>
+
+      {/* Chips de sucursal */}
+      <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {["w-28", "w-24", "w-20"].map((width, index) => (
+          <Skeleton className={`h-9 shrink-0 rounded-full ${width}`} key={index} />
+        ))}
+      </div>
+
+      {/* Hero: saldo total */}
+      <div className="mt-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-lg">
+        <Skeleton className="h-4 w-36 bg-white/20" />
+        <Skeleton className="mt-3 h-9 w-44 bg-white/20" />
+        <Skeleton className="mt-3 h-3 w-56 bg-white/20" />
+      </div>
+
+      {/* Acciones */}
+      <div className="mt-3 grid grid-cols-3 gap-2.5">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div className="flex flex-col items-center gap-2 rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-slate-950/5" key={index}>
+            <Skeleton className="size-9 rounded-full" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+        ))}
+      </div>
+
+      {/* Paneles: saldo por cuenta + transferencias */}
+      <div className="mt-4 space-y-3 lg:columns-2 lg:gap-4">
+        <div className="mb-4 break-inside-avoid rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-950/5">
+          <div className="flex items-center gap-2">
+            <Skeleton className="size-4 rounded-full" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <div className="mt-4 space-y-2.5">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div className="rounded-2xl bg-slate-50 p-3" key={index}>
+                <div className="flex items-center justify-between gap-3">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+                <div className="mt-1.5 flex items-center gap-3">
+                  <Skeleton className="h-3 w-14" />
+                  <Skeleton className="h-3 w-14" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-4 break-inside-avoid rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-950/5">
+          <div className="flex items-center gap-2">
+            <Skeleton className="size-4 rounded-full" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+          <div className="mt-4 space-y-2">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3" key={index}>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Skeleton className="h-4 w-2/3 max-w-40" />
+                  <Skeleton className="h-3 w-1/2 max-w-32" />
+                </div>
+                <Skeleton className="h-4 w-16 shrink-0" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }

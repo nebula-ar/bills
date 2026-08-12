@@ -8,6 +8,7 @@ import { parsePeriodo, PERIODO_LABELS, rangoDelPeriodo } from "@/modules/sales/s
 import { findBusinessForInvoicing } from "@/modules/business/business.repository";
 import { SalesList } from "@/components/sales-list";
 import { SalesSummaryBar } from "@/components/sales-summary-bar";
+import { PageEnter } from "@/components/page-enter";
 import { Reveal } from "@/components/reveal";
 import { loadMoreSalesAction } from "@/app/sales/actions";
 import { Plus } from "@/components/icons";
@@ -43,10 +44,11 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
   const viewSales = sales.map((sale) => toSalesListSale(sale, businessBasics));
 
   return (
-    // Sin tope de ancho en escritorio, igual que el mostrador: el historial es
-    // una tabla, y una tabla encajonada en 1080px desperdicia media pantalla
-    // mientras la columna del detalle corta los nombres con puntos suspensivos.
-    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 duration-300 animate-in fade-in">
+    <PageEnter>
+      {/* Sin tope de ancho en escritorio, igual que el mostrador: el historial es
+          una tabla, y una tabla encajonada en 1080px desperdicia media pantalla
+          mientras la columna del detalle corta los nombres con puntos suspensivos. */}
+      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div>
           <p className="text-sm font-medium text-slate-500">Historial</p>
@@ -88,5 +90,6 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
         <Plus className="size-6" />
       </Link>
     </main>
+    </PageEnter>
   );
 }

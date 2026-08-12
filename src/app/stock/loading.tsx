@@ -1,19 +1,18 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { SkeletonAppShell, SkeletonList, SkeletonPageHeader, SkeletonStage, SkeletonStatCard } from "@/components/skeleton-patterns";
+import { StatTilesSkeleton } from "@/components/stat-tiles";
+import { StockManagerSkeleton } from "@/components/stock-manager";
+import { SkeletonAppShell, SkeletonPageHeader, SkeletonStage } from "@/components/skeleton-patterns";
 
-// Skeleton de stock: header + aviso + tiles de métricas + lista de productos.
+// Skeleton de stock: header + aviso + tiles reales (StatTilesSkeleton) + el
+// estado skeleton real de StockManager (pestañas, buscador, filas).
 export default function Loading() {
   return (
     <SkeletonStage>
       <SkeletonAppShell maxWidth="lg">
         <SkeletonPageHeader description={true} />
         <Skeleton className="h-12 rounded-2xl" />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <SkeletonStatCard key={index} />
-          ))}
-        </div>
-        <SkeletonList avatar={false} rows={5} />
+        <StatTilesSkeleton />
+        <StockManagerSkeleton />
       </SkeletonAppShell>
     </SkeletonStage>
   );

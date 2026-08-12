@@ -1,8 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { SkeletonFAB, SkeletonList, SkeletonStage } from "@/components/skeleton-patterns";
+import { SalesListSkeleton } from "@/components/sales-list";
+import { SalesSummaryBarSkeleton } from "@/components/sales-summary-bar";
+import { SkeletonStage } from "@/components/skeleton-patterns";
 
-// Skeleton del historial de ventas: header + barra de resumen + lista de
-// ventas + FAB, mismo layout que /sales.
+// Skeleton del historial de ventas: header + barra de resumen + lista (tabla
+// en escritorio, tarjetas en mobile), los skeletons reales de cada componente.
 export default function Loading() {
   return (
     <SkeletonStage>
@@ -14,15 +16,8 @@ export default function Loading() {
           </div>
         </header>
 
-        {/* Barra de resumen del período */}
-        <Skeleton className="mt-4 h-20 rounded-2xl" />
-
-        {/* Lista de ventas */}
-        <div className="mt-4">
-          <SkeletonList avatar={true} rows={6} />
-        </div>
-
-        <SkeletonFAB />
+        <SalesSummaryBarSkeleton />
+        <SalesListSkeleton />
       </main>
     </SkeletonStage>
   );

@@ -1,25 +1,8 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { SkeletonFAB, SkeletonList, SkeletonSearchBar, SkeletonStage } from "@/components/skeleton-patterns";
+import { StaffManagerSkeleton } from "@/components/staff-manager";
 
-// Skeleton del personal: header + buscador + lista de empleados + FAB, mismo
-// layout que /staff.
+// Skeleton del personal: el estado skeleton real de StaffManager, co-locado en
+// el componente — misma silueta (header, filas de empleado) que el contenido
+// que lo va a reemplazar.
 export default function Loading() {
-  return (
-    <SkeletonStage>
-      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 lg:max-w-none lg:px-8">
-        <header className="flex items-center justify-between gap-4">
-          <Skeleton className="h-7 w-32" />
-          <Skeleton className="h-10 w-24 rounded-xl" />
-        </header>
-
-        <SkeletonSearchBar className="mt-4" />
-
-        <div className="mt-4">
-          <SkeletonList avatar={true} rows={6} />
-        </div>
-
-        <SkeletonFAB />
-      </main>
-    </SkeletonStage>
-  );
+  return <StaffManagerSkeleton />;
 }

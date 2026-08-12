@@ -5,6 +5,8 @@ import { resizeImageForUpload } from "@/lib/image-resize";
 import { newProductSteps, puedeAvanzar } from "@/modules/catalog/new-product-steps.logic";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Reveal } from "@/components/reveal";
+import { PageEnter } from "@/components/page-enter";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MoneyInput } from "@/components/money-input";
 import { CatalogScanButton } from "@/components/catalog-scan-button";
 import { VariantGenerator } from "@/components/variant-generator";
@@ -340,7 +342,8 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   }
 
   return (
-    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 duration-300 animate-in fade-in">
+    <PageEnter>
+      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -1073,6 +1076,58 @@ export function ProductsManager({ data }: { data: ProductsData }) {
       >
         <Plus className="size-6" />
       </button>
+    </main>
+    </PageEnter>
+  );
+}
+
+// Estado skeleton de ProductsManager (catálogo): mismo shell, header con
+// botones, chips de sucursal, buscador y filas de producto que el componente
+// real — con bloques placeholder en las posiciones de los datos.
+export function ProductsManagerSkeleton() {
+  return (
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
+      <header className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="mt-2 h-7 w-36" />
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <Skeleton className="h-10 w-24 rounded-xl" />
+          <Skeleton className="h-10 w-28 rounded-xl" />
+        </div>
+      </header>
+
+      {/* Chips de sucursal */}
+      <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {["w-28", "w-24", "w-20"].map((width, index) => (
+          <Skeleton className={`h-9 shrink-0 rounded-full ${width}`} key={index} />
+        ))}
+      </div>
+
+      {/* Buscador */}
+      <div className="relative mt-4">
+        <Skeleton className="h-12 w-full rounded-2xl" />
+      </div>
+
+      {/* Filas de producto */}
+      <div className="mt-4 space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div className="flex w-full items-center gap-3 rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-slate-950/5" key={index}>
+            <Skeleton className="size-11 shrink-0 rounded-2xl" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-1/3 max-w-36" />
+                <Skeleton className="h-4 w-14 rounded-full" />
+              </div>
+              <Skeleton className="h-3 w-2/3 max-w-52" />
+            </div>
+            <Skeleton className="h-5 w-14 shrink-0" />
+          </div>
+        ))}
+      </div>
+
+      <Skeleton className="fixed bottom-[96px] right-4 z-40 size-14 rounded-full md:bottom-8 md:right-8" />
     </main>
   );
 }
