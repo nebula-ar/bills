@@ -4,7 +4,7 @@ context: |
   Tech stack: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Prisma 7.
   Architecture: Server-component routes with actions.ts; domain modules split into repository/use-case/logic/errors.
   Data: PostgreSQL 17 is the single source of truth; Supabase Auth owns credentials and sessions.
-  Testing: Vitest unit tests and Playwright E2E against a disposable local Supabase/PostgreSQL stack.
+  Testing: Vitest unit tests.
   Style: ESLint with Next core-web-vitals + TypeScript; strict TypeScript; @/ path alias.
 
 strict_tdd: true
@@ -18,7 +18,7 @@ testing:
   layers:
     unit: { available: true, tool: Vitest }
     integration: { available: true, tool: Supabase CLI + PostgreSQL 17 }
-    e2e: { available: true, tool: Playwright }
+    e2e: { available: false, tool: Playwright }
   coverage:
     available: false
     command: null
@@ -45,7 +45,7 @@ rules:
     - Follow existing code patterns and module boundaries
     - Preserve monetary, quantity, stock, reversal, and public-token invariants in AGENTS.md
   verify:
-    - Run npx tsc --noEmit, npm test, npm run build, and npm run e2e when applicable
+    - Run npx tsc --noEmit, npm test, and npm run build when applicable
     - Compare implementation against every spec scenario
   archive:
     - Warn before merging destructive deltas (large removals)

@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 import { cleanCode, roiFrame } from "./barcode";
 
 // El lector de códigos no se puede probar con la cámara headless (el flag de
-// Chrome para usar un archivo como cámara no funciona en el navegador que trae
-// Playwright), así que se prueba lo que sí se puede: la cuenta del recorte, y
+// Chrome para usar un archivo como cámara no funciona en un navegador headless),
+// así que se prueba lo que sí se puede: la cuenta del recorte, y
 // que el decodificador configurado como lo configuramos lea un EAN-13 real.
 //
 // El código de barras se dibuja acá con una implementación propia del estándar.

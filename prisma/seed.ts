@@ -21,7 +21,7 @@ import { prisma } from "../src/lib/prisma";
 
 // Datos de demo de un kiosco: el rubro que ejercita TODOS los módulos a la vez
 // (stock por unidad y por peso, proveedores con vencimientos, promociones y
-// fiado). Sirve para desarrollo y es la base de los tests E2E.
+// fiado). Sirve para desarrollo y como base de datos de prueba.
 
 // Días hacia atrás (incluye hoy) que cubre la data.
 const SEED_DAYS = 15;
