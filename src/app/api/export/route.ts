@@ -27,8 +27,9 @@ export async function GET(request: NextRequest) {
     return new Response("Formato desconocido", { status: 400 });
   }
 
-  // Un dataset que no sale en ese formato (ej. gastos en PDF) es un error del
-  // que pide, no una caída: se avisa y no se arma nada.
+  // Todos los datasets salen en CSV, Excel y PDF (ver EXPORT_DATASETS); si un
+  // formato pedido no estuviera disponible es un error del que pide, no una
+  // caída: se avisa y no se arma nada.
   if (!exportFormatsFor(dataset).includes(format)) {
     return new Response("Ese dataset no sale en el formato pedido", { status: 400 });
   }
