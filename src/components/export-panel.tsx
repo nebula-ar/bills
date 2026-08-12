@@ -39,7 +39,17 @@ export function ExportPanel({
 
     setPending(key);
     try {
-      const response = await fetch(url, { credentials: "same-origin" });
+      // `manual` en vez del default: si la sesión venció, el route handler
+      // responde un redirect al login y el default lo seguiría descargando el
+      // HTML del login como si fuera el archivo. Con manual la redirección se
+      // ve y se avisa antes de bajar nada.
+      const response = await fetch(url, { credentials: "same-origin", redirect: "manual" });
+
+      // Redirección al login: sesión vencida con la página abierta.
+      if (response.type === "opaqueredirect") {
+        toast.error("Tu sesión expiró. Volvé a entrar y reintentá la descarga.");
+        return;
+      }
 
       if (!response.ok) {
         const message = await response.text();
