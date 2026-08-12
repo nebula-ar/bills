@@ -55,14 +55,15 @@ export const EXPORT_DATASETS: { value: ExportDataset; label: string; hint: strin
     value: "ventas",
     label: "Ventas",
     hint: "Una fila por producto vendido, con costo y margen",
-    // El contador pide ventas en planilla editable o en papel: CSV, Excel o PDF.
+    // Todos los datasets salen en los tres formatos: el contador elige planilla
+    // editable (CSV/Excel) o papel (PDF) según lo que le pidan de cada lado.
     formats: ["csv", "xlsx", "pdf"],
   },
-  { value: "gastos", label: "Gastos", hint: "Qué se gastó, de qué cuenta salió y en qué rubro", formats: ["csv"] },
-  { value: "compras", label: "Compras", hint: "Facturas de proveedores con su estado de pago", formats: ["csv"] },
+  { value: "gastos", label: "Gastos", hint: "Qué se gastó, de qué cuenta salió y en qué rubro", formats: ["csv", "xlsx", "pdf"] },
+  { value: "compras", label: "Compras", hint: "Facturas de proveedores con su estado de pago", formats: ["csv", "xlsx", "pdf"] },
   // Sin la existencia final el contador no puede cerrar el ejercicio: le falta
   // justo la mitad que la compra dejó en la góndola.
-  { value: "inventario", label: "Inventario", hint: "Existencia final valuada, para cerrar el ejercicio", formats: ["csv"] },
+  { value: "inventario", label: "Inventario", hint: "Existencia final valuada, para cerrar el ejercicio", formats: ["csv", "xlsx", "pdf"] },
 ];
 
 export function isExportDataset(value: string): value is ExportDataset {
@@ -526,7 +527,7 @@ function headerWidth(header: string): number {
 
 // Una columna del PDF con su índice original en la fila de la tabla: el subset
 // de ventas no es un prefijo de las 16 columnas, y las celdas se leen de la
-// fila completa.
+// fila completa. En los demás datasets el PDF imprime todas las columnas.
 export type PdfColumn = {
   column: ExportColumn;
   sourceIndex: number;
@@ -548,8 +549,8 @@ export const SALES_PDF_COLUMNS: PdfColumn[] = [
   { column: { header: "Total de la venta", kind: "money" }, sourceIndex: 14 },
 ];
 
-// El subset de columnas que se imprime por dataset: ventas usa el resumen,
-// el resto (que no tiene PDF) cae en todas en orden.
+// El subset de columnas que se imprime por dataset: ventas usa el resumen
+// legible en papel; el resto imprime todas sus columnas en orden.
 export function pdfColumnsFor(dataset: ExportDataset, table: ExportTable): PdfColumn[] {
   if (dataset === "ventas") {
     return SALES_PDF_COLUMNS;
