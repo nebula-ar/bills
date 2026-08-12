@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { SelectField } from "@/components/ui/select-field";
 import { ProductStockPanel } from "@/components/product-stock-panel";
-import { Package, Search, X } from "@/components/icons";
+import { Package, Plus, Search, TriangleAlert, X } from "@/components/icons";
 import type { Unit } from "@/generated/prisma/enums";
 import { formatQuantity } from "@/lib/quantity";
+import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 
 /**
  * El depósito de una sucursal.
@@ -22,7 +24,8 @@ import { formatQuantity } from "@/lib/quantity";
  *    formularios sueltos al pie con su propio selector. Con el producto ya
  *    elegido no hay que buscarlo de nuevo en un combo de sesenta, y se reusa el
  *    mismo panel de la ficha: el que dice en cuánto va a quedar antes de
- *    confirmar.
+ *    confirmar. El botón "+ Movimiento" de arriba abre el mismo modal, solo
+ *    que primero pregunta cuál —para cuando no se está mirando la fila.
  */
 
 export type StockManagerRow = {
@@ -32,6 +35,8 @@ export type StockManagerRow = {
   unit: Unit;
   esInsumo: boolean;
   categoryName: string | null;
+  imageVersion: number | null;
+  catalogSlug: string | null;
   quantity: number;
   minStock: number | null;
   cost: number | null;
@@ -41,6 +46,7 @@ export type StockManagerRow = {
 
 export type StockManagerMovement = {
   id: string;
+  productId: string;
   productName: string;
   unit: Unit;
   quantity: number;
@@ -54,6 +60,21 @@ const dinero = new Intl.NumberFormat("es-AR", {
   currency: "ARS",
   maximumFractionDigits: 0,
 });
+
+function normalizar(valor: string) {
+  return valor
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+}
+
+type Filtro = "todos" | "sin-stock" | "bajo-minimo" | "mas-movidos";
+
+const ESTADO_TONO: Record<StockManagerRow["status"], { badge: string; boton: string; icono: string }> = {
+  out: { badge: "bg-rose-50 text-rose-700", boton: "bg-rose-100 text-rose-700 hover:bg-rose-200", icono: "bg-rose-100 text-rose-600" },
+  low: { badge: "bg-amber-50 text-amber-700", boton: "bg-amber-100 text-amber-700 hover:bg-amber-200", icono: "bg-amber-100 text-amber-600" },
+  ok: { badge: "bg-emerald-50 text-emerald-700", boton: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200", icono: "bg-emerald-100 text-emerald-600" },
+};
 
 export function StockManager({
   rows,
@@ -72,8 +93,12 @@ export function StockManager({
   const vendibles = rows.filter((row) => !row.esInsumo);
 
   const [tab, setTab] = useState<"vendibles" | "insumos" | "movimientos">("vendibles");
+  const [filtro, setFiltro] = useState<Filtro>("todos");
   const [busqueda, setBusqueda] = useState("");
-  const [abierto, setAbierto] = useState<string | null>(null);
+  // string = producto elegido (fila "Cargar"). "elegir" = se abrió desde
+  // "+ Movimiento" y todavía no se sabe cuál.
+  const [abierto, setAbierto] = useState<string | "elegir" | null>(null);
+  const [productoAElegir, setProductoAElegir] = useState("");
 
   const pestanas: { key: typeof tab; label: string; cantidad: number }[] = [
     { key: "vendibles", label: catalogPlural, cantidad: vendibles.length },
@@ -83,139 +108,255 @@ export function StockManager({
     { key: "movimientos", label: "Movimientos", cantidad: movements.length },
   ];
 
-  const listado = tab === "insumos" ? insumos : vendibles;
-  const normalizar = (valor: string) =>
-    valor
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .toLowerCase();
+  // Cuántas veces se movió cada producto, de lo más reciente que ya está en
+  // pantalla: no es una consulta nueva, es contar lo que `movements` ya trae.
+  const movidasPorProducto = useMemo(() => {
+    const mapa: Record<string, number> = {};
+    for (const m of movements) mapa[m.productId] = (mapa[m.productId] ?? 0) + 1;
+    return mapa;
+  }, [movements]);
+
+  const sinStock = rows.filter((row) => row.status === "out");
+
+  const listadoBase = tab === "insumos" ? insumos : vendibles;
+
+  const porFiltro = useMemo(() => {
+    if (filtro === "sin-stock") return listadoBase.filter((row) => row.status === "out");
+    if (filtro === "bajo-minimo") return listadoBase.filter((row) => row.status === "low" || row.status === "out");
+    if (filtro === "mas-movidos") {
+      return listadoBase
+        .filter((row) => (movidasPorProducto[row.productId] ?? 0) > 0)
+        .sort((a, b) => (movidasPorProducto[b.productId] ?? 0) - (movidasPorProducto[a.productId] ?? 0));
+    }
+    return listadoBase;
+  }, [listadoBase, filtro, movidasPorProducto]);
+
   const consulta = normalizar(busqueda.trim());
   const visibles = consulta
-    ? listado.filter((row) => [row.name, row.sku ?? ""].some((campo) => normalizar(campo).includes(consulta)))
-    : listado;
+    ? porFiltro.filter((row) => [row.name, row.sku ?? ""].some((campo) => normalizar(campo).includes(consulta)))
+    : porFiltro;
 
   const elegido = rows.find((row) => row.productId === abierto) ?? null;
 
   return (
     <>
-      <div className="flex gap-2 border-b border-slate-200">
-        {pestanas.map((pestana) => (
+      {/* gap-5 entre bloques: el banner, la fila de pestañas, el buscador+chips
+          y la lista son partes distintas de la pantalla, no una sola cosa. Sin
+          este contenedor cada uno terminaba pegado al de al lado. */}
+      <div className="flex flex-col gap-5">
+      {sinStock.length > 0 ? (
+        <div className="flex items-center justify-between gap-3 rounded-2xl bg-rose-50 px-4 py-3.5">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-rose-100 text-rose-600">
+              <TriangleAlert className="size-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-black text-rose-900">
+                {sinStock.length} {sinStock.length === 1 ? "producto sin stock" : "productos sin stock"}
+              </p>
+              <p className="truncate text-xs text-rose-700">{sinStock.map((row) => row.name).join(", ")}</p>
+            </div>
+          </div>
           <button
-            className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 pb-2.5 text-sm font-black transition ${
-              tab === pestana.key
-                ? "border-primary text-primary"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-            key={pestana.key}
-            onClick={() => setTab(pestana.key)}
+            className="shrink-0 text-sm font-black text-rose-700 hover:underline"
+            onClick={() => setFiltro("sin-stock")}
             type="button"
           >
-            {pestana.label}
-            <span
-              className={`rounded-full px-1.5 py-0.5 text-xs ${
-                tab === pestana.key ? "bg-primary/10" : "bg-slate-100 text-slate-500"
-              }`}
-            >
-              {pestana.cantidad}
-            </span>
+            Ver productos →
           </button>
-        ))}
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200">
+        <div className="flex gap-2">
+          {pestanas.map((pestana) => (
+            <button
+              className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 pb-2.5 text-sm font-black transition ${
+                tab === pestana.key
+                  ? "border-primary text-primary"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
+              }`}
+              key={pestana.key}
+              onClick={() => setTab(pestana.key)}
+              type="button"
+            >
+              {pestana.label}
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-xs ${
+                  tab === pestana.key ? "bg-primary/10" : "bg-slate-100 text-slate-500"
+                }`}
+              >
+                {pestana.cantidad}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {tab !== "movimientos" ? (
+          <button
+            className="mb-1.5 flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-xs font-black text-white shadow-sm shadow-primary/25 transition active:scale-95 hover:bg-primary-strong"
+            onClick={() => {
+              setAbierto("elegir");
+              setProductoAElegir("");
+            }}
+            type="button"
+          >
+            <Plus className="size-4" />
+            Movimiento
+          </button>
+        ) : null}
       </div>
 
       {tab === "movimientos" ? (
         <MovimientosLista movements={movements} />
       ) : (
-        <>
-          {listado.length > 6 ? (
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-              <input
-                className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:ring-4 focus:ring-primary/15"
-                onChange={(event) => setBusqueda(event.target.value)}
-                placeholder="Buscar por nombre o código…"
-                value={busqueda}
-              />
-            </div>
-          ) : null}
+        <div className="flex flex-col gap-3">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <input
+              className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:ring-4 focus:ring-primary/15"
+              onChange={(event) => setBusqueda(event.target.value)}
+              placeholder="Buscar producto..."
+              value={busqueda}
+            />
+          </div>
+
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {(
+              [
+                ["todos", "Todos"],
+                ["sin-stock", "Sin stock"],
+                ["bajo-minimo", "Bajo mínimo"],
+                ["mas-movidos", "Más movidos"],
+              ] as [Filtro, string][]
+            ).map(([valor, etiqueta]) => (
+              <button
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition ${
+                  filtro === valor ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
+                }`}
+                key={valor}
+                onClick={() => setFiltro(valor)}
+                type="button"
+              >
+                {etiqueta}
+              </button>
+            ))}
+          </div>
 
           {visibles.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
               {consulta
                 ? "No encontramos nada con eso."
-                : tab === "insumos"
-                  ? "Todavía no hay insumos con control de stock."
-                  : "Ningún producto lleva control de stock todavía."}
+                : filtro !== "todos"
+                  ? "Nada con ese filtro."
+                  : tab === "insumos"
+                    ? "Todavía no hay insumos con control de stock."
+                    : "Ningún producto lleva control de stock todavía."}
             </p>
           ) : (
-            <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-100 text-left">
-                    <Th>Producto</Th>
-                    <Th>Existencia</Th>
-                    <Th>Mínimo</Th>
-                    <Th alineado="derecha">Costo</Th>
-                    <Th alineado="derecha">Valorizado</Th>
-                    <Th alineado="derecha">Mover</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibles.map((row) => (
-                    <tr className="border-b border-slate-50 last:border-0" key={row.productId}>
-                      <td className="w-full max-w-0 px-4 py-3">
-                        <p className="truncate text-sm font-bold text-slate-950">{row.name}</p>
-                        <p className="truncate text-xs text-slate-500">
-                          {row.categoryName ?? "Sin categoría"}
-                          {row.sku ? ` · ${row.sku}` : ""}
-                        </p>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-black ${
-                            row.status === "out"
-                              ? "bg-rose-50 text-rose-700"
-                              : row.status === "low"
-                                ? "bg-amber-50 text-amber-700"
-                                : "bg-emerald-50 text-emerald-700"
-                          }`}
-                        >
-                          {row.status === "out" ? "Sin stock" : formatQuantity(row.quantity, row.unit)}
+            <ul className="flex flex-col gap-2.5">
+              {visibles.map((row) => {
+                const tono = ESTADO_TONO[row.status];
+                const foto = productImageSrc({
+                  id: row.productId,
+                  imageVersion: row.imageVersion,
+                  catalogSlug: row.catalogSlug,
+                });
+                return (
+                  <li
+                    className="flex items-center gap-3 rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-slate-950/5"
+                    key={row.productId}
+                  >
+                    {foto ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        alt=""
+                        className={`size-11 shrink-0 rounded-full object-cover ring-2 ${
+                          row.status === "out"
+                            ? "ring-rose-100"
+                            : row.status === "low"
+                              ? "ring-amber-100"
+                              : "ring-emerald-100"
+                        }`}
+                        loading="lazy"
+                        src={foto}
+                      />
+                    ) : (
+                      <span className={`grid size-11 shrink-0 place-items-center rounded-full ${tono.icono}`}>
+                        <Package className="size-5" />
+                      </span>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="truncate text-sm font-black text-slate-950">{row.name}</p>
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-bold ${tono.badge}`}>
+                          {row.status === "out" ? "Sin stock" : row.status === "low" ? "Bajo mínimo" : "En stock"}
                         </span>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-500">
-                        {row.minStock !== null ? formatQuantity(row.minStock, row.unit) : "—"}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-slate-500">
-                        {row.cost ? dinero.format(row.cost) : "—"}
-                      </td>
-                      <td
-                        className="whitespace-nowrap px-4 py-3 text-right text-sm font-black text-slate-800"
+                      </div>
+                      <p className="truncate text-xs text-slate-500">{row.categoryName ?? "Sin categoría"}</p>
+                    </div>
+
+                    <div className="hidden shrink-0 text-right sm:block">
+                      <p
+                        className={`text-sm font-black ${row.status === "out" ? "text-rose-600" : "text-slate-950"}`}
                         style={{ fontVariantNumeric: "tabular-nums" }}
                       >
-                        {dinero.format(row.stockValue)}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right">
-                        {/* Se opera desde la fila: el producto ya está elegido y
-                            no hay que volver a buscarlo en un combo. */}
-                        <button
-                          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition active:scale-95 hover:bg-slate-200"
-                          onClick={() => setAbierto(row.productId)}
-                          type="button"
-                        >
-                          Cargar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
+                        {formatQuantity(row.quantity, row.unit)}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Mín. {row.minStock !== null ? formatQuantity(row.minStock, row.unit) : "—"}
+                        {row.cost ? ` · ${dinero.format(row.cost)} c/u` : ""}
+                      </p>
+                    </div>
 
-      <BottomSheet onClose={() => setAbierto(null)} open={elegido !== null} size="dialog">
-        {elegido ? (
+                    <button
+                      className={`shrink-0 rounded-xl px-3.5 py-2.5 text-xs font-black transition active:scale-95 ${tono.boton}`}
+                      onClick={() => setAbierto(row.productId)}
+                      type="button"
+                    >
+                      + Cargar
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+      </div>
+
+      <BottomSheet onClose={() => setAbierto(null)} open={abierto !== null} size="dialog">
+        {abierto === "elegir" ? (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex shrink-0 items-center justify-between gap-3 px-5 pb-3 pt-4">
+              <h3 className="text-xl font-black tracking-tight text-slate-950">¿Qué producto?</h3>
+              <button
+                aria-label="Cerrar"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
+                onClick={() => setAbierto(null)}
+                type="button"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 pb-5">
+              <SelectField
+                ariaLabel="Producto"
+                onChange={setProductoAElegir}
+                options={rows.map((row) => ({ value: row.productId, label: row.name }))}
+              />
+              <button
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3.5 text-sm font-black text-white shadow-sm shadow-primary/25 transition active:scale-[0.99] disabled:opacity-50"
+                disabled={!productoAElegir}
+                onClick={() => setAbierto(productoAElegir)}
+                type="button"
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        ) : elegido ? (
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="flex shrink-0 items-start justify-between gap-3 px-5 pb-3 pt-4">
               <div className="min-w-0">

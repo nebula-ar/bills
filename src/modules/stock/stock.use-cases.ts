@@ -22,6 +22,8 @@ export type StockRow = {
   // stock y costo pero nunca se pone a la venta (ver ProductKind.INGREDIENT).
   kind: ProductKind;
   categoryName: string | null;
+  imageVersion: number | null;
+  catalogSlug: string | null;
   quantity: number;
   minStock: number | null;
   cost: number | null;
@@ -57,6 +59,8 @@ export async function getBranchStockOverview(businessId: string, branchId: strin
       unit: product.unit,
       kind: product.kind,
       categoryName: product.category?.name ?? null,
+      imageVersion: product.imageUpdatedAt?.getTime() ?? null,
+      catalogSlug: product.catalogSlug,
       quantity,
       minStock,
       cost: product.cost,

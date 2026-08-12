@@ -4,7 +4,6 @@ import { PeriodFade } from "@/components/period-fade";
 import { Reveal } from "@/components/reveal";
 import { StatTiles } from "@/components/stat-tiles";
 import {
-  Badge,
   EmptyState,
   Field,
   formatMoney,
@@ -17,7 +16,7 @@ import { RefreshActionForm } from "@/components/refresh-action-form";
 import { StockEmpty, StockManager } from "@/components/stock-manager";
 import { AppModule, ProductKind } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
-import { formatQuantity, unitShort } from "@/lib/quantity";
+import { unitShort } from "@/lib/quantity";
 import { STOCK_MOVEMENT_LABELS } from "@/lib/stock-error-messages";
 import { getBranchesForManagement } from "@/modules/branches/get-branches-for-management.use-case";
 import { getBranchStockOverview, getStockMovements } from "@/modules/stock/stock.use-cases";
@@ -55,7 +54,6 @@ export default async function StockPage({ searchParams }: StockPageProps) {
     getStockMovements(branch.id, 30),
   ]);
 
-  const alerts = rows.filter((row) => row.status !== "ok");
   const products = rows.map((row) => ({ id: row.productId, name: row.name, unit: row.unit }));
 
   return (
@@ -95,12 +93,11 @@ export default async function StockPage({ searchParams }: StockPageProps) {
         tiles={[
           { label: "Productos", value: String(totals.products), amount: totals.products, kind: "int" },
           {
-            label: "Valorizado",
-            value: formatMoney(totals.value),
-            amount: totals.value,
-            kind: "money",
-            hint: "A precio de costo",
-            tone: "info",
+            label: "Sin stock",
+            value: String(totals.out),
+            amount: totals.out,
+            kind: "int",
+            tone: totals.out > 0 ? "danger" : "neutral",
           },
           {
             label: "Por reponer",
@@ -111,34 +108,17 @@ export default async function StockPage({ searchParams }: StockPageProps) {
             tone: totals.low > 0 ? "warning" : "neutral",
           },
           {
-            label: "Sin stock",
-            value: String(totals.out),
-            amount: totals.out,
-            kind: "int",
-            tone: totals.out > 0 ? "danger" : "neutral",
+            label: "Valorizado",
+            value: formatMoney(totals.value),
+            amount: totals.value,
+            kind: "money",
+            hint: "A precio de costo",
+            tone: "info",
           },
         ]}
       />
 
       <PeriodFade period={`stock-${branch.id}`}>
-      {alerts.length > 0 ? (
-        <SectionCard title="Hay que reponer" description="Productos en cero o por debajo del mínimo que configuraste.">
-          <ul className="flex flex-wrap gap-2">
-            {alerts.map((row) => (
-              <li
-                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
-                key={row.productId}
-              >
-                <span className="text-sm font-bold text-slate-800">{row.name}</span>
-                <Badge tone={row.status === "out" ? "danger" : "warning"}>
-                  {row.status === "out" ? "Sin stock" : `Quedan ${formatQuantity(row.quantity, row.unit)}`}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-      ) : null}
-
       {/* La lista, sus pestañas y el modal de carga viven en el cliente: son
           estado de pantalla (qué pestaña, qué producto se está moviendo) y no
           justifican un viaje al servidor por cada toque. */}
@@ -151,6 +131,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
           catalogPlural={business.labels.catalogPlural}
           movements={movements.map((movement) => ({
             id: movement.id,
+            productId: movement.product.id,
             productName: movement.product.name,
             unit: movement.product.unit,
             quantity: movement.quantity,
@@ -165,6 +146,8 @@ export default async function StockPage({ searchParams }: StockPageProps) {
             unit: row.unit,
             esInsumo: row.kind === ProductKind.INGREDIENT,
             categoryName: row.categoryName,
+            imageVersion: row.imageVersion,
+            catalogSlug: row.catalogSlug,
             quantity: row.quantity,
             minStock: row.minStock,
             cost: row.cost,

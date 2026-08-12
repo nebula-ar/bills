@@ -171,6 +171,8 @@ export function findBranchStock(businessId: string, branchId: string) {
       kind: true,
       cost: true,
       minStock: true,
+      imageUpdatedAt: true,
+      catalogSlug: true,
       category: { select: { id: true, name: true } },
       stockLevels: {
         where: { branchId },
