@@ -19,7 +19,7 @@ export default async function ExportarPage() {
       <PageHeader
         eyebrow="Bills"
         title="Exportar"
-        description="Planillas para el contador. Se abren en Excel con las tildes y los importes bien."
+        description="Planillas para el contador, en CSV, Excel o PDF. Se abren con las tildes y los importes bien."
       />
 
       <SectionCard title="Elegí el período" description="El día de fin entra completo.">

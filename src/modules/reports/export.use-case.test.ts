@@ -158,10 +158,10 @@ describe("formatos por dataset", () => {
     expect(exportFormatsFor("ventas")).toEqual(["csv", "xlsx", "pdf"]);
   });
 
-  it("el resto sale solo en CSV", () => {
-    expect(exportFormatsFor("gastos")).toEqual(["csv"]);
-    expect(exportFormatsFor("compras")).toEqual(["csv"]);
-    expect(exportFormatsFor("inventario")).toEqual(["csv"]);
+  it("el resto sale en CSV, Excel y PDF también", () => {
+    expect(exportFormatsFor("gastos")).toEqual(["csv", "xlsx", "pdf"]);
+    expect(exportFormatsFor("compras")).toEqual(["csv", "xlsx", "pdf"]);
+    expect(exportFormatsFor("inventario")).toEqual(["csv", "xlsx", "pdf"]);
   });
 
   it("valida datasets y formatos", () => {

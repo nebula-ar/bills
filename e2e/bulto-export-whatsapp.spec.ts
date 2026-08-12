@@ -109,6 +109,54 @@ test.describe("Bulto, export y WhatsApp", () => {
     expect(pdf.subarray(0, 5).toString("utf8")).toBe("%PDF-");
   });
 
+  test("los demás datasets exportan en Excel y PDF también", async ({ page }) => {
+    await page.goto("/exportar");
+
+    // Gastos en PDF: firma %PDF (antes solo salía CSV).
+    const [gastosPdf] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator('a[href*="dataset=gastos"][href*="format=pdf"]').click(),
+    ]);
+
+    expect(gastosPdf.suggestedFilename()).toMatch(/^gastos-\d{4}-\d{2}-\d{2}_a_\d{4}-\d{2}-\d{2}\.pdf$/);
+    expect((await readDownload(gastosPdf)).subarray(0, 5).toString("utf8")).toBe("%PDF-");
+
+    // Compras en Excel: un .xlsx de verdad (zip con la firma PK).
+    const [comprasXlsx] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator('a[href*="dataset=compras"][href*="format=xlsx"]').click(),
+    ]);
+
+    expect(comprasXlsx.suggestedFilename()).toMatch(/^compras-.+\.xlsx$/);
+    expect((await readDownload(comprasXlsx)).subarray(0, 2).toString("utf8")).toBe("PK");
+
+    // Inventario en PDF, con su firma.
+    const [inventarioPdf] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator('a[href*="dataset=inventario"][href*="format=pdf"]').click(),
+    ]);
+
+    expect(inventarioPdf.suggestedFilename()).toMatch(/^inventario-.+\.pdf$/);
+    expect((await readDownload(inventarioPdf)).subarray(0, 5).toString("utf8")).toBe("%PDF-");
+  });
+
+  test("el botón de exportar avisa \"Procesando…\" mientras se arma", async ({ page }) => {
+    await page.goto("/exportar");
+
+    // Retarda la respuesta del route handler para alcanzar a ver el estado.
+    await page.route(/\/api\/export\?.*/, async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      await route.continue();
+    });
+
+    const gastosCsv = page.locator('a[href*="dataset=gastos"][href*="format=csv"]');
+    await gastosCsv.click();
+
+    await expect(gastosCsv.getByText("Procesando…")).toBeVisible();
+    // Al terminar, el botón vuelve a su nombre normal.
+    await expect(gastosCsv.getByText("CSV", { exact: true })).toBeVisible();
+  });
+
   test("un rango invertido no deja descargar", async ({ page }) => {
     await page.goto("/exportar");
 
@@ -146,6 +194,14 @@ test.describe("Bulto, export y WhatsApp", () => {
     expect(href).toContain("Total:");
   });
 });
+
+// Lee el stream de una descarga y devuelve los bytes completos.
+async function readDownload(download: import("@playwright/test").Download): Promise<Buffer> {
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(chunk as Buffer);
+  return Buffer.concat(chunks);
+}
 
 // Extrae el XML de la primera hoja de un .xlsx. Un xlsx es un zip; la hoja vive
 // en `xl/worksheets/sheet1.xml`. Se parsea con el parser ZIP mínimo de Node
