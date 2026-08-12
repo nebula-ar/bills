@@ -31,9 +31,11 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition, type ComponentType, type ReactNode } from "react";
 import { SelectField } from "@/components/ui/select-field";
 
+import { Skeleton } from "@/components/ui/skeleton";
+
 // Charts basados en recharts (dependencia grande): se cargan en el cliente, on
 // demand, para no engordar el bundle inicial del dashboard.
-const ChartSkeleton = () => <div className="h-[210px] w-full animate-pulse rounded-2xl bg-slate-100" />;
+const ChartSkeleton = () => <Skeleton className="h-[210px] w-full rounded-2xl" />;
 const SalesTrendChart = dynamic(
   () => import("@/components/reports-charts").then((mod) => mod.SalesTrendChart),
   { ssr: false, loading: ChartSkeleton },
