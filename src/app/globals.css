@@ -357,6 +357,18 @@ textarea {
   }
 }
 
+/* Barrido de shimmer de los skeletons: una banda clara cruza la pieza de punta
+   a punta. Con prefers-reduced-motion el bloque global la deja quieta y el
+   skeleton queda como un bloque estático (bg-muted), sin animación. */
+@keyframes skeleton-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
 /* iOS Safari hace zoom automático al enfocar cualquier campo de menos de 16px y
    deja la vista corrida después. Eso NO se arregla en el viewport —Safari ignora
    `user-scalable=no` desde iOS 10—: el único remedio es que el campo mida 16px.
