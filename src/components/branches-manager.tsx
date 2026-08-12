@@ -2,6 +2,7 @@
 
 import { createBranch, updateBranch } from "@/app/branches/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { Switch } from "@/components/ui/switch";
 import { Check, MapPin, Plus, Store, X } from "@/components/icons";
 import { useState } from "react";
 
@@ -28,19 +29,12 @@ function ActiveToggle({ defaultOn }: { defaultOn: boolean }) {
         <p className="mt-0.5 text-xs text-slate-500">Si la desactivás, no aparece para vender ni configurar.</p>
       </div>
       {on ? <input name="active" type="hidden" value="on" /> : null}
-      <button
-        aria-checked={on}
+      <Switch
         aria-label="Sucursal activa"
-        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-emerald-500" : "bg-slate-300"}`}
-        onClick={() => setOn((value) => !value)}
-        role="switch"
-        type="button"
-      >
-        <span
-          className="absolute left-1 top-1 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
-          style={{ transform: on ? "translateX(1.25rem)" : "translateX(0)" }}
-        />
-      </button>
+        checked={on}
+        className="data-[state=checked]:bg-emerald-500"
+        onCheckedChange={setOn}
+      />
     </div>
   );
 }

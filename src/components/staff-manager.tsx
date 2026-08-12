@@ -5,6 +5,7 @@ import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Check, DynamicIcon, KeyRound, MapPin, Plus, X } from "@/components/icons";
 import { useState } from "react";
 import { SelectField } from "@/components/ui/select-field";
+import { Switch } from "@/components/ui/switch";
 
 export type StaffRow = {
   id: string;
@@ -96,19 +97,12 @@ function ActiveToggle({ defaultOn }: { defaultOn: boolean }) {
         <p className="mt-0.5 text-xs text-slate-500">Si lo desactivás, no aparece para cargar ventas.</p>
       </div>
       {on ? <input name="active" type="hidden" value="on" /> : null}
-      <button
-        aria-checked={on}
+      <Switch
         aria-label="Activo"
-        className={`relative h-11 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-emerald-500" : "bg-slate-300"}`}
-        onClick={() => setOn((value) => !value)}
-        role="switch"
-        type="button"
-      >
-        <span
-          className="absolute left-1 top-1/2 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
-          style={{ transform: on ? "translateY(-50%) translateX(1.25rem)" : "translateY(-50%) translateX(0)" }}
-        />
-      </button>
+        checked={on}
+        className="data-[state=checked]:bg-emerald-500"
+        onCheckedChange={setOn}
+      />
     </div>
   );
 }
@@ -123,19 +117,11 @@ function CashCloseToggle({ defaultOn }: { defaultOn: boolean }) {
         <p className="mt-0.5 text-xs text-slate-500">Encargado: cierra la caja de su sucursal desde la terminal, con su PIN.</p>
       </div>
       {on ? <input name="canCloseCash" type="hidden" value="on" /> : null}
-      <button
-        aria-checked={on}
+      <Switch
         aria-label="Puede cerrar caja"
-        className={`relative h-11 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-primary" : "bg-slate-300"}`}
-        onClick={() => setOn((value) => !value)}
-        role="switch"
-        type="button"
-      >
-        <span
-          className="absolute left-1 top-1/2 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
-          style={{ transform: on ? "translateY(-50%) translateX(1.25rem)" : "translateY(-50%) translateX(0)" }}
-        />
-      </button>
+        checked={on}
+        onCheckedChange={setOn}
+      />
     </div>
   );
 }

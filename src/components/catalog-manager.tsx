@@ -16,6 +16,7 @@ import { formatQuantity } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import { ArrowLeft, ArrowRight, Check, CircleSlash, DynamicIcon, Loader2, Plus, Search, Trash2, X } from "@/components/icons";
 import { SelectField } from "@/components/ui/select-field";
+import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
@@ -139,19 +140,12 @@ function AvailabilityToggle({ defaultOn }: { defaultOn: boolean }) {
     <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3.5">
       <span className="text-sm font-black text-slate-950">Disponible para vender</span>
       {on ? <input name="active" type="hidden" value="on" /> : null}
-      <button
-        aria-checked={on}
+      <Switch
         aria-label="Disponible para vender"
-        className={`relative h-11 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-emerald-500" : "bg-slate-300"}`}
-        onClick={() => setOn((value) => !value)}
-        role="switch"
-        type="button"
-      >
-        <span
-          className="absolute left-1 top-1/2 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
-          style={{ transform: on ? "translateY(-50%) translateX(1.25rem)" : "translateY(-50%) translateX(0)" }}
-        />
-      </button>
+        checked={on}
+        className="data-[state=checked]:bg-emerald-500"
+        onCheckedChange={setOn}
+      />
     </div>
   );
 }
