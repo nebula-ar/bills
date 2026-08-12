@@ -34,8 +34,7 @@ El orden de precedencia es:
 2. Rutas y acciones actuales en `src/app/**`.
 3. Módulos y navegación en `src/lib/app-modules.ts`.
 4. Verticales, etiquetas, presets y features en `src/lib/vertical.ts`.
-5. Pruebas de extremo a extremo en `e2e/*.spec.ts`.
-6. Esta guía y los tableros de Pencil como representación funcional y visual.
+5. Esta guía y los tableros de Pencil como representación funcional y visual.
 
 Si el código cambia, este documento y Pencil deben actualizarse en el mismo trabajo. Este archivo explica el producto; no reemplaza las reglas ejecutables ni las pruebas.
 
@@ -336,9 +335,7 @@ Documento: `pencil-new.pen`.
 
 ## 11. Pruebas que respaldan el mapa
 
-Las suites E2E actuales cubren autenticación, onboarding, navegación, módulos, ventas, validaciones del POS, historial, devoluciones, caja, cierre de encargado, cobro rápido, catálogo vacío, producto y stock, escáner, fotos, variantes, bultos/exportación/WhatsApp, gastos, promociones indirectas, marketing, presupuestos, terminales, turnos, comisiones y dashboards.
-
-Archivos clave: `e2e/*.spec.ts`. La existencia de una prueba no reemplaza una auditoría de estados visuales, pero ayuda a confirmar el comportamiento esperado.
+El gate actual del repositorio son los unit tests (Vitest) junto con el chequeo de tipos (`tsc --noEmit`). Las pruebas E2E de navegador (Playwright) se removieron del CI en NEBU-39 y los specs ya no forman parte del repo; ante un cambio de comportamiento, la cobertura esperada son los unit tests de la lógica pura.
 
 ## 12. Protocolo de mantenimiento
 

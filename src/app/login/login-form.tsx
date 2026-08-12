@@ -43,8 +43,8 @@ export function LoginForm({ callbackUrl, variant, showGoogle }: LoginFormProps) 
   const [isPending, startTransition] = useTransition();
 
   // Los dos layouts conviven en el DOM (uno oculto por breakpoint). La variante
-  // desktop conserva los ids estables (email/password/login-error) porque la
-  // suite e2e y los autofill los usan; la mobile los prefija con "mobile-".
+  // desktop conserva los ids estables (email/password/login-error) porque los
+  // autofill los usan; la mobile los prefija con "mobile-".
   const isDesktop = variant === "desktop";
   const idPrefix = isDesktop ? "" : "mobile-";
 
