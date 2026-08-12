@@ -1,34 +1,47 @@
 "use client";
 
-import { Loader2 } from "@/components/icons";
+import { Eye, EyeOff, Loader2 } from "@/components/icons";
 import { useState, useTransition, type FormEvent } from "react";
 
-import { requestPasswordResetAction } from "./actions";
+import { resetPasswordDirectAction } from "./actions";
 
 export function ForgotPasswordForm() {
-  const [enviado, setEnviado] = useState(false);
+  const [listo, setListo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const email = String(new FormData(event.currentTarget).get("email") ?? "");
+    const datos = new FormData(event.currentTarget);
+    const email = String(datos.get("email") ?? "");
+    const password = String(datos.get("password") ?? "");
+    const confirmar = String(datos.get("confirmar") ?? "");
+
     setError(null);
+    if (password !== confirmar) {
+      setError("Las contraseñas no coinciden");
+      return;
+    }
 
     startTransition(async () => {
-      const resultado = await requestPasswordResetAction({ email });
+      const resultado = await resetPasswordDirectAction({ email, password });
       if (!resultado.ok) {
         setError(resultado.error);
         return;
       }
-      setEnviado(true);
+      setListo(true);
     });
   }
 
-  if (enviado) {
+  if (listo) {
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 text-sm font-semibold text-emerald-800">
-        Si ese email tiene una cuenta en Bills, te mandamos un link para restablecer la contraseña. Revisá también spam.
+        Contraseña actualizada. Ya podés{" "}
+        <a className="underline" href="/login">
+          ingresar
+        </a>{" "}
+        con la nueva.
       </div>
     );
   }
@@ -39,8 +52,6 @@ export function ForgotPasswordForm() {
         <span className="text-[11px] font-extrabold uppercase tracking-[1px] text-slate-600">Email</span>
         <span className="flex min-h-12 items-center rounded-xl border border-slate-300 bg-white px-3.5 transition focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/15">
           <input
-            aria-describedby={error ? "forgot-password-error" : undefined}
-            aria-invalid={error ? true : undefined}
             autoCapitalize="none"
             autoComplete="email"
             autoCorrect="off"
@@ -57,12 +68,52 @@ export function ForgotPasswordForm() {
         </span>
       </label>
 
+      <label className="grid gap-1.5" htmlFor="password">
+        <span className="text-[11px] font-extrabold uppercase tracking-[1px] text-slate-600">Contraseña nueva</span>
+        <span className="flex min-h-12 items-center rounded-xl border border-slate-300 bg-white px-3.5 transition focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/15">
+          <input
+            autoComplete="new-password"
+            className="min-w-0 flex-1 bg-transparent py-3 text-sm font-semibold text-slate-950 outline-none placeholder:text-slate-400"
+            disabled={isPending}
+            id="password"
+            minLength={8}
+            name="password"
+            placeholder="••••••••••••"
+            required
+            type={showPassword ? "text" : "password"}
+          />
+          <button
+            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            aria-pressed={showPassword}
+            className="relative -mr-1 grid size-11 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 active:scale-95 disabled:opacity-50"
+            disabled={isPending}
+            onClick={() => setShowPassword((value) => !value)}
+            type="button"
+          >
+            {showPassword ? <EyeOff aria-hidden="true" size={20} /> : <Eye aria-hidden="true" size={20} />}
+          </button>
+        </span>
+      </label>
+
+      <label className="grid gap-1.5" htmlFor="confirmar">
+        <span className="text-[11px] font-extrabold uppercase tracking-[1px] text-slate-600">Repetila</span>
+        <span className="flex min-h-12 items-center rounded-xl border border-slate-300 bg-white px-3.5 transition focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/15">
+          <input
+            autoComplete="new-password"
+            className="min-w-0 flex-1 bg-transparent py-3 text-sm font-semibold text-slate-950 outline-none placeholder:text-slate-400"
+            disabled={isPending}
+            id="confirmar"
+            minLength={8}
+            name="confirmar"
+            placeholder="••••••••••••"
+            required
+            type={showPassword ? "text" : "password"}
+          />
+        </span>
+      </label>
+
       {error ? (
-        <p
-          className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
-          id="forgot-password-error"
-          role="alert"
-        >
+        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">
           {error}
         </p>
       ) : null}
@@ -75,10 +126,10 @@ export function ForgotPasswordForm() {
         {isPending ? (
           <>
             <Loader2 aria-hidden="true" className="size-5 animate-spin" />
-            Enviando...
+            Guardando...
           </>
         ) : (
-          "Mandar link de recuperación"
+          "Guardar contraseña"
         )}
       </button>
     </form>

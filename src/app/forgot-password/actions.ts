@@ -1,36 +1,16 @@
 "use server";
 
 import { logError } from "@/lib/logger";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { resetPasswordDirect, type ResetPasswordDirectResult } from "@/modules/auth/reset-password-direct.use-case";
 
-export type RequestResetResult = { ok: true } | { ok: false; error: string };
-
-/**
- * Pide el link de recuperación a Supabase Auth (GoTrue manda el mail solo, no
- * hace falta proveedor de email propio acá).
- *
- * Responde `{ ok: true }` exista o no la cuenta: es el mismo criterio
- * anti-enumeración que ya usa `loginAdmin` para el login. Revelar "ese email
- * no existe" es un mapa de qué negocios usan Bills.
- */
-export async function requestPasswordResetAction(input: { email: string }): Promise<RequestResetResult> {
-  const email = input.email.trim().toLowerCase();
-  if (!email) return { ok: false, error: "Ingresá tu email" };
-
+export async function resetPasswordDirectAction(input: {
+  email: string;
+  password: string;
+}): Promise<ResetPasswordDirectResult> {
   try {
-    const supabase = await createSupabaseServerClient();
-    const appUrl = process.env.APP_URL ?? "http://localhost:3000";
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${appUrl}/reset-password`,
-    });
-
-    // No se distingue el error de "no existe": GoTrue ya está pensado para no
-    // filtrar eso, así que acá tampoco. Solo queda registrado para diagnóstico.
-    if (error) await logError("auth.forgot-password", error, { context: { email } });
+    return await resetPasswordDirect(input);
   } catch (error) {
-    await logError("auth.forgot-password", error, { context: { email } });
+    await logError("auth.reset-password-direct", error, { context: { email: input.email } });
+    return { ok: false, error: "No pudimos actualizar la contraseña. Probá de nuevo." };
   }
-
-  return { ok: true };
 }
