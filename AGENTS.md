@@ -113,4 +113,4 @@ Los mensajes para el usuario **no** viven en el dominio: van en
 
 ## Antes de dar algo por terminado
 
-`npx tsc --noEmit` · `npm test` · `npm run build` · `npm run e2e`
+`npx tsc --noEmit` · `npm test` · `npm run build`

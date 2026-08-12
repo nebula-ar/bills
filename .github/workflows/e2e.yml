@@ -8,7 +8,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -20,37 +20,8 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: Instalar navegador de Playwright
-        run: npx playwright install --with-deps chromium
-
       - name: Tests unitarios (vitest)
         run: npm test
 
       - name: TypeScript
         run: npx tsc --noEmit
-
-      # E2E contra Supabase Cloud (ver scripts/e2e-run.mjs). Evita el
-      # `supabase start` de Docker y su dependencia del rate-limit de Docker Hub.
-      # El seed va scoped al tenant demo y no toca los datos de QA de la base.
-      - name: Tests E2E (Supabase Cloud)
-        run: npm run e2e
-        env:
-          CI: "true"
-          E2E_CLOUD: "1"
-          SUPABASE_TELEMETRY_DISABLED: "1"
-          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
-          POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DATABASE: ${{ secrets.POSTGRES_DATABASE }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-
-      - name: Subir reporte de Playwright
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7

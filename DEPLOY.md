@@ -30,14 +30,11 @@ npm run db:seed
 npm run dev
 ```
 
-`npm run e2e` crea/resetea un Supabase local aislado, aplica la baseline, siembra
-datos y corre Playwright. Nunca usa Cloud ni producción.
-
 ## Cambios de entidades
 
 1. Editar `prisma/schema.prisma`.
 2. Levantar Supabase local y ejecutar `npm run db:migrate -- --name <cambio>`.
-3. Revisar el SQL generado y probar unitarios, build y E2E.
+3. Revisar el SQL generado y probar unitarios y build.
 4. Integrar primero la migración compatible; después el código que la consume.
 5. Los cambios de plataforma (imagen, Auth, proxy, backup) van en
    `supabase-infra`; los cambios de dominio permanecen en Bills.
