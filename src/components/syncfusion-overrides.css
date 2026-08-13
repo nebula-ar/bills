@@ -1,7 +1,8 @@
 /* Ajustes de marca sobre el tema "tailwind" de Syncfusion EJ2.
-   EJ2 se usa únicamente en el dashboard (el provider se importa solo ahí), así
-   que estos overrides globales no tocan otras pantallas. Se importa junto a
-   los estilos base de EJ2 en src/components/syncfusion-provider.tsx. */
+   EJ2 se usa en el dashboard y en el POS / Terminal de venta (el provider se
+   importa en ambas pantallas), así que estos overrides globales no tocan el
+   resto de la app. Se importa junto a los estilos base de EJ2 en
+   src/components/syncfusion-provider.tsx. */
 
 /* ── DateRangePicker: misma pinta que los inputs del resto de la app ── */
 .e-input-group.e-control-wrapper.e-date-range-wrapper {
@@ -69,4 +70,201 @@
 .e-grid.e-dashboard-grid .e-rowcell {
   border-color: #f8fafc;
   color: #334155;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   POS / Terminal de venta (NEBU-46)
+   Misma marca que los overrides del dashboard, aplicada a los componentes que
+   usa el mostrador: AutoComplete de búsqueda, DataGrid del pedido, Dialog del
+   cobro y Toast de feedback.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── AutoComplete de búsqueda: misma pinta que el input que reemplaza ── */
+.e-pos-search.e-input-group.e-control-wrapper {
+  border: 1px solid rgb(226 232 240); /* slate-200 */
+  background: rgb(248 250 252); /* slate-50 */
+  border-radius: 1rem;
+  box-shadow: none;
+  min-height: 44px;
+}
+.e-pos-search.e-input-group.e-control-wrapper:hover,
+.e-pos-search.e-input-group.e-control-wrapper.e-input-focus,
+.e-pos-search.e-input-group.e-control-wrapper.e-input-focus:not(.e-disabled) {
+  border-color: color-mix(in oklab, var(--primary) 40%, transparent);
+  background: #fff;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 15%, transparent);
+}
+.e-pos-search .e-input {
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 600;
+  /* Deja el lugar del ícono de búsqueda que flota a la izquierda (16px de
+     ícono + 12px de margen = 40px = 2.5rem, el mismo pl-10 del input viejo). */
+  padding-left: 2.5rem;
+}
+.e-pos-search .e-input::placeholder {
+  color: #94a3b8;
+  font-weight: 600;
+}
+/* Popup de sugerencias: redondeado, con sombra y tipografía de la app */
+.e-pos-search-popup.e-popup.e-ddl {
+  border-radius: 1rem;
+  border: 1px solid rgb(241 245 249);
+  box-shadow: 0 10px 30px -10px rgb(15 23 42 / 0.25);
+  overflow: hidden;
+}
+.e-pos-search-popup .e-list-item {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 2.6;
+}
+.e-pos-search-popup .e-list-item.e-active,
+.e-pos-search-popup .e-list-item.e-active.e-hover {
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+  color: #0f172a;
+}
+.e-pos-search-popup .e-list-item.e-hover {
+  background: #f1f5f9;
+}
+.e-pos-search-popup .e-list-parent.e-ul {
+  padding: 0.35rem;
+}
+
+/* ── DataGrid del pedido (panel desktop + paso "Tu pedido") ── */
+.e-grid.e-pos-cart-grid {
+  border: 0;
+  font-size: 0.875rem;
+}
+.e-grid.e-pos-cart-grid .e-gridheader {
+  background: transparent;
+  border-bottom: 1px solid #f1f5f9;
+}
+.e-grid.e-pos-cart-grid .e-gridheader .e-headercell {
+  background: transparent;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 0;
+}
+.e-grid.e-pos-cart-grid .e-rowcell {
+  border-color: #f8fafc;
+  color: #334155;
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+}
+/* Renglones sin hover azul: en el pedido el fondo no significa nada */
+.e-grid.e-pos-cart-grid .e-row:hover .e-rowcell {
+  background: transparent;
+}
+
+/* ── Dialog del cobro (pasos) y del selector de talles ── */
+.e-dialog.e-pos-dialog {
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 60px -15px rgb(15 23 42 / 0.4);
+}
+.e-dialog.e-pos-dialog .e-dlg-content {
+  padding: 0;
+  border-radius: 1.5rem;
+  overflow: hidden;
+}
+.e-dialog.e-pos-dialog .e-dlg-header-content {
+  display: none;
+}
+.e-dialog.e-pos-dialog .e-footer-content {
+  display: none;
+}
+/* Overlay del modal: el mismo velo que usa la app */
+.e-dialog.e-pos-dialog.e-dlg-modal .e-dlg-overlay {
+  background-color: rgb(2 6 23 / 0.45);
+  backdrop-filter: blur(2px);
+}
+
+/* ── Toast de feedback: abajo al centro, redondeado, con marca ── */
+.e-toast-container.e-toast-bottom-center {
+  margin-bottom: 1.25rem;
+}
+.e-toast.e-pos-toast {
+  border-radius: 1rem;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 15px 40px -12px rgb(15 23 42 / 0.35);
+  min-height: 3.25rem;
+  align-items: center;
+  background: #fff;
+}
+.e-toast.e-pos-toast .e-toast-message .e-toast-title {
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.e-toast.e-pos-toast .e-toast-message .e-toast-content {
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.e-toast.e-pos-toast.e-pos-toast-success .e-toast-message .e-toast-title,
+.e-toast.e-pos-toast.e-pos-toast-success .e-toast-message .e-toast-content {
+  color: #047857;
+}
+.e-toast.e-pos-toast.e-pos-toast-success {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+.e-toast.e-pos-toast.e-pos-toast-error .e-toast-message .e-toast-title,
+.e-toast.e-pos-toast.e-pos-toast-error .e-toast-message .e-toast-content {
+  color: #be123c;
+}
+.e-toast.e-pos-toast.e-pos-toast-error {
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+.e-toast.e-pos-toast .e-toast-close-icon {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+/* ── NumericTextBox de cantidades y montos: inputs del app ── */
+.e-pos-numeric.e-input-group.e-control-wrapper {
+  border: 1px solid rgb(226 232 240);
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: none;
+}
+.e-pos-numeric.e-input-group.e-control-wrapper:hover,
+.e-pos-numeric.e-input-group.e-control-wrapper.e-input-focus,
+.e-pos-numeric.e-input-group.e-control-wrapper.e-input-focus:not(.e-disabled) {
+  border-color: color-mix(in oklab, var(--primary) 40%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 15%, transparent);
+}
+.e-pos-numeric .e-input {
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 800;
+  padding-left: 0.5rem;
+}
+.e-pos-numeric.e-pos-numeric-slim .e-input {
+  font-size: 0.85rem;
+  padding-left: 0.25rem;
+}
+/* Spin buttons ocultos: en el mostrador se ajusta con los botones de la app,
+   no con las flechitas del browser */
+.e-pos-numeric.e-control-wrapper .e-input-group-icon.e-spin-up,
+.e-pos-numeric.e-control-wrapper .e-input-group-icon.e-spin-down {
+  display: none;
+}
+
+/* Variante "slim": va adentro de una píldora con anillo (tarjeta de producto
+   por peso), así que no lleva borde propio. */
+.e-pos-numeric.e-pos-numeric-slim.e-input-group.e-control-wrapper,
+.e-pos-numeric.e-pos-numeric-slim.e-input-group.e-control-wrapper:hover,
+.e-pos-numeric.e-pos-numeric-slim.e-input-group.e-control-wrapper.e-input-focus {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 9999px;
 }

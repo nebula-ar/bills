@@ -4,19 +4,22 @@ import { previewSale, submitSale, type SubmitSaleInput } from "@/app/sales/new/a
 import type { PaymentMethod, Unit } from "@/generated/prisma/client";
 import { SaleChannel, TaxCondition } from "@/generated/prisma/enums";
 import { BarcodeScanner } from "@/components/barcode-scanner";
-import { Confetti } from "@/components/confetti";
 import { ScanConfirmSheet, type ScannedProduct } from "@/components/scan-confirm-sheet";
 import { findProductToSell } from "@/app/sales/new/scan-actions";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { SyncfusionProvider } from "@/components/syncfusion-provider";
+import { PosCartGrid } from "@/components/pos-cart-grid";
+import { AutoCompleteComponent } from "@syncfusion/ej2-react-dropdowns";
+import { NumericTextBoxComponent } from "@syncfusion/ej2-react-inputs";
+import { DialogComponent } from "@syncfusion/ej2-react-popups";
+import { ToastComponent } from "@syncfusion/ej2-react-notifications";
 import { TAX_CONDITION_LABELS } from "@/lib/invoice-labels";
-import { formatAmountInput } from "@/lib/money";
 import {
   allowsFraction,
   formatQuantity,
   lineTotal,
   ONE,
   parseQuantityInput,
-  sanitizeQuantityInput,
+  QUANTITY_SCALE,
   unitShort,
 } from "@/lib/quantity";
 import { changeFor, coversTotal, quickCashAmounts } from "@/modules/sales/change.logic";
@@ -39,12 +42,11 @@ import {
   Split,
   Store,
   TableService,
-  Trash2,
   Wallet,
   X,
   DynamicIcon,
 } from "@/components/icons";
-import { useEffect, useMemo, useState, useTransition, type ComponentType } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ComponentType } from "react";
 import { SelectField } from "@/components/ui/select-field";
 import Link from "next/link";
 
@@ -176,6 +178,17 @@ function money(value: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
 }
 
+// Sin acentos y sin mayúsculas: quien busca "banana" tiene que encontrar
+// "Banana", y quien escribe "cafe" tiene que encontrar "Café". Es el mismo
+// criterio para el filtro de la grilla y para el popup del buscador, así los
+// dos muestran exactamente lo mismo (ver el evento `filtering` del AutoComplete).
+function normalizeQuery(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 // Acá el producto se llama `productId`, no `id`.
 function posImageSrc(product: Pick<PosProduct, "productId" | "imageVersion" | "catalogSlug">) {
   return productImageSrc({ id: product.productId, imageVersion: product.imageVersion, catalogSlug: product.catalogSlug });
@@ -304,8 +317,10 @@ export function PosCheckout({
   const [splitRows, setSplitRows] = useState<SplitRow[]>([]);
   // Con cuánto paga el cliente, para calcular el vuelto. Vacío = pagó justo.
   const [cashReceived, setCashReceived] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  // Toast de feedback del mostrador (venta registrada / error), ver showToast.
+  const toastRef = useRef<ToastComponent | null>(null);
+  // Referencia al buscador (AutoComplete) para limpiarlo al elegir un producto.
+  const searchRef = useRef<AutoCompleteComponent | null>(null);
   const [isPending, startTransition] = useTransition();
   const [wantsInvoice, setWantsInvoice] = useState(false);
   const [customerName, setCustomerName] = useState("");
@@ -317,6 +332,18 @@ export function PosCheckout({
     [customerTaxId],
   );
   const customerTaxIdHasError = customerTaxIdCheck !== null && !customerTaxIdCheck.valid;
+
+  // Feedback de operaciones con el Toast de Syncfusion: la venta guardada (ok)
+  // y los errores al registrarla. Los avisos del lector de código siguen en el
+  // pill del escáner (ver avisar), que es donde tienen contexto.
+  function showToast(kind: "success" | "error", title: string, content?: string) {
+    toastRef.current?.show({
+      title,
+      content,
+      cssClass: `e-pos-toast e-pos-toast-${kind}`,
+      timeOut: kind === "error" ? 6000 : 3200,
+    });
+  }
 
   // Productos que llegaron por el lector y no estaban en la lista con la que se
   // abrió la pantalla (se cargaron después, o desde otra pantalla). Se suman
@@ -350,11 +377,7 @@ export function PosCheckout({
     // Sin acentos y sin mayúsculas: quien busca "banana" tiene que encontrar
     // "Banana", y quien escribe "cafe" tiene que encontrar "Café". Escribir mal
     // el término es de los problemas más documentados en este tipo de usuario.
-    const normalize = (value: string) =>
-      value
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
-        .toLowerCase();
+    const normalize = normalizeQuery;
 
     const query = normalize(search.trim());
 
@@ -406,6 +429,17 @@ export function PosCheckout({
   const cartItems = products
     .filter((product) => cart[product.productId])
     .map((product) => ({ ...product, quantity: cart[product.productId] }));
+  // Renglones del pedido tal como los consume el DataGrid del detalle
+  // (PosCartGrid): el panel "Pedido" de escritorio y el paso "Tu pedido" del
+  // cobro comparten el mismo grid.
+  const cartGridItems = cartItems.map((item) => ({
+    productId: item.productId,
+    name: item.name,
+    price: item.price,
+    unit: item.unit,
+    quantity: item.quantity,
+    imageSrc: posImageSrc(item),
+  }));
   // Total a precio de lista. El definitivo (con promociones) lo calcula el
   // servidor y llega en `preview`.
   const listTotal = cartItems.reduce((sum, item) => sum + lineTotal(item.price, item.quantity), 0);
@@ -519,7 +553,6 @@ export function PosCheckout({
     setBranchId(nextId);
     setStaffId(initialStaffId(nextBranch, sellsAsStaffId));
     setCart({});
-    setError(null);
   }
 
   function addProduct(productId: string) {
@@ -699,7 +732,6 @@ export function PosCheckout({
     if (!hasItems) return;
     setSplitMode(false);
     setSplitRows([]);
-    setError(null);
     // Siempre desde el primer paso: si quedara donde lo dejó la venta anterior,
     // la siguiente se cobraría con la mesa de la anterior.
     setPaso(0);
@@ -738,7 +770,6 @@ export function PosCheckout({
 
   function confirm() {
     if (!branch || !canConfirm) return;
-    setError(null);
 
     const payments: SubmitSaleInput["payments"] = splitMode
       ? splitRows.map((row) => ({ method: row.method as PaymentMethod, amount: Math.round(Number(row.amount) || 0) }))
@@ -784,10 +815,9 @@ export function PosCheckout({
         setCustomerTaxCondition(TaxCondition.CONSUMIDOR_FINAL);
         setTip("");
         setCheckoutOpen(false);
-        setSuccess(true);
-        window.setTimeout(() => setSuccess(false), 1700);
+        showToast("success", "¡Venta registrada!", "Ya podés cargar la siguiente.");
       } else {
-        setError(result.error);
+        showToast("error", "No se pudo registrar la venta", result.error);
       }
     });
   }
@@ -803,11 +833,15 @@ export function PosCheckout({
   }
 
   return (
-    // El nav de abajo es flotante: no ocupa lugar en el flujo, así que
-    // reservarle 7rem acá era regalar alto. La pantalla llega hasta el borde y
-    // el catálogo pasa POR DEBAJO del nav; el respiro se lo damos adentro del
-    // scroll, donde solo empuja al último renglón.
-    <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-[560px] flex-col overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:h-screen lg:max-w-none lg:overflow-hidden lg:px-8 lg:pb-6">
+    // El provider de Syncfusion vive acá (y no en la página) porque el POS es
+    // un componente cliente: los estilos y el setup global (license + locale
+    // es) llegan con el bundle del mostrador.
+    <SyncfusionProvider>
+      {/* El nav de abajo es flotante: no ocupa lugar en el flujo, así que
+      reservarle 7rem acá era regalar alto. La pantalla llega hasta el borde y
+      el catálogo pasa POR DEBAJO del nav; el respiro se lo damos adentro del
+      scroll, donde solo empuja al último renglón. */}
+      <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-[560px] flex-col overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:h-screen lg:max-w-none lg:overflow-hidden lg:px-8 lg:pb-6">
       {/* Sin encabezado propio: el nombre del negocio y un título que dice
           "Nueva venta" en una pantalla a la que se entra a propósito son dos
           renglones de alto que no informan nada, y acá el alto es el catálogo.
@@ -909,13 +943,59 @@ export function PosCheckout({
       >
         <div className="mb-2.5 flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-            <input
+            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-400" />
+            <AutoCompleteComponent
+              allowFiltering
               aria-label={features.barcodes ? "Buscar por nombre o código" : `Buscar ${catalogSingular.toLowerCase()}`}
-              className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-              onChange={(event) => setSearch(event.target.value)}
+              cssClass="e-pos-search"
+              dataSource={filteredProducts as unknown as Record<string, object>[]}
+              fields={{ value: "productId", text: "name" }}
+              // Filtrar la grilla mientras se escribe (el buscador sigue
+              // filtrando el catálogo de abajo, como el input que reemplaza) y
+              // el popup de sugerencias con los MISMOS campos que la grilla
+              // (nombre, SKU, código de barras, familia): buscar por código no
+              // puede terminar en "No encontramos…" mientras la grilla sí
+              // encuentra el producto.
+              filtering={(args) => {
+                const query = args.text ?? "";
+                setSearch(query);
+                const normalized = normalizeQuery(query);
+                const matches = !normalized
+                  ? products
+                  : products.filter((product) =>
+                      [product.name, product.sku ?? "", product.barcode ?? "", product.familyName ?? ""].some((field) =>
+                        normalizeQuery(field).includes(normalized),
+                      ),
+                    );
+                args.updateData(matches as unknown as Record<string, object>[]);
+              }}
+              filterType="Contains"
+              highlight
+              itemTemplate={(item: PosProduct) => (
+                <div className="flex min-w-0 items-center justify-between gap-3">
+                  <span className="min-w-0 truncate font-bold text-slate-950">{item.name}</span>
+                  <span className="shrink-0 text-sm font-black tabular-nums text-primary">{money(item.price)}</span>
+                </div>
+              )}
+              minLength={1}
+              noRecordsTemplate={() => (
+                <span className="px-2 py-1 text-sm font-semibold text-slate-500">
+                  No encontramos ningún {catalogSingular.toLowerCase()} con eso.
+                </span>
+              )}
               placeholder={features.barcodes ? "Buscar por nombre o código…" : `Buscar ${catalogSingular.toLowerCase()}…`}
-              value={search}
+              popupHeight="320px"
+              popupWidth="min(26rem, 92vw)"
+              ref={searchRef}
+              // Elegir una sugerencia agrega el producto al pedido y limpia el
+              // campo: es el atajo de quien ya sabe qué busca.
+              select={(args) => {
+                const producto = args.itemData as PosProduct;
+                addProduct(producto.productId);
+                setSearch("");
+                if (searchRef.current) searchRef.current.value = "";
+              }}
+              showPopupButton={false}
             />
           </div>
           {/* Escanear es más rápido que buscar: va al lado, del mismo tamaño.
@@ -1124,26 +1204,42 @@ export function PosCheckout({
                   <div className="space-y-1.5 px-2.5 pb-2.5">
                     {byWeight ? (
                       // Por peso o por metro no tiene sentido el +/-: se tipea.
-                      <label className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 ring-1 ring-primary/20">
-                        <input
-                          aria-label={`Cantidad de ${product.name} en ${unitShort(product.unit)}`}
-                          className="w-full min-w-0 bg-transparent text-base font-black text-slate-950 outline-none"
-                          inputMode="decimal"
-                          // Filtrado al escribir: sin esto se podía tipear
-                          // "diez" y el renglón desaparecía del pedido en
-                          // silencio, porque el parser devolvía null.
-                          onChange={(event) =>
-                            setProductQuantity(
-                              product.productId,
-                              sanitizeQuantityInput(event.target.value, product.unit),
-                              product.unit,
-                            )
+                      // El NumericTextBox acepta coma decimal y hasta 3 cifras;
+                      // el onInput del contenedor capta el valor mientras se
+                      // escribe (el evento 'change' de EJ2 solo dispara al
+                      // salir del campo, y acá el pedido se actualiza en vivo).
+                      <div
+                        className="flex items-center gap-1.5 rounded-full bg-white py-1 pl-3 pr-1 ring-1 ring-primary/20"
+                        onInput={(event) => {
+                          const target = event.target as HTMLInputElement;
+                          if (target.classList.contains("e-input")) {
+                            setProductQuantity(product.productId, target.value, product.unit);
                           }
-                          placeholder="0"
-                          value={quantity ? formatQuantity(quantity) : ""}
-                        />
-                        <span className="shrink-0 text-xs font-black text-slate-400">{unitShort(product.unit)}</span>
-                      </label>
+                        }}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <NumericTextBoxComponent
+                            aria-label={`Cantidad de ${product.name} en ${unitShort(product.unit)}`}
+                            change={(args) =>
+                              setProductQuantity(product.productId, args.value ? String(args.value) : "", product.unit)
+                            }
+                            cssClass="e-pos-numeric e-pos-numeric-slim"
+                            decimals={3}
+                            // Sin agrupación de miles: con es-AR el separador de
+                            // miles es "." y "1.000" se reparsaría como 1
+                            // (1000 kg tipeados quedarían en 1 kg). #0.### muestra
+                            // "1000" y "1000,25" tal cual, con hasta 3 decimales.
+                            format="#0.###"
+                            min={0}
+                            placeholder="0"
+                            showSpinButton={false}
+                            step={0.1}
+                            value={quantity ? quantity / QUANTITY_SCALE : undefined}
+                            width="100%"
+                          />
+                        </div>
+                        <span className="shrink-0 pr-2 text-xs font-black text-slate-400">{unitShort(product.unit)}</span>
+                      </div>
                     ) : active ? (
                       <div className="flex items-center justify-between rounded-full bg-white p-1 ring-1 ring-primary/20">
                         <button
@@ -1224,20 +1320,10 @@ export function PosCheckout({
             </h2>
             {hasItems ? (
               <>
-                <div className="mt-4 flex-1 space-y-2 overflow-y-auto">
-                  {cartItems.map((item) => (
-                    <div className="flex items-center gap-2 text-base" key={item.productId}>
-                      <span className="min-w-0 flex-1 truncate text-base font-bold text-slate-700">
-                        {item.name}{" "}
-                        <span className="text-slate-400">
-                          ×{formatQuantity(item.quantity, allowsFraction(item.unit) ? item.unit : undefined)}
-                        </span>
-                      </span>
-                      <span className="shrink-0 font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
-                        {money(lineTotal(item.price, item.quantity))}
-                      </span>
-                    </div>
-                  ))}
+                {/* El DataGrid del detalle scrollea adentro (height 100%): el
+                    resto del panel —descuentos, total, botón— queda fijo. */}
+                <div className="mt-4 min-h-0 flex-1">
+                  <PosCartGrid items={cartGridItems} />
                 </div>
                 {discountTotal > 0 ? (
                   <div className="mt-3 space-y-1 rounded-2xl bg-emerald-50 p-3">
@@ -1503,8 +1589,19 @@ export function PosCheckout({
       />
 
       {/* Selector de talles de un modelo */}
-      <BottomSheet onClose={() => setOpenFamily(null)} open={openFamily !== null}>
-        <div className="flex min-h-0 flex-1 flex-col">
+      <DialogComponent
+        animationSettings={{ effect: "Zoom", duration: 200 }}
+        close={() => setOpenFamily(null)}
+        closeOnEscape
+        cssClass="e-pos-dialog"
+        height="auto"
+        isModal
+        overlayClick={() => setOpenFamily(null)}
+        position={{ X: "center", Y: "center" }}
+        visible={openFamily !== null}
+        width="min(26rem, 92vw)"
+      >
+        <div className="flex max-h-[80dvh] flex-col">
           <div className="px-5 pt-6">
             <h3 className="text-xl font-black tracking-tight text-slate-950">
               {familyVariants[0]?.familyName ?? "Elegí el talle"}
@@ -1564,16 +1661,27 @@ export function PosCheckout({
             </button>
           </div>
         </div>
-      </BottomSheet>
+      </DialogComponent>
 
-      {/* Hoja: revisar y pagar */}
-      {/* `dialog` y no `sheet`: en una caja de mostrador la pantalla es grande y
-          el cobro entraba en una columna de 460px, con los medios de pago
-          apilados de a dos y el vuelto abajo del pliegue. Es la parte de la
+      {/* Diálogo: revisar y pagar */}
+      {/* `dialog` de EJ2 y no un sheet: en una caja de mostrador la pantalla es
+          grande y el cobro entra en una columna de ~600px, con los medios de
+          pago apilados de a dos y el vuelto a la vista. Es la parte de la
           venta donde menos se puede scrollear, porque el cliente está enfrente
           esperando el número. */}
-      <BottomSheet onClose={() => setCheckoutOpen(false)} open={checkoutOpen} panelClassName="min-h-[70dvh]" size="dialog">
-        <div className="flex min-h-0 flex-1 flex-col">
+      <DialogComponent
+        animationSettings={{ effect: "Zoom", duration: 200 }}
+        close={() => setCheckoutOpen(false)}
+        closeOnEscape
+        cssClass="e-pos-dialog"
+        height="auto"
+        isModal
+        overlayClick={() => setCheckoutOpen(false)}
+        position={{ X: "center", Y: "center" }}
+        visible={checkoutOpen}
+        width="min(38rem, 94vw)"
+      >
+        <div className="flex max-h-[86dvh] min-h-[70dvh] flex-col">
           <div className="flex items-center justify-between px-5 pt-6">
             <div>
               <h3 className="text-2xl font-black tracking-tight text-slate-950">{pasos[pasoIdx].titulo}</h3>
@@ -1686,78 +1794,20 @@ export function PosCheckout({
             {pasoActual === "confirmar" ? (
             <section>
               <p className="mb-2 text-sm font-black uppercase tracking-wide text-slate-500">Tu pedido</p>
-              <div className="space-y-2">
-                {cartItems.map((item) => {
-                  const imageSrc = posImageSrc(item);
-
-                  return (
-                  <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-2.5" key={item.productId}>
-                    {imageSrc ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        alt=""
-                        className="size-10 shrink-0 rounded-xl object-cover"
-                        src={imageSrc}
-                      />
-                    ) : null}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-base font-black text-slate-950">{item.name}</p>
-                      <p className="text-sm text-slate-500">
-                        {money(item.price)} {allowsFraction(item.unit) ? `por ${unitShort(item.unit)}` : "c/u"}
-                      </p>
-                    </div>
-                    {allowsFraction(item.unit) ? (
-                      // Lo que se vende por peso no se ajusta con +/-: se muestra
-                      // la cantidad cargada y se corrige en la grilla.
-                      <span
-                        className="rounded-full bg-white px-3 py-1.5 text-sm font-black text-slate-700 ring-1 ring-slate-950/5"
-                        style={{ fontVariantNumeric: "tabular-nums" }}
-                      >
-                        {formatQuantity(item.quantity, item.unit)}
-                      </span>
-                    ) : (
-                      <div className="flex items-center rounded-full bg-white p-1 ring-1 ring-slate-950/5">
-                        <button
-                          aria-label={`Restar ${item.name}`}
-                          className="flex size-11 items-center justify-center rounded-full text-slate-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
-                          onClick={() => decreaseProduct(item.productId)}
-                          type="button"
-                        >
-                          <Minus className="size-4" />
-                        </button>
-                        <span className="w-7 text-center text-sm font-black" style={{ fontVariantNumeric: "tabular-nums" }}>
-                          {formatQuantity(item.quantity)}
-                        </span>
-                        <button
-                          aria-label={`Sumar ${item.name}`}
-                          className="flex size-11 items-center justify-center rounded-full text-slate-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
-                          onClick={() => addProduct(item.productId)}
-                          type="button"
-                        >
-                          <Plus className="size-4" />
-                        </button>
-                      </div>
-                    )}
-                    <p className="w-20 shrink-0 text-right text-base font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
-                      {money(lineTotal(item.price, item.quantity))}
-                    </p>
-                    <button
-                      aria-label={`Quitar ${item.name}`}
-                      className="flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90 hover:text-rose-600"
-                      onClick={() => removeProduct(item.productId)}
-                      type="button"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </div>
-                  );
-                })}
-                {!hasItems ? (
-                  <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
-                    El pedido está vacío.
-                  </p>
-                ) : null}
-              </div>
+              {hasItems ? (
+                <PosCartGrid
+                  height="auto"
+                  interactive
+                  items={cartGridItems}
+                  onAdd={addProduct}
+                  onDecrease={decreaseProduct}
+                  onRemove={removeProduct}
+                />
+              ) : (
+                <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
+                  El pedido está vacío.
+                </p>
+              )}
 
               {/* Por qué el total es menor que la suma de los renglones. Sin esto,
                   el vendedor no puede explicarle el precio al cliente. */}
@@ -1848,17 +1898,26 @@ export function PosCheckout({
                     <p className="text-sm font-black text-slate-950">Propina</p>
                     <p className="text-xs text-slate-500">Del mozo. Se suma al total, aparte de lo vendido.</p>
                   </div>
-                  <label className="flex shrink-0 items-center rounded-xl border border-slate-200 bg-white px-3">
+                  <div
+                    className="flex shrink-0 items-center gap-1 rounded-xl bg-white px-3 ring-1 ring-slate-200"
+                    onInput={(event) => {
+                      const target = event.target as HTMLInputElement;
+                      if (target.classList.contains("e-input")) setTip(target.value.replace(/\D/g, ""));
+                    }}
+                  >
                     <span className="text-sm font-bold text-slate-400">$</span>
-                    <input
+                    <NumericTextBoxComponent
                       aria-label="Propina"
-                      className="w-24 bg-transparent px-1.5 py-2.5 text-right text-base font-black text-slate-950 outline-none"
-                      inputMode="numeric"
-                      onChange={(event) => setTip(event.target.value.replace(/\D/g, ""))}
+                      change={(args) => setTip(args.value ? String(Math.round(args.value)) : "")}
+                      cssClass="e-pos-numeric"
+                      format="n0"
+                      min={0}
                       placeholder="0"
-                      value={formatAmountInput(tip)}
+                      showSpinButton={false}
+                      value={tipAmount || undefined}
+                      width="6.5rem"
                     />
-                  </label>
+                  </div>
                 </div>
               ) : null}
               <div className="mb-2 flex items-center justify-between">
@@ -1888,15 +1947,28 @@ export function PosCheckout({
                           size="sm"
                         />
                       </div>
-                      <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 px-2 focus-within:border-primary/40 focus-within:bg-white">
+                      <div
+                        className="flex shrink-0 items-center gap-1 rounded-xl bg-slate-50 px-2 ring-1 ring-slate-200"
+                        onInput={(event) => {
+                          const target = event.target as HTMLInputElement;
+                          if (target.classList.contains("e-input")) {
+                            updateSplitRow(row.id, { amount: target.value.replace(/\D/g, "") });
+                          }
+                        }}
+                      >
                         <span className="text-sm font-bold text-slate-400">$</span>
-                        <input
+                        <NumericTextBoxComponent
                           aria-label="Monto del pago"
-                          className="w-20 bg-transparent px-1 py-3 text-right text-sm font-black text-slate-950 outline-none"
-                          inputMode="numeric"
-                          onChange={(event) => updateSplitRow(row.id, { amount: event.target.value.replace(/\D/g, "") })}
+                          change={(args) =>
+                            updateSplitRow(row.id, { amount: args.value ? String(Math.round(args.value)) : "" })
+                          }
+                          cssClass="e-pos-numeric"
+                          format="n0"
+                          min={0}
                           placeholder="0"
-                          value={formatAmountInput(row.amount)}
+                          showSpinButton={false}
+                          value={row.amount ? Number(row.amount) : undefined}
+                          width="6rem"
                         />
                       </div>
                       {splitRows.length > 1 ? (
@@ -2060,17 +2132,26 @@ export function PosCheckout({
                   ))}
                 </div>
 
-                <label className="flex items-center rounded-xl border border-slate-200 bg-white px-3">
+                <div
+                  className="flex items-center gap-1 rounded-xl bg-white px-3 ring-1 ring-slate-200"
+                  onInput={(event) => {
+                    const target = event.target as HTMLInputElement;
+                    if (target.classList.contains("e-input")) setCashReceived(target.value.replace(/\D/g, ""));
+                  }}
+                >
                   <span className="text-base font-black text-slate-400">$</span>
-                  <input
+                  <NumericTextBoxComponent
                     aria-label="Con cuánto paga"
-                    className="w-full min-w-0 bg-transparent px-2 py-3 text-base font-black text-slate-950 outline-none"
-                    inputMode="numeric"
-                    onChange={(event) => setCashReceived(event.target.value.replace(/\D/g, ""))}
+                    change={(args) => setCashReceived(args.value ? String(Math.round(args.value)) : "")}
+                    cssClass="e-pos-numeric"
+                    format="n0"
+                    min={0}
                     placeholder="Otro monto"
-                    value={formatAmountInput(cashReceived)}
+                    showSpinButton={false}
+                    value={cashReceived ? Number(cashReceived) : undefined}
+                    width="100%"
                   />
-                </label>
+                </div>
 
                 {/* Ahora que la pantalla es solo para esto, el vuelto va del
                     tamaño que le corresponde: es el número que el cajero canta
@@ -2093,12 +2174,6 @@ export function PosCheckout({
                   )
                 ) : null}
               </div>
-            ) : null}
-
-            {error ? (
-              <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">
-                {error}
-              </p>
             ) : null}
           </div>
 
@@ -2141,24 +2216,19 @@ export function PosCheckout({
             )}
           </div>
         </div>
-      </BottomSheet>
+      </DialogComponent>
 
-      {success ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm duration-200 animate-in fade-in">
-          {/* Confetti sutil sobre el overlay: refuerza el cierre sin frenar el
-              cobro (mismo patrón que register-wizard, con motion reducido en
-              prefers-reduced-motion). */}
-          <Confetti />
-          <div className="relative flex flex-col items-center gap-3 rounded-2xl bg-white px-12 py-10 shadow-2xl duration-300 animate-in zoom-in-95">
-            <span className="flex size-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-              <Check className="size-11" />
-            </span>
-            <p className="text-xl font-black text-slate-950">¡Venta registrada!</p>
-            <p className="text-sm text-slate-500">Ya podés cargar la siguiente.</p>
-          </div>
-        </div>
-      ) : null}
-    </main>
+      {/* Toast de feedback del mostrador: venta registrada (ok) y errores al
+          registrar. Los avisos del lector de código siguen en el pill del
+          escáner (ver avisar), que es donde tienen contexto. */}
+      <ToastComponent
+        position={{ X: "Center", Y: "Bottom" }}
+        ref={toastRef}
+        showCloseButton
+        width="min(24rem, calc(100vw - 2rem))"
+      />
+      </main>
+    </SyncfusionProvider>
   );
 }
 
