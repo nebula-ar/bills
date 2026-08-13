@@ -178,6 +178,17 @@ function money(value: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
 }
 
+// Sin acentos y sin mayúsculas: quien busca "banana" tiene que encontrar
+// "Banana", y quien escribe "cafe" tiene que encontrar "Café". Es el mismo
+// criterio para el filtro de la grilla y para el popup del buscador, así los
+// dos muestran exactamente lo mismo (ver el evento `filtering` del AutoComplete).
+function normalizeQuery(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 // Acá el producto se llama `productId`, no `id`.
 function posImageSrc(product: Pick<PosProduct, "productId" | "imageVersion" | "catalogSlug">) {
   return productImageSrc({ id: product.productId, imageVersion: product.imageVersion, catalogSlug: product.catalogSlug });
@@ -366,11 +377,7 @@ export function PosCheckout({
     // Sin acentos y sin mayúsculas: quien busca "banana" tiene que encontrar
     // "Banana", y quien escribe "cafe" tiene que encontrar "Café". Escribir mal
     // el término es de los problemas más documentados en este tipo de usuario.
-    const normalize = (value: string) =>
-      value
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
-        .toLowerCase();
+    const normalize = normalizeQuery;
 
     const query = normalize(search.trim());
 
@@ -943,9 +950,25 @@ export function PosCheckout({
               cssClass="e-pos-search"
               dataSource={filteredProducts as unknown as Record<string, object>[]}
               fields={{ value: "productId", text: "name" }}
-              // Filtrar la grilla mientras se escribe: el buscador sigue
-              // filtrando el catálogo de abajo, como el input que reemplaza.
-              filtering={(args) => setSearch(args.text ?? "")}
+              // Filtrar la grilla mientras se escribe (el buscador sigue
+              // filtrando el catálogo de abajo, como el input que reemplaza) y
+              // el popup de sugerencias con los MISMOS campos que la grilla
+              // (nombre, SKU, código de barras, familia): buscar por código no
+              // puede terminar en "No encontramos…" mientras la grilla sí
+              // encuentra el producto.
+              filtering={(args) => {
+                const query = args.text ?? "";
+                setSearch(query);
+                const normalized = normalizeQuery(query);
+                const matches = !normalized
+                  ? products
+                  : products.filter((product) =>
+                      [product.name, product.sku ?? "", product.barcode ?? "", product.familyName ?? ""].some((field) =>
+                        normalizeQuery(field).includes(normalized),
+                      ),
+                    );
+                args.updateData(matches as unknown as Record<string, object>[]);
+              }}
               filterType="Contains"
               highlight
               itemTemplate={(item: PosProduct) => (
@@ -1202,7 +1225,11 @@ export function PosCheckout({
                             }
                             cssClass="e-pos-numeric e-pos-numeric-slim"
                             decimals={3}
-                            format="#,##0.###"
+                            // Sin agrupación de miles: con es-AR el separador de
+                            // miles es "." y "1.000" se reparsaría como 1
+                            // (1000 kg tipeados quedarían en 1 kg). #0.### muestra
+                            // "1000" y "1000,25" tal cual, con hasta 3 decimales.
+                            format="#0.###"
                             min={0}
                             placeholder="0"
                             showSpinButton={false}

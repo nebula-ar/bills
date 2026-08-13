@@ -1,7 +1,8 @@
 /* Ajustes de marca sobre el tema "tailwind" de Syncfusion EJ2.
-   EJ2 se usa únicamente en el dashboard (el provider se importa solo ahí), así
-   que estos overrides globales no tocan otras pantallas. Se importa junto a
-   los estilos base de EJ2 en src/components/syncfusion-provider.tsx. */
+   EJ2 se usa en el dashboard y en el POS / Terminal de venta (el provider se
+   importa en ambas pantallas), así que estos overrides globales no tocan el
+   resto de la app. Se importa junto a los estilos base de EJ2 en
+   src/components/syncfusion-provider.tsx. */
 
 /* ── DateRangePicker: misma pinta que los inputs del resto de la app ── */
 .e-input-group.e-control-wrapper.e-date-range-wrapper {

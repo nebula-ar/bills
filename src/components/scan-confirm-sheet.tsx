@@ -150,7 +150,10 @@ export function ScanConfirmSheet({
                 }}
                 cssClass="e-pos-numeric"
                 decimals={3}
-                format="#,##0.###"
+                // Sin agrupación de miles: con es-AR el separador de miles es "."
+                // y "1.000" se reparsaría como 1 (regresión NEBU-46). #0.###
+                // muestra "1000" y "1000,25" tal cual, con hasta 3 decimales.
+                format="#0.###"
                 min={0}
                 placeholder="0"
                 showSpinButton={false}
