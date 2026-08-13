@@ -1,4 +1,5 @@
 import { ExpensesManager, type ExpensesData, type OutflowRow, type PayableRow } from "@/components/expenses-manager";
+import { SyncfusionGestionProvider } from "@/components/syncfusion-gestion-provider";
 import { AppModule, ExpenseCategory, PurchaseStatus, TaxCondition, Unit } from "@/generated/prisma/client";
 import { findBusinessTaxCondition } from "@/modules/invoicing/invoicing.repository";
 import { requireBusinessContext } from "@/lib/business-context";
@@ -188,7 +189,11 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
     payables,
   };
 
-  return <ExpensesManager data={data} />;
+  return (
+    <SyncfusionGestionProvider>
+      <ExpensesManager data={data} />
+    </SyncfusionGestionProvider>
+  );
 }
 
 // La cantidad viene en milésimas (ver src/lib/quantity.ts); acá solo hace falta

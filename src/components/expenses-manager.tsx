@@ -34,7 +34,8 @@ import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
-import { SelectField as UiSelect } from "@/components/ui/select-field";
+import { SyncSelect } from "@/components/sync-select";
+import { SyncDatePicker } from "@/components/sync-date-picker";
 
 // Un renglón de lo que salió este mes. Puede ser un gasto suelto (ya pago) o el
 // pago de una factura de proveedor: en la lista se ven igual porque para el
@@ -204,7 +205,7 @@ function SelectField({
   return (
     <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
       {label}
-      <UiSelect ariaLabel={label} defaultValue={defaultValue} name={name} options={options} />
+      <SyncSelect ariaLabel={label} defaultValue={defaultValue} name={name} options={options} />
     </label>
   );
 }
@@ -277,7 +278,7 @@ function ExpenseFields({
 
       <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
         Fecha
-        <input className={sheetField} defaultValue={row?.spentAtValue ?? data.todayValue} name="spentAt" type="date" />
+        <SyncDatePicker defaultValue={row?.spentAtValue ?? data.todayValue} name="spentAt" />
       </label>
 
       <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
@@ -339,11 +340,11 @@ function PurchaseFields({ data }: { data: ExpensesData }) {
         </label>
         <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
           Fecha
-          <input className={sheetField} defaultValue={data.todayValue} name="issuedAt" type="date" />
+          <SyncDatePicker defaultValue={data.todayValue} name="issuedAt" />
         </label>
         <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
           Vence
-          <input className={sheetField} name="dueAt" type="date" />
+          <SyncDatePicker name="dueAt" placeholder="Opcional" />
         </label>
         {isMerchandise ? (
           <SelectField
@@ -386,7 +387,7 @@ function PurchaseFields({ data }: { data: ExpensesData }) {
           {Array.from({ length: rows }).map((_, index) => (
             <div className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50/60 p-3" key={index}>
               {isMerchandise ? (
-                <UiSelect
+                <SyncSelect
                   ariaLabel="Producto"
                   name="itemProductId"
                   options={[
@@ -406,7 +407,7 @@ function PurchaseFields({ data }: { data: ExpensesData }) {
                   name="itemQuantity"
                   placeholder="Cant."
                 />
-                <UiSelect
+                <SyncSelect
                   ariaLabel="Unidad"
                   name="itemUnit"
                   options={data.units.map((unit) => ({ value: unit.value, label: unit.label }))}
@@ -803,12 +804,12 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <UiSelect
+                  <SyncSelect
                       ariaLabel="Cuenta"
                       name="method"
                       options={data.paymentMethods.map((option) => ({ value: option.value, label: option.label }))}
                     />
-                  <input aria-label="Fecha del pago" className={sheetField} defaultValue={data.todayValue} name="paidAt" type="date" />
+                  <SyncDatePicker defaultValue={data.todayValue} name="paidAt" />
                 </div>
                 <button
                   className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3.5 text-sm font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
@@ -835,7 +836,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                   <MoneyInput aria-label="Importe de la nota de crédito" className={sheetField} name="amount" placeholder="$" />
                   <div className="grid grid-cols-2 gap-2">
                     <input aria-label="Nº de la nota" className={sheetField} name="number" placeholder="Nº" />
-                    <input aria-label="Fecha" className={sheetField} defaultValue={data.todayValue} name="issuedAt" type="date" />
+                    <SyncDatePicker defaultValue={data.todayValue} name="issuedAt" />
                   </div>
                   <input aria-label="Motivo" className={sheetField} name="reason" placeholder="Motivo (opcional)" />
                   <button
@@ -923,7 +924,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                           name="amount"
                           placeholder="$"
                         />
-                        <UiSelect
+                        <SyncSelect
                       ariaLabel="Cuenta"
                       name="method"
                       options={data.paymentMethods.map((option) => ({ value: option.value, label: option.label }))}
