@@ -2,10 +2,11 @@
 
 import { Check, DynamicIcon, Minus, Plus, TriangleAlert, X } from "@/components/icons";
 import type { Unit } from "@/generated/prisma/enums";
-import { allowsFraction, formatQuantity, lineTotal, ONE, parseQuantityInput, unitShort } from "@/lib/quantity";
+import { allowsFraction, formatQuantity, lineTotal, ONE, parseQuantityInput, QUANTITY_SCALE, unitShort } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
+import { DialogComponent } from "@syncfusion/ej2-react-popups";
+import { NumericTextBoxComponent } from "@syncfusion/ej2-react-inputs";
 import { useState } from "react";
-import { createPortal } from "react-dom";
 
 // Confirmación de lo escaneado, antes de que entre al pedido.
 //
@@ -17,6 +18,9 @@ import { createPortal } from "react-dom";
 // La cantidad importa tanto como el producto: escanear una vez y llevar seis
 // es lo normal en un kiosco, y hacer seis lecturas del mismo código es una
 // pérdida de tiempo que nadie se banca con el cliente enfrente.
+//
+// Modal de Syncfusion EJ2 (Dialog): la confirmación va por ENCIMA del lector
+// (que es z-80), así que un diálogo por debajo sería invisible.
 
 export type ScannedProduct = {
   productId: string;
@@ -68,13 +72,20 @@ export function ScanConfirmSheet({
     setQuantity((current) => Math.max(ONE, current + delta * ONE));
   }
 
-  // Va en un portal y por ENCIMA del lector (que es z-80): el lector ocupa toda
-  // la pantalla, así que una confirmación por debajo sería invisible.
-  return createPortal(
-    <div className="fixed inset-0 z-[90] flex items-end justify-center">
-      <button aria-label="Cancelar" className="absolute inset-0 bg-slate-950/70" onClick={onCancel} type="button" />
-
-      <div className="relative flex w-full max-w-[460px] flex-col rounded-t-[2rem] bg-white pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-12px_50px_rgba(15,23,42,0.35)] duration-200 animate-in slide-in-from-bottom-4">
+  return (
+    <DialogComponent
+      animationSettings={{ effect: "Zoom", duration: 200 }}
+      close={onCancel}
+      closeOnEscape
+      cssClass="e-pos-dialog"
+      height="auto"
+      isModal
+      overlayClick={onCancel}
+      position={{ X: "center", Y: "center" }}
+      visible={Boolean(product)}
+      width="min(30rem, 94vw)"
+    >
+      <div className="flex max-h-[85dvh] flex-col">
         <div className="flex items-start gap-3 px-5 pt-5">
           {imageSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -118,21 +129,37 @@ export function ScanConfirmSheet({
 
           {byWeight ? (
             // Por peso o por metro no hay +/- que valga: se escribe lo que dio
-            // la balanza.
-            <label className="mt-2 flex items-center rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white">
-              <input
+            // la balanza. El NumericTextBox acepta coma decimal y hasta 3
+            // cifras; el onInput del contenedor capta el valor mientras se
+            // escribe (el 'change' de EJ2 dispara solo al salir del campo).
+            <div
+              className="mt-2 flex items-center rounded-2xl border-2 border-slate-200 bg-slate-50 px-4"
+              onInput={(event) => {
+                const target = event.target as HTMLInputElement;
+                if (target.classList.contains("e-input")) {
+                  setRaw(target.value);
+                  setQuantity(parseQuantityInput(target.value, product.unit) ?? 0);
+                }
+              }}
+            >
+              <NumericTextBoxComponent
                 aria-label={`Cantidad en ${unitShort(product.unit)}`}
-                className="w-full min-w-0 bg-transparent py-4 text-2xl font-black text-slate-950 outline-none"
-                inputMode="decimal"
-                onChange={(event) => {
-                  setRaw(event.target.value);
-                  setQuantity(parseQuantityInput(event.target.value, product.unit) ?? 0);
+                change={(args) => {
+                  setRaw(args.value ? String(args.value) : "");
+                  setQuantity(args.value ? Math.round(args.value * QUANTITY_SCALE) : 0);
                 }}
+                cssClass="e-pos-numeric"
+                decimals={3}
+                format="#,##0.###"
+                min={0}
                 placeholder="0"
-                value={raw}
+                showSpinButton={false}
+                step={0.1}
+                value={raw ? Number(raw.replace(",", ".")) : undefined}
+                width="100%"
               />
               <span className="shrink-0 text-base font-black text-slate-400">{unitShort(product.unit)}</span>
-            </label>
+            </div>
           ) : (
             <div className="mt-2 flex items-center justify-between rounded-2xl bg-slate-50 p-2">
               <button
@@ -196,7 +223,7 @@ export function ScanConfirmSheet({
           ) : null}
         </div>
 
-        <div className="mt-4 border-t border-slate-100 px-5 pt-4">
+        <div className="mt-4 border-t border-slate-100 px-5 pb-5 pt-4">
           <button
             className="flex w-full items-center justify-between gap-3 rounded-2xl bg-primary px-5 py-4 text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
             data-testid="scan-confirm"
@@ -212,7 +239,6 @@ export function ScanConfirmSheet({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
+    </DialogComponent>
   );
 }
