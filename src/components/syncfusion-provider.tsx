@@ -14,7 +14,6 @@ import "@syncfusion/ej2-popups/styles/tailwind.css";
 import "@syncfusion/ej2-calendars/styles/tailwind.css";
 import "@syncfusion/ej2-navigations/styles/tailwind.css";
 import "@syncfusion/ej2-grids/styles/tailwind.css";
-import "@syncfusion/ej2-layouts/styles/tailwind.css";
 import "./syncfusion-overrides.css";
 
 import { useEffect, type ReactNode } from "react";

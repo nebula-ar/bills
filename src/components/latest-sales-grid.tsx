@@ -28,21 +28,26 @@ export function LatestSalesGrid({ data }: { data: LatestSaleRow[] }) {
   return (
     <GridComponent allowTextWrap cssClass="e-dashboard-grid" dataSource={data} height="auto" width="100%">
       <ColumnsDirective>
-        <ColumnDirective field="timeLabel" headerText="Hora" hideAtMedia="(max-width: 640px)" width={70} />
-        <ColumnDirective field="staffName" headerText="Empleado" width={130} />
+        {/* Anchos en % (no px) + columnas flexibles: en viewports chicos el grid
+            no genera scrollbar horizontal. En mobile (<641px) se ocultan Hora y
+            Pago (secundarias) y queda Empleado + Detalle + Total.
+            OJO con hideAtMedia: la columna se muestra cuando la media query
+            MATCHES (col.visible = e.matches en ej2-grids), así que para ocultar
+            por debajo de 640px la query correcta es (min-width: 641px). */}
+        <ColumnDirective field="timeLabel" headerText="Hora" hideAtMedia="(min-width: 641px)" width={70} />
+        <ColumnDirective field="staffName" headerText="Empleado" width="24%" />
         <ColumnDirective
           clipMode="Ellipsis"
           field="itemSummary"
           headerText="Detalle"
-          hideAtMedia="(max-width: 640px)"
-          width={220}
+          width="auto"
         />
         <ColumnDirective
           field="paymentLabel"
           headerText="Pago"
           headerTextAlign="Right"
+          hideAtMedia="(min-width: 641px)"
           textAlign="Right"
-          width={100}
         />
         <ColumnDirective
           field="total"
@@ -52,7 +57,7 @@ export function LatestSalesGrid({ data }: { data: LatestSaleRow[] }) {
             <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>{formatMoney(row.total)}</span>
           )}
           textAlign="Right"
-          width={110}
+          width="22%"
         />
       </ColumnsDirective>
     </GridComponent>

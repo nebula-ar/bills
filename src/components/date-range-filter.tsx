@@ -36,10 +36,15 @@ export function DateRangeFilter({ from, to, onChange }: DateRangeFilterProps) {
   }
 
   return (
+    // IMPORTANTE: el evento es `change` (evento de modelo de EJ2) y NO
+    // `onChange`: el wrapper React de Syncfusion special-casea `onChange` y
+    // entrega un objeto reducido {syntheticEvent, nativeEvent, value, target}
+    // sin startDate/endDate, con lo que el rango elegido nunca llegaría a
+    // customFrom/customTo.
     <DateRangePickerComponent
+      change={handleChange}
       endDate={end ?? new Date()}
       format="dd/MM/yyyy"
-      onChange={handleChange}
       placeholder="Desde – Hasta"
       separator="–"
       startDate={start ?? new Date()}
