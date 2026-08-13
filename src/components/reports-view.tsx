@@ -31,8 +31,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ComponentType, type ReactNode } from "react";
 import { SelectField } from "@/components/ui/select-field";
+import { SyncfusionProvider } from "@/components/syncfusion-provider";
+import { DateRangeFilter } from "@/components/date-range-filter";
 
-// Charts basados en recharts (dependencia grande): se cargan en el cliente, on
+// Charts de Syncfusion EJ2 (dependencia grande): se cargan en el cliente, on
 // demand, para no engordar el bundle inicial del dashboard.
 const ChartSkeleton = () => <Skeleton className="h-[210px] w-full rounded-2xl" />;
 const SalesTrendChart = dynamic(
@@ -42,6 +44,12 @@ const SalesTrendChart = dynamic(
 const PaymentDonutChart = dynamic(
   () => import("@/components/reports-charts").then((mod) => mod.PaymentDonutChart),
   { ssr: false, loading: ChartSkeleton },
+);
+// El grid de últimas ventas (Syncfusion EJ2, igual que los charts) también se
+// carga on demand para no sumar su bundle al render inicial del dashboard.
+const LatestSalesGrid = dynamic(
+  () => import("@/components/latest-sales-grid").then((mod) => mod.LatestSalesGrid),
+  { ssr: false, loading: () => <Skeleton className="h-[280px] w-full rounded-2xl" /> },
 );
 
 export type ReportsStaffOption = { id: string; name: string };
@@ -200,7 +208,8 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
   const customInvalid = rangeKey === DashboardRange.Custom && (!customFrom || !customTo || customFrom > customTo);
 
   return (
-    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
+    <SyncfusionProvider>
+      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
       {/* Header */}
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
@@ -647,33 +656,8 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
               <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
-          <div className="mt-3 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5">
-            {data.latestSales.length === 0 ? (
-              <p className="px-5 py-8 text-center text-sm text-slate-500">No hay ventas para estos filtros.</p>
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {data.latestSales.map((sale) => (
-                  <li className="flex items-center gap-3 px-4 py-3" key={sale.id}>
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-                      <ReceiptText className="size-5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-slate-950">{sale.staffName}</p>
-                      <p className="truncate text-xs text-slate-500">
-                        {sale.paymentLabel}
-                        {sale.itemSummary ? ` · ${sale.itemSummary}` : ""}
-                      </p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-sm font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
-                        {formatMoney(sale.total)}
-                      </p>
-                      <p className="text-xs text-slate-500">{sale.timeLabel} hs</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <div className="mt-3 overflow-hidden rounded-2xl bg-white p-2 shadow-sm ring-1 ring-slate-950/5">
+            <LatestSalesGrid data={data.latestSales} />
           </div>
         </div>
         </div>
@@ -719,27 +703,15 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                 })}
               </div>
               {rangeKey === DashboardRange.Custom ? (
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <label className="grid gap-1.5 text-xs font-bold text-slate-500">
-                    Desde
-                    <input
-                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-                      max={customTo || undefined}
-                      onChange={(event) => setCustomFrom(event.target.value)}
-                      type="date"
-                      value={customFrom}
-                    />
-                  </label>
-                  <label className="grid gap-1.5 text-xs font-bold text-slate-500">
-                    Hasta
-                    <input
-                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-                      min={customFrom || undefined}
-                      onChange={(event) => setCustomTo(event.target.value)}
-                      type="date"
-                      value={customTo}
-                    />
-                  </label>
+                <div className="mt-3">
+                  <DateRangeFilter
+                    from={customFrom}
+                    onChange={(from, to) => {
+                      setCustomFrom(from);
+                      setCustomTo(to);
+                    }}
+                    to={customTo}
+                  />
                 </div>
               ) : null}
             </section>
@@ -817,7 +789,8 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
         open={logoutOpen}
         title="¿Cerrar sesión?"
       />
-    </main>
+      </main>
+    </SyncfusionProvider>
   );
 }
 

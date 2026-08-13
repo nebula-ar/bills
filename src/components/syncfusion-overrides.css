@@ -1,0 +1,72 @@
+/* Ajustes de marca sobre el tema "tailwind" de Syncfusion EJ2.
+   EJ2 se usa únicamente en el dashboard (el provider se importa solo ahí), así
+   que estos overrides globales no tocan otras pantallas. Se importa junto a
+   los estilos base de EJ2 en src/components/syncfusion-provider.tsx. */
+
+/* ── DateRangePicker: misma pinta que los inputs del resto de la app ── */
+.e-input-group.e-control-wrapper.e-date-range-wrapper {
+  border: 1px solid rgb(226 232 240); /* slate-200 */
+  background: rgb(248 250 252); /* slate-50 */
+  border-radius: 0.9rem;
+  box-shadow: none;
+  font-weight: 600;
+}
+.e-input-group.e-control-wrapper.e-date-range-wrapper:hover,
+.e-input-group.e-control-wrapper.e-date-range-wrapper.e-input-focus {
+  border-color: color-mix(in oklab, var(--primary) 40%, transparent);
+  background: #fff;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 15%, transparent);
+}
+.e-date-range-wrapper .e-input {
+  color: #0f172a;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.e-date-range-wrapper .e-input-group-icon.e-range-icon {
+  color: var(--primary);
+  font-size: 14px;
+}
+
+/* ── Popup del calendario: selección y "hoy" con el color de marca ── */
+.e-calendar .e-content td.e-selected span.e-day,
+.e-calendar .e-content td.e-today.e-selected span.e-day {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.e-calendar .e-content td.e-today span.e-day,
+.e-calendar .e-content td.e-focused-date.e-today span.e-day {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.e-daterangepicker.e-popup .e-footer .e-btn.e-apply {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.e-daterangepicker.e-popup .e-footer .e-btn.e-apply:hover {
+  background: var(--primary-strong, var(--primary));
+  border-color: var(--primary-strong, var(--primary));
+}
+
+/* ── DataGrid del dashboard: header liviano y tipografía del app ── */
+.e-grid.e-dashboard-grid {
+  border: 0;
+  font-size: 0.875rem;
+}
+.e-grid.e-dashboard-grid .e-gridheader {
+  background: transparent;
+  border-bottom: 1px solid #f1f5f9;
+}
+.e-grid.e-dashboard-grid .e-gridheader .e-headercell {
+  background: transparent;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.e-grid.e-dashboard-grid .e-rowcell {
+  border-color: #f8fafc;
+  color: #334155;
+}
