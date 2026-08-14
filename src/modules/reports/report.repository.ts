@@ -52,6 +52,16 @@ export function findReportSales(businessId: string, filters: SalesReportFilters)
           name: true,
         },
       },
+      // Datos fiscales del cliente, para el detalle de ventas del dashboard.
+      // La venta congela una copia (customerName/customerTaxId) y además puede
+      // apuntar al Customer actual: se prefiere el vivo y se cae a la copia.
+      customerName: true,
+      customerTaxId: true,
+      customer: {
+        select: {
+          name: true,
+        },
+      },
       items: {
         where: {
           deleted: false,

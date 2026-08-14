@@ -1,4 +1,4 @@
-import { PaymentMethod, SaleStatus } from "@/generated/prisma/client";
+import { AfipStatus, PaymentMethod, SaleStatus } from "@/generated/prisma/client";
 import { logEvent } from "@/lib/logger";
 
 import { cancelSaleTransaction, findSaleForCancellation } from "./sale.repository";
@@ -16,7 +16,7 @@ export type CancelSaleInput = {
 // Anular no borra: revierte. Devuelve al stock lo que había salido y compensa
 // el fiado con un asiento contrario, así el libro sigue explicando todo.
 export async function cancelSale(input: CancelSaleInput) {
-  const sale = await findSaleForCancellation(input.saleId);
+  const sale = await findSaleForCancellation(input.saleId, input.businessId);
 
   if (!sale) {
     throw new SaleError(SaleErrorCode.SALE_NOT_FOUND);
@@ -24,6 +24,14 @@ export async function cancelSale(input: CancelSaleInput) {
 
   if (sale.status === SaleStatus.CANCELLED) {
     throw new SaleError(SaleErrorCode.SALE_ALREADY_CANCELLED);
+  }
+
+  // Una venta con comprobante AFIP/ARCA emitido no se anula sin anular primero
+  // el comprobante (nota de crédito): dejaría una factura viva sobre una venta
+  // cancelada. El historial de ventas y la grilla de Facturación comparten este
+  // guard del lado del servidor.
+  if (sale.afipStatus === AfipStatus.ISSUED) {
+    throw new SaleError(SaleErrorCode.SALE_HAS_ISSUED_INVOICE);
   }
 
   const notes = buildCancellationNotes(sale.notes, input.reason);

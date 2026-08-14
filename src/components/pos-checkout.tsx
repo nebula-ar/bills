@@ -944,59 +944,75 @@ export function PosCheckout({
         <div className="mb-2.5 flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-400" />
-            <AutoCompleteComponent
-              allowFiltering
-              aria-label={features.barcodes ? "Buscar por nombre o código" : `Buscar ${catalogSingular.toLowerCase()}`}
-              cssClass="e-pos-search"
-              dataSource={filteredProducts as unknown as Record<string, object>[]}
-              fields={{ value: "productId", text: "name" }}
-              // Filtrar la grilla mientras se escribe (el buscador sigue
-              // filtrando el catálogo de abajo, como el input que reemplaza) y
-              // el popup de sugerencias con los MISMOS campos que la grilla
-              // (nombre, SKU, código de barras, familia): buscar por código no
-              // puede terminar en "No encontramos…" mientras la grilla sí
-              // encuentra el producto.
-              filtering={(args) => {
-                const query = args.text ?? "";
-                setSearch(query);
-                const normalized = normalizeQuery(query);
-                const matches = !normalized
-                  ? products
-                  : products.filter((product) =>
-                      [product.name, product.sku ?? "", product.barcode ?? "", product.familyName ?? ""].some((field) =>
-                        normalizeQuery(field).includes(normalized),
-                      ),
-                    );
-                args.updateData(matches as unknown as Record<string, object>[]);
-              }}
-              filterType="Contains"
-              highlight
-              itemTemplate={(item: PosProduct) => (
-                <div className="flex min-w-0 items-center justify-between gap-3">
-                  <span className="min-w-0 truncate font-bold text-slate-950">{item.name}</span>
-                  <span className="shrink-0 text-sm font-black tabular-nums text-primary">{money(item.price)}</span>
-                </div>
-              )}
-              minLength={1}
-              noRecordsTemplate={() => (
-                <span className="px-2 py-1 text-sm font-semibold text-slate-500">
-                  No encontramos ningún {catalogSingular.toLowerCase()} con eso.
-                </span>
-              )}
-              placeholder={features.barcodes ? "Buscar por nombre o código…" : `Buscar ${catalogSingular.toLowerCase()}…`}
-              popupHeight="320px"
-              popupWidth="min(26rem, 92vw)"
-              ref={searchRef}
-              // Elegir una sugerencia agrega el producto al pedido y limpia el
-              // campo: es el atajo de quien ya sabe qué busca.
-              select={(args) => {
-                const producto = args.itemData as PosProduct;
-                addProduct(producto.productId);
-                setSearch("");
-                if (searchRef.current) searchRef.current.value = "";
-              }}
-              showPopupButton={false}
-            />
+            {/* El AutoComplete va en su PROPIO contenedor, sin hermanos que React
+                reconcilie: EJ2 re-parentea el <input> en span.e-input-group al
+                montar, y el siguiente commit de React sobre un hermano —el ícono
+                de iconify, que hace swap span→svg— terminaba en
+                insertBefore(svg, input) contra un nodo movido → NotFoundError →
+                "Algo salió mal" (crash de producción NEBU-46). Aislado, React no
+                toca el DOM interno de EJ2. */}
+            <div className="w-full">
+              <AutoCompleteComponent
+                allowFiltering
+                aria-label={features.barcodes ? "Buscar por nombre o código" : `Buscar ${catalogSingular.toLowerCase()}`}
+                cssClass="e-pos-search"
+                // dataSource estable (todos los productos del branch, memoizado):
+                // si pasara filteredProducts, cada setSearch re-renderizaría con
+                // un array nuevo → EJ2 updateDataSource → clearAll → hidePopup →
+                // el popup se cierra apenas abre (NEBU-46). El filtrado real lo
+                // hace el handler `filtering` con updateData.
+                dataSource={products as unknown as Record<string, object>[]}
+                fields={{ value: "productId", text: "name" }}
+                // Filtrar la grilla mientras se escribe (el buscador sigue
+                // filtrando el catálogo de abajo, como el input que reemplaza) y
+                // el popup de sugerencias con los MISMOS campos que la grilla
+                // (nombre, SKU, código de barras, familia): buscar por código no
+                // puede terminar en "No encontramos…" mientras la grilla sí
+                // encuentra el producto. updateData además evita el filtro
+                // interno de EJ2 sobre fields.value (productId), que con
+                // búsqueda por texto no matchearía nunca.
+                filtering={(args) => {
+                  const query = args.text ?? "";
+                  setSearch(query);
+                  const normalized = normalizeQuery(query);
+                  const matches = !normalized
+                    ? products
+                    : products.filter((product) =>
+                        [product.name, product.sku ?? "", product.barcode ?? "", product.familyName ?? ""].some((field) =>
+                          normalizeQuery(field).includes(normalized),
+                        ),
+                      );
+                  args.updateData(matches as unknown as Record<string, object>[]);
+                }}
+                filterType="Contains"
+                highlight
+                itemTemplate={(item: PosProduct) => (
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <span className="min-w-0 truncate font-bold text-slate-950">{item.name}</span>
+                    <span className="shrink-0 text-sm font-black tabular-nums text-primary">{money(item.price)}</span>
+                  </div>
+                )}
+                minLength={1}
+                noRecordsTemplate={() => (
+                  <span className="px-2 py-1 text-sm font-semibold text-slate-500">
+                    No encontramos ningún {catalogSingular.toLowerCase()} con eso.
+                  </span>
+                )}
+                placeholder={features.barcodes ? "Buscar por nombre o código…" : `Buscar ${catalogSingular.toLowerCase()}…`}
+                popupHeight="320px"
+                popupWidth="auto"
+                ref={searchRef}
+                // Elegir una sugerencia agrega el producto al pedido y limpia el
+                // campo: es el atajo de quien ya sabe qué busca.
+                select={(args) => {
+                  const producto = args.itemData as PosProduct;
+                  addProduct(producto.productId);
+                  setSearch("");
+                  if (searchRef.current) searchRef.current.value = "";
+                }}
+                showPopupButton={false}
+              />
+            </div>
           </div>
           {/* Escanear es más rápido que buscar: va al lado, del mismo tamaño.
               Donde no hay códigos (una barbería) no se muestra. */}

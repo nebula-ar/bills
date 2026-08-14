@@ -16,6 +16,7 @@ import {
   operatingExpensesOf,
 } from "@/modules/reports/profit.use-case";
 import { ReportsView, type ReportsData } from "@/components/reports-view";
+import { toSalesDetailRows } from "@/modules/reports/sales-detail-view";
 import { redirect } from "next/navigation";
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
@@ -33,7 +34,6 @@ const WEEKDAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 // Orden de lunes a domingo para el gráfico.
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
-const timeFormatter = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
 const dayFormatter = new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "numeric", month: "long" });
 const shortDateFormatter = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" });
 const trendFormatter = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "numeric" });
@@ -177,15 +177,22 @@ export default async function Home({ searchParams }: HomeProps) {
         total: payment.total,
         percentage: paymentTotalSum > 0 ? Math.round((payment.total / paymentTotalSum) * 100) : 0,
       })),
-    latestSales: report.latestSales.map((sale) => ({
-      id: sale.id,
-      timeLabel: timeFormatter.format(sale.soldAt),
-      staffName: sale.staffName,
-      branchName: sale.branchName,
-      total: sale.total,
-      paymentLabel: summarizePayments(sale.payments),
-      itemSummary: sale.items.map((item) => `${item.description} x${item.quantity}`).join(", "),
-    })),
+    // Detalle de ventas del período: el grid del dashboard con export. Las
+    // filas se arman acá (server) con el mapper puro y viajan ya resueltas.
+    salesDetail: toSalesDetailRows(
+      report.salesDetail.map((sale) => ({
+        id: sale.id,
+        soldAt: sale.soldAt,
+        total: sale.total,
+        branchName: sale.branch.name,
+        staffName: sale.staff.name,
+        // El cliente vivo le gana a la copia congelada de la venta; sin ninguno,
+        // Consumidor final (igual que en la exportación para el contador).
+        customerLabel: sale.customer?.name ?? sale.customerName ?? "Consumidor final",
+        items: sale.items,
+        payments: sale.payments,
+      })),
+    ),
     activeFilters: {
       staffId: report.filters.staffId,
       staffName: selectedStaff?.name,
@@ -197,13 +204,6 @@ export default async function Home({ searchParams }: HomeProps) {
   };
 
   return <ReportsView data={data} userName={session.user.name ?? "admin"} />;
-}
-
-function summarizePayments(payments: { method: PaymentMethod }[]) {
-  if (payments.length === 0) return "Sin pago";
-  const methods = new Set(payments.map((payment) => payment.method));
-  if (methods.size > 1) return "Mixto";
-  return paymentMethodLabels[payments[0].method];
 }
 
 function getSingleParam(value: string | string[] | undefined) {
