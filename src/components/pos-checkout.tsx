@@ -90,7 +90,7 @@ export type PosCustomer = { id: string; name: string; balance: number; creditLim
 
 export type PosPaymentOption = { value: string; label: string };
 
-type PosCheckoutProps = {
+export type PosCheckoutProps = {
   branches: PosBranch[];
   paymentOptions: PosPaymentOption[];
   initialBranchId?: string;
