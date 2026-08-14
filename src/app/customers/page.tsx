@@ -163,6 +163,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                     <Field label="Sucursal" className="sm:col-span-2">
                       <SyncSelect
                         ariaLabel="Sucursal"
+                        defaultValue={branches[0]?.id ?? ""}
                         name="branchId"
                         options={branches.map((branch) => ({ value: branch.id, label: branch.name }))}
                       />

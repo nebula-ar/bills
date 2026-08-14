@@ -4,6 +4,13 @@
 // interfaz que SelectField: el valor viaja en un input oculto, así los
 // formularios con server action siguen mandando el campo igual que antes y no
 // hay que tocar ninguna acción del servidor.
+//
+// ⚠️ DIFERENCIA DE CONTRATO con el viejo SelectField: este arranca en ""
+// (placeholder) cuando no recibe `defaultValue`; SelectField inicializaba en
+// `options[0]`. Antes de usar un SyncSelect sin defaultValue, verificá que el
+// servidor caiga en un fallback seguro con valor vacío (como "" → CASH en
+// método de pago), o pasale el default explícito. Un pago/registro que dependa
+// de "la primera opción" necesita `defaultValue={options[0]?.value}`.
 import { useState } from "react";
 
 import { DropDownListComponent } from "@syncfusion/ej2-react-dropdowns";
