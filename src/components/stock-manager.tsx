@@ -10,6 +10,13 @@ import { Package, Plus, Search, TriangleAlert, X } from "@/components/icons";
 import type { Unit } from "@/generated/prisma/enums";
 import { formatQuantity } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
+import {
+  ColumnDirective,
+  ColumnsDirective,
+  GridComponent,
+  Inject,
+  Sort,
+} from "@syncfusion/ej2-react-grids";
 
 /**
  * El depósito de una sucursal.
@@ -54,6 +61,8 @@ export type StockManagerMovement = {
   typeLabel: string;
   reason: string | null;
   when: string;
+  /** Timestamp numérico: el grid ordena por esto, no por el texto formateado. */
+  whenTs: number;
 };
 
 const dinero = new Intl.NumberFormat("es-AR", {
@@ -405,55 +414,42 @@ function MovimientosLista({ movements }: { movements: StockManagerMovement[] }) 
 
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-slate-100 text-left">
-            <Th>Cuándo</Th>
-            <Th>Producto</Th>
-            <Th>Qué pasó</Th>
-            <Th alineado="derecha">Movimiento</Th>
-          </tr>
-        </thead>
-        <tbody>
-          {movements.map((movement) => (
-            <tr className="border-b border-slate-50 last:border-0" key={movement.id}>
-              <td className="whitespace-nowrap px-4 py-3 text-sm font-bold text-slate-500">{movement.when}</td>
-              <td className="w-full max-w-0 truncate px-4 py-3 text-sm font-bold text-slate-950">
-                {movement.productName}
-              </td>
-              <td className="px-4 py-3 text-sm text-slate-500">
-                {movement.typeLabel}
-                {movement.reason ? ` · ${movement.reason}` : ""}
-              </td>
-              {/* Con signo y color: de un vistazo se ve qué entró y qué salió,
-                  que es para lo que se abre esta lista. */}
-              <td
-                className={`whitespace-nowrap px-4 py-3 text-right text-sm font-black ${
-                  movement.quantity >= 0 ? "text-emerald-600" : "text-rose-600"
-                }`}
+      {/* Movimientos con DataGrid de Syncfusion EJ2: ordena columnas (el
+          "Cuándo" ordena por timestamp, no por el texto formateado) y respeta
+          el locale es ("No hay registros que mostrar"). */}
+      <GridComponent
+        allowSorting
+        allowTextWrap
+        cssClass="e-gestion-grid e-dashboard-grid"
+        dataSource={movements}
+        height="auto"
+        width="100%"
+      >
+        <ColumnsDirective>
+          <ColumnDirective field="whenTs" headerText="Cuándo" template={(m: StockManagerMovement) => m.when} width={140} />
+          <ColumnDirective field="productName" headerText="Producto" width="auto" />
+          <ColumnDirective field="typeLabel" headerText="Qué pasó" width="auto" />
+          {/* Con signo y color: de un vistazo se ve qué entró y qué salió, que
+              es para lo que se abre esta lista. */}
+          <ColumnDirective
+            field="quantity"
+            headerText="Movimiento"
+            template={(m: StockManagerMovement) => (
+              <span
+                className={`font-black ${m.quantity >= 0 ? "text-emerald-600" : "text-rose-600"}`}
                 style={{ fontVariantNumeric: "tabular-nums" }}
               >
-                {movement.quantity >= 0 ? "+" : "−"}
-                {formatQuantity(Math.abs(movement.quantity), movement.unit)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                {m.quantity >= 0 ? "+" : "−"}
+                {formatQuantity(Math.abs(m.quantity), m.unit)}
+              </span>
+            )}
+            textAlign="Right"
+            width={150}
+          />
+        </ColumnsDirective>
+        <Inject services={[Sort]} />
+      </GridComponent>
     </div>
-  );
-}
-
-function Th({ children, alineado = "izquierda" }: { children: React.ReactNode; alineado?: "izquierda" | "derecha" }) {
-  return (
-    <th
-      className={`px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-600 ${
-        alineado === "derecha" ? "text-right" : ""
-      }`}
-      scope="col"
-    >
-      {children}
-    </th>
   );
 }
 

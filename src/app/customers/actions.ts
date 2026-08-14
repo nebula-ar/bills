@@ -6,6 +6,7 @@ import { getCustomerErrorMessageFor } from "@/lib/customer-error-messages";
 import { logError } from "@/lib/logger";
 import { parsePaymentMethodValue } from "@/lib/payment-labels";
 import { CustomerError } from "@/modules/customers/customer.errors";
+import { getBranchesForManagement } from "@/modules/branches/get-branches-for-management.use-case";
 import {
   createCustomer,
   deleteCustomer,
@@ -103,16 +104,25 @@ export async function registerPaymentAction(formData: FormData) {
   const customerId = text(formData, "customerId");
   const amount = money(text(formData, "amount"));
   const method = parsePaymentMethodValue(formData.get("method")) ?? PaymentMethod.CASH;
+  const branchId = text(formData, "branchId") || null;
 
   if (!amount || amount <= 0) {
     back("error", "Ingresá un importe válido.", customerId);
+  }
+
+  // Multisucursal: un pago sin sucursal no aparece en la caja de NINGUNA
+  // (findCustomerPaymentsByMethod filtra por branchId) y el arqueo quedaría
+  // descuadrado sin error visible. El form manda la primera sucursal por
+  // defecto; este guard defiende el flujo contra regresiones futuras.
+  if (!branchId && (await getBranchesForManagement(session.user.businessId)).length > 1) {
+    back("error", "Elegí la sucursal donde se cobró.", customerId);
   }
 
   try {
     await registerCustomerPayment({
       customerId,
       businessId: session.user.businessId,
-      branchId: text(formData, "branchId") || null,
+      branchId,
       amount,
       method,
       note: text(formData, "note") || null,

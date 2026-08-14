@@ -7,13 +7,14 @@ import {
   EmptyState,
   Field,
   formatMoney,
-  GhostButton,
   inputClass,
   PrimaryButton,
   SectionCard,
 } from "@/components/manager-ui";
 import { RefreshActionForm } from "@/components/refresh-action-form";
 import { StockEmpty, StockManager } from "@/components/stock-manager";
+import { BranchPicker } from "@/components/branch-picker";
+import { SyncfusionGestionProvider } from "@/components/syncfusion-gestion-provider";
 import { AppModule, ProductKind } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { unitShort } from "@/lib/quantity";
@@ -57,6 +58,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
   const products = rows.map((row) => ({ id: row.productId, name: row.name, unit: row.unit }));
 
   return (
+    <SyncfusionGestionProvider>
     <AppShell maxWidth="lg">
       <PageHeader
         eyebrow="Bills"
@@ -76,17 +78,9 @@ export default async function StockPage({ searchParams }: StockPageProps) {
       </p>
 
       {activeBranches.length > 1 ? (
-        <form className="flex flex-wrap items-end gap-3" action="/stock">
-          <Field label="Sucursal" className="min-w-[12rem] flex-1">
-            <SelectField
-              ariaLabel="Sucursal"
-              defaultValue={branch.id}
-              name="branchId"
-              options={activeBranches.map((item) => ({ value: item.id, label: item.name }))}
-            />
-          </Field>
-          <GhostButton className="mb-0.5">Ver</GhostButton>
-        </form>
+        <Field label="Sucursal" className="min-w-[12rem] flex-1">
+          <BranchPicker branches={activeBranches} current={branch.id} />
+        </Field>
       ) : null}
 
       <StatTiles
@@ -138,6 +132,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
             typeLabel: STOCK_MOVEMENT_LABELS[movement.type],
             reason: movement.reason,
             when: dateFormatter.format(movement.occurredAt),
+            whenTs: movement.occurredAt.getTime(),
           }))}
           rows={rows.map((row) => ({
             productId: row.productId,
@@ -192,6 +187,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
       </div>
       </Reveal>
     </AppShell>
+    </SyncfusionGestionProvider>
   );
 }
 
