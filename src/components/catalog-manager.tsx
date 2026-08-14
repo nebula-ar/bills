@@ -48,6 +48,10 @@ export type ProductRow = {
   configured: boolean;
   available: boolean;
   priceLabel: string;
+  // Precio como número (mismo origen que priceLabel, null = sin precio): la
+  // grilla ordena y filtra por ESTE campo. Ordenar por el string formateado
+  // compara mal ("$ 1.200" < "$ 9") y el filtro no matchea un número.
+  priceValue: number | null;
   statusLabel: string;
   statusTone: "available" | "unavailable" | "unconfigured";
   branchConfigs: ProductBranchConfig[];
@@ -335,6 +339,10 @@ export function ProductsManager({ data }: { data: ProductsData }) {
       const resized = await resizeImageForUpload(file);
       if (foto) URL.revokeObjectURL(foto.preview);
       setFoto({ file: resized, preview: URL.createObjectURL(resized) });
+      // Vacía la lista interna del Uploader: si el dueño quita la foto y vuelve
+      // a elegir el mismo archivo, que cuente como nuevo y no como duplicado
+      // (misma mecánica que la ficha).
+      nuevoUploaderRef.current?.clearAll();
     } catch {
       setNewError("No pudimos preparar esa imagen. Probá con otra.");
     }
@@ -609,8 +617,13 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                       width={100}
                     />
                   ) : null}
+                  {/* El orden y el filtro usan `priceValue` (numérico): los
+                      strings formateados no ordenan ni filtran bien. El
+                      template sigue mostrando `priceLabel` para el ojo.
+                      `null` = sin precio y EJ2 lo deja al final en orden
+                      ascendente (ver comparador numérico de DataUtil). */}
                   <ColumnDirective
-                    field="priceLabel"
+                    field="priceValue"
                     headerText="Precio"
                     template={(product: ProductRow) => (
                       <span className="text-sm font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -618,6 +631,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                       </span>
                     )}
                     textAlign="Right"
+                    type="number"
                     width={110}
                   />
                   {/* Acción explícita: además del toque en la fila, deja abrir
@@ -775,7 +789,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   oculto porque la tarjeta de arriba es la cara visible (sin
                   lista de archivos: la vista previa la dibuja el estado). */}
               <UploaderComponent
-                allowedExtensions=".jpg,.jpeg,.png,.webp,.gif,.avif"
+                allowedExtensions=".jpg,.jpeg,.png,.webp,.gif,.avif,.heic,.heif"
                 autoUpload={false}
                 cssClass="e-catalog-uploader"
                 multiple={false}

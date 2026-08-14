@@ -196,7 +196,7 @@ export function ProductPhotoField({
           arriba (con su preview, su botón de IA y su quitar) es la cara que ve
           el dueño. */}
       <UploaderComponent
-        allowedExtensions=".jpg,.jpeg,.png,.webp,.gif,.avif"
+        allowedExtensions=".jpg,.jpeg,.png,.webp,.gif,.avif,.heic,.heif"
         autoUpload={false}
         cssClass="e-catalog-uploader"
         multiple={false}

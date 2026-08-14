@@ -62,6 +62,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       : suggestedPrice
         ? `~ ${money(suggestedPrice)}`
         : "Sin precio";
+    // Mismo origen que priceLabel, pero numérico: es el campo que ordena y
+    // filtra la grilla (un string formateado no ordena bien). null = sin precio.
+    const priceValue = branchPrice ? branchPrice.price : suggestedPrice ?? null;
 
     const branchConfigs = branches.map((branch) => {
       const config = product.branchPrices.find((price) => price.branchId === branch.id) ?? null;
@@ -82,6 +85,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       configured,
       available,
       priceLabel,
+      priceValue,
       statusLabel,
       statusTone,
       branchConfigs,
