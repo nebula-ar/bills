@@ -8,6 +8,7 @@ import { promotionShortLabel } from "@/lib/promotion-labels";
 import { promocionesDeProducto } from "@/modules/promotions/promotion.logic";
 import { findActivePromotions } from "@/modules/promotions/promotion.repository";
 import { ProductsManager, type ProductRow, type ProductsData } from "@/components/catalog-manager";
+import { SyncfusionCatalogProvider } from "@/components/syncfusion-catalog-provider";
 
 const moneyFormatter = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -61,6 +62,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       : suggestedPrice
         ? `~ ${money(suggestedPrice)}`
         : "Sin precio";
+    // Mismo origen que priceLabel, pero numérico: es el campo que ordena y
+    // filtra la grilla (un string formateado no ordena bien). null = sin precio.
+    const priceValue = branchPrice ? branchPrice.price : suggestedPrice ?? null;
 
     const branchConfigs = branches.map((branch) => {
       const config = product.branchPrices.find((price) => price.branchId === branch.id) ?? null;
@@ -81,6 +85,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       configured,
       available,
       priceLabel,
+      priceValue,
       statusLabel,
       statusTone,
       branchConfigs,
@@ -136,7 +141,11 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     aiImagesEnabled: Boolean(process.env.OPENROUTER_API_KEY),
   };
 
-  return <ProductsManager data={data} />;
+  return (
+    <SyncfusionCatalogProvider>
+      <ProductsManager data={data} />
+    </SyncfusionCatalogProvider>
+  );
 }
 
 function money(value: number) {

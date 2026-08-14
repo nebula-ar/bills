@@ -45,8 +45,25 @@ export async function resizeImageForUpload(file: File): Promise<File> {
 
     return new File([blob], "foto.webp", { type: "image/webp" });
   } catch {
-    // HEIC que el navegador no sabe decodificar, por ejemplo: lo manda entero y
-    // sharp se encarga del otro lado.
+    // El navegador no pudo decodificar el archivo. Para HEIC/HEIF esto es
+    // definitivo: sharp prebuilt tampoco lo decodifica del lado servidor, así
+    // que mandarlo entero solo termina en un rechazo con un error confuso. Se
+    // avisa acá con un mensaje claro. En el dispositivo que sí lo decodifica
+    // (iPhone/Safari) ya se convirtió a WebP arriba y nunca llega a este catch.
+    // Para el resto (JPG/PNG/WebP raros), el servidor sigue siendo el que
+    // decide: se manda el original.
+    if (isHeicFile(file)) {
+      throw new Error("HEIC_UNSUPPORTED");
+    }
     return file;
   }
+}
+
+function isHeicFile(file: File): boolean {
+  const type = file.type.toLowerCase();
+  if (type === "image/heic" || type === "image/heif") {
+    return true;
+  }
+  // Si el MIME llega vacío (pasa en algunos navegadores), el nombre lo dice.
+  return /\.heic$/i.test(file.name) || /\.heif$/i.test(file.name);
 }

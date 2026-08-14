@@ -4,8 +4,10 @@ import { deleteProductImage, uploadProductImage } from "@/app/catalog/actions";
 import { Check, Loader2, Plus, Sparkles, Trash2 } from "@/components/icons";
 import { ProductPhotoAiSheet } from "@/components/product-photo-ai-sheet";
 import { resizeImageForUpload } from "@/lib/image-resize";
+import { CatalogUploader } from "@/components/catalog-uploader";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
-import { useRef, useState, useTransition } from "react";
+import type { UploaderComponent } from "@syncfusion/ej2-react-inputs";
+import { useCallback, useRef, useState, useTransition } from "react";
 
 // Carga de la foto de un producto. Vive fuera del <form> de datos (los forms no
 // se anidan) y sube por su cuenta: la foto se guarda apenas se elige, así el
@@ -33,7 +35,10 @@ export function ProductPhotoField({
   const [photoVersion, setPhotoVersion] = useState<number | null>(hasPhoto ? version : null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const inputRef = useRef<HTMLInputElement>(null);
+  // El Uploader de EJ2 vive oculto: la tarjeta visible dispara su selector (la
+  // misma mecánica que usaba el input de archivo escondido, pero con la
+  // validación de tipos y el evento `selected` del Uploader).
+  const uploaderRef = useRef<UploaderComponent>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiInitialMode, setAiInitialMode] = useState<"origin" | "enhance">("origin");
   const [aiSession, setAiSession] = useState(0);
@@ -48,30 +53,50 @@ export function ProductPhotoField({
   const src = productImageSrc({ id: productId, imageVersion: photoVersion, catalogSlug });
   const esPropia = photoVersion !== null;
 
-  function pick(file: File | undefined) {
-    if (!file) return;
-    setError(null);
-
-    startTransition(async () => {
-      // Se achica acá para que el viaje sea corto; el servidor igual la reprocesa.
-      const resized = await resizeImageForUpload(file);
-      const formData = new FormData();
-      formData.set("productId", productId);
-      formData.set("file", resized);
-
-      const result = await uploadProductImage(formData);
-
-      if (result.ok) {
-        setPhotoVersion(result.version);
-      } else {
-        setError(result.error);
-      }
-
-      if (inputRef.current) {
-        inputRef.current.value = "";
-      }
-    });
+  // Abre el selector de archivos del Uploader.
+  function openPicker() {
+    uploaderRef.current?.element.querySelector<HTMLInputElement>("input[type=file]")?.click();
   }
+
+  // Estable a propósito (useCallback con productId, que no cambia dentro de la
+  // ficha): el CatalogUploader está memoizado y un cambio de identidad lo
+  // re-renderizaría y perdería el input (NEBU-48).
+  const pick = useCallback(
+    (file: File | undefined) => {
+      if (!file) return;
+      setError(null);
+
+      startTransition(async () => {
+        let resized: File;
+        try {
+          // Se achica acá para que el viaje sea corto; el servidor igual la reprocesa.
+          resized = await resizeImageForUpload(file);
+        } catch {
+          // HEIC en un dispositivo que no lo decodifica: el servidor tampoco
+          // (sharp prebuilt no lo soporta), así que se avisa acá con un mensaje
+          // claro en vez de mandarlo y recibir un rechazo confuso.
+          setError("Esa foto es HEIC y este dispositivo no puede procesarla. Convertila a JPG o PNG, o sacala con otra app.");
+          return;
+        }
+        const formData = new FormData();
+        formData.set("productId", productId);
+        formData.set("file", resized);
+
+        const result = await uploadProductImage(formData);
+
+        if (result.ok) {
+          setPhotoVersion(result.version);
+        } else {
+          setError(result.error);
+        }
+
+        // Vacía la lista interna del Uploader para que la próxima selección sea
+        // un archivo nuevo y no un append.
+        uploaderRef.current?.clearAll();
+      });
+    },
+    [productId],
+  );
 
   function remove() {
     setError(null);
@@ -94,7 +119,7 @@ export function ProductPhotoField({
   function usePhoto() {
     // Tiene que ocurrir dentro del mismo gesto: iOS bloquea el selector de
     // archivos si se difiere con timeout después del tap.
-    inputRef.current?.click();
+    openPicker();
     setAiOpen(false);
   }
 
@@ -110,7 +135,7 @@ export function ProductPhotoField({
           aria-label={src ? "Cambiar foto del producto" : aiEnabled ? "Agregar foto al producto" : "Elegir foto del producto"}
           className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 transition active:scale-[0.99]"
           disabled={isPending}
-          onClick={() => src || !aiEnabled ? inputRef.current?.click() : openAi("origin")}
+          onClick={() => (src || !aiEnabled ? openPicker() : openAi("origin"))}
           type="button"
         >
           {src ? (
@@ -182,14 +207,11 @@ export function ProductPhotoField({
         </div>
       </div>
 
-      <input
-        accept="image/*"
-        className="hidden"
-        // `capture` no se fuerza: en el celular deja elegir entre cámara y galería.
-        onChange={(event) => pick(event.target.files?.[0])}
-        ref={inputRef}
-        type="file"
-      />
+      {/* El Uploader de EJ2: abre el selector, valida el tipo de archivo y
+          entrega el archivo en `selected`. Vive oculto porque la tarjeta de
+          arriba (con su preview, su botón de IA y su quitar) es la cara que ve
+          el dueño. */}
+      <CatalogUploader onFile={pick} uploaderRef={uploaderRef} />
 
       {error ? <p className="text-xs font-bold text-rose-600">{error}</p> : null}
       {!error && photoVersion && !isPending ? (
