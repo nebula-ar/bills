@@ -5,6 +5,7 @@ import { Check, Loader2, Plus, Sparkles, Trash2 } from "@/components/icons";
 import { ProductPhotoAiSheet } from "@/components/product-photo-ai-sheet";
 import { resizeImageForUpload } from "@/lib/image-resize";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
+import { UploaderComponent } from "@syncfusion/ej2-react-inputs";
 import { useRef, useState, useTransition } from "react";
 
 // Carga de la foto de un producto. Vive fuera del <form> de datos (los forms no
@@ -33,7 +34,10 @@ export function ProductPhotoField({
   const [photoVersion, setPhotoVersion] = useState<number | null>(hasPhoto ? version : null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const inputRef = useRef<HTMLInputElement>(null);
+  // El Uploader de EJ2 vive oculto: la tarjeta visible dispara su selector (la
+  // misma mecánica que usaba el input de archivo escondido, pero con la
+  // validación de tipos y el evento `selected` del Uploader).
+  const uploaderRef = useRef<UploaderComponent>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiInitialMode, setAiInitialMode] = useState<"origin" | "enhance">("origin");
   const [aiSession, setAiSession] = useState(0);
@@ -47,6 +51,11 @@ export function ProductPhotoField({
   // esconder el botón, no para esconder la foto.
   const src = productImageSrc({ id: productId, imageVersion: photoVersion, catalogSlug });
   const esPropia = photoVersion !== null;
+
+  // Abre el selector de archivos del Uploader.
+  function openPicker() {
+    uploaderRef.current?.element.querySelector<HTMLInputElement>("input[type=file]")?.click();
+  }
 
   function pick(file: File | undefined) {
     if (!file) return;
@@ -67,9 +76,9 @@ export function ProductPhotoField({
         setError(result.error);
       }
 
-      if (inputRef.current) {
-        inputRef.current.value = "";
-      }
+      // Vacía la lista interna del Uploader para que la próxima selección sea
+      // un archivo nuevo y no un append.
+      uploaderRef.current?.clearAll();
     });
   }
 
@@ -94,7 +103,7 @@ export function ProductPhotoField({
   function usePhoto() {
     // Tiene que ocurrir dentro del mismo gesto: iOS bloquea el selector de
     // archivos si se difiere con timeout después del tap.
-    inputRef.current?.click();
+    openPicker();
     setAiOpen(false);
   }
 
@@ -110,7 +119,7 @@ export function ProductPhotoField({
           aria-label={src ? "Cambiar foto del producto" : aiEnabled ? "Agregar foto al producto" : "Elegir foto del producto"}
           className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 transition active:scale-[0.99]"
           disabled={isPending}
-          onClick={() => src || !aiEnabled ? inputRef.current?.click() : openAi("origin")}
+          onClick={() => (src || !aiEnabled ? openPicker() : openAi("origin"))}
           type="button"
         >
           {src ? (
@@ -182,13 +191,19 @@ export function ProductPhotoField({
         </div>
       </div>
 
-      <input
-        accept="image/*"
-        className="hidden"
-        // `capture` no se fuerza: en el celular deja elegir entre cámara y galería.
-        onChange={(event) => pick(event.target.files?.[0])}
-        ref={inputRef}
-        type="file"
+      {/* El Uploader de EJ2: abre el selector, valida el tipo de archivo y
+          entrega el archivo en `selected`. Vive oculto porque la tarjeta de
+          arriba (con su preview, su botón de IA y su quitar) es la cara que ve
+          el dueño. */}
+      <UploaderComponent
+        allowedExtensions=".jpg,.jpeg,.png,.webp,.gif,.avif"
+        autoUpload={false}
+        cssClass="e-catalog-uploader"
+        multiple={false}
+        ref={uploaderRef}
+        selected={(event) => pick(event.filesData[0]?.rawFile)}
+        showFileList={false}
+        style={{ display: "none" }}
       />
 
       {error ? <p className="text-xs font-bold text-rose-600">{error}</p> : null}

@@ -12,14 +12,17 @@ type SyncSwitchProps = {
   name?: string;
   defaultChecked?: boolean;
   label?: string;
+  /** Cuando el texto va fuera del switch (p. ej. en la ficha del catálogo). */
+  ariaLabel?: string;
 };
 
-export function SyncSwitch({ name, defaultChecked = false, label }: SyncSwitchProps) {
+export function SyncSwitch({ name, defaultChecked = false, label, ariaLabel }: SyncSwitchProps) {
   const [checked, setChecked] = useState(defaultChecked);
 
   return (
     <span className="inline-flex items-center gap-2.5">
       <SwitchComponent
+        aria-label={ariaLabel}
         change={(args) => setChecked(Boolean(args.checked))}
         checked={checked}
       />

@@ -3,8 +3,6 @@
 import { createProduct, updateProduct, uploadProductImage } from "@/app/catalog/actions";
 import { resizeImageForUpload } from "@/lib/image-resize";
 import { newProductSteps, puedeAvanzar } from "@/modules/catalog/new-product-steps.logic";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { Reveal } from "@/components/reveal";
 import { PageEnter } from "@/components/page-enter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MoneyInput } from "@/components/money-input";
@@ -16,9 +14,22 @@ import { ProductPhotoField } from "@/components/product-photo-field";
 import { ProductAnalyticsTab } from "@/components/product-analytics-tab";
 import { formatQuantity } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
-import { ArrowLeft, ArrowRight, Check, CircleSlash, DynamicIcon, Loader2, Plus, Search, Trash2, X } from "@/components/icons";
-import { SelectField } from "@/components/ui/select-field";
-import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, ArrowRight, Check, CircleSlash, DynamicIcon, Loader2, Plus, Search, Trash2 } from "@/components/icons";
+import { SyncSwitch } from "@/components/sync-switch";
+import { SyncSelect } from "@/components/sync-select";
+import {
+  ColumnDirective,
+  ColumnsDirective,
+  Filter,
+  GridComponent,
+  Inject,
+  Page,
+  Sort,
+  Toolbar,
+} from "@syncfusion/ej2-react-grids";
+import { DialogComponent } from "@syncfusion/ej2-react-popups";
+import { UploaderComponent } from "@syncfusion/ej2-react-inputs";
+import { RichTextEditorComponent } from "@syncfusion/ej2-react-richtexteditor";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
@@ -110,6 +121,58 @@ const toneClasses: Record<ProductRow["statusTone"], string> = {
   unconfigured: "bg-amber-50 text-amber-700",
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// RichTextEditor de descripción
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// La descripción se guarda y se muestra como TEXTO PLANO (la carta pública y
+// el ticket la renderizan cruda), así que el RTE de EJ2 se usa como superficie
+// de edición multilínea — con undo/redo y en español por el locale global — y
+// al cambiar se descarta el HTML que produce. Guardar HTML habría que
+// sanitizarlo y renderizarlo en todos lados; texto plano no rompe nada.
+function htmlToPlainText(html: string) {
+  return html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// El valor viaja en estado del padre: así el editor puede desmontarse (al
+// cambiar de paso del alta) sin perder lo escrito, y el form siempre tiene el
+// input oculto con el texto actual.
+function DescriptionEditor({ value, onChange }: { value: string; onChange: (text: string) => void }) {
+  return (
+    <RichTextEditorComponent
+      change={(args) => onChange(htmlToPlainText(String(args.value ?? "")))}
+      cssClass="e-catalog-rte"
+      height={150}
+      placeholder="Ej: incluye lavado"
+      toolbarSettings={{ items: ["Undo", "Redo"] }}
+      value={value}
+    />
+  );
+}
+
+// Estado sin resultados del grid: el mismo mensaje del listado viejo.
+function EmptyProducts({ singular }: { singular: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center">
+      <p className="text-sm font-bold text-slate-700">No encontramos ningún {singular} con eso.</p>
+    </div>
+  );
+}
+
+// Abre el selector de archivos del Uploader de EJ2 (que vive oculto: la tarjeta
+// visible es la que dibuja el estado). El input de archivo está siempre en el
+// DOM aunque el wrapper esté con display:none, así que el click programático
+// funciona en todos los navegadores.
+function openUploaderPicker(ref: { current: { element: HTMLElement } | null }) {
+  ref.current?.element.querySelector<HTMLInputElement>("input[type=file]")?.click();
+}
+
 function BranchSelect({
   branches,
   value,
@@ -124,7 +187,7 @@ function BranchSelect({
       Sucursal
       {/* Sin `name`: no viaja en el form, cambia qué sucursal se está editando.
           El form manda su propio input oculto con `branchId`. */}
-      <SelectField
+      <SyncSelect
         ariaLabel="Sucursal"
         defaultValue={value}
         key={value}
@@ -136,18 +199,13 @@ function BranchSelect({
 }
 
 function AvailabilityToggle({ defaultOn }: { defaultOn: boolean }) {
-  const [on, setOn] = useState(defaultOn);
-
   return (
     <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3.5">
       <span className="text-sm font-black text-slate-950">Disponible para vender</span>
-      {on ? <input name="active" type="hidden" value="on" /> : null}
-      <Switch
-        aria-label="Disponible para vender"
-        checked={on}
-        className="data-[state=checked]:bg-emerald-500"
-        onCheckedChange={setOn}
-      />
+      {/* El Switch de Syncfusion EJ2. El valor viaja en el input oculto que
+          solo existe cuando está activado — el mismo contrato del checkbox de
+          antes (`formData.get("active") === "on"`). */}
+      <SyncSwitch ariaLabel="Disponible para vender" defaultChecked={defaultOn} name="active" />
     </div>
   );
 }
@@ -180,6 +238,12 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   // Del nombre sí guardamos copia: es lo único obligatorio y hay que saber si se
   // puede avanzar antes de que el form se mande.
   const [nuevoNombre, setNuevoNombre] = useState("");
+  // La descripción se edita con el RichTextEditor (montado solo cuando el paso
+  // está a la vista); el texto vive acá para que cambiar de paso no lo pierda.
+  const [nuevoDescripcion, setNuevoDescripcion] = useState("");
+  // El Uploader del paso foto vive oculto; la tarjeta visible dispara su
+  // selector (ver openUploaderPicker).
+  const nuevoUploaderRef = useRef<UploaderComponent>(null);
   // La foto viaja ya redimensionada (mismo helper que la ficha) y se sube recién
   // cuando el producto existe: `saveProductImage` lo busca en la base y sin id
   // no hay dónde guardarla.
@@ -192,6 +256,9 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const [editTab, setEditTab] = useState<"producto" | "stock" | "analisis">("producto");
   const [editBranchId, setEditBranchId] = useState(data.selectedBranchId);
   const [editStockChanged, setEditStockChanged] = useState(false);
+  // Texto plano de la descripción del producto en edición, alimentado por el
+  // RichTextEditor y enviado en el input oculto del form.
+  const [editDescripcion, setEditDescripcion] = useState("");
   const editing = data.products.find((product) => product.id === editId) ?? null;
   const newBranchName = data.branches.find((branch) => branch.id === newBranchId)?.name ?? "";
   const editConfig = editing?.branchConfigs.find((config) => config.branchId === editBranchId) ?? null;
@@ -232,6 +299,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   function resetNew() {
     setNewStep(0);
     setNuevoNombre("");
+    setNuevoDescripcion("");
     if (foto) URL.revokeObjectURL(foto.preview);
     setFoto(null);
   }
@@ -245,6 +313,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   }
 
   function closeNew() {
+    if (!newOpen) return;
     setNewOpen(false);
     setNewError(null);
     setCreatedProduct(null);
@@ -322,6 +391,8 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   }
 
   function openEdit(id: string) {
+    const product = data.products.find((item) => item.id === id);
+    setEditDescripcion(product?.description ?? "");
     setEditBranchId(data.selectedBranchId);
     // Siempre en la primera pestaña: si quedara donde la dejó el producto
     // anterior, abrir una ficha mostraría el stock antes que el nombre.
@@ -330,11 +401,20 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   }
 
   function closeEdit() {
+    if (!editing) return;
     setEditId(null);
     if (editStockChanged) {
       setEditStockChanged(false);
       router.refresh();
     }
+  }
+
+  // Toolbar del grid: el "Nuevo" abre el alta (el botón flotante de mobile hace
+  // lo mismo) y el "Refrescar" recarga el árbol para traer cambios de otros
+  // lados (caja, ventas, stock) sin recargar la página.
+  function handleToolbarClick(args: { item: { id: string } }) {
+    if (args.item.id === "nuevo") openNew();
+    if (args.item.id === "refrescar") router.refresh();
   }
 
   function selectBranch(id: string) {
@@ -423,165 +503,209 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               </div>
             ) : null}
 
-            {visibleProducts.length === 0 ? (
-              <p className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-                No encontramos ningún {data.catalogSingular.toLowerCase()} con eso.
-              </p>
-            ) : null}
-
-          <Reveal>
-            <ul className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
-              {visibleProducts.map((product) => {
-              const imageSrc = productImageSrc(product);
-
-              return (
-              <li data-reveal-item key={product.id}>
-                <button
-                  className="flex w-full items-center gap-3 rounded-2xl bg-white p-3.5 text-left shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.99]"
-                  onClick={() => openEdit(product.id)}
-                  type="button"
-                >
-                  {imageSrc ? (
-                    // Miniatura ya normalizada a 512px por nuestra propia ruta: no
-                    // hay nada que `next/image` pueda optimizar.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      alt=""
-                      className="size-11 shrink-0 rounded-2xl object-cover"
-                      src={imageSrc}
-                    />
-                  ) : (
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <DynamicIcon className="size-5" name={data.catalogIcon} />
-                    </span>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black text-slate-950">
-                      {product.familyName ? (
-                        <>
-                          {product.familyName}{" "}
-                          <span className="font-bold text-slate-500">{product.variantLabel}</span>
-                        </>
-                      ) : (
-                        product.name
-                      )}
-                    </p>
-                    <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[0.7rem] font-bold ${toneClasses[product.statusTone]}`}>
+            {/* Grilla de productos con DataGrid de Syncfusion EJ2: reemplaza la
+                lista custom. El buscador de arriba ya filtra en memoria (sin
+                acentos, sin mayúsculas); la grilla suma orden por columna,
+                filtros por columna, paginación y toolbar. Un toque en la fila
+                (o en "Editar") abre la ficha. */}
+            <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5">
+              <GridComponent
+                allowFiltering
+                allowPaging
+                allowSorting
+                allowTextWrap
+                cssClass="e-catalog-grid e-gestion-grid e-dashboard-grid"
+                dataSource={visibleProducts}
+                emptyRecordTemplate={() => <EmptyProducts singular={data.catalogSingular.toLowerCase()} />}
+                height="auto"
+                pageSettings={{ pageSize: 10, pageSizes: [10, 20, 50] }}
+                recordClick={(args) => {
+                  const row = args.data as ProductRow | undefined;
+                  if (row?.id) openEdit(row.id);
+                }}
+                toolbar={[
+                  {
+                    id: "nuevo",
+                    prefixIcon: "e-plus",
+                    text: `Nuevo ${data.catalogSingular.toLowerCase()}`,
+                    tooltipText: `Nuevo ${data.catalogSingular.toLowerCase()}`,
+                  },
+                  { id: "refrescar", prefixIcon: "e-refresh", text: "Refrescar", tooltipText: "Refrescar" },
+                ]}
+                toolbarClick={handleToolbarClick}
+                width="100%"
+              >
+                <ColumnsDirective>
+                  <ColumnDirective
+                    field="name"
+                    headerText={data.catalogPlural}
+                    template={(product: ProductRow) => {
+                      const imageSrc = productImageSrc(product);
+                      return (
+                        <div className="flex min-w-0 items-center gap-2.5 py-0.5">
+                          {imageSrc ? (
+                            // Miniatura ya normalizada a 512px por nuestra propia ruta: no
+                            // hay nada que `next/image` pueda optimizar.
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img alt="" className="size-9 shrink-0 rounded-xl object-cover" src={imageSrc} />
+                          ) : (
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                              <DynamicIcon className="size-4" name={data.catalogIcon} />
+                            </span>
+                          )}
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-black text-slate-950">
+                              {product.familyName ? (
+                                <>
+                                  {product.familyName}{" "}
+                                  <span className="font-bold text-slate-500">{product.variantLabel}</span>
+                                </>
+                              ) : (
+                                product.name
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }}
+                    width="auto"
+                  />
+                  {/* Estado y Stock son columnas secundarias: en mobile queda
+                      Producto + Precio + Editar. OJO con hideAtMedia: la
+                      columna se muestra cuando la media query MATCHES (ver
+                      latest-sales-grid.tsx), así que la query es (min-width:
+                      641px) para ocultarlas por debajo de 640px. */}
+                  <ColumnDirective
+                    field="statusLabel"
+                    headerText="Estado"
+                    hideAtMedia="(min-width: 641px)"
+                    template={(product: ProductRow) => (
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-[0.7rem] font-bold ${toneClasses[product.statusTone]}`}
+                      >
                         {product.statusLabel}
                       </span>
-                      {/* Cuántos quedan, acá. Antes había que ir a Stock. */}
-                      {product.stockQuantity !== null ? (
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-[0.7rem] font-bold ${
-                            product.minStockRaw !== null && product.stockQuantity <= product.minStockRaw
-                              ? "bg-amber-50 text-amber-700"
-                              : "bg-slate-100 text-slate-500"
-                          }`}
-                        >
-                          {formatQuantity(product.stockQuantity, product.unit as never)}
-                        </span>
-                      ) : null}
-                    </span>
-                  </div>
-                  <p className="shrink-0 text-right text-sm font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
-                    {product.priceLabel}
-                  </p>
-                </button>
-              </li>
-              );
-            })}
-            </ul>
-          </Reveal>
+                    )}
+                    width={110}
+                  />
+                  {data.features.stock ? (
+                    <ColumnDirective
+                      field="stockQuantity"
+                      headerText="Stock"
+                      hideAtMedia="(min-width: 641px)"
+                      template={(product: ProductRow) =>
+                        product.stockQuantity !== null ? (
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-[0.7rem] font-bold ${
+                              product.minStockRaw !== null && product.stockQuantity <= product.minStockRaw
+                                ? "bg-amber-50 text-amber-700"
+                                : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {formatQuantity(product.stockQuantity, product.unit as never)}
+                          </span>
+                        ) : null
+                      }
+                      width={100}
+                    />
+                  ) : null}
+                  <ColumnDirective
+                    field="priceLabel"
+                    headerText="Precio"
+                    template={(product: ProductRow) => (
+                      <span className="text-sm font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
+                        {product.priceLabel}
+                      </span>
+                    )}
+                    textAlign="Right"
+                    width={110}
+                  />
+                  {/* Acción explícita: además del toque en la fila, deja abrir
+                      la ficha con teclado (la fila de la grilla no es focuseable
+                      por sí sola). */}
+                  <ColumnDirective
+                    headerText=""
+                    template={(product: ProductRow) => (
+                      <button
+                        aria-label={`Editar ${product.name}`}
+                        className="inline-flex min-h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-black text-slate-600 transition hover:bg-slate-50 active:scale-95"
+                        onClick={() => openEdit(product.id)}
+                        type="button"
+                      >
+                        Editar
+                      </button>
+                    )}
+                    width={86}
+                  />
+                </ColumnsDirective>
+                <Inject services={[Page, Sort, Filter, Toolbar]} />
+              </GridComponent>
+            </div>
           </>
         )}
       </div>
 
-      {/* Alta de un ítem del catálogo. `dialog` como el sheet de edición: el
-          formulario usa `sm:grid-cols-2`, que mira el ANCHO DE PANTALLA, no el
-          del panel. En escritorio se partía en dos columnas dentro de un panel
-          de 460px y "¿Cuánto te cuesta?" quedaba cortado con scroll horizontal. */}
-      <BottomSheet onClose={closeNew} open={newOpen} size="dialog">
+      {/* Alta de un ítem del catálogo. Dialog de Syncfusion EJ2 reemplaza al
+          bottom sheet: el mismo flujo paso a paso, ahora en un modal con su
+          botón de cierre propio (tooltip y aria en español por el locale es).
+          El contenido scrollea dentro del diálogo (max-height en el CSS). */}
+      <DialogComponent
+        close={closeNew}
+        cssClass="e-catalog-dialog e-gestion-dialog"
+        header={createdProduct ? "Listo" : pasoActual.title}
+        isModal
+        overlayClick={closeNew}
+        showCloseIcon
+        visible={newOpen}
+        width="92%"
+      >
         {createdProduct ? (
           /* Confirmación y nada más. La foto ya se preguntó como paso del alta:
              volver a pedirla acá era hacerle el mismo trámite dos veces. */
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="flex items-start justify-between gap-3 px-5 pt-6">
-              <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-wide text-emerald-600">Listo</p>
-                <h3 className="truncate text-xl font-black tracking-tight text-slate-950">{createdProduct.name}</h3>
-              </div>
+          <div className="flex flex-col">
+            <p className="truncate text-xl font-black tracking-tight text-slate-950">{createdProduct.name}</p>
+            <div className="mt-4 flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-4">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                <Check className="size-6" />
+              </span>
+              <p className="text-sm font-bold leading-6 text-emerald-900">
+                Ya está en tu {data.catalogPlural.toLowerCase()}. Podés cambiarle lo que sea desde su ficha.
+              </p>
+            </div>
+            {newError ? (
+              <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">{newError}</p>
+            ) : null}
+            <div className="mt-5 flex items-center gap-3">
+              {/* Cargar catálogo es una tarea repetitiva: obligar a cerrar y
+                  volver a abrir por cada ítem es cobrarle dos toques a algo
+                  que se hace veinte veces seguidas. */}
               <button
-                aria-label="Cerrar"
-                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-95"
+                className="flex-1 rounded-2xl border border-slate-200 px-4 py-4 text-base font-black text-slate-700 transition hover:bg-slate-50 active:scale-[0.99]"
+                onClick={crearOtro}
+                type="button"
+              >
+                Cargar otro
+              </button>
+              <button
+                className="flex-1 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
                 onClick={closeNew}
                 type="button"
               >
-                <X className="size-5" />
+                Listo
               </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5">
-              <div className="flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-4">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
-                  <Check className="size-6" />
-                </span>
-                <p className="text-sm font-bold leading-6 text-emerald-900">
-                  Ya está en tu {data.catalogPlural.toLowerCase()}. Podés cambiarle lo que sea desde su ficha.
-                </p>
-              </div>
-              {newError ? (
-                <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">{newError}</p>
-              ) : null}
-            </div>
-            <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
-              <div className="flex items-center gap-3">
-                {/* Cargar catálogo es una tarea repetitiva: obligar a cerrar y
-                    volver a abrir por cada ítem es cobrarle dos toques a algo
-                    que se hace veinte veces seguidas. */}
-                <button
-                  className="flex-1 rounded-2xl border border-slate-200 px-4 py-4 text-base font-black text-slate-700 transition hover:bg-slate-50 active:scale-[0.99]"
-                  onClick={crearOtro}
-                  type="button"
-                >
-                  Cargar otro
-                </button>
-                <button
-                  className="flex-1 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
-                  onClick={closeNew}
-                  type="button"
-                >
-                  Listo
-                </button>
-              </div>
             </div>
           </div>
         ) : (
-        <form
-          className="flex min-h-0 flex-1 flex-col"
-          onSubmit={(event) => event.preventDefault()}
-          ref={newFormRef}
-        >
+        <form className="flex flex-col" onSubmit={(event) => event.preventDefault()} ref={newFormRef}>
           <input name="branchId" type="hidden" value={newBranchId} />
-          <div className="flex items-start justify-between gap-3 px-5 pt-6">
+          <div className="mb-4 flex items-end justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-black uppercase tracking-wide text-primary">
                 Paso {newStep + 1} de {pasos.length}
               </p>
-              <h3 className="mt-1 text-xl font-black leading-tight tracking-tight text-slate-950">{pasoActual.title}</h3>
               <p className="mt-1 text-sm leading-6 text-slate-500">{pasoActual.subtitle}</p>
             </div>
-            <button
-              aria-label="Cerrar"
-              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
-              onClick={closeNew}
-              type="button"
-            >
-              <X className="size-5" />
-            </button>
-          </div>
-
-          <div className="px-5 pt-4">
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="h-1.5 w-28 shrink-0 overflow-hidden rounded-full bg-slate-100 sm:w-40">
               <div
                 className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
                 style={{ width: `${((newStep + 1) / pasos.length) * 100}%` }}
@@ -592,7 +716,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
           {/* Los campos de TODOS los pasos quedan montados; sólo se muestra el
               del paso actual. Así volver atrás no borra lo cargado y el submit
               final manda todo junto, sin duplicar el valor en estado. */}
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5">
+          <div>
             <div className="space-y-4" hidden={pasoActual.id !== "identidad"}>
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Nombre
@@ -605,15 +729,17 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   value={nuevoNombre}
                 />
               </label>
-              <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                Descripción (opcional)
-                <input
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-                  name="description"
-                  placeholder="Ej: incluye lavado"
-                  type="text"
-                />
-              </label>
+              {/* La descripción con el RichTextEditor de EJ2. Se monta solo
+                  cuando el paso está a la vista (un RTE oculto inicializa a
+                  ancho 0); el texto vive en estado y viaja en el input oculto,
+                  que siempre está en el form. */}
+              {pasoActual.id === "identidad" ? (
+                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                  Descripción (opcional)
+                  <DescriptionEditor value={nuevoDescripcion} onChange={setNuevoDescripcion} />
+                </label>
+              ) : null}
+              <input name="description" type="hidden" value={nuevoDescripcion} />
             </div>
 
             <div className="space-y-4" hidden={pasoActual.id !== "foto"}>
@@ -635,18 +761,29 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   </button>
                 </div>
               ) : (
-                <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center transition hover:border-primary/40 hover:bg-white">
+                <button
+                  className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center transition hover:border-primary/40 hover:bg-white"
+                  onClick={() => openUploaderPicker(nuevoUploaderRef)}
+                  type="button"
+                >
                   <Plus className="size-8 text-slate-400" />
                   <span className="text-sm font-black text-slate-600">Elegir una foto</span>
                   <span className="text-xs text-slate-500">Se guarda recién al crear. Podés saltear este paso.</span>
-                  <input
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={(event) => elegirFoto(event.target.files?.[0])}
-                    type="file"
-                  />
-                </label>
+                </button>
               )}
+              {/* El Uploader de EJ2 abre el selector y valida el tipo; vive
+                  oculto porque la tarjeta de arriba es la cara visible (sin
+                  lista de archivos: la vista previa la dibuja el estado). */}
+              <UploaderComponent
+                allowedExtensions=".jpg,.jpeg,.png,.webp,.gif,.avif"
+                autoUpload={false}
+                cssClass="e-catalog-uploader"
+                multiple={false}
+                ref={nuevoUploaderRef}
+                selected={(event) => void elegirFoto(event.filesData[0]?.rawFile)}
+                showFileList={false}
+                style={{ display: "none" }}
+              />
             </div>
 
             <div className="space-y-4" hidden={pasoActual.id !== "precio"}>
@@ -714,12 +851,11 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 
             {data.categories.length > 0 ? (
               <div className="space-y-4" hidden={pasoActual.id !== "categoria"}>
-                {/* El desplegable propio y no un <select>: la lista nativa la
-                    dibuja el sistema operativo y no hay CSS que la toque. */}
                 <div className="grid gap-2">
                   <span className="text-xs font-black uppercase tracking-wide text-slate-500">Categoría (opcional)</span>
-                  <SelectField
+                  <SyncSelect
                     ariaLabel="Categoría"
+                    defaultValue=""
                     name="categoryId"
                     options={[
                       { value: "", label: "Sin categoría" },
@@ -731,7 +867,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             ) : null}
           </div>
 
-          <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
+          <div className="mt-5 border-t border-slate-100 pt-4">
             {newError ? (
               <p className="mb-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">{newError}</p>
             ) : null}
@@ -776,26 +912,25 @@ export function ProductsManager({ data }: { data: ProductsData }) {
           </div>
         </form>
         )}
-      </BottomSheet>
+      </DialogComponent>
 
       {/* Configurar precio/disponibilidad */}
-      <BottomSheet onClose={closeEdit} open={editing !== null} size="dialog">
+      <DialogComponent
+        close={closeEdit}
+        cssClass="e-catalog-dialog e-gestion-dialog"
+        header={`Editar ${data.catalogSingular.toLowerCase()}`}
+        isModal
+        overlayClick={closeEdit}
+        showCloseIcon
+        visible={editing !== null}
+        width="92%"
+      >
         {editing ? (
-          <form action={updateProduct} className="flex min-h-0 flex-1 flex-col" key={editing.id}>
+          <form action={updateProduct} className="flex flex-col" key={editing.id}>
             <input name="branchId" type="hidden" value={editBranchId} />
             <input name="productId" type="hidden" value={editing.id} />
             <input name="configured" type="hidden" value={editConfig?.configured ? "true" : "false"} />
-            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 bg-white px-5 pb-3 pt-4">
-              <h3 className="text-xl font-black tracking-tight text-slate-950">Editar {data.catalogSingular.toLowerCase()}</h3>
-              <button
-                aria-label="Cerrar"
-                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90"
-                onClick={closeEdit}
-                type="button"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
+            <input name="description" type="hidden" value={editDescripcion} />
             {/* Dos pestañas. La ficha mezclaba lo que se mira todos los días
                 —nombre, precio, foto— con lo que se configura una vez —códigos,
                 costo, mínimos, bultos— y para llegar a lo segundo había que
@@ -804,7 +939,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 Se ocultan con CSS y NO se desmontan: es un solo <form>, y un
                 campo desmontado no se envía. Cambiar de pestaña borraría en
                 silencio lo que el usuario escribió del otro lado. */}
-            <div className="flex shrink-0 gap-2 border-b border-slate-100 bg-white px-5 pt-3">
+            <div className="flex gap-2 border-b border-slate-100 pb-2">
               {(
                 [
                   { key: "producto", label: data.catalogSingular },
@@ -827,7 +962,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               ))}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5">
+            <div className="pt-4">
             {/* El `hidden` NO se combina con las clases del layout: `sm:grid`
                 vive en una media query y le gana a `hidden`, así que el panel
                 se seguía viendo en escritorio y las dos pestañas aparecían
@@ -921,12 +1056,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 
                 <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                   Descripción (opcional)
-                  <input
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-                    defaultValue={editing.description ?? ""}
-                    name="description"
-                    type="text"
-                  />
+                  <DescriptionEditor value={editDescripcion} onChange={setEditDescripcion} />
                 </label>
 
                 {data.branches.length > 1 ? (
@@ -960,7 +1090,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                         existencias y un producto físico sí. Antes había además
                         un tilde "Controlar stock" que decía lo mismo y permitía
                         guardar la contradicción. */}
-                    <SelectField
+                    <SyncSelect
                       ariaLabel="Tipo"
                       defaultValue={editing.kind}
                       name="kind"
@@ -972,7 +1102,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   </label>
                   <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Se vende por
-                    <SelectField
+                    <SyncSelect
                       ariaLabel="Se vende por"
                       defaultValue={editing.unit}
                       name="unit"
@@ -1000,7 +1130,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   </label>
                   <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
                     Categoría
-                    <SelectField
+                    <SyncSelect
                       ariaLabel="Categoría"
                       defaultValue={editing.categoryId ?? ""}
                       name="categoryId"
@@ -1058,7 +1188,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               />
             ) : null}
             </div>
-            <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
+            <div className="mt-5 border-t border-slate-100 pt-4">
               <button
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
                 type="submit"
@@ -1069,7 +1199,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             </div>
           </form>
         ) : null}
-      </BottomSheet>
+      </DialogComponent>
 
       <button
         aria-label={`Nuevo ${data.catalogSingular.toLowerCase()}`}

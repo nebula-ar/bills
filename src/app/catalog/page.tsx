@@ -8,6 +8,7 @@ import { promotionShortLabel } from "@/lib/promotion-labels";
 import { promocionesDeProducto } from "@/modules/promotions/promotion.logic";
 import { findActivePromotions } from "@/modules/promotions/promotion.repository";
 import { ProductsManager, type ProductRow, type ProductsData } from "@/components/catalog-manager";
+import { SyncfusionCatalogProvider } from "@/components/syncfusion-catalog-provider";
 
 const moneyFormatter = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -136,7 +137,11 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     aiImagesEnabled: Boolean(process.env.OPENROUTER_API_KEY),
   };
 
-  return <ProductsManager data={data} />;
+  return (
+    <SyncfusionCatalogProvider>
+      <ProductsManager data={data} />
+    </SyncfusionCatalogProvider>
+  );
 }
 
 function money(value: number) {
