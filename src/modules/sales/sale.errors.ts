@@ -13,6 +13,10 @@ export const SaleErrorCode = {
   PAYMENTS_TOTAL_MISMATCH: "PAYMENTS_TOTAL_MISMATCH",
   SALE_NOT_FOUND: "SALE_NOT_FOUND",
   SALE_ALREADY_CANCELLED: "SALE_ALREADY_CANCELLED",
+  // La venta ya tiene un comprobante AFIP/ARCA emitido: anularla dejaría la
+  // factura viva sobre una venta cancelada. Anular ese comprobante requeriría
+  // una nota de crédito, que hoy no existe.
+  SALE_HAS_ISSUED_INVOICE: "SALE_HAS_ISSUED_INVOICE",
   INVALID_CUSTOMER_TAX_ID: "INVALID_CUSTOMER_TAX_ID",
   // Stock
   INSUFFICIENT_STOCK: "INSUFFICIENT_STOCK",

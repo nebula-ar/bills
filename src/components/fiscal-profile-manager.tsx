@@ -347,7 +347,20 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
             Completá primero los datos fiscales de arriba para poder generar el certificado.
           </p>
         ) : (
-          <form className="space-y-3" ref={certFormRef}>
+          // OJO con el submit nativo: el form NO tiene `action` (la generación la
+          // dispara el ProgressButton con onClick) y el ProgressButton de EJ2 no
+          // aplica `type` al <button> que renderiza — el default HTML sería
+          // "submit" y mandaría la contraseña de Clave Fiscal por GET a la URL.
+          // `onSubmit` bloquea ese submit nativo (Enter incluido) y redirige al
+          // mismo handler del botón.
+          <form
+            className="space-y-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleGenerateCertificate();
+            }}
+            ref={certFormRef}
+          >
             <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
               Usuario de Clave Fiscal
               <input
@@ -391,6 +404,7 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
               onClick={handleGenerateCertificate}
               ref={certPbRef}
               style={{ width: "100%" }}
+              type="button"
             />
           </form>
         )}
@@ -553,6 +567,7 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
                     onClick={handleEmit}
                     ref={emitPbRef}
                     style={{ flex: 1 }}
+                    type="button"
                   />
                 </div>
               </div>
@@ -593,6 +608,7 @@ export function FiscalProfileManager({ data }: { data: FiscalProfileData }) {
                     onClick={handleAnular}
                     ref={anularPbRef}
                     style={{ flex: 1 }}
+                    type="button"
                   />
                 </div>
               </div>

@@ -2,6 +2,7 @@ import { decryptBusinessCertificate } from "@/lib/crypto";
 import { determineInvoiceType, isBusinessFiscallyConfigured } from "@/lib/invoice";
 import { emitInvoice } from "@/lib/invoice-provider";
 import { logEvent } from "@/lib/logger";
+import { AfipStatus } from "@/generated/prisma/client";
 
 import { findBusinessForInvoicing } from "../business/business.repository";
 import { InvoicingError, InvoicingErrorCode } from "./invoicing.errors";
@@ -19,6 +20,13 @@ export async function attemptInvoiceEmission(input: AttemptInvoiceEmissionInput)
   const sale = await findSaleForInvoicing(input.saleId, input.businessId);
   if (!sale) {
     throw new InvoicingError(InvoicingErrorCode.SALE_NOT_FOUND);
+  }
+
+  // La UI solo ofrece emitir/reintentar para ventas no emitidas, pero el guard
+  // tiene que vivir acá: un call directo no debe re-emitir contra AFIP (CAE
+  // duplicado).
+  if (sale.afipStatus === AfipStatus.ISSUED) {
+    throw new InvoicingError(InvoicingErrorCode.INVOICE_ALREADY_ISSUED);
   }
 
   const business = await findBusinessForInvoicing(input.businessId);
