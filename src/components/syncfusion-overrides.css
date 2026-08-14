@@ -72,6 +72,48 @@
   color: #334155;
 }
 
+/* ── Toolbar del detalle de ventas (NEBU-45): exportar / buscar ── */
+.e-grid.e-sales-detail-grid .e-toolbar {
+  background: transparent;
+  border: 0;
+  padding: 0 0 0.75rem;
+}
+.e-grid.e-sales-detail-grid .e-toolbar .e-toolbar-items,
+.e-grid.e-sales-detail-grid .e-toolbar .e-toolbar-item {
+  background: transparent;
+}
+.e-grid.e-sales-detail-grid .e-toolbar .e-toolbar-item .e-tbar-btn {
+  border-radius: 0.65rem;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.e-grid.e-sales-detail-grid .e-toolbar .e-toolbar-item .e-tbar-btn:hover,
+.e-grid.e-sales-detail-grid .e-toolbar .e-toolbar-item .e-tbar-btn:focus {
+  background: #f1f5f9;
+  color: var(--primary);
+}
+.e-grid.e-sales-detail-grid .e-toolbar .e-toolbar-item .e-tbar-btn .e-btn-icon {
+  color: var(--primary);
+}
+/* Buscador del toolbar: misma pinta que los inputs del resto de la app */
+.e-grid.e-sales-detail-grid .e-toolbar .e-toolbar-item.e-search-wrapper .e-input-group {
+  border: 1px solid rgb(226 232 240);
+  background: rgb(248 250 252);
+  border-radius: 0.75rem;
+  box-shadow: none;
+}
+.e-grid.e-sales-detail-grid .e-toolbar .e-toolbar-item.e-search-wrapper .e-input-group.e-input-focus {
+  border-color: color-mix(in oklab, var(--primary) 40%, transparent);
+  background: #fff;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 15%, transparent);
+}
+.e-grid.e-sales-detail-grid .e-toolbar .e-toolbar-item.e-search-wrapper .e-input-group .e-input {
+  color: #0f172a;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    POS / Terminal de venta (NEBU-46)
    Misma marca que los overrides del dashboard, aplicada a los componentes que
