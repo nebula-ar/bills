@@ -33,6 +33,7 @@ import { useState, useTransition, type ComponentType, type ReactNode } from "rea
 import { SelectField } from "@/components/ui/select-field";
 import { SyncfusionProvider } from "@/components/syncfusion-provider";
 import { DateRangeFilter } from "@/components/date-range-filter";
+import type { SalesDetailRow } from "@/modules/reports/sales-detail-view";
 
 // Charts de Syncfusion EJ2 (dependencia grande): se cargan en el cliente, on
 // demand, para no engordar el bundle inicial del dashboard.
@@ -45,10 +46,10 @@ const PaymentDonutChart = dynamic(
   () => import("@/components/reports-charts").then((mod) => mod.PaymentDonutChart),
   { ssr: false, loading: ChartSkeleton },
 );
-// El grid de últimas ventas (Syncfusion EJ2, igual que los charts) también se
-// carga on demand para no sumar su bundle al render inicial del dashboard.
-const LatestSalesGrid = dynamic(
-  () => import("@/components/latest-sales-grid").then((mod) => mod.LatestSalesGrid),
+// El grid de detalle de ventas (Syncfusion EJ2, igual que los charts) también
+// se carga on demand para no sumar su bundle al render inicial del dashboard.
+const SalesDetailGrid = dynamic(
+  () => import("@/components/sales-detail-grid").then((mod) => mod.SalesDetailGrid),
   { ssr: false, loading: () => <Skeleton className="h-[280px] w-full rounded-2xl" /> },
 );
 
@@ -90,15 +91,8 @@ export type ReportsData = {
   topProducts: { name: string; total: number; quantity: number }[];
   totalsByStaff: { staffId: string; staffName: string; total: number; saleCount: number }[];
   totalsByPayment: { key: string; label: string; total: number; percentage: number }[];
-  latestSales: {
-    id: string;
-    timeLabel: string;
-    staffName: string;
-    branchName: string;
-    total: number;
-    paymentLabel: string;
-    itemSummary: string;
-  }[];
+  // Detalle de ventas del período, para el grid con export a Excel/PDF/CSV.
+  salesDetail: SalesDetailRow[];
   activeFilters: {
     staffId?: string;
     staffName?: string;
@@ -647,17 +641,23 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           </Panel>
         ) : null}
 
-        {/* Últimas ventas */}
-        <div className="mb-4 break-inside-avoid duration-500 animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: "620ms", animationFillMode: "backwards" }}>
+        {/* Detalle de ventas del período, con export desde la propia grilla */}
+        <div
+          className="mb-4 break-inside-avoid duration-500 animate-in fade-in slide-in-from-bottom-3"
+          style={{ animationDelay: "620ms", animationFillMode: "backwards" }}
+        >
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-base font-black text-slate-950">Últimas ventas</h2>
+            <h2 className="text-base font-black text-slate-950">Detalle de ventas</h2>
             <Link className="flex items-center gap-0.5 text-xs font-bold text-primary" href="/sales">
               Ver todas
               <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
+          <p className="mt-0.5 px-1 text-xs text-slate-500">
+            Todas las ventas del período. Exportá a Excel, PDF o CSV desde la grilla.
+          </p>
           <div className="mt-3 overflow-hidden rounded-2xl bg-white p-2 shadow-sm ring-1 ring-slate-950/5">
-            <LatestSalesGrid data={data.latestSales} />
+            <SalesDetailGrid data={data.salesDetail} />
           </div>
         </div>
         </div>

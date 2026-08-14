@@ -1,6 +1,12 @@
 import type { PaymentMethod } from "@/generated/prisma/client";
 
-import { findReportStaffs, findReportSales, paymentMethods, sumReportSalesTotal } from "./report.repository";
+import {
+  findReportStaffs,
+  findReportSales,
+  paymentMethods,
+  sumReportSalesTotal,
+  type TodaySalesReportSale,
+} from "./report.repository";
 import { lineTotal, QUANTITY_SCALE } from "@/lib/quantity";
 
 export type SalesReportInput = {
@@ -73,24 +79,10 @@ export type TodaySalesReport = {
     method: PaymentMethod;
     total: number;
   }[];
-  latestSales: {
-    id: string;
-    soldAt: Date;
-    total: number;
-    branchName: string;
-    staffName: string;
-    items: {
-      id: string;
-      description: string;
-      quantity: number;
-      total: number;
-    }[];
-    payments: {
-      id: string;
-      method: PaymentMethod;
-      amount: number;
-    }[];
-  }[];
+  // Detalle del período completo (una venta por registro), para el grid
+  // "Detalle de ventas" del dashboard con export a Excel/PDF/CSV. No está
+  // limitado como `latestSales` de antes: el grid muestra todo lo del período.
+  salesDetail: TodaySalesReportSale[];
 };
 
 export async function getTodaySalesReport(input: SalesReportInput): Promise<TodaySalesReport> {
@@ -229,15 +221,7 @@ export async function getTodaySalesReport(input: SalesReportInput): Promise<Toda
       }))
       .sort((a, b) => b.total - a.total || a.staffName.localeCompare(b.staffName)),
     totalsByPaymentMethod: Array.from(paymentTotals.entries()).map(([method, total]) => ({ method, total })),
-    latestSales: sales.slice(0, 10).map((sale) => ({
-      id: sale.id,
-      soldAt: sale.soldAt,
-      total: sale.total,
-      branchName: sale.branch.name,
-      staffName: sale.staff.name,
-      items: sale.items,
-      payments: sale.payments,
-    })),
+    salesDetail: sales,
   };
 }
 
