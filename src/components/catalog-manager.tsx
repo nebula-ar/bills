@@ -359,6 +359,13 @@ export function ProductsManager({ data }: { data: ProductsData }) {
     [data.features.barcodes, data.features.stock, data.categories.length, data.catalogSingular, data.branches.length, newBranchName],
   );
 
+  // Referencia ESTABLE a propósito: si el objeto se recreara en cada render,
+  // el base de React de EJ2 lo trataría como un "controlled prop" cambiado,
+  // prendería isSelfTriggeredEvent y el refresh interno de la grilla por
+  // cambio de dataSource quedaría tragado (las filas nuevas no aparecen en
+  // producción; en dev lo enmascara StrictMode).
+  const pageSettings = useMemo(() => ({ pageSize: 10, pageSizes: [10, 20, 50] }), []);
+
   const pasoActual = pasos[Math.min(newStep, pasos.length - 1)];
   const esUltimoPaso = newStep >= pasos.length - 1;
 
@@ -601,7 +608,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 dataSource={visibleProducts}
                 emptyRecordTemplate={() => <EmptyProducts singular={data.catalogSingular.toLowerCase()} />}
                 height="auto"
-                pageSettings={{ pageSize: 10, pageSizes: [10, 20, 50] }}
+                pageSettings={pageSettings}
                 recordClick={(args) => {
                   const row = args.data as ProductRow | undefined;
                   if (row?.id) openEdit(row.id);
