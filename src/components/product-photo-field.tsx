@@ -4,9 +4,10 @@ import { deleteProductImage, uploadProductImage } from "@/app/catalog/actions";
 import { Check, Loader2, Plus, Sparkles, Trash2 } from "@/components/icons";
 import { ProductPhotoAiSheet } from "@/components/product-photo-ai-sheet";
 import { resizeImageForUpload } from "@/lib/image-resize";
+import { CatalogUploader } from "@/components/catalog-uploader";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
-import { UploaderComponent } from "@syncfusion/ej2-react-inputs";
-import { useRef, useState, useTransition } from "react";
+import type { UploaderComponent } from "@syncfusion/ej2-react-inputs";
+import { useCallback, useRef, useState, useTransition } from "react";
 
 // Carga de la foto de un producto. Vive fuera del <form> de datos (los forms no
 // se anidan) y sube por su cuenta: la foto se guarda apenas se elige, así el
@@ -57,30 +58,45 @@ export function ProductPhotoField({
     uploaderRef.current?.element.querySelector<HTMLInputElement>("input[type=file]")?.click();
   }
 
-  function pick(file: File | undefined) {
-    if (!file) return;
-    setError(null);
+  // Estable a propósito (useCallback con productId, que no cambia dentro de la
+  // ficha): el CatalogUploader está memoizado y un cambio de identidad lo
+  // re-renderizaría y perdería el input (NEBU-48).
+  const pick = useCallback(
+    (file: File | undefined) => {
+      if (!file) return;
+      setError(null);
 
-    startTransition(async () => {
-      // Se achica acá para que el viaje sea corto; el servidor igual la reprocesa.
-      const resized = await resizeImageForUpload(file);
-      const formData = new FormData();
-      formData.set("productId", productId);
-      formData.set("file", resized);
+      startTransition(async () => {
+        let resized: File;
+        try {
+          // Se achica acá para que el viaje sea corto; el servidor igual la reprocesa.
+          resized = await resizeImageForUpload(file);
+        } catch {
+          // HEIC en un dispositivo que no lo decodifica: el servidor tampoco
+          // (sharp prebuilt no lo soporta), así que se avisa acá con un mensaje
+          // claro en vez de mandarlo y recibir un rechazo confuso.
+          setError("Esa foto es HEIC y este dispositivo no puede procesarla. Convertila a JPG o PNG, o sacala con otra app.");
+          return;
+        }
+        const formData = new FormData();
+        formData.set("productId", productId);
+        formData.set("file", resized);
 
-      const result = await uploadProductImage(formData);
+        const result = await uploadProductImage(formData);
 
-      if (result.ok) {
-        setPhotoVersion(result.version);
-      } else {
-        setError(result.error);
-      }
+        if (result.ok) {
+          setPhotoVersion(result.version);
+        } else {
+          setError(result.error);
+        }
 
-      // Vacía la lista interna del Uploader para que la próxima selección sea
-      // un archivo nuevo y no un append.
-      uploaderRef.current?.clearAll();
-    });
-  }
+        // Vacía la lista interna del Uploader para que la próxima selección sea
+        // un archivo nuevo y no un append.
+        uploaderRef.current?.clearAll();
+      });
+    },
+    [productId],
+  );
 
   function remove() {
     setError(null);
@@ -195,16 +211,7 @@ export function ProductPhotoField({
           entrega el archivo en `selected`. Vive oculto porque la tarjeta de
           arriba (con su preview, su botón de IA y su quitar) es la cara que ve
           el dueño. */}
-      <UploaderComponent
-        allowedExtensions=".jpg,.jpeg,.png,.webp,.gif,.avif,.heic,.heif"
-        autoUpload={false}
-        cssClass="e-catalog-uploader"
-        multiple={false}
-        ref={uploaderRef}
-        selected={(event) => pick(event.filesData[0]?.rawFile)}
-        showFileList={false}
-        style={{ display: "none" }}
-      />
+      <CatalogUploader onFile={pick} uploaderRef={uploaderRef} />
 
       {error ? <p className="text-xs font-bold text-rose-600">{error}</p> : null}
       {!error && photoVersion && !isPending ? (

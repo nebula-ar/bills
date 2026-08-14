@@ -11,6 +11,7 @@ import { VariantGenerator } from "@/components/variant-generator";
 import { CatalogOnboarding } from "@/components/catalog-onboarding";
 import { ProductStockPanel } from "@/components/product-stock-panel";
 import { ProductPhotoField } from "@/components/product-photo-field";
+import { CatalogUploader } from "@/components/catalog-uploader";
 import { ProductAnalyticsTab } from "@/components/product-analytics-tab";
 import { formatQuantity } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
@@ -28,11 +29,27 @@ import {
   Toolbar,
 } from "@syncfusion/ej2-react-grids";
 import { DialogComponent } from "@syncfusion/ej2-react-popups";
+import {
+  Audio,
+  CodeBlock,
+  EmojiPicker,
+  FormatPainter,
+  HtmlEditor,
+  Image,
+  ImportExport,
+  Inject as RteInject,
+  Link as RteLink,
+  PasteCleanup,
+  QuickToolbar,
+  RichTextEditorComponent,
+  Table,
+  Toolbar as RteToolbar,
+  Video,
+} from "@syncfusion/ej2-react-richtexteditor";
 import { UploaderComponent } from "@syncfusion/ej2-react-inputs";
-import { RichTextEditorComponent } from "@syncfusion/ej2-react-richtexteditor";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 export type ProductBranchConfig = {
   branchId: string;
@@ -147,7 +164,11 @@ function htmlToPlainText(html: string) {
 // El valor viaja en estado del padre: así el editor puede desmontarse (al
 // cambiar de paso del alta) sin perder lo escrito, y el form siempre tiene el
 // input oculto con el texto actual.
-function DescriptionEditor({ value, onChange }: { value: string; onChange: (text: string) => void }) {
+// El `Inject` es obligatorio: sin módulos registrados, el RTE de EJ2 arranca
+// sin el renderer de contenido y revienta con "The renderer Content is not
+// found" (el htmlEditor nunca se instancia). Acá va el set estándar de HTML
+// mode; nosotros solo usamos Undo/Redo del toolbar.
+const DescriptionEditor = memo(function DescriptionEditor({ value, onChange }: { value: string; onChange: (text: string) => void }) {
   return (
     <RichTextEditorComponent
       change={(args) => onChange(htmlToPlainText(String(args.value ?? "")))}
@@ -156,9 +177,27 @@ function DescriptionEditor({ value, onChange }: { value: string; onChange: (text
       placeholder="Ej: incluye lavado"
       toolbarSettings={{ items: ["Undo", "Redo"] }}
       value={value}
-    />
+    >
+      <RteInject
+        services={[
+          RteToolbar,
+          HtmlEditor,
+          RteLink,
+          Image,
+          QuickToolbar,
+          Table,
+          Video,
+          Audio,
+          PasteCleanup,
+          ImportExport,
+          FormatPainter,
+          EmojiPicker,
+          CodeBlock,
+        ]}
+      />
+    </RichTextEditorComponent>
   );
-}
+});
 
 // Estado sin resultados del grid: el mismo mensaje del listado viejo.
 function EmptyProducts({ singular }: { singular: string }) {
@@ -219,6 +258,10 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const [isPending, startTransition] = useTransition();
   const [isCreating, startCreating] = useTransition();
   const [newOpen, setNewOpen] = useState(false);
+  // El contenido del Dialog se monta recién cuando quedó abierto y estable:
+  // los componentes EJ2 (RTE, Uploader) no sobreviven a inicializarse con el
+  // diálogo cerrado o en plena animación de apertura (NEBU-48, bugs de QA).
+  const [newReady, setNewReady] = useState(false);
   const [newError, setNewError] = useState<string | null>(null);
   const [createdProduct, setCreatedProduct] = useState<{
     id: string;
@@ -263,10 +306,29 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   // Texto plano de la descripción del producto en edición, alimentado por el
   // RichTextEditor y enviado en el input oculto del form.
   const [editDescripcion, setEditDescripcion] = useState("");
+  // Igual que newReady: el form de la ficha monta cuando el diálogo terminó de
+  // abrirse, y se desmonta al cerrar (cada apertura = Uploader/RTE frescos).
+  const [editReady, setEditReady] = useState(false);
   const editing = data.products.find((product) => product.id === editId) ?? null;
   const newBranchName = data.branches.find((branch) => branch.id === newBranchId)?.name ?? "";
   const editConfig = editing?.branchConfigs.find((config) => config.branchId === editBranchId) ?? null;
   const editBranchName = data.branches.find((branch) => branch.id === editBranchId)?.name ?? "";
+
+  // El contenido del Dialog monta recién después de la animación de apertura
+  // (200ms, ver animationSettings de los diálogos): los componentes EJ2 no se
+  // inicializan ni cerrados ni en plena apertura (NEBU-48). Si el evento `open`
+  // del Dialog llegara a dispararse antes, setNewReady es idempotente.
+  useEffect(() => {
+    if (!newOpen) return;
+    const timer = window.setTimeout(() => setNewReady(true), 250);
+    return () => window.clearTimeout(timer);
+  }, [newOpen]);
+
+  useEffect(() => {
+    if (!editId) return;
+    const timer = window.setTimeout(() => setEditReady(true), 250);
+    return () => window.clearTimeout(timer);
+  }, [editId]);
 
   // Sin acentos y sin distinguir mayúsculas: "coca" tiene que encontrar
   // "Coca-Cola" y "banana" tiene que encontrar "Banana".
@@ -309,6 +371,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   }
 
   function openNew() {
+    setNewReady(false);
     setNewBranchId(data.selectedBranchId);
     setNewError(null);
     setCreatedProduct(null);
@@ -318,6 +381,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 
   function closeNew() {
     if (!newOpen) return;
+    setNewReady(false);
     setNewOpen(false);
     setNewError(null);
     setCreatedProduct(null);
@@ -332,21 +396,30 @@ export function ProductsManager({ data }: { data: ProductsData }) {
     resetNew();
   }
 
-  async function elegirFoto(file: File | undefined) {
+  // Estable a propósito (useCallback sin deps, setFoto con updater funcional):
+  // el CatalogUploader está memoizado y si esta función cambiara de identidad
+  // re-renderizaría y perdería el input (NEBU-48).
+  const elegirFoto = useCallback(async (file: File | undefined) => {
     if (!file) return;
     setNewError(null);
     try {
       const resized = await resizeImageForUpload(file);
-      if (foto) URL.revokeObjectURL(foto.preview);
-      setFoto({ file: resized, preview: URL.createObjectURL(resized) });
+      setFoto((prev) => {
+        if (prev) URL.revokeObjectURL(prev.preview);
+        return { file: resized, preview: URL.createObjectURL(resized) };
+      });
       // Vacía la lista interna del Uploader: si el dueño quita la foto y vuelve
       // a elegir el mismo archivo, que cuente como nuevo y no como duplicado
       // (misma mecánica que la ficha).
       nuevoUploaderRef.current?.clearAll();
-    } catch {
-      setNewError("No pudimos preparar esa imagen. Probá con otra.");
+    } catch (error) {
+      setNewError(
+        error instanceof Error && error.message === "HEIC_UNSUPPORTED"
+          ? "Esa foto es HEIC y este dispositivo no puede procesarla. Convertila a JPG o PNG, o sacala con otra app."
+          : "No pudimos preparar esa imagen. Probá con otra.",
+      );
     }
-  }
+  }, []);
 
   function quitarFoto() {
     if (foto) URL.revokeObjectURL(foto.preview);
@@ -399,6 +472,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   }
 
   function openEdit(id: string) {
+    setEditReady(false);
     const product = data.products.find((item) => item.id === id);
     setEditDescripcion(product?.description ?? "");
     setEditBranchId(data.selectedBranchId);
@@ -410,6 +484,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 
   function closeEdit() {
     if (!editing) return;
+    setEditReady(false);
     setEditId(null);
     if (editStockChanged) {
       setEditStockChanged(false);
@@ -664,16 +739,23 @@ export function ProductsManager({ data }: { data: ProductsData }) {
           botón de cierre propio (tooltip y aria en español por el locale es).
           El contenido scrollea dentro del diálogo (max-height en el CSS). */}
       <DialogComponent
+        animationSettings={{ duration: 200, effect: "Fade" }}
         close={closeNew}
         cssClass="e-catalog-dialog e-gestion-dialog"
         header={createdProduct ? "Listo" : pasoActual.title}
         isModal
+        open={() => setNewReady(true)}
         overlayClick={closeNew}
         showCloseIcon
         visible={newOpen}
         width="92%"
       >
-        {createdProduct ? (
+        {/* El contenido monta recién cuando el Dialog terminó de abrirse
+            (evento `open` = fin de la animación): el RTE y el Uploader no se
+            inicializan ni cerrados ni abriéndose. Al cerrar se desmonta todo,
+            así cada apertura arranca con componentes frescos. */}
+        {newReady ? (
+          createdProduct ? (
           /* Confirmación y nada más. La foto ya se preguntó como paso del alta:
              volver a pedirla acá era hacerle el mismo trámite dos veces. */
           <div className="flex flex-col">
@@ -710,7 +792,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             </div>
           </div>
         ) : (
-        <form className="flex flex-col" onSubmit={(event) => event.preventDefault()} ref={newFormRef}>
+          <form className="flex flex-col" onSubmit={(event) => event.preventDefault()} ref={newFormRef}>
           <input name="branchId" type="hidden" value={newBranchId} />
           <div className="mb-4 flex items-end justify-between gap-3">
             <div className="min-w-0">
@@ -788,16 +870,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               {/* El Uploader de EJ2 abre el selector y valida el tipo; vive
                   oculto porque la tarjeta de arriba es la cara visible (sin
                   lista de archivos: la vista previa la dibuja el estado). */}
-              <UploaderComponent
-                allowedExtensions=".jpg,.jpeg,.png,.webp,.gif,.avif,.heic,.heif"
-                autoUpload={false}
-                cssClass="e-catalog-uploader"
-                multiple={false}
-                ref={nuevoUploaderRef}
-                selected={(event) => void elegirFoto(event.filesData[0]?.rawFile)}
-                showFileList={false}
-                style={{ display: "none" }}
-              />
+              <CatalogUploader onFile={elegirFoto} uploaderRef={nuevoUploaderRef} />
             </div>
 
             <div className="space-y-4" hidden={pasoActual.id !== "precio"}>
@@ -925,21 +998,28 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             </div>
           </div>
         </form>
-        )}
+        )
+        ) : null}
       </DialogComponent>
 
       {/* Configurar precio/disponibilidad */}
       <DialogComponent
+        animationSettings={{ duration: 200, effect: "Fade" }}
         close={closeEdit}
         cssClass="e-catalog-dialog e-gestion-dialog"
         header={`Editar ${data.catalogSingular.toLowerCase()}`}
         isModal
+        open={() => setEditReady(true)}
         overlayClick={closeEdit}
         showCloseIcon
         visible={editing !== null}
         width="92%"
       >
-        {editing ? (
+        {/* Misma mecánica que el alta: el form monta con el diálogo ya abierto
+            y estable, y se desmonta al cerrar (el key por producto ya fuerza
+            montaje fresco por ficha). Sin esto el RTE crasheaba al abrir y el
+            Uploader perdía su input después de la primera subida. */}
+        {editing && editReady ? (
           <form action={updateProduct} className="flex flex-col" key={editing.id}>
             <input name="branchId" type="hidden" value={editBranchId} />
             <input name="productId" type="hidden" value={editing.id} />
