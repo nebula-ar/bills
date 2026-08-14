@@ -185,10 +185,9 @@ function Dato({
     <div className="bg-white px-4 py-3.5">
       <p className="text-xs font-black uppercase tracking-wide text-slate-500">{etiqueta}</p>
       <p
-        className={`font-display mt-0.5 text-2xl font-black tracking-tight ${
-          tono === "malo" ? "text-rose-600" : tono === "bueno" ? "text-emerald-600" : destacado ? "text-primary" : "text-slate-950"
+        className={`font-display mt-0.5 text-2xl font-black tracking-tight tabular-nums ${
+          tono === "malo" ? "text-rose-600" : tono === "bueno" ? "text-emerald-600" : destacado ? "text-primary" : "text-foreground"
         }`}
-        style={{ fontVariantNumeric: "tabular-nums" }}
       >
         {valor}
       </p>
@@ -202,8 +201,7 @@ function Fila({ etiqueta, valor, tono = "normal" }: { etiqueta: string; valor: s
     <div className="flex items-center justify-between gap-3 px-4 py-3">
       <dt className="text-sm font-bold text-slate-500">{etiqueta}</dt>
       <dd
-        className={`shrink-0 text-sm font-black ${tono === "malo" ? "text-rose-600" : "text-slate-950"}`}
-        style={{ fontVariantNumeric: "tabular-nums" }}
+        className={`shrink-0 text-sm font-black tabular-nums ${tono === "malo" ? "text-rose-600" : "text-foreground"}`}
       >
         {valor}
       </dd>

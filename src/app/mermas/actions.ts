@@ -39,5 +39,7 @@ export async function registrarMermaAction(formData: FormData) {
 
   revalidatePath("/mermas");
   revalidatePath("/stock");
+  // La existencia también se ve en /catalog ahora (ver ProductsManager).
+  revalidatePath("/catalog");
   volver("ok", "Merma anotada");
 }

@@ -23,7 +23,7 @@ const SIZE_PRESETS = [
 ];
 
 const input =
-  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white";
+  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-foreground outline-none transition focus:border-primary/40 focus:bg-white";
 
 export function VariantGenerator({
   branchId,
@@ -98,11 +98,19 @@ export function VariantGenerator({
         Con talles
       </button>
 
-      <BottomSheet onClose={() => setOpen(false)} open={open} panelClassName="min-h-[80dvh]">
+      <BottomSheet
+        onClose={() => setOpen(false)}
+        open={open}
+        // Portal a document.body (ver ui/bottom-sheet.tsx): fuera del <main> de
+        // Productos, así que el azul/ink de esta pantalla no cascadea solo.
+        // --primary-strong igual a --primary a propósito: Apple no oscurece en
+        // hover/press, usa transform: scale(0.95) como toda la marca de estado.
+        panelClassName="min-h-[80dvh] [--primary:#0066cc] [--primary-strong:#0066cc] [--foreground:#1d1d1f] [--background:#f5f5f7]"
+      >
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex items-start justify-between gap-3 px-5 pt-6">
             <div>
-              <h3 className="text-xl font-black tracking-tight text-slate-950">Modelo con variantes</h3>
+              <h3 className="text-xl font-semibold tracking-tight text-foreground">Modelo con variantes</h3>
               <p className="text-sm text-slate-500">
                 Cada talle queda como un producto propio, con su código y su stock.
               </p>
@@ -164,7 +172,7 @@ export function VariantGenerator({
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Precio de venta
                 <input
-                  className={input}
+                  className={`${input} tabular-nums`}
                   inputMode="numeric"
                   onChange={(event) => setPrice(event.target.value.replace(/\D/g, ""))}
                   placeholder="$"
@@ -174,7 +182,7 @@ export function VariantGenerator({
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Costo (opcional)
                 <input
-                  className={input}
+                  className={`${input} tabular-nums`}
                   inputMode="numeric"
                   onChange={(event) => setCost(event.target.value.replace(/\D/g, ""))}
                   placeholder="$"
@@ -184,7 +192,7 @@ export function VariantGenerator({
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Stock de cada una
                 <input
-                  className={input}
+                  className={`${input} tabular-nums`}
                   inputMode="numeric"
                   onChange={(event) => setStock(event.target.value)}
                   placeholder="0"
@@ -236,7 +244,7 @@ export function VariantGenerator({
 
           <div className="mt-auto border-t border-slate-100 px-5 pb-1 pt-4">
             <button
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-4 text-base font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
               disabled={!canCreate || isPending}
               onClick={submit}
               type="button"

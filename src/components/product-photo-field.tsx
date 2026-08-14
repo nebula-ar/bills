@@ -1,15 +1,27 @@
 "use client";
 
 import { deleteProductImage, uploadProductImage } from "@/app/catalog/actions";
-import { Check, Loader2, Plus, Sparkles, Trash2 } from "@/components/icons";
+import { Camera, Loader2, Sparkles, Trash2 } from "@/components/icons";
 import { ProductPhotoAiSheet } from "@/components/product-photo-ai-sheet";
 import { resizeImageForUpload } from "@/lib/image-resize";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition, type ReactNode } from "react";
+import { toast } from "sonner";
 
-// Carga de la foto de un producto. Vive fuera del <form> de datos (los forms no
-// se anidan) y sube por su cuenta: la foto se guarda apenas se elige, así el
-// dueño la ve al instante en vez de tener que apretar "Guardar".
+// La foto del producto, que ES la foto que se ve en el panel: no un campo
+// "Foto" aparte con una segunda copia de la misma imagen abajo. Antes el panel
+// mostraba la foto grande arriba Y este componente la volvía a dibujar en una
+// caja 4:3 más abajo — la misma imagen dos veces en la misma pantalla.
+//
+// Acá la imagen que se muestra es el control: se toca y se cambia, con las
+// acciones encima en vez de en una fila de botones aparte. El caller decide la
+// forma (alto, esquinas) con `className` y qué mostrar cuando no hay ninguna
+// foto con `fallback`, así el panel de escritorio y el de mobile usan la misma
+// pieza con distinto tamaño en vez de tener cada uno la suya.
+//
+// Sube por su cuenta, sin esperar a "Guardar cambios": la foto se guarda apenas
+// se elige así el dueño la ve al instante. Es la única parte del panel que no
+// entra en el guardado en tanda, y es a propósito — no se tipea de a poco.
 export function ProductPhotoField({
   productId,
   hasPhoto,
@@ -18,6 +30,8 @@ export function ProductPhotoField({
   productName,
   productDescription,
   aiEnabled,
+  className = "",
+  fallback,
 }: {
   productId: string;
   hasPhoto: boolean;
@@ -29,9 +43,12 @@ export function ProductPhotoField({
   productName: string;
   productDescription: string | null;
   aiEnabled: boolean;
+  // Forma del recuadro (alto, esquinas). La imagen siempre lo llena.
+  className?: string;
+  // Qué se ve cuando el producto no tiene foto propia ni del catálogo.
+  fallback?: ReactNode;
 }) {
   const [photoVersion, setPhotoVersion] = useState<number | null>(hasPhoto ? version : null);
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
   const [aiOpen, setAiOpen] = useState(false);
@@ -39,18 +56,14 @@ export function ProductPhotoField({
   const [aiSession, setAiSession] = useState(0);
 
   // La misma decisión que toma el listado y el mostrador: propia si hay,
-  // catálogo si no. Antes acá se miraba SOLO la propia, así que un producto con
-  // foto del catálogo abría el editor en blanco y parecía que se había perdido.
-  //
-  // Que "Quitar" sea solo para la propia sigue siendo cierto —no se puede borrar
-  // un archivo compartido por todos los negocios— pero eso es un motivo para
-  // esconder el botón, no para esconder la foto.
+  // catálogo si no. Que "Quitar" sea solo para la propia sigue siendo cierto
+  // —no se puede borrar un archivo compartido por todos los negocios— pero eso
+  // es un motivo para esconder ese botón, no para esconder la foto.
   const src = productImageSrc({ id: productId, imageVersion: photoVersion, catalogSlug });
   const esPropia = photoVersion !== null;
 
   function pick(file: File | undefined) {
     if (!file) return;
-    setError(null);
 
     startTransition(async () => {
       // Se achica acá para que el viaje sea corto; el servidor igual la reprocesa.
@@ -64,7 +77,7 @@ export function ProductPhotoField({
       if (result.ok) {
         setPhotoVersion(result.version);
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
 
       if (inputRef.current) {
@@ -74,13 +87,12 @@ export function ProductPhotoField({
   }
 
   function remove() {
-    setError(null);
     startTransition(async () => {
       const result = await deleteProductImage(productId);
       if (result.ok) {
         setPhotoVersion(null);
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   }
@@ -98,89 +110,70 @@ export function ProductPhotoField({
     setAiOpen(false);
   }
 
-  return (
-    <div className="grid gap-2">
-      <span className="text-xs font-black uppercase tracking-wide text-slate-500">Foto</span>
+  // Botones redondos sobre la foto: el mismo tratamiento que el "cerrar" del
+  // panel de mobile (blanco translúcido con blur), para que se lean como
+  // controles flotando sobre la imagen y no como parte de ella.
+  const overlayButton =
+    "flex size-11 items-center justify-center rounded-full bg-white/85 text-foreground shadow-sm backdrop-blur-sm transition active:scale-90 disabled:opacity-50";
 
-      {/* Apilado y no en fila: en la ficha la foto es la identidad del producto
-          —es como lo reconoce el que vende— así que ocupa el ancho de su
-          columna en vez de ser una miniatura al costado del texto. */}
-      <div className="flex flex-col gap-2.5">
+  return (
+    <div className={`relative overflow-hidden bg-slate-100 ${className}`}>
+      {src ? (
+        // La sirve nuestra propia ruta, ya normalizada a 512px.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img alt="" className="size-full object-cover" src={src} />
+      ) : (
+        fallback
+      )}
+
+      {/* Con la foto del catálogo el dueño tiene que saber que no la subió él y
+          que puede reemplazarla. Antes eso ocupaba dos párrafos; acá es un
+          chip sobre la imagen, que dice lo mismo sin robarle lugar al resto. */}
+      {!esPropia && src ? (
+        <span className="absolute left-3 bottom-3 rounded-full bg-white/85 px-2.5 py-1 text-xs font-black text-slate-600 shadow-sm backdrop-blur-sm">
+          Foto del rubro
+        </span>
+      ) : null}
+
+      <div className="absolute bottom-3 right-3 flex items-center gap-2">
+        {esPropia ? (
+          <button
+            aria-label="Quitar la foto"
+            className={overlayButton}
+            disabled={isPending}
+            onClick={remove}
+            type="button"
+          >
+            <Trash2 className="size-5 text-rose-600" />
+          </button>
+        ) : null}
+        {aiEnabled ? (
+          <button
+            aria-label={esPropia ? "Mejorar la foto con IA" : "Generar una foto con IA"}
+            className={overlayButton}
+            disabled={isPending}
+            onClick={() => openAi(esPropia ? "enhance" : "origin")}
+            type="button"
+          >
+            <Sparkles className="size-5 text-primary" />
+          </button>
+        ) : null}
         <button
-          aria-label={src ? "Cambiar foto del producto" : aiEnabled ? "Agregar foto al producto" : "Elegir foto del producto"}
-          className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 transition active:scale-[0.99]"
+          aria-label={src ? "Cambiar la foto del producto" : "Agregar una foto al producto"}
+          className={overlayButton}
           disabled={isPending}
-          onClick={() => src || !aiEnabled ? inputRef.current?.click() : openAi("origin")}
+          onClick={() => inputRef.current?.click()}
           type="button"
         >
-          {src ? (
-            // La sirve nuestra propia ruta, ya normalizada a 512px.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img alt="" className="size-full object-cover" src={src} />
-          ) : (
-            <Plus className="size-7 text-slate-400" />
-          )}
-          {isPending ? (
-            <span className="absolute inset-0 flex items-center justify-center bg-white/70">
-              <Loader2 className="size-5 animate-spin text-primary" />
-            </span>
-          ) : null}
+          <Camera className="size-5" />
         </button>
-
-        <div className="min-w-0 flex-1">
-          {/* Se distingue de dónde salió: con la del catálogo el dueño tiene que
-              saber que puede reemplazarla por la suya, y que no la subió él. */}
-          {/* Tres estados y no dos: propia, del catálogo, o ninguna. La del
-              catálogo existía antes de este merge y el editor la mostraba en
-              blanco; la generación con IA de master se suma como una forma más
-              de conseguir la propia. */}
-          <p className="text-sm font-bold text-slate-700">
-            {esPropia
-              ? "Foto cargada"
-              : src
-                ? "Foto del catálogo"
-                : aiEnabled
-                  ? "Sacá, elegí o generá una foto"
-                  : "Sacá o elegí una foto"}
-          </p>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {!esPropia && src
-              ? "Es la genérica del rubro. Sacale una foto a la tuya y reemplazala."
-              : "Se ve en el listado y al vender. La guardamos chica para que el mostrador vaya rápido."}
-          </p>
-          {/* Las dos acciones dependen de si la foto es PROPIA, que es la
-              distinción que la del catálogo hizo necesaria:
-              - "Mejorar" retoca una foto existente, así que solo tiene sentido
-                sobre la del negocio. Sobre la genérica del rubro se genera una
-                nueva, no se retoca una ajena.
-              - "Quitar" tampoco: no se puede borrar un archivo que comparten
-                todos los negocios. */}
-          <div className="mt-2 flex flex-wrap gap-2">
-            {aiEnabled ? (
-              <button
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-primary/10 px-3 text-xs font-black text-primary transition active:scale-95"
-                disabled={isPending}
-                onClick={() => openAi(esPropia ? "enhance" : "origin")}
-                type="button"
-              >
-                <Sparkles className="size-4" />
-                {esPropia ? "Mejorar con IA" : "Generar con IA"}
-              </button>
-            ) : null}
-            {esPropia ? (
-              <button
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 text-xs font-bold text-rose-600 transition active:scale-95"
-                disabled={isPending}
-                onClick={remove}
-                type="button"
-              >
-                <Trash2 className="size-3.5" />
-                Quitar
-              </button>
-            ) : null}
-          </div>
-        </div>
       </div>
+
+      {isPending ? (
+        <span className="absolute inset-0 flex items-center justify-center bg-white/70">
+          <Loader2 className="size-6 animate-spin text-primary" />
+        </span>
+      ) : null}
 
       <input
         accept="image/*"
@@ -190,14 +183,6 @@ export function ProductPhotoField({
         ref={inputRef}
         type="file"
       />
-
-      {error ? <p className="text-xs font-bold text-rose-600">{error}</p> : null}
-      {!error && photoVersion && !isPending ? (
-        <p className="flex items-center gap-1 text-xs font-bold text-emerald-600">
-          <Check className="size-3.5" />
-          Guardada
-        </p>
-      ) : null}
 
       {aiEnabled ? (
         <ProductPhotoAiSheet

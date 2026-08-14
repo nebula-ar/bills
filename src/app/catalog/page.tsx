@@ -1,13 +1,17 @@
 import { AppModule, Unit } from "@/generated/prisma/client";
 import { requireBusinessContext } from "@/lib/business-context";
 import { formatQuantity, unitLabel } from "@/lib/quantity";
+import { STOCK_MOVEMENT_LABELS } from "@/lib/stock-error-messages";
 import { verticalFeatures, verticalPreset } from "@/lib/vertical";
 import { getBranchProductConfiguration } from "@/modules/catalog/get-branch-catalog-configuration.use-case";
 import { presetCatalogFor } from "@/modules/catalog/preset-catalog";
 import { promotionShortLabel } from "@/lib/promotion-labels";
 import { promocionesDeProducto } from "@/modules/promotions/promotion.logic";
 import { findActivePromotions } from "@/modules/promotions/promotion.repository";
+import { getBranchStockOverview, getStockMovements } from "@/modules/stock/stock.use-cases";
 import { ProductsManager, type ProductRow, type ProductsData } from "@/components/catalog-manager";
+
+const movementDateFormatter = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
 
 const moneyFormatter = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -33,8 +37,21 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
   if (!selectedBranch) {
     return (
-      <main className="mx-auto min-h-dvh max-w-[560px] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950">
-        <h1 className="text-2xl font-black tracking-tight">{business.labels.catalogPlural}</h1>
+      <main
+        className="mx-auto min-h-dvh max-w-[560px] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-foreground"
+        style={
+          {
+            "--primary": "#0066cc",
+            // Apple no oscurece el primario en hover/press: la marca de estado
+            // es transform: scale(0.95), no un cambio de color. Se deja igual
+            // al primario a propósito.
+            "--primary-strong": "#0066cc",
+            "--foreground": "#1d1d1f",
+            "--background": "#f5f5f7",
+          } as React.CSSProperties
+        }
+      >
+        <h1 className="text-2xl font-semibold tracking-tight">{business.labels.catalogPlural}</h1>
         <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
           Cargá una sucursal para administrar tu catálogo.
         </div>
@@ -45,9 +62,18 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   // Promos vigentes de esta sucursal. Se piden una vez y se cruzan en memoria
   // contra cada producto: son pocas y la alternativa era una consulta por fila.
   // Sin el módulo prendido no se pregunta nada.
-  const promociones = business.has(AppModule.PROMOTIONS)
-    ? await findActivePromotions(business.id, selectedBranch.id)
-    : [];
+  const hasStock = business.has(AppModule.STOCK);
+  const [promociones, stockOverview, stockMovements] = await Promise.all([
+    business.has(AppModule.PROMOTIONS) ? findActivePromotions(business.id, selectedBranch.id) : Promise.resolve([]),
+    // Totales de conjunto (sin stock / por reponer / valorizado) y el
+    // historial de movimientos: lo que antes vivía solo en /stock. Se pide
+    // aparte de getBranchProductConfiguration porque valúa a promedio
+    // ponderado (avgCost), no al costo de reposición — son cuentas distintas
+    // y no vale la pena tocar esa consulta para traer un campo que el resto
+    // de la pantalla no usa.
+    hasStock ? getBranchStockOverview(business.id, selectedBranch.id) : Promise.resolve(null),
+    hasStock ? getStockMovements(selectedBranch.id, 30) : Promise.resolve([]),
+  ]);
   const ahora = new Date();
 
   const rows: ProductRow[] = products.map((product) => {
@@ -81,6 +107,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       configured,
       available,
       priceLabel,
+      // Numérico y solo el precio REAL de esta sucursal (no el sugerido de
+      // otra): para el margen hace falta el que de verdad se cobra acá, y
+      // mostrar un margen calculado sobre un precio ajeno inventa un dato.
+      priceValue: branchPrice ? branchPrice.price : null,
       statusLabel,
       statusTone,
       branchConfigs,
@@ -134,6 +164,20 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     catalogPlural: business.labels.catalogPlural,
     flash,
     aiImagesEnabled: Boolean(process.env.OPENROUTER_API_KEY),
+    // Lo que antes vivía en /stock (retirada: ver src/app/stock/page.tsx).
+    // null cuando el módulo Stock está apagado — la pantalla no debe
+    // preguntar ni mostrar nada de esto en ese caso.
+    stockTotals: stockOverview?.totals ?? null,
+    stockMovements: stockMovements.map((movement) => ({
+      id: movement.id,
+      productId: movement.product.id,
+      productName: movement.product.name,
+      unit: movement.product.unit,
+      quantity: movement.quantity,
+      typeLabel: STOCK_MOVEMENT_LABELS[movement.type],
+      reason: movement.reason,
+      when: movementDateFormatter.format(movement.occurredAt),
+    })),
   };
 
   return <ProductsManager data={data} />;

@@ -73,10 +73,12 @@ export function CatalogOnboarding({
           una verdulería y "servicios" en una barbería, igual que el título de la
           pantalla. "Catálogo" es palabra nuestra, no del que atiende. */}
       <div className="max-w-md">
-        <h2 className="text-xl font-black tracking-tight text-slate-950">
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">
           Todavía no cargaste tus {catalogPlural.toLowerCase()}
         </h2>
-        <p className="mt-1 text-sm text-slate-500">
+        {/* text-[17px]: el cuerpo de lectura de Apple corre en 17px, no 16 —
+            acá es la única línea de copy real de esta pantalla. */}
+        <p className="mt-1 text-[17px] leading-snug text-slate-500">
           Sin esto no se puede vender. La forma más rápida es traer los de tu rubro y después ajustar.
         </p>
       </div>
@@ -98,7 +100,7 @@ export function CatalogOnboarding({
               {isPending ? <Loader2 className="size-6 animate-spin" /> : <DynamicIcon className="size-6" name={catalogIcon} />}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-base font-black leading-tight text-slate-950">
+              <span className="block text-base font-black leading-tight text-foreground">
                 Traer los {catalogPlural.toLowerCase()} de {verticalLabel.toLowerCase()}
               </span>
               <span className="mt-1 block text-sm leading-5 text-slate-500">
@@ -176,7 +178,7 @@ function OptionCard({ icon, title, subtitle, onClick }: OptionCardProps) {
     >
       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-500">{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-black text-slate-950">{title}</span>
+        <span className="block text-sm font-black text-foreground">{title}</span>
         <span className="mt-0.5 block text-xs leading-5 text-slate-500">{subtitle}</span>
       </span>
       <ArrowRight className="size-4 shrink-0 text-slate-300" />

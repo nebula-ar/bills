@@ -384,7 +384,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
               un mes de reposición fuerte se lee como un mes malo. */}
           <Link
             className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.98] duration-500 animate-in fade-in slide-in-from-bottom-2"
-            href="/stock"
+            href="/catalog"
             style={{ animationDelay: "140ms", animationFillMode: "backwards" }}
           >
             <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
@@ -404,7 +404,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
         {data.losses.total > 0 ? (
           <Link
             className="mt-3 flex items-start gap-2.5 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-950/5 transition active:scale-[0.99]"
-            href="/stock"
+            href="/catalog"
           >
             <TrendingDown className="mt-0.5 size-4 shrink-0 text-rose-500" />
             <span className="text-xs font-semibold text-slate-600">

@@ -20,6 +20,16 @@ type BottomSheetProps = {
    * un scroll interminable y en 820px entran de un vistazo.
    */
   size?: "sheet" | "dialog";
+  /**
+   * Monta el handle ENCIMA del contenido en vez de en su propia franja.
+   *
+   * Por defecto el handle ocupa una banda blanca arriba de todo, que es lo
+   * correcto cuando abajo empieza un formulario. Pero cuando el contenido
+   * arranca con una imagen a sangre —la ficha de un producto— esa banda deja
+   * un vacío blanco entre el borde del sheet y la foto. Con esto la foto llega
+   * hasta el borde y el handle flota encima, como el botón de cerrar.
+   */
+  handleOverlay?: boolean;
 };
 
 /**
@@ -35,6 +45,7 @@ export function BottomSheet({
   panelClassName = "",
   dismissThreshold = DEFAULT_DISMISS_THRESHOLD,
   size = "sheet",
+  handleOverlay = false,
 }: BottomSheetProps) {
   const [render, setRender] = useState(open);
   const [visible, setVisible] = useState(false);
@@ -153,13 +164,29 @@ export function BottomSheet({
         }}
       >
         <div
-          className="flex shrink-0 touch-none cursor-grab justify-center pb-1 pt-4 active:cursor-grabbing"
+          className={`touch-none cursor-grab justify-center active:cursor-grabbing ${
+            handleOverlay
+              ? // Encima del contenido: sin alto propio, para que lo de abajo
+                // llegue al borde. Centrado y acotado a 8rem, NO de lado a
+                // lado: a lo ancho taparía el botón de cerrar que flota en la
+                // esquina de la foto y lo dejaría sin poder tocarse. Igual
+                // quedan 44px de alto agarrables con el dedo.
+                "absolute left-1/2 top-0 z-10 flex w-32 -translate-x-1/2 pb-6 pt-4"
+              : "flex shrink-0 pb-1 pt-4"
+          }`}
           onPointerCancel={onPointerUp}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
         >
-          <div className="h-1.5 w-11 rounded-full bg-slate-200" />
+          {/* Sobre una foto el gris del pill desaparece: se pasa a blanco
+              translúcido con sombra, el mismo tratamiento que el botón de
+              cerrar que ya flota sobre la imagen. */}
+          <div
+            className={`h-1.5 w-11 rounded-full ${
+              handleOverlay ? "bg-white/70 shadow-sm backdrop-blur-sm" : "bg-slate-200"
+            }`}
+          />
         </div>
         {children}
       </div>

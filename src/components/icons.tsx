@@ -48,6 +48,7 @@ export const FileDown = solar("solar:file-download-bold");
 export const FileSpreadsheet = solar("solar:file-bold");
 export const FileText = solar("solar:file-text-bold");
 export const ImageIcon = solar("solar:gallery-bold");
+export const History = solar("solar:history-bold");
 export const HomeIcon = solar("solar:home-2-bold");
 export const KeyRound = solar("solar:key-bold");
 export const Landmark = solar("solar:safe-2-bold");

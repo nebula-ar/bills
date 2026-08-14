@@ -130,6 +130,8 @@ export async function producirAction(formData: FormData) {
 
   revalidatePath("/produccion");
   revalidatePath("/stock");
+  // La existencia también se ve en /catalog ahora (ver ProductsManager).
+  revalidatePath("/catalog");
   volver("/produccion", "ok", `Producción registrada: ${unidades} unidades`);
 }
 

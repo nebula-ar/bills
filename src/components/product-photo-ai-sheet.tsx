@@ -111,11 +111,20 @@ export function ProductPhotoAiSheet({
   };
 
   return (
-    <BottomSheet open={open} onClose={close} panelClassName="min-h-[52dvh]" size="dialog">
+    <BottomSheet
+      onClose={close}
+      open={open}
+      // Portal a document.body (ver ui/bottom-sheet.tsx): fuera del <main> de
+      // Productos, así que el azul/ink de esta pantalla no cascadea solo.
+      // --primary-strong igual a --primary a propósito: Apple no oscurece en
+      // hover/press, usa transform: scale(0.95) como toda la marca de estado.
+      panelClassName="min-h-[52dvh] [--primary:#0066cc] [--primary-strong:#0066cc] [--foreground:#1d1d1f] [--background:#f5f5f7]"
+      size="dialog"
+    >
       <div className="flex min-h-0 flex-1 flex-col">
         <header className="flex shrink-0 items-start justify-between gap-3 px-5 pb-4 pt-2 sm:px-7">
           <div className="min-w-0">
-            <h2 className="text-xl font-black tracking-tight text-slate-950 sm:text-2xl">
+            <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
               {step === "origin" ? "Creá la imagen del producto" : step === "results" ? resultTitle(mode) : configureTitle(mode)}
             </h2>
             <p className="mt-1 text-sm font-medium text-slate-500">
@@ -149,12 +158,12 @@ export function ProductPhotoAiSheet({
                   <Camera className="size-6" />
                 </span>
                 <span>
-                  <span className="block text-sm font-black text-slate-950">Usar una foto</span>
+                  <span className="block text-sm font-black text-foreground">Usar una foto</span>
                   <span className="mt-1 block text-xs font-medium text-slate-500">Sacá una ahora o elegí una de tu galería.</span>
                 </span>
               </button>
               <button
-                className="flex min-h-28 w-full items-center gap-4 rounded-2xl bg-primary p-4 text-left text-white shadow-sm shadow-primary/25 transition active:scale-[0.99]"
+                className="flex min-h-28 w-full items-center gap-4 rounded-2xl bg-primary p-4 text-left text-white transition active:scale-[0.99]"
                 onClick={chooseDescription}
                 type="button"
               >
@@ -186,7 +195,7 @@ export function ProductPhotoAiSheet({
                 {mode === "enhance" ? "¿Cómo querés que quede?" : "Descripción del producto"}
                 <div className="relative">
                   <textarea
-                    className="min-h-28 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pb-7 text-sm font-semibold normal-case tracking-normal text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/20"
+                    className="min-h-28 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pb-7 text-sm font-semibold normal-case tracking-normal text-foreground outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/20"
                     maxLength={300}
                     onChange={(event) => setInstruction(event.target.value)}
                     value={instruction}
@@ -221,7 +230,7 @@ export function ProductPhotoAiSheet({
                       <button
                         className={`min-h-14 rounded-2xl border px-3 text-sm font-black transition active:scale-95 ${
                           style === option.value
-                            ? "border-primary bg-primary/10 text-slate-950 ring-1 ring-primary"
+                            ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary"
                             : "border-slate-200 bg-white text-slate-700"
                         }`}
                         key={option.value}
@@ -244,7 +253,7 @@ export function ProductPhotoAiSheet({
             <div className="grid gap-4">
               {mode === "enhance" ? (
                 <div className="grid grid-cols-2 rounded-2xl bg-slate-100 p-1">
-                  <button className={`min-h-11 rounded-xl text-sm font-black transition active:scale-95 ${showOriginal ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"}`} onClick={() => setShowOriginal(true)} type="button">Original</button>
+                  <button className={`min-h-11 rounded-xl text-sm font-black transition active:scale-95 ${showOriginal ? "bg-white text-foreground shadow-sm" : "text-slate-500"}`} onClick={() => setShowOriginal(true)} type="button">Original</button>
                   <button className={`min-h-11 rounded-xl text-sm font-black transition active:scale-95 ${!showOriginal ? "bg-white text-primary shadow-sm" : "text-slate-500"}`} onClick={() => setShowOriginal(false)} type="button">Mejorada con IA</button>
                 </div>
               ) : null}
@@ -303,7 +312,7 @@ export function ProductPhotoAiSheet({
               </button>
             ) : null}
             <button
-              className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-black text-white shadow-sm shadow-primary/25 transition active:scale-95 disabled:opacity-50"
+              className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-black text-white transition active:scale-95 disabled:opacity-50"
               disabled={isPending || !instruction.trim() || (step === "results" && showOriginal)}
               onClick={step === "results" ? confirm : generate}
               type="button"

@@ -78,6 +78,8 @@ export async function registerReturn(input: {
 
     revalidatePath("/sales");
     revalidatePath("/stock");
+    // La existencia también se ve en /catalog ahora (ver ProductsManager).
+    revalidatePath("/catalog");
     revalidatePath("/");
 
     return { ok: true, total: result.total };

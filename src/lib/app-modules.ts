@@ -232,8 +232,9 @@ export function buildNav(
     { href: "/sales", label: "Historial", icon: "solar:bill-list-bold", exact: true, cap: "viewSales" },
     // Cuarto lugar: el catálogo. Es la pantalla donde el dueño carga lo que
     // vende Y maneja su existencia (todo lo de un producto se resuelve en su
-    // ficha), así que es lo que más toca después de vender. Stock quedó para lo
-    // de conjunto —faltantes, movimientos, traspasos— y vive en "Más".
+    // ficha), así que es lo que más toca después de vender. Ya no hay una
+    // pantalla de Stock aparte: lo de conjunto —faltantes, movimientos,
+    // traspasos— también vive acá (ver ProductsManager).
     { href: "/catalog", label: labels.catalogPlural, icon: catalogIcon, cap: "manageCatalog" },
   ]).filter((e) => puede(e.cap));
 
@@ -248,7 +249,9 @@ export function buildNav(
   };
 
   // Los módulos operativos primero; los ABM de configuración, al final.
-  push(AppModule.STOCK, "/stock", "manageStock", { hint: "Faltantes, movimientos y traspasos" });
+  // Stock ya no tiene entrada propia acá: se fusionó dentro de "/catalog"
+  // (ver ProductsManager). MODULE_INFO[AppModule.STOCK] queda para lo que
+  // todavía lo lee (el ícono/tinte de la pantalla de negocio, por ejemplo).
   push(AppModule.TABLES, "/salon", "waitTables");
   push(AppModule.KITCHEN, "/cocina", "kitchen");
   push(AppModule.TABLES, "/opciones", "manageCatalog", { label: "Opciones", hint: "Los extras que hoy se regalan" });

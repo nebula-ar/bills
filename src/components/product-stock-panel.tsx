@@ -62,6 +62,7 @@ export function ProductStockPanel({
   quantity,
   minStock,
   onChanged,
+  showSummary = true,
 }: {
   productId: string;
   branchId: string;
@@ -70,7 +71,13 @@ export function ProductStockPanel({
   // Existencia actual en milésimas. null = el producto no lleva control.
   quantity: number | null;
   minStock: number | null;
-  onChanged?: () => void;
+  // Recibe la existencia que quedó, para que el caller pueda sincronizar lo que
+  // ya venía mostrando en vez de quedarse con un número viejo.
+  onChanged?: (quantity: number) => void;
+  // Apagar cuando el caller YA muestra la existencia arriba (el panel de
+  // producto la tiene en su stepper): repetir "Quedan 19" abajo del 19 que se
+  // acaba de leer no agrega nada y hace parecer que son dos cosas distintas.
+  showSummary?: boolean;
 }) {
   const [op, setOp] = useState<StockOp | null>(null);
   const [value, setValue] = useState("");
@@ -132,7 +139,7 @@ export function ProductStockPanel({
         // ruta lo cerraría.
         setDisplayQuantity(result.quantity);
         cerrar();
-        onChanged?.();
+        onChanged?.(result.quantity);
       } else {
         toast.error(result.error);
       }
@@ -142,32 +149,35 @@ export function ProductStockPanel({
   return (
     <div className="overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-slate-950/5">
       {/* Qué hay, dicho con todas las letras. "11 un" solo no dice si es lo que
-          queda, lo que entró o el mínimo. */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5">
-        <div className="flex items-center gap-2.5">
-          <Package className={`size-6 ${low ? "text-amber-600" : "text-slate-400"}`} />
-          <div>
-            <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-              Quedan en {branchName}
-            </p>
-            <p className={`font-display text-2xl font-black ${low ? "text-amber-600" : "text-slate-950"}`}>
-              {formatQuantity(displayQuantity, unit)}
-            </p>
+          queda, lo que entró o el mínimo. Se omite cuando el caller ya lo
+          muestra arriba (ver `showSummary`). */}
+      {showSummary ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5">
+          <div className="flex items-center gap-2.5">
+            <Package className={`size-6 ${low ? "text-amber-600" : "text-slate-400"}`} />
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                Quedan en {branchName}
+              </p>
+              <p className={`font-display text-2xl font-black ${low ? "text-amber-600" : "text-slate-950"}`}>
+                {formatQuantity(displayQuantity, unit)}
+              </p>
+            </div>
           </div>
-        </div>
 
-        {low ? (
-          <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-black text-amber-700">
-            Hay que reponer
-          </span>
-        ) : null}
-      </div>
+          {low ? (
+            <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-black text-amber-700">
+              Hay que reponer
+            </span>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* Un botón por cosa que pasó en el negocio, no por operación de sistema.
           Apilados y con el texto entero: en fila y abreviados no se distinguía
           cuál sumaba y cuál reemplazaba. */}
       {!active ? (
-        <div className="grid gap-1.5 border-t border-slate-200/70 p-2">
+        <div className={`grid gap-1.5 p-2 ${showSummary ? "border-t border-slate-200/70" : ""}`}>
           {OPS.map((item) => (
             <button
               className="flex items-center justify-between gap-2 rounded-xl bg-white px-3.5 py-3 text-left text-sm font-black text-slate-700 ring-1 ring-slate-200 transition active:scale-[0.99] hover:ring-slate-300"
@@ -181,7 +191,7 @@ export function ProductStockPanel({
           ))}
         </div>
       ) : (
-        <div className="border-t border-slate-200/70 p-3 duration-200 animate-in fade-in slide-in-from-top-1">
+        <div className={`p-3 duration-200 animate-in fade-in slide-in-from-top-1 ${showSummary ? "border-t border-slate-200/70" : ""}`}>
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="text-sm font-black text-slate-950">{active.pregunta}</p>

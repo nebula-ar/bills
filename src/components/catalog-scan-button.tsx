@@ -93,7 +93,10 @@ export function CatalogScanButton({ branchId, categories, units, renderTrigger }
         renderTrigger(() => setScanning(true))
       ) : (
         <button
-          className="flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-black text-white transition active:scale-95"
+          // Apple reserva el pill (rounded-full) para la acción azul primaria;
+          // los botones utilitarios oscuros (Sign In, Bag) van en rounded-md,
+          // así que este no se pilliza aunque el resto de la pantalla sí.
+          className="flex items-center gap-2 rounded-md bg-[#1d1d1f] px-4 py-2.5 text-sm font-black text-white transition active:scale-95"
           onClick={() => setScanning(true)}
           type="button"
         >

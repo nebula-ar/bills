@@ -118,6 +118,96 @@ export async function saveBranchProductConfig(formData: FormData) {
   redirectWithMessage("success", "Configuración de sucursal guardada.", branchId);
 }
 
+export type ToggleAvailabilityResult = { ok: true; available: boolean } | { ok: false; error: string };
+
+// Prender/apagar la disponibilidad sin abrir la ficha completa: la tabla y el
+// panel rápido de Productos lo usan para no perder el lugar en la lista al
+// tocar un toggle (mismo espíritu que applyProductStockAction en
+// stock-actions.ts: devuelve resultado, no redirige, así el caller decide
+// cuándo refrescar). Solo tiene sentido sobre un precio YA configurado — sin
+// precio no hay nada que vender — así que el toggle llega deshabilitado en
+// ese caso y hay que pasar por "Editar producto" para cargarlo primero.
+export async function toggleProductAvailability(input: {
+  branchId: string;
+  productId: string;
+  price: number;
+  available: boolean;
+}): Promise<ToggleAvailabilityResult> {
+  const session = await requireAdminSession();
+
+  try {
+    await upsertBranchProductConfiguration({
+      businessId: session.user.businessId,
+      branchId: input.branchId,
+      productId: input.productId,
+      price: input.price,
+      active: input.available,
+    });
+  } catch (error) {
+    if (error instanceof ProductError) {
+      return { ok: false, error: getProductErrorMessage(error.code) };
+    }
+
+    await logError("product.availability", error, {
+      businessId: session.user.businessId,
+      userId: session.user.id,
+      context: { productId: input.productId, branchId: input.branchId },
+    });
+    return { ok: false, error: "No pudimos actualizar la disponibilidad. Intentá de nuevo." };
+  }
+
+  return { ok: true, available: input.available };
+}
+
+export type UpdateProductDetailsResult = { ok: true } | { ok: false; error: string };
+
+// Todo lo editable de la ficha —nombre, descripción, costo, tipo, unidad,
+// código, SKU, categoría, mínimo, bulto— en un solo guardado desde el panel
+// rápido de Productos (ver ProductQuickPanelBody: pestaña "Detalles" y el
+// campo Costo, que comparten el mismo <form>). Recibe FormData en vez de un
+// objeto tipado para poder reusar `parseCommercialFields` tal cual —mismo
+// parseo que ya usaba el formulario completo de antes— en vez de reinventar
+// cómo se interpreta cada campo. Nombre y descripción viajan siempre:
+// `updateGlobalProduct` no es parcial en esos dos (ver product.repository.ts:
+// `description: input.description ?? null` corre SIEMPRE, no solo cuando
+// viene definido), así que omitirlos los pisaría a null en vez de dejarlos
+// como estaban.
+export async function updateProductDetails(formData: FormData): Promise<UpdateProductDetailsResult> {
+  const session = await requireAdminSession();
+
+  const productId = parseRequiredString(formData, "productId");
+  const name = parseRequiredString(formData, "name");
+  const description = parseOptionalString(formData, "description");
+
+  if (!productId || !name) {
+    return { ok: false, error: "Completá el nombre del ítem." };
+  }
+
+  try {
+    await updateGlobalProduct({
+      businessId: session.user.businessId,
+      productId,
+      name,
+      description,
+      ...parseCommercialFields(formData),
+    });
+  } catch (error) {
+    if (error instanceof ProductError) {
+      return { ok: false, error: getProductErrorMessage(error.code) };
+    }
+
+    await logError("product.details", error, {
+      businessId: session.user.businessId,
+      userId: session.user.id,
+      context: { productId },
+    });
+    return { ok: false, error: genericErrorMessage };
+  }
+
+  revalidatePath("/catalog");
+  return { ok: true };
+}
+
 export async function updateProduct(formData: FormData) {
   const session = await requireAdminSession();
 
