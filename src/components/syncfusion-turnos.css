@@ -1,0 +1,116 @@
+/* Overrides de marca sobre el tema "tailwind" de Syncfusion EJ2 para la
+   pantalla Turnos (Scheduler, NEBU-47). Se importa junto a los estilos base
+   en src/components/syncfusion-turnos-provider.tsx: nada de esto toca el
+   resto de la app. */
+
+/* ── Contenedor del Scheduler: tarjeta con borde redondeado ── */
+.e-schedule.e-turnos-schedule {
+  border: 1px solid rgb(226 232 240); /* slate-200 */
+  border-radius: 1.25rem;
+  overflow: hidden;
+  box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.04);
+  background: #fff;
+}
+.e-schedule.e-turnos-schedule .e-schedule-toolbar {
+  background: #fff;
+  border-bottom: 1px solid #f1f5f9;
+}
+.e-schedule.e-turnos-schedule .e-toolbar .e-toolbar-items .e-toolbar-item .e-tbar-btn-text {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+/* La fecha del header con la tipografía de la app */
+.e-schedule.e-turnos-schedule .e-date-header-text {
+  font-weight: 800;
+  color: #0f172a;
+}
+.e-schedule.e-turnos-schedule .e-header-date .e-date-header-container {
+  font-size: 0.95rem;
+}
+
+/* ── Celdas de hora: grilla liviana, alineada con la app ── */
+.e-schedule.e-turnos-schedule .e-content-wrap .e-work-cells,
+.e-schedule.e-turnos-schedule .e-time-cells-wrap .e-time-cells {
+  border-color: #f1f5f9;
+}
+.e-schedule.e-turnos-schedule .e-date-header-wrap table td {
+  border-color: #f1f5f9;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.e-schedule.e-turnos-schedule .e-timeline-view .e-date-header-wrap table td {
+  text-transform: none;
+}
+
+/* ── Eventos: colores por estado (la clase llega vía el campo CssClass) ── */
+.e-schedule.e-turnos-schedule .e-appointment {
+  border-radius: 0.6rem;
+  border: 0;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.12);
+}
+.e-schedule.e-turnos-schedule .e-appointment .e-subject {
+  font-weight: 800;
+}
+.e-schedule.e-turnos-schedule .e-appointment .e-time {
+  font-size: 0.65rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
+/* Anotado: el azul por defecto del tema ya comunica "agendado". Confirmado:
+   verde. Atendido: gris piedra (ya pasó). Cancelado / No vino: apagados. */
+.e-schedule.e-turnos-schedule .e-appointment.e-turno-confirmed {
+  background: linear-gradient(135deg, #059669, #10b981);
+}
+.e-schedule.e-turnos-schedule .e-appointment.e-turno-done {
+  background: linear-gradient(135deg, #64748b, #94a3b8);
+}
+.e-schedule.e-turnos-schedule .e-appointment.e-turno-cancelled,
+.e-schedule.e-turnos-schedule .e-appointment.e-turno-no-show {
+  background: linear-gradient(135deg, #f43f5e, #fb7185);
+  opacity: 0.85;
+}
+
+/* ── Agenda: renglones con borde liviano y el texto de la app ── */
+.e-schedule.e-turnos-schedule .e-agenda-view .e-appointment {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #f8fafc;
+  border-radius: 0;
+  box-shadow: none;
+}
+.e-schedule.e-turnos-schedule .e-agenda-view .e-appointment:hover {
+  background: #f8fafc;
+}
+.e-schedule.e-turnos-schedule .e-agenda-view .e-subject {
+  font-weight: 800;
+  color: #0f172a;
+}
+.e-schedule.e-turnos-schedule .e-agenda-view .e-appointment-details {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.e-schedule.e-turnos-schedule .e-agenda-view .e-date-column {
+  font-weight: 700;
+  color: #64748b;
+}
+
+/* ── Diálogo del editor: redondeado y con el velo de la app ── */
+.e-dialog.e-turnos-dialog {
+  border-radius: 1.25rem;
+  box-shadow: 0 25px 60px -15px rgb(15 23 42 / 0.4);
+  max-width: 42rem;
+}
+.e-dialog.e-turnos-dialog .e-dlg-header-content {
+  padding-top: 1.25rem;
+  padding-inline: 1.5rem;
+}
+.e-dialog.e-turnos-dialog .e-dlg-content {
+  padding: 1rem 1.5rem 1.5rem;
+}
+.e-dialog.e-turnos-dialog.e-dlg-modal .e-dlg-overlay {
+  background-color: rgb(2 6 23 / 0.45);
+  backdrop-filter: blur(2px);
+}
