@@ -3,6 +3,7 @@
 import { AnimatedMoney } from "@/components/animated-number";
 import { PAYMENT_DONUT_COLORS } from "@/components/reports-charts-colors";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 import { DASHBOARD_RANGE_LABELS, DashboardRange, type DashboardRangeKey } from "@/lib/dashboard-range";
 import { formatQuantity } from "@/lib/quantity";
 import {
@@ -30,10 +31,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ComponentType, type ReactNode } from "react";
 import { SelectField } from "@/components/ui/select-field";
+import { SyncfusionProvider } from "@/components/syncfusion-provider";
+import { DateRangeFilter } from "@/components/date-range-filter";
+import type { SalesDetailRow } from "@/modules/reports/sales-detail-view";
 
-import { Skeleton } from "@/components/ui/skeleton";
-
-// Charts basados en recharts (dependencia grande): se cargan en el cliente, on
+// Charts de Syncfusion EJ2 (dependencia grande): se cargan en el cliente, on
 // demand, para no engordar el bundle inicial del dashboard.
 const ChartSkeleton = () => <Skeleton className="h-[210px] w-full rounded-2xl" />;
 const SalesTrendChart = dynamic(
@@ -43,6 +45,12 @@ const SalesTrendChart = dynamic(
 const PaymentDonutChart = dynamic(
   () => import("@/components/reports-charts").then((mod) => mod.PaymentDonutChart),
   { ssr: false, loading: ChartSkeleton },
+);
+// El grid de detalle de ventas (Syncfusion EJ2, igual que los charts) también
+// se carga on demand para no sumar su bundle al render inicial del dashboard.
+const SalesDetailGrid = dynamic(
+  () => import("@/components/sales-detail-grid").then((mod) => mod.SalesDetailGrid),
+  { ssr: false, loading: () => <Skeleton className="h-[280px] w-full rounded-2xl" /> },
 );
 
 export type ReportsStaffOption = { id: string; name: string };
@@ -83,15 +91,8 @@ export type ReportsData = {
   topProducts: { name: string; total: number; quantity: number }[];
   totalsByStaff: { staffId: string; staffName: string; total: number; saleCount: number }[];
   totalsByPayment: { key: string; label: string; total: number; percentage: number }[];
-  latestSales: {
-    id: string;
-    timeLabel: string;
-    staffName: string;
-    branchName: string;
-    total: number;
-    paymentLabel: string;
-    itemSummary: string;
-  }[];
+  // Detalle de ventas del período, para el grid con export a Excel/PDF/CSV.
+  salesDetail: SalesDetailRow[];
   activeFilters: {
     staffId?: string;
     staffName?: string;
@@ -201,7 +202,8 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
   const customInvalid = rangeKey === DashboardRange.Custom && (!customFrom || !customTo || customFrom > customTo);
 
   return (
-    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
+    <SyncfusionProvider>
+      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
       {/* Header */}
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
@@ -384,7 +386,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
               un mes de reposición fuerte se lee como un mes malo. */}
           <Link
             className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.98] duration-500 animate-in fade-in slide-in-from-bottom-2"
-            href="/catalog"
+            href="/stock"
             style={{ animationDelay: "140ms", animationFillMode: "backwards" }}
           >
             <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
@@ -404,7 +406,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
         {data.losses.total > 0 ? (
           <Link
             className="mt-3 flex items-start gap-2.5 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-950/5 transition active:scale-[0.99]"
-            href="/catalog"
+            href="/stock"
           >
             <TrendingDown className="mt-0.5 size-4 shrink-0 text-rose-500" />
             <span className="text-xs font-semibold text-slate-600">
@@ -639,42 +641,23 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
           </Panel>
         ) : null}
 
-        {/* Últimas ventas */}
-        <div className="mb-4 break-inside-avoid duration-500 animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: "620ms", animationFillMode: "backwards" }}>
+        {/* Detalle de ventas del período, con export desde la propia grilla */}
+        <div
+          className="mb-4 break-inside-avoid duration-500 animate-in fade-in slide-in-from-bottom-3"
+          style={{ animationDelay: "620ms", animationFillMode: "backwards" }}
+        >
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-base font-black text-slate-950">Últimas ventas</h2>
+            <h2 className="text-base font-black text-slate-950">Detalle de ventas</h2>
             <Link className="flex items-center gap-0.5 text-xs font-bold text-primary" href="/sales">
               Ver todas
               <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
-          <div className="mt-3 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5">
-            {data.latestSales.length === 0 ? (
-              <p className="px-5 py-8 text-center text-sm text-slate-500">No hay ventas para estos filtros.</p>
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {data.latestSales.map((sale) => (
-                  <li className="flex items-center gap-3 px-4 py-3" key={sale.id}>
-                    <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-                      <ReceiptText className="size-5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-slate-950">{sale.staffName}</p>
-                      <p className="truncate text-xs text-slate-500">
-                        {sale.paymentLabel}
-                        {sale.itemSummary ? ` · ${sale.itemSummary}` : ""}
-                      </p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-sm font-black text-slate-950" style={{ fontVariantNumeric: "tabular-nums" }}>
-                        {formatMoney(sale.total)}
-                      </p>
-                      <p className="text-xs text-slate-500">{sale.timeLabel} hs</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <p className="mt-0.5 px-1 text-xs text-slate-500">
+            Todas las ventas del período. Exportá a Excel, PDF o CSV desde la grilla.
+          </p>
+          <div className="mt-3 overflow-hidden rounded-2xl bg-white p-2 shadow-sm ring-1 ring-slate-950/5">
+            <SalesDetailGrid data={data.salesDetail} />
           </div>
         </div>
         </div>
@@ -720,27 +703,15 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
                 })}
               </div>
               {rangeKey === DashboardRange.Custom ? (
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <label className="grid gap-1.5 text-xs font-bold text-slate-500">
-                    Desde
-                    <input
-                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-                      max={customTo || undefined}
-                      onChange={(event) => setCustomFrom(event.target.value)}
-                      type="date"
-                      value={customFrom}
-                    />
-                  </label>
-                  <label className="grid gap-1.5 text-xs font-bold text-slate-500">
-                    Hasta
-                    <input
-                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/15"
-                      min={customFrom || undefined}
-                      onChange={(event) => setCustomTo(event.target.value)}
-                      type="date"
-                      value={customTo}
-                    />
-                  </label>
+                <div className="mt-3">
+                  <DateRangeFilter
+                    from={customFrom}
+                    onChange={(from, to) => {
+                      setCustomFrom(from);
+                      setCustomTo(to);
+                    }}
+                    to={customTo}
+                  />
                 </div>
               ) : null}
             </section>
@@ -818,7 +789,8 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
         open={logoutOpen}
         title="¿Cerrar sesión?"
       />
-    </main>
+      </main>
+    </SyncfusionProvider>
   );
 }
 
@@ -901,3 +873,79 @@ function Empty({ children }: { children: ReactNode }) {
   return <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">{children}</p>;
 }
 
+
+// Estado skeleton de ReportsView (dashboard): mismo shell, header, chips de
+// período, hero + KPIs, paneles de análisis y últimas ventas que el componente
+// real — con bloques placeholder en las posiciones de los datos.
+export function ReportsViewSkeleton() {
+  return (
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8">
+      {/* Header */}
+      <header className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="mt-2 h-7 w-32" />
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Skeleton className="size-11 rounded-full" />
+          <Skeleton className="size-11 rounded-full" />
+        </div>
+      </header>
+
+      {/* Chips de período + filtro */}
+      <div className="mt-5 flex items-center gap-2">
+        <Skeleton className="h-9 w-16 rounded-full" />
+        <Skeleton className="h-9 w-14 rounded-full" />
+        <Skeleton className="h-9 w-14 rounded-full" />
+        <Skeleton className="ml-auto size-10 rounded-full" />
+      </div>
+
+      {/* Hero + KPIs */}
+      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-12">
+        <Skeleton className="h-44 rounded-3xl lg:col-span-7" />
+        <div className="grid grid-cols-2 gap-3 lg:col-span-5 lg:content-start">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton className="h-24 rounded-2xl" key={index} />
+          ))}
+        </div>
+      </div>
+
+      {/* Paneles de análisis */}
+      <div className="mt-4 space-y-3 lg:columns-2 lg:gap-4">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div className="mb-4 break-inside-avoid rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-950/5" key={index}>
+            <div className="flex items-center gap-2">
+              <Skeleton className="size-4 rounded-full" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <div className="mt-4 space-y-3">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Últimas ventas */}
+      <div className="mb-4 mt-4 space-y-3">
+        <Skeleton className="h-5 w-32" />
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div className="flex items-center gap-3 px-4 py-3" key={index}>
+              <Skeleton className="size-11 shrink-0 rounded-2xl" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4 w-1/3 max-w-40" />
+                <Skeleton className="h-3 w-2/3 max-w-56" />
+              </div>
+              <div className="shrink-0 space-y-2 text-right">
+                <Skeleton className="ml-auto h-4 w-16" />
+                <Skeleton className="ml-auto h-3 w-12" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}

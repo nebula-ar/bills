@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { PERIODO_LABELS, PERIODOS, type Periodo } from "@/modules/sales/sales-period.logic";
 import type { Totales } from "@/modules/sales/sales-summary.logic";
 
@@ -144,6 +145,31 @@ export function SalesSummaryBar({
             ))}
           </div>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+// Estado skeleton de SalesSummaryBar: la fila de filtros (chips de período +,
+// si hay, medios de pago) y el panel de totales con sus casillas, con bloques
+// placeholder en las mismas posiciones del componente real.
+export function SalesSummaryBarSkeleton() {
+  return (
+    <div className="mt-4 space-y-3">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Skeleton className={index === 0 ? "h-10 w-20 rounded-full" : "h-10 w-16 rounded-full"} key={index} />
+        ))}
+        <span aria-hidden className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
+        {Array.from({ length: 2 }).map((_, index) => (
+          <Skeleton className="h-8 w-20 rounded-full" key={index} />
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-slate-100 shadow-sm ring-1 ring-slate-950/5 lg:flex lg:items-stretch">
+        <Skeleton className="h-14 flex-1 rounded-none" />
+        <Skeleton className="h-14 flex-1 rounded-none" />
+        <Skeleton className="col-span-2 h-14 flex-1 rounded-none" />
       </div>
     </div>
   );

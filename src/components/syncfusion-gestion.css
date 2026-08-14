@@ -1,0 +1,123 @@
+/* Ajustes de marca sobre el tema "tailwind" de Syncfusion EJ2 para las
+   pantallas de Gestión (clientes, stock, proveedores). Se importa junto a
+   los estilos base en syncfusion-gestion-provider.tsx. El objetivo es que los
+   componentes EJ2 de Gestión tengan la misma pinta que el resto de la app
+   (inputs slate-200 sobre slate-50, focus con el color de marca, etc.). */
+
+/* ── DropDownList: misma pinta que los inputs del resto de la app ── */
+.e-ddl.e-input-group.e-control-wrapper {
+  border: 1px solid rgb(226 232 240); /* slate-200 */
+  background: rgb(248 250 252); /* slate-50 */
+  border-radius: 0.75rem;
+  box-shadow: none;
+  font-weight: 600;
+}
+.e-ddl.e-input-group.e-control-wrapper:hover,
+.e-ddl.e-input-group.e-control-wrapper.e-input-focus {
+  border-color: color-mix(in oklab, var(--primary) 40%, transparent);
+  background: #fff;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 15%, transparent);
+}
+.e-ddl .e-input {
+  color: #0f172a;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.e-ddl.e-input-group .e-input-group-icon,
+.e-ddl.e-input-group .e-clear-icon {
+  color: var(--primary);
+  font-size: 14px;
+}
+/* Popup del desplegable: la opción elegida y el hover con el color de marca */
+.e-dropdownbase .e-list-item.e-active,
+.e-dropdownbase .e-list-item.e-active.e-hover {
+  background: color-mix(in oklab, var(--primary) 10%, transparent);
+  color: var(--primary);
+}
+.e-dropdownbase .e-list-item.e-hover {
+  background: #f8fafc;
+}
+
+/* ── DatePicker: misma pinta que los inputs del resto de la app ── */
+.e-input-group.e-control-wrapper.e-date-wrapper {
+  border: 1px solid rgb(226 232 240); /* slate-200 */
+  background: rgb(248 250 252); /* slate-50 */
+  border-radius: 0.75rem;
+  box-shadow: none;
+  font-weight: 600;
+}
+.e-input-group.e-control-wrapper.e-date-wrapper:hover,
+.e-input-group.e-control-wrapper.e-date-wrapper.e-input-focus {
+  border-color: color-mix(in oklab, var(--primary) 40%, transparent);
+  background: #fff;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 15%, transparent);
+}
+.e-date-wrapper .e-input {
+  color: #0f172a;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.e-date-wrapper .e-input-group-icon.e-date-icon {
+  color: var(--primary);
+  font-size: 14px;
+}
+
+/* ── Switch: track activo con el color de marca ── */
+.e-switch-wrapper .e-switch-inner.e-switch-active,
+.e-css.e-switch-wrapper .e-switch-inner.e-switch-active {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+.e-switch-wrapper:hover .e-switch-inner.e-switch-active,
+.e-css.e-switch-wrapper:hover .e-switch-inner.e-switch-active {
+  background-color: var(--primary-strong, var(--primary));
+  border-color: var(--primary-strong, var(--primary));
+}
+.e-switch-wrapper:focus .e-switch-inner.e-switch-active,
+.e-css.e-switch-wrapper:focus .e-switch-inner.e-switch-active {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* ── Dialog de Gestión: esquinas y altura acordes a la app ── */
+.e-dialog.e-gestion-dialog {
+  border-radius: 1.25rem;
+  max-width: min(560px, calc(100vw - 32px));
+}
+.e-dialog.e-gestion-dialog .e-dlg-header {
+  font-family: inherit;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.e-dialog.e-gestion-dialog .e-dlg-content {
+  font-family: inherit;
+  max-height: 72vh;
+  overflow-y: auto;
+}
+
+/* ── DataGrid de Gestión: toolbar liviano, alineado con la marca ── */
+.e-grid.e-gestion-grid .e-toolbar {
+  background: transparent;
+  border: 0;
+  padding: 0 0 0.75rem;
+}
+.e-grid.e-gestion-grid .e-toolbar .e-toolbar-item .e-tbar-btn {
+  border-radius: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.e-grid.e-gestion-grid .e-toolbar .e-toolbar-item .e-tbar-btn:hover,
+.e-grid.e-gestion-grid .e-toolbar .e-toolbar-item.e-overlay .e-tbar-btn:hover {
+  background: #f1f5f9;
+  border-color: transparent;
+  color: #0f172a;
+}
+/* El buscador del toolbar con la misma pinta de los inputs de la app */
+.e-grid.e-gestion-grid .e-toolbar .e-toolbar-item.e-search-wrapper {
+  border: 1px solid rgb(226 232 240);
+  border-radius: 0.75rem;
+  background: #fff;
+}
+.e-grid.e-gestion-grid .e-toolbar .e-search-wrapper .e-input {
+  font-weight: 600;
+}

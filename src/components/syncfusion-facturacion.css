@@ -1,0 +1,137 @@
+/* Ajustes de marca sobre el tema "tailwind" de Syncfusion EJ2 para la pantalla
+   Facturación / AFIP. Se importa junto a los estilos base en
+   syncfusion-facturacion-provider.tsx (y hereda los overrides de Gestión para
+   la grilla, el dialog y el dropdown). El objetivo: DataGrid de comprobantes,
+   Dialog de detalle/confirmación, Toast de feedback y ProgressButton con la
+   misma pinta que el resto de la app. */
+
+/* ── DataGrid de comprobantes: filas como las del historial de ventas ── */
+.e-grid.e-facturacion-grid {
+  border: 0;
+  font-size: 0.875rem;
+}
+.e-grid.e-facturacion-grid .e-gridheader {
+  background: transparent;
+  border-bottom: 1px solid #f1f5f9;
+}
+.e-grid.e-facturacion-grid .e-gridheader .e-headercell {
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.e-grid.e-facturacion-grid .e-rowcell {
+  border-bottom: 1px solid #f8fafc;
+  color: #0f172a;
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+.e-grid.e-facturacion-grid .e-row:hover .e-rowcell {
+  background: #f8fafc;
+}
+.e-grid.e-facturacion-grid .e-emptyrow {
+  padding: 1.5rem 0;
+}
+
+/* ── Dialog de comprobante: esquinas y altura acordes a la app ── */
+.e-dialog.e-facturacion-dialog {
+  border-radius: 1.25rem;
+  max-width: min(560px, calc(100vw - 24px));
+}
+.e-dialog.e-facturacion-dialog .e-dlg-header {
+  font-family: inherit;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.e-dialog.e-facturacion-dialog .e-dlg-content {
+  font-family: inherit;
+  max-height: 76vh;
+  overflow-y: auto;
+}
+/* Overlay del modal: el mismo velo que usa la app */
+.e-dialog.e-facturacion-dialog.e-dlg-modal .e-dlg-overlay {
+  background-color: rgb(2 6 23 / 0.45);
+  backdrop-filter: blur(2px);
+}
+
+/* ── Toast de feedback: abajo al centro, redondeado, con marca ── */
+.e-toast-container.e-toast-bottom-center {
+  margin-bottom: 1.25rem;
+}
+.e-toast.e-facturacion-toast {
+  border-radius: 1rem;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 15px 40px -12px rgb(15 23 42 / 0.35);
+  min-height: 3.25rem;
+  align-items: center;
+  background: #fff;
+}
+.e-toast.e-facturacion-toast .e-toast-message .e-toast-title {
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.e-toast.e-facturacion-toast .e-toast-message .e-toast-content {
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.e-toast.e-facturacion-toast.e-facturacion-toast-success .e-toast-message .e-toast-title,
+.e-toast.e-facturacion-toast.e-facturacion-toast-success .e-toast-message .e-toast-content {
+  color: #047857;
+}
+.e-toast.e-facturacion-toast.e-facturacion-toast-success {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+.e-toast.e-facturacion-toast.e-facturacion-toast-error .e-toast-message .e-toast-title,
+.e-toast.e-facturacion-toast.e-facturacion-toast-error .e-toast-message .e-toast-content {
+  color: #be123c;
+}
+.e-toast.e-facturacion-toast.e-facturacion-toast-error {
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+.e-toast.e-facturacion-toast .e-toast-close-icon {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+/* ── ProgressButton: redondeado, con la marca de la app ── */
+.e-progress-btn.e-facturacion-pb {
+  border-radius: 1rem;
+  font-weight: 800;
+  font-size: 0.95rem;
+  box-shadow: none;
+  min-height: 3rem;
+  padding: 0 1.25rem;
+}
+.e-progress-btn.e-facturacion-pb.e-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.e-progress-btn.e-facturacion-pb.e-primary:hover:not(:disabled) {
+  background: var(--primary-strong, var(--primary));
+  border-color: var(--primary-strong, var(--primary));
+}
+/* Variante de peligro (anular): rojo, como los botones de cancelación de la app */
+.e-progress-btn.e-facturacion-pb.e-facturacion-pb-danger {
+  background: #e11d48;
+  border-color: #e11d48;
+  color: #fff;
+}
+.e-progress-btn.e-facturacion-pb.e-facturacion-pb-danger:hover:not(:disabled) {
+  background: #be123c;
+  border-color: #be123c;
+}
+.e-progress-btn.e-facturacion-pb .e-progress {
+  background: rgb(255 255 255 / 0.25);
+}
+.e-progress-btn.e-facturacion-pb:disabled {
+  background: #e2e8f0;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+}

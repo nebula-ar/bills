@@ -4,13 +4,17 @@ import { AppModule, AppointmentStatus } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { logError } from "@/lib/logger";
 import { AppointmentError, AppointmentErrorCode } from "@/modules/appointments/appointment.logic";
+import { serializeAppointment } from "@/modules/appointments/appointment.serialization";
 import {
   createAppointment,
   deleteAppointment,
+  getAppointmentsRange,
   setAppointmentStatus,
+  updateAppointment,
 } from "@/modules/appointments/appointment.use-cases";
+import type { TurnoEventData } from "./types";
 
-export type AppointmentActionResult = { ok: boolean; message: string };
+export type AppointmentActionResult = { ok: boolean; message: string; id?: string };
 
 function text(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -44,8 +48,9 @@ export async function createAppointmentAction(formData: FormData): Promise<Appoi
 
   if (!startsAt) return { ok: false, message: "Elegí una fecha y hora válidas." };
 
+  let createdId: string | undefined;
   try {
-    await createAppointment({
+    const created = await createAppointment({
       businessId: session.user.businessId,
       branchId: text(formData, "branchId"),
       staffId: text(formData, "staffId") || null,
@@ -58,11 +63,14 @@ export async function createAppointmentAction(formData: FormData): Promise<Appoi
       notes: text(formData, "notes") || null,
       userId: session.user.id,
     });
+    createdId = created.id;
   } catch (error) {
     return handle(error, session.user.businessId, session.user.id);
   }
 
-  return { ok: true, message: "Turno agendado." };
+  // El id vuelve al cliente para pintar el turno al toque (el refresh de
+  // fondo recién después reconcilia con el servidor).
+  return { ok: true, message: "Turno agendado.", id: createdId };
 }
 
 export async function setStatusAction(formData: FormData): Promise<AppointmentActionResult> {
@@ -101,6 +109,84 @@ export async function deleteAppointmentAction(formData: FormData): Promise<Appoi
   }
 
   return { ok: true, message: "Turno borrado." };
+}
+
+// Edición completa desde el editor del Scheduler: mismo contrato que el alta
+// más el id del turno. El update de la use-case no toca lo que no llega.
+export async function updateAppointmentAction(formData: FormData): Promise<AppointmentActionResult> {
+  const { session } = await requireModule(AppModule.APPOINTMENTS);
+  const startsAt = combine(text(formData, "day"), text(formData, "time"));
+  const duration = Number(text(formData, "durationMinutes") || "30");
+
+  if (!startsAt) return { ok: false, message: "Elegí una fecha y hora válidas." };
+
+  try {
+    await updateAppointment({
+      businessId: session.user.businessId,
+      appointmentId: text(formData, "appointmentId"),
+      startsAt,
+      durationMinutes: Number.isFinite(duration) ? Math.round(duration) : 30,
+      staffId: text(formData, "staffId") || null,
+      customerId: text(formData, "customerId") || null,
+      customerName: text(formData, "customerName") || null,
+      customerPhone: text(formData, "customerPhone") || null,
+      productId: text(formData, "productId") || null,
+      branchId: text(formData, "branchId"),
+      notes: text(formData, "notes") || null,
+      userId: session.user.id,
+    });
+  } catch (error) {
+    return handle(error, session.user.businessId, session.user.id);
+  }
+
+  return { ok: true, message: "Turno actualizado." };
+}
+
+// Mover o estirar un turno con el Scheduler (drag & drop / resize): cambia
+// solo horario y duración, preservando empleado, cliente, servicio y notas.
+export async function moveAppointmentAction(formData: FormData): Promise<AppointmentActionResult> {
+  const { session } = await requireModule(AppModule.APPOINTMENTS);
+  const startsAt = combine(text(formData, "day"), text(formData, "time"));
+  const duration = Number(text(formData, "durationMinutes") || "30");
+
+  if (!startsAt) return { ok: false, message: "Elegí una fecha y hora válidas." };
+
+  try {
+    await updateAppointment({
+      businessId: session.user.businessId,
+      appointmentId: text(formData, "appointmentId"),
+      startsAt,
+      durationMinutes: Number.isFinite(duration) ? Math.round(duration) : 30,
+      userId: session.user.id,
+    });
+  } catch (error) {
+    return handle(error, session.user.businessId, session.user.id);
+  }
+
+  return { ok: true, message: "Turno movido." };
+}
+
+// El Scheduler navega por semana/agenda: cuando sale del rango ya cargado,
+// el cliente pide más turnos con esta acción (fechas ISO, devuelve JSON plano).
+export async function getAppointmentsRangeAction(
+  fromISO: string,
+  toISO: string,
+): Promise<{ ok: boolean; message?: string; appointments?: TurnoEventData[] }> {
+  const { session } = await requireModule(AppModule.APPOINTMENTS);
+  const from = new Date(fromISO);
+  const to = new Date(toISO);
+
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from > to) {
+    return { ok: false, message: "Rango inválido." };
+  }
+
+  try {
+    const rows = await getAppointmentsRange({ businessId: session.user.businessId, from, to });
+    return { ok: true, appointments: rows.map(serializeAppointment) };
+  } catch (error) {
+    await logError("appointment", error, { businessId: session.user.businessId, userId: session.user.id });
+    return { ok: false, message: "No pudimos cargar los turnos. Intentá de nuevo." };
+  }
 }
 
 // Compatibilidad con formularios HTML que todavía se renderizan en el servidor.

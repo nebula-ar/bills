@@ -90,6 +90,32 @@ export function SkeletonPanel({ className, children }: { className?: string; chi
   );
 }
 
+// Réplica de SectionCard (manager-ui): tarjeta con título + descripción +
+// contenido, con bloques placeholder en las posiciones del componente real.
+export function SkeletonSectionCard({
+  children,
+  className,
+  description = true,
+  titleWidth = "w-40",
+}: {
+  children?: ReactNode;
+  className?: string;
+  description?: boolean;
+  titleWidth?: string;
+}) {
+  return (
+    <section className={cn("rounded-3xl border border-slate-200 bg-white p-5 shadow-sm", className)}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <Skeleton className={cn("h-5", titleWidth)} />
+          {description ? <Skeleton className="mt-2 h-3 w-full max-w-sm" /> : null}
+        </div>
+      </div>
+      {children ? <div className="mt-4">{children}</div> : null}
+    </section>
+  );
+}
+
 // Fila de lista/catálogo: avatar/icono + dos líneas + importe a la derecha.
 export function SkeletonRow({ avatar = true }: { avatar?: boolean }) {
   return (

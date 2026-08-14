@@ -4,34 +4,46 @@ import { prisma } from "@/lib/prisma";
 
 import { AppointmentError, AppointmentErrorCode, findConflict } from "./appointment.logic";
 
-// Agenda del día. Trae todo lo que la pantalla necesita para pintarse sin ir a
-// buscar nada más: quién atiende, qué servicio y a quién.
-export async function getDayAppointments(input: { businessId: string; branchId?: string | null; day: Date }) {
-  const from = startOfDay(input.day);
-  const to = endOfDay(input.day);
+const APPOINTMENT_LIST_SELECT = {
+  id: true,
+  startsAt: true,
+  durationMinutes: true,
+  status: true,
+  notes: true,
+  customerName: true,
+  customerPhone: true,
+  customerId: true,
+  saleId: true,
+  branchId: true,
+  staff: { select: { id: true, name: true } },
+  customer: { select: { id: true, name: true, phone: true } },
+  product: { select: { id: true, name: true } },
+  branch: { select: { id: true, name: true } },
+} as const;
 
+// Agenda por rango: lo que necesita el Scheduler (NEBU-47) para pintar las
+// vistas de día, semana y agenda sin ir a buscar turno por turno.
+export async function getAppointmentsRange(input: { businessId: string; from: Date; to: Date; branchId?: string }) {
   return prisma.appointment.findMany({
     where: {
       businessId: input.businessId,
       deleted: false,
-      startsAt: { gte: from, lte: to },
+      startsAt: { gte: input.from, lte: input.to },
       ...(input.branchId ? { branchId: input.branchId } : {}),
     },
     orderBy: { startsAt: "asc" },
-    select: {
-      id: true,
-      startsAt: true,
-      durationMinutes: true,
-      status: true,
-      notes: true,
-      customerName: true,
-      customerPhone: true,
-      saleId: true,
-      staff: { select: { id: true, name: true } },
-      customer: { select: { id: true, name: true, phone: true } },
-      product: { select: { id: true, name: true } },
-      branch: { select: { id: true, name: true } },
-    },
+    select: APPOINTMENT_LIST_SELECT,
+  });
+}
+
+// Agenda del día. Trae todo lo que la pantalla necesita para pintarse sin ir a
+// buscar nada más: quién atiende, qué servicio y a quién.
+export async function getDayAppointments(input: { businessId: string; branchId?: string | null; day: Date }) {
+  return getAppointmentsRange({
+    businessId: input.businessId,
+    branchId: input.branchId ?? undefined,
+    from: startOfDay(input.day),
+    to: endOfDay(input.day),
   });
 }
 
@@ -103,6 +115,118 @@ export async function createAppointment(input: CreateAppointmentInput) {
   });
 
   return appointment;
+}
+
+export type UpdateAppointmentInput = {
+  businessId: string;
+  appointmentId: string;
+  /** Solo si se cambia el horario (drag & drop o el editor). */
+  startsAt?: Date;
+  /** Solo si se cambia la duración (resize o el editor). */
+  durationMinutes?: number;
+  staffId?: string | null;
+  customerId?: string | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  productId?: string | null;
+  branchId?: string;
+  notes?: string | null;
+  userId?: string | null;
+};
+
+// Edición de un turno: cambia horario, duración, empleado, cliente, servicio,
+// sucursal o nota sin tocar lo que no viene. Usa el mismo control de choques
+// que el alta (ignorando el propio turno) para que moverlo con el Scheduler no
+// termine con dos clientes en la misma silla.
+export async function updateAppointment(input: UpdateAppointmentInput) {
+  const appointment = await prisma.appointment.findFirst({
+    where: { id: input.appointmentId, businessId: input.businessId, deleted: false },
+    select: {
+      id: true,
+      branchId: true,
+      staffId: true,
+      customerId: true,
+      customerName: true,
+      startsAt: true,
+      durationMinutes: true,
+      saleId: true,
+    },
+  });
+
+  if (!appointment) {
+    throw new AppointmentError(AppointmentErrorCode.APPOINTMENT_NOT_FOUND);
+  }
+
+  // Un turno cobrado no se mueve ni se edita: ya pasó a la caja.
+  if (appointment.saleId) {
+    throw new AppointmentError(AppointmentErrorCode.ALREADY_CHARGED);
+  }
+
+  const startsAt = input.startsAt ?? appointment.startsAt;
+  const durationMinutes = input.durationMinutes ?? appointment.durationMinutes;
+
+  if (!Number.isInteger(durationMinutes) || durationMinutes <= 0 || durationMinutes > 8 * 60) {
+    throw new AppointmentError(AppointmentErrorCode.INVALID_DURATION);
+  }
+
+  if (Number.isNaN(startsAt.getTime())) {
+    throw new AppointmentError(AppointmentErrorCode.INVALID_DATE);
+  }
+
+  // Al editar también hay que saber a quién se atiende. Solo se valida si el
+  // editor mandó los campos (el drag & drop no los manda y no debe tocar esto).
+  if (input.customerId !== undefined || input.customerName !== undefined) {
+    const customerId = input.customerId === undefined ? appointment.customerId : input.customerId;
+    const customerName = input.customerName === undefined ? appointment.customerName : input.customerName;
+
+    if (!customerId && !customerName?.trim()) {
+      throw new AppointmentError(AppointmentErrorCode.MISSING_CUSTOMER);
+    }
+  }
+
+  let branchId = appointment.branchId;
+  if (input.branchId && input.branchId !== appointment.branchId) {
+    const branch = await prisma.branch.findFirst({
+      where: { id: input.branchId, businessId: input.businessId, deleted: false, active: true },
+      select: { id: true },
+    });
+
+    if (!branch) {
+      throw new AppointmentError(AppointmentErrorCode.BRANCH_NOT_FOUND);
+    }
+    branchId = branch.id;
+  }
+
+  const staffId = input.staffId === undefined ? appointment.staffId : input.staffId;
+
+  await assertFree({
+    businessId: input.businessId,
+    staffId,
+    startsAt,
+    durationMinutes,
+    ignoreId: appointment.id,
+  });
+
+  await prisma.appointment.update({
+    where: { id: appointment.id },
+    data: {
+      ...(input.startsAt !== undefined ? { startsAt } : {}),
+      ...(input.durationMinutes !== undefined ? { durationMinutes } : {}),
+      staffId,
+      ...(input.customerId !== undefined ? { customerId: input.customerId } : {}),
+      ...(input.customerName !== undefined ? { customerName: input.customerName?.trim() || null } : {}),
+      ...(input.customerPhone !== undefined ? { customerPhone: input.customerPhone?.trim() || null } : {}),
+      ...(input.productId !== undefined ? { productId: input.productId } : {}),
+      ...(input.notes !== undefined ? { notes: input.notes?.trim() || null } : {}),
+      ...(input.branchId !== undefined ? { branchId } : {}),
+    },
+  });
+
+  await logEvent("appointment.update", "Turno actualizado", {
+    businessId: input.businessId,
+    userId: input.userId ?? undefined,
+    context: { appointmentId: appointment.id, startsAt: startsAt.toISOString(), staffId },
+  });
 }
 
 export async function setAppointmentStatus(input: {

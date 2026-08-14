@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatedMoney, AnimatedNumber } from "@/components/animated-number";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Tone } from "@/components/manager-ui";
 
 const TONE_TILE: Record<Tone, string> = {
@@ -50,6 +51,23 @@ export function StatTiles({ tiles }: { tiles: StatTile[] }) {
             )}
           </p>
           {tile.hint ? <p className="mt-0.5 text-xs opacity-70">{tile.hint}</p> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Estado skeleton de StatTiles: misma grilla y misma tarjeta (borde, padding,
+// sombra) que el componente real, con bloques placeholder donde van el label,
+// el número y el hint. Co-locado para que el skeleton respete el layout real.
+export function StatTilesSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div className="rounded-2xl border border-slate-200 p-4 shadow-sm" key={index}>
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="mt-2 h-6 w-20 sm:h-7" />
+          <Skeleton className="mt-1.5 h-3 w-12" />
         </div>
       ))}
     </div>

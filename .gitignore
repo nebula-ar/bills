@@ -37,6 +37,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# gentle-ai skill-registry: cache regenerado por máquina, con paths
+# absolutos del usuario local. No es reproducible entre devs, así que
+# no se versiona. Se regenera con `gentle-ai skill-registry refresh`.
+.atl/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

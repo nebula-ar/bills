@@ -78,9 +78,7 @@ describe("lo que cada rol NO recibe", () => {
 
     expect(suyos).toContain("/dashboard");
     expect(suyos).toContain("/expenses");
-    // Stock ya no es un destino propio: se fusionó en /catalog, que el
-    // encargado ya alcanza por manageCatalog.
-    expect(suyos).toContain("/catalog");
+    expect(suyos).toContain("/stock");
 
     expect(suyos).not.toContain("/staff");
     expect(suyos).not.toContain("/branches");

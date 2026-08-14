@@ -1,15 +1,6 @@
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { StatTiles } from "@/components/stat-tiles";
-import {
-  Badge,
-  EmptyState,
-  Field,
-  formatMoney,
-  inputClass,
-  PrimaryButton,
-  SectionCard,
-  TableWrap,
-} from "@/components/manager-ui";
+import { Field, formatMoney, inputClass, PrimaryButton, SectionCard } from "@/components/manager-ui";
 import { MoneyInput } from "@/components/money-input";
 import { AppModule, TaxCondition } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
@@ -19,13 +10,16 @@ import { getCustomerDetail, getCustomersForManagement } from "@/modules/customer
 import { getCustomerPoints } from "@/modules/marketing/marketing.use-cases";
 import { loyaltyEnabled } from "@/modules/marketing/loyalty.logic";
 import { LoyaltyRedeem } from "@/components/loyalty-redeem";
-import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { debtReminderMessage } from "@/modules/messaging/whatsapp.logic";
 import { WhatsappButton } from "@/components/whatsapp-button";
+import { CustomersGrid, type CustomersGridRow } from "@/components/customers-grid";
+import { SyncDatePicker } from "@/components/sync-date-picker";
+import { SyncSelect } from "@/components/sync-select";
+import { SyncSwitch } from "@/components/sync-switch";
+import { SyncfusionGestionProvider } from "@/components/syncfusion-gestion-provider";
 import Link from "next/link";
 
 import { createCustomerAction, deleteCustomerAction, registerPaymentAction, updateCustomerAction } from "./actions";
-import { SelectField } from "@/components/ui/select-field";
 
 const dateFormatter = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "short", year: "2-digit" });
 
@@ -62,7 +56,20 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
   const debtors = customers.filter((customer) => customer.balance > 0);
   const overLimit = customers.filter((customer) => customer.overLimit);
 
+  // Filas del grid: el contacto ya resuelto (teléfono → CUIT → placeholder),
+  // igual que lo mostraba la tabla custom.
+  const gridRows: CustomersGridRow[] = customers.map((customer) => ({
+    id: customer.id,
+    name: customer.name,
+    contact: customer.phone ?? customer.taxId ?? "Sin datos de contacto",
+    salesCount: customer.salesCount,
+    balance: customer.balance,
+    overLimit: customer.overLimit,
+    active: customer.active,
+  }));
+
   return (
+    <SyncfusionGestionProvider>
     <AppShell maxWidth="lg">
       <PageHeader
         eyebrow="Bills"
@@ -150,16 +157,13 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                     <MoneyInput className={inputClass} name="amount" placeholder="$" required />
                   </Field>
                   <Field label="Cobrado en">
-                    <SelectField
-                      ariaLabel="Cuenta"
-                      name="method"
-                      options={PAYMENT_METHOD_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
-                    />
+                    <SyncSelect ariaLabel="Cuenta" name="method" options={PAYMENT_METHOD_OPTIONS} />
                   </Field>
                   {branches.length > 1 ? (
                     <Field label="Sucursal" className="sm:col-span-2">
-                      <SelectField
+                      <SyncSelect
                         ariaLabel="Sucursal"
+                        defaultValue={branches[0]?.id ?? ""}
                         name="branchId"
                         options={branches.map((branch) => ({ value: branch.id, label: branch.name }))}
                       />
@@ -208,18 +212,16 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                   <input className={inputClass} defaultValue={detail.customer.phone ?? ""} name="phone" />
                 </Field>
                 <Field label="Cumpleaños" hint="Para saludarlo desde Marketing">
-                  <input
-                    className={inputClass}
+                  <SyncDatePicker
                     defaultValue={detail.customer.birthday ? toISODate(detail.customer.birthday) : ""}
                     name="birthday"
-                    type="date"
                   />
                 </Field>
                 <Field label="CUIT / DNI">
                   <input className={inputClass} defaultValue={detail.customer.taxId ?? ""} name="taxId" />
                 </Field>
                 <Field label="Condición IVA">
-                  <SelectField
+                  <SyncSelect
                     ariaLabel="Condición frente al IVA"
                     defaultValue={detail.customer.taxCondition ?? ""}
                     name="taxCondition"
@@ -239,10 +241,9 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                 <Field label="Notas" className="sm:col-span-2">
                   <input className={inputClass} defaultValue={detail.customer.notes ?? ""} name="notes" />
                 </Field>
-                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 sm:col-span-2">
-                  <input defaultChecked={detail.customer.active} name="active" type="checkbox" />
-                  Activo (puede comprar y fiar)
-                </label>
+                <div className="flex items-center sm:col-span-2">
+                  <SyncSwitch defaultChecked={detail.customer.active} label="Activo (puede comprar y fiar)" name="active" />
+                </div>
                 <PrimaryButton className="sm:col-span-2">Guardar cambios</PrimaryButton>
               </form>
 
@@ -269,88 +270,14 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
       ) : null}
 
       <SectionCard title="Todos los clientes" description="Tocá un cliente para ver su cuenta y su historial.">
-        {customers.length === 0 ? (
-          <EmptyState title="Todavía no cargaste clientes." hint="Sirven para fiar, hacer seguimiento y facturar." />
-        ) : (
-          <TableWrap>
-            <table className="w-full min-w-[30rem] border-collapse text-sm">
-              <thead>
-                <tr className="text-left text-[0.68rem] uppercase tracking-wider text-slate-600">
-                  <th className="pb-2 font-bold">Cliente</th>
-                  <th className="pb-2 font-bold">Compras</th>
-                  <th className="pb-2 font-bold">Saldo</th>
-                  <th className="pb-2 font-bold" />
-                </tr>
-              </thead>
-              <tbody>
-                {customers.map((customer) => (
-                  <tr className="border-t border-slate-100" key={customer.id}>
-                    <td className="py-2.5 pr-3">
-                      <Link className="font-bold text-slate-950 hover:text-primary" href={`/customers?customerId=${customer.id}`}>
-                        {customer.name}
-                      </Link>
-                      <p className="text-xs text-slate-500">
-                        {customer.phone ?? customer.taxId ?? "Sin datos de contacto"}
-                        {customer.active ? "" : " · inactivo"}
-                      </p>
-                    </td>
-                    <td className="py-2.5 pr-3 text-slate-500">{customer.salesCount}</td>
-                    <td className="py-2.5 pr-3">
-                      {customer.balance > 0 ? (
-                        <Badge tone={customer.overLimit ? "danger" : "warning"}>
-                          Debe {formatMoney(customer.balance)}
-                        </Badge>
-                      ) : (
-                        <Badge tone="positive">Al día</Badge>
-                      )}
-                    </td>
-                    <td className="py-2.5 text-right">
-                      <ConfirmDeleteButton
-                        action={deleteCustomerAction}
-                        confirmLabel="Sí, borrar"
-                        description={
-                          <>
-                            Se borra a <span className="font-black">{customer.name}</span> y con él su
-                            historial y su saldo. No se puede deshacer.
-                          </>
-                        }
-                        fields={{ customerId: customer.id }}
-                        successMessage="Cliente eliminado."
-                        title="¿Eliminar el cliente?"
-                      >
-                        Eliminar
-                      </ConfirmDeleteButton>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableWrap>
-        )}
-      </SectionCard>
-
-      <SectionCard title="Nuevo cliente" description="Con el límite de crédito controlás hasta cuánto le podés fiar.">
-        <form action={createCustomerAction} className="grid gap-3 sm:grid-cols-2">
-          <Field label="Nombre" className="sm:col-span-2">
-            <input className={inputClass} name="name" placeholder="Juan Pérez" required />
-          </Field>
-          <Field label="Teléfono">
-            <input className={inputClass} name="phone" placeholder="11 5555-5555" />
-          </Field>
-          <Field label="CUIT / DNI">
-            <input className={inputClass} name="taxId" placeholder="20123456789" />
-          </Field>
-          <Field label="Límite de crédito" hint="Vacío = sin tope">
-            <MoneyInput className={inputClass} name="creditLimit" placeholder="$" />
-          </Field>
-          <Field label="Notas">
-            <input className={inputClass} name="notes" placeholder="Pasa los martes" />
-          </Field>
-          <input defaultChecked name="active" type="hidden" value="on" />
-          <PrimaryButton className="sm:col-span-2">Crear cliente</PrimaryButton>
-        </form>
+        <CustomersGrid
+          createAction={createCustomerAction}
+          customers={gridRows}
+          deleteAction={deleteCustomerAction}
+        />
       </SectionCard>
     </AppShell>
+    </SyncfusionGestionProvider>
   );
 }
 

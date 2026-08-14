@@ -1,68 +1,37 @@
 "use client";
 
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+// Gráficos del dashboard con Syncfusion EJ2 (ej2-charts). Reemplazan la
+// dependencia recharts (stack anterior). El tema de colores del donut se
+// mantiene igual que antes para no cambiar la lectura visual.
+import {
+  AccumulationChartComponent,
+  AccumulationLegend,
+  AccumulationSeriesCollectionDirective,
+  AccumulationSeriesDirective,
+  AccumulationTooltip,
+  Category,
+  ChartComponent,
+  ColumnSeries,
+  Inject,
+  Legend,
+  PieSeries,
+  SeriesCollectionDirective,
+  SeriesDirective,
+  Tooltip,
+  type ITooltipRenderEventArgs,
+  type IAxisLabelRenderEventArgs,
+} from "@syncfusion/ej2-react-charts";
 import { PAYMENT_DONUT_COLORS } from "@/components/reports-charts-colors";
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts";
 
 type TrendDatum = {
   label: string;
   total: number;
 };
 
-const donutChartConfig = {
-  total: { label: "Total" },
-} satisfies ChartConfig;
+const BRAND_BLUE = "#3158e8";
+const AXIS_LABEL_STYLE = { color: "#64748b", size: "11px" };
 
-export function PaymentDonutChart({ data }: { data: { key: string; label: string; total: number }[] }) {
-  return (
-    <ChartContainer className="mx-auto h-[210px] w-full max-w-[260px]" config={donutChartConfig}>
-      <PieChart>
-        <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} hideLabel />} />
-        <Pie data={data} dataKey="total" innerRadius={56} nameKey="label" outerRadius={92} paddingAngle={3} strokeWidth={0}>
-          {data.map((entry, index) => (
-            <Cell fill={PAYMENT_DONUT_COLORS[index % PAYMENT_DONUT_COLORS.length]} key={entry.key} />
-          ))}
-        </Pie>
-      </PieChart>
-    </ChartContainer>
-  );
-}
-
-const trendChartConfig = {
-  total: {
-    label: "Total",
-    color: "#3158e8",
-  },
-} satisfies ChartConfig;
-
-export function SalesTrendChart({ data }: { data: TrendDatum[] }) {
-  return (
-    <ChartContainer className="h-[200px] w-full" config={trendChartConfig}>
-      <BarChart accessibilityLayer barCategoryGap={data.length > 12 ? 2 : 10} data={data} margin={{ left: 4, right: 8, top: 8 }}>
-        <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
-        <XAxis
-          axisLine={false}
-          dataKey="label"
-          interval="preserveStartEnd"
-          tick={{ fill: "#64748b", fontSize: 11 }}
-          tickLine={false}
-          tickMargin={8}
-        />
-        <YAxis
-          axisLine={false}
-          tick={{ fill: "#64748b", fontSize: 11 }}
-          tickFormatter={formatCompactCurrency}
-          tickLine={false}
-          width={44}
-        />
-        <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />} />
-        <Bar dataKey="total" fill="var(--color-total)" radius={[6, 6, 0, 0]} />
-      </BarChart>
-    </ChartContainer>
-  );
-}
-
-function formatCurrency(value: number) {
+function formatMoney(value: number) {
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "ARS",
@@ -75,4 +44,105 @@ function formatCompactCurrency(value: number) {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(value);
+}
+
+export function PaymentDonutChart({ data }: { data: { key: string; label: string; total: number }[] }) {
+  // pointColorMapping: cada sector conserva el color que ya usaba la leyenda
+  // del dashboard (misma paleta, misma lectura).
+  const colored = data.map((entry, index) => ({
+    ...entry,
+    color: PAYMENT_DONUT_COLORS[index % PAYMENT_DONUT_COLORS.length],
+  }));
+
+  function onTooltipRender(args: ITooltipRenderEventArgs) {
+    const point = (args as unknown as { point?: { x?: string | number; y?: number } }).point;
+    if (point) {
+      args.text = `${point.x}: ${formatMoney(Number(point.y))}`;
+    }
+  }
+
+  return (
+    <AccumulationChartComponent
+      accessibility={{ accessibilityDescription: "Gráfico interactivo de métodos de pago" }}
+      className="mx-auto"
+      height="210px"
+      legendSettings={{ visible: false }}
+      style={{ maxWidth: 260 }}
+      tooltip={{ enable: true }}
+      tooltipRender={onTooltipRender}
+      width="100%"
+    >
+      <Inject services={[PieSeries, AccumulationLegend, AccumulationTooltip]} />
+      <AccumulationSeriesCollectionDirective>
+        <AccumulationSeriesDirective
+          dataSource={colored}
+          innerRadius="58%"
+          name="Total"
+          radius="92%"
+          pointColorMapping="color"
+          type="Pie"
+          xName="label"
+          yName="total"
+        />
+      </AccumulationSeriesCollectionDirective>
+    </AccumulationChartComponent>
+  );
+}
+
+export function SalesTrendChart({ data }: { data: TrendDatum[] }) {
+  function onTooltipRender(args: ITooltipRenderEventArgs) {
+    const point = (args as unknown as { point?: { x?: string | number; y?: number } }).point;
+    if (point) {
+      args.text = `${point.x}: ${formatMoney(Number(point.y))}`;
+    }
+  }
+
+  function onAxisLabelRender(args: IAxisLabelRenderEventArgs) {
+    if (args.axis.name === "primaryYAxis") {
+      args.text = formatCompactCurrency(Number(args.value));
+    }
+  }
+
+  return (
+    <ChartComponent
+      accessibility={{ accessibilityDescription: "Gráfico interactivo de ventas por día" }}
+      height="200px"
+      legendSettings={{ visible: false }}
+      primaryXAxis={{
+        valueType: "Category",
+        labelStyle: AXIS_LABEL_STYLE,
+        majorGridLines: { width: 0 },
+        majorTickLines: { width: 0 },
+        lineStyle: { color: "#e2e8f0" },
+        edgeLabelPlacement: "Shift",
+      }}
+      primaryYAxis={{
+        labelStyle: AXIS_LABEL_STYLE,
+        majorGridLines: { color: "#e2e8f0", width: 1 },
+        majorTickLines: { width: 0 },
+        lineStyle: { width: 0 },
+      }}
+      tooltip={{ enable: true }}
+      tooltipRender={onTooltipRender}
+      axisLabelRender={onAxisLabelRender}
+      width="100%"
+    >
+      <Inject services={[ColumnSeries, Category, Tooltip, Legend]} />
+      <SeriesCollectionDirective>
+        <SeriesDirective
+          accessibility={{
+            accessibilityDescription: "Serie de ventas por día",
+            accessibilityDescriptionFormat: "${point.x}: ${point.y}",
+          }}
+          dataSource={data}
+          fill={BRAND_BLUE}
+          name="Total"
+          type="Column"
+          width={2}
+          xName="label"
+          yName="total"
+        />
+      </SeriesCollectionDirective>
+    </ChartComponent>
+  );
 }

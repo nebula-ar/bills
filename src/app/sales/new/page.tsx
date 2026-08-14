@@ -11,7 +11,8 @@ import { findTopSellingProductIds } from "@/modules/sales/sale.repository";
 import { findStockLevelsForBranches } from "@/modules/stock/stock.repository";
 import { findMesasParaCobrar, resumenDeMesasAbiertas } from "@/modules/tables/tables.repository";
 import { getOrderForCheckout } from "@/modules/tables/orders.use-cases";
-import { PosCheckout, type PosBranch, type PosCustomer } from "@/components/pos-checkout";
+import { PosCheckoutClient } from "@/components/pos-checkout-client";
+import type { PosBranch, PosCustomer } from "@/components/pos-checkout";
 
 type NewSalePageProps = {
   searchParams: Promise<{
@@ -139,7 +140,7 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
   const paymentOptions = paymentMethodOptions(salePaymentMethods(usesCustomers));
 
   return (
-    <PosCheckout
+    <PosCheckoutClient
       branches={posBranches}
       catalogIcon={verticalPreset(business.vertical).catalogIcon}
       catalogPlural={business.labels.catalogPlural}

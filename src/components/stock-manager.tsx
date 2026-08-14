@@ -4,11 +4,19 @@ import { useMemo, useState } from "react";
 
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { SelectField } from "@/components/ui/select-field";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ProductStockPanel } from "@/components/product-stock-panel";
 import { Package, Plus, Search, TriangleAlert, X } from "@/components/icons";
 import type { Unit } from "@/generated/prisma/enums";
 import { formatQuantity } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
+import {
+  ColumnDirective,
+  ColumnsDirective,
+  GridComponent,
+  Inject,
+  Sort,
+} from "@syncfusion/ej2-react-grids";
 
 /**
  * El depósito de una sucursal.
@@ -53,6 +61,8 @@ export type StockManagerMovement = {
   typeLabel: string;
   reason: string | null;
   when: string;
+  /** Timestamp numérico: el grid ordena por esto, no por el texto formateado. */
+  whenTs: number;
 };
 
 const dinero = new Intl.NumberFormat("es-AR", {
@@ -404,55 +414,42 @@ function MovimientosLista({ movements }: { movements: StockManagerMovement[] }) 
 
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-slate-100 text-left">
-            <Th>Cuándo</Th>
-            <Th>Producto</Th>
-            <Th>Qué pasó</Th>
-            <Th alineado="derecha">Movimiento</Th>
-          </tr>
-        </thead>
-        <tbody>
-          {movements.map((movement) => (
-            <tr className="border-b border-slate-50 last:border-0" key={movement.id}>
-              <td className="whitespace-nowrap px-4 py-3 text-sm font-bold text-slate-500">{movement.when}</td>
-              <td className="w-full max-w-0 truncate px-4 py-3 text-sm font-bold text-slate-950">
-                {movement.productName}
-              </td>
-              <td className="px-4 py-3 text-sm text-slate-500">
-                {movement.typeLabel}
-                {movement.reason ? ` · ${movement.reason}` : ""}
-              </td>
-              {/* Con signo y color: de un vistazo se ve qué entró y qué salió,
-                  que es para lo que se abre esta lista. */}
-              <td
-                className={`whitespace-nowrap px-4 py-3 text-right text-sm font-black ${
-                  movement.quantity >= 0 ? "text-emerald-600" : "text-rose-600"
-                }`}
+      {/* Movimientos con DataGrid de Syncfusion EJ2: ordena columnas (el
+          "Cuándo" ordena por timestamp, no por el texto formateado) y respeta
+          el locale es ("No hay registros que mostrar"). */}
+      <GridComponent
+        allowSorting
+        allowTextWrap
+        cssClass="e-gestion-grid e-dashboard-grid"
+        dataSource={movements}
+        height="auto"
+        width="100%"
+      >
+        <ColumnsDirective>
+          <ColumnDirective field="whenTs" headerText="Cuándo" template={(m: StockManagerMovement) => m.when} width={140} />
+          <ColumnDirective field="productName" headerText="Producto" width="auto" />
+          <ColumnDirective field="typeLabel" headerText="Qué pasó" width="auto" />
+          {/* Con signo y color: de un vistazo se ve qué entró y qué salió, que
+              es para lo que se abre esta lista. */}
+          <ColumnDirective
+            field="quantity"
+            headerText="Movimiento"
+            template={(m: StockManagerMovement) => (
+              <span
+                className={`font-black ${m.quantity >= 0 ? "text-emerald-600" : "text-rose-600"}`}
                 style={{ fontVariantNumeric: "tabular-nums" }}
               >
-                {movement.quantity >= 0 ? "+" : "−"}
-                {formatQuantity(Math.abs(movement.quantity), movement.unit)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                {m.quantity >= 0 ? "+" : "−"}
+                {formatQuantity(Math.abs(m.quantity), m.unit)}
+              </span>
+            )}
+            textAlign="Right"
+            width={150}
+          />
+        </ColumnsDirective>
+        <Inject services={[Sort]} />
+      </GridComponent>
     </div>
-  );
-}
-
-function Th({ children, alineado = "izquierda" }: { children: React.ReactNode; alineado?: "izquierda" | "derecha" }) {
-  return (
-    <th
-      className={`px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-600 ${
-        alineado === "derecha" ? "text-right" : ""
-      }`}
-      scope="col"
-    >
-      {children}
-    </th>
   );
 }
 
@@ -464,6 +461,70 @@ export function StockEmpty() {
       <p className="mt-1 text-xs text-slate-500">
         Marcalo como producto físico en su ficha para empezar a contarlo.
       </p>
+    </div>
+  );
+}
+
+// Estado skeleton de StockManager: banner de sin stock, pestañas, buscador,
+// chips de filtro y filas de producto (foto redonda, nombre, badge, categoría,
+// cantidad y botón) en las mismas posiciones del componente real.
+export function StockManagerSkeleton() {
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Banner sin stock */}
+      <div className="flex items-center justify-between gap-3 rounded-2xl bg-rose-50 px-4 py-3.5">
+        <div className="flex min-w-0 items-center gap-3">
+          <Skeleton className="size-9 shrink-0 rounded-full" />
+          <div className="min-w-0 space-y-1.5">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-64 max-w-full" />
+          </div>
+        </div>
+        <Skeleton className="h-4 w-24 shrink-0" />
+      </div>
+
+      {/* Pestañas + botón */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200">
+        <div className="flex gap-2">
+          {["w-24", "w-20"].map((width, index) => (
+            <Skeleton className={`-mb-px h-8 border-b-2 border-transparent ${width}`} key={index} />
+          ))}
+        </div>
+        <Skeleton className="mb-1.5 h-9 w-28 rounded-full" />
+      </div>
+
+      {/* Buscador */}
+      <div className="relative">
+        <Skeleton className="h-11 w-full rounded-2xl" />
+      </div>
+
+      {/* Chips de filtro */}
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {["w-20", "w-24", "w-28", "w-28"].map((width, index) => (
+          <Skeleton className={`h-9 shrink-0 rounded-full ${width}`} key={index} />
+        ))}
+      </div>
+
+      {/* Filas de producto */}
+      <ul className="flex flex-col gap-2.5">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <li className="flex items-center gap-3 rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-slate-950/5" key={index}>
+            <Skeleton className="size-11 shrink-0 rounded-full" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Skeleton className="h-4 w-1/3 max-w-36" />
+                <Skeleton className="h-4 w-14 rounded-full" />
+              </div>
+              <Skeleton className="h-3 w-2/3 max-w-48" />
+            </div>
+            <div className="hidden shrink-0 space-y-1.5 text-right sm:block">
+              <Skeleton className="ml-auto h-4 w-14" />
+              <Skeleton className="ml-auto h-3 w-20" />
+            </div>
+            <Skeleton className="h-9 w-20 shrink-0 rounded-xl" />
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

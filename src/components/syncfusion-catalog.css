@@ -1,0 +1,88 @@
+/* Ajustes de marca sobre el tema "tailwind" de Syncfusion EJ2 para el
+   Catálogo / Productos. Se importa junto a los estilos base en
+   syncfusion-catalog-provider.tsx. El objetivo: los componentes EJ2 del
+   catálogo (DataGrid, Dialog, Uploader, RichTextEditor) con la misma pinta
+   que el resto de la app. */
+
+/* ── DataGrid del catálogo: filas como tarjetas del listado viejo ── */
+.e-grid.e-catalog-grid {
+  border: 0;
+  font-size: 0.875rem;
+}
+.e-grid.e-catalog-grid .e-gridheader {
+  background: transparent;
+  border-bottom: 1px solid #f1f5f9;
+}
+.e-grid.e-catalog-grid .e-gridheader .e-headercell {
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.e-grid.e-catalog-grid .e-rowcell {
+  border-bottom: 1px solid #f8fafc;
+  color: #0f172a;
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+.e-grid.e-catalog-grid .e-row:hover .e-rowcell {
+  background: #f8fafc;
+}
+/* Empty state y pager con la tipografía del app */
+.e-grid.e-catalog-grid .e-emptyrow {
+  padding: 1.5rem 0;
+}
+
+/* ── Dialog del catálogo: esquinas y altura acordes a la app ── */
+.e-dialog.e-catalog-dialog {
+  border-radius: 1.25rem;
+  max-width: min(640px, calc(100vw - 24px));
+}
+.e-dialog.e-catalog-dialog .e-dlg-header {
+  font-family: inherit;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.e-dialog.e-catalog-dialog .e-dlg-content {
+  font-family: inherit;
+  max-height: 76vh;
+  overflow-y: auto;
+}
+
+/* ── RichTextEditor: misma pinta que los inputs de la app ── */
+.e-richtexteditor.e-catalog-rte {
+  border: 1px solid rgb(226 232 240); /* slate-200 */
+  background: rgb(248 250 252); /* slate-50 */
+  border-radius: 1rem;
+  overflow: hidden;
+}
+.e-richtexteditor.e-catalog-rte.e-rte-focus,
+.e-richtexteditor.e-catalog-rte:hover {
+  border-color: color-mix(in oklab, var(--primary) 40%, transparent);
+  background: #fff;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 15%, transparent);
+}
+.e-richtexteditor.e-catalog-rte .e-rte-toolbar {
+  background: #fff;
+  border-color: #f1f5f9;
+}
+.e-richtexteditor.e-catalog-rte .e-rte-content {
+  background: transparent;
+  color: #0f172a;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.e-richtexteditor.e-catalog-rte .e-rte-content .e-content {
+  padding: 0.75rem 1rem;
+}
+
+/* ── Uploader del catálogo: la zona de drop con la pinta del listado ── */
+.e-upload.e-catalog-uploader .e-file-select-wrap {
+  border-radius: 1.25rem;
+}
+.e-upload.e-catalog-uploader .e-file-drop {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #475569;
+}

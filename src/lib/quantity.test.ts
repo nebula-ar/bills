@@ -33,6 +33,18 @@ describe("parseQuantityInput", () => {
     expect(parseQuantityInput("0")).toBeNull();
     expect(parseQuantityInput("-1")).toBeNull();
   });
+
+  it("no corrompe cantidades ≥ 1000 unidades (el POS no agrupa miles)", () => {
+    // Contrato del valor que entra al parse desde el POS: el NumericTextBox de
+    // peso usa formato sin agrupación (#0.###), así que "1000" se muestra y
+    // parsea como 1000 unidades. Si entrara agrupado ("1.000", el separador de
+    // miles de es-AR), el punto se leería como decimal y la cantidad quedaría
+    // ×1000 menos en silencio (regresión NEBU-46).
+    expect(parseQuantityInput("1000", Unit.KG)).toBe(1000 * ONE);
+    expect(parseQuantityInput("12500", Unit.KG)).toBe(12_500 * ONE);
+    expect(parseQuantityInput("1000,25", Unit.KG)).toBe(1_000_250);
+    expect(parseQuantityInput("1,005", Unit.KG)).toBe(1005);
+  });
 });
 
 describe("formatQuantity", () => {

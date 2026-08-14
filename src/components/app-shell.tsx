@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { PageEnter } from "@/components/page-enter";
+
 type AppShellProps = {
   children: ReactNode;
   maxWidth?: "sm" | "md" | "lg" | "xl" | "full";
@@ -20,16 +22,18 @@ const shellMaxWidth: Record<NonNullable<AppShellProps["maxWidth"]>, string> = {
 // el margen que la separa del borde: con menos, el último botón de la pantalla
 // queda debajo de la barra y no se puede tocar.
 //
-// El `animate-in fade-in` es la entrada del contenido tras el skeleton
-// (NEBU-37): la página aparece con un fade suave de 300ms en vez de un corte
-// seco. Con prefers-reduced-motion la regla global lo anula.
+// PageEnter es la transición skeleton → contenido (NEBU-37): el contenido sube
+// de abajo hacia arriba con GSAP cuando reemplaza al skeleton. Con
+// prefers-reduced-motion queda visible directo.
 export function AppShell({ children, maxWidth = "md" }: AppShellProps) {
   return (
-    <main className="min-h-dvh px-4 pb-[calc(env(safe-area-inset-bottom)+10rem)] pt-5 text-slate-950 sm:px-6 sm:pb-[calc(env(safe-area-inset-bottom)+10rem)] sm:pt-10 duration-300 animate-in fade-in">
-      <section className={`mx-auto flex w-full ${shellMaxWidth[maxWidth]} flex-col gap-6`}>
-        {children}
-      </section>
-    </main>
+    <PageEnter>
+      <main className="min-h-dvh px-4 pb-[calc(env(safe-area-inset-bottom)+10rem)] pt-5 text-slate-950 sm:px-6 sm:pb-[calc(env(safe-area-inset-bottom)+10rem)] sm:pt-10">
+        <section className={`mx-auto flex w-full ${shellMaxWidth[maxWidth]} flex-col gap-6`}>
+          {children}
+        </section>
+      </main>
+    </PageEnter>
   );
 }
 

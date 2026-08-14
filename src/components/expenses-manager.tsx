@@ -15,8 +15,10 @@ import {
   type ActionResult,
 } from "@/app/expenses/actions";
 import { AnimatedMoney } from "@/components/animated-number";
+import { PageEnter } from "@/components/page-enter";
 import { PeriodFade } from "@/components/period-fade";
 import { Reveal } from "@/components/reveal";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import {
   ChevronLeft,
@@ -32,7 +34,8 @@ import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
-import { SelectField as UiSelect } from "@/components/ui/select-field";
+import { SyncSelect } from "@/components/sync-select";
+import { SyncDatePicker } from "@/components/sync-date-picker";
 
 // Un renglón de lo que salió este mes. Puede ser un gasto suelto (ya pago) o el
 // pago de una factura de proveedor: en la lista se ven igual porque para el
@@ -202,7 +205,7 @@ function SelectField({
   return (
     <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
       {label}
-      <UiSelect ariaLabel={label} defaultValue={defaultValue} name={name} options={options} />
+      <SyncSelect ariaLabel={label} defaultValue={defaultValue} name={name} options={options} />
     </label>
   );
 }
@@ -275,7 +278,7 @@ function ExpenseFields({
 
       <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
         Fecha
-        <input className={sheetField} defaultValue={row?.spentAtValue ?? data.todayValue} name="spentAt" type="date" />
+        <SyncDatePicker defaultValue={row?.spentAtValue ?? data.todayValue} name="spentAt" />
       </label>
 
       <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
@@ -337,11 +340,11 @@ function PurchaseFields({ data }: { data: ExpensesData }) {
         </label>
         <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
           Fecha
-          <input className={sheetField} defaultValue={data.todayValue} name="issuedAt" type="date" />
+          <SyncDatePicker defaultValue={data.todayValue} name="issuedAt" />
         </label>
         <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
           Vence
-          <input className={sheetField} name="dueAt" type="date" />
+          <SyncDatePicker name="dueAt" placeholder="Opcional" />
         </label>
         {isMerchandise ? (
           <SelectField
@@ -384,7 +387,7 @@ function PurchaseFields({ data }: { data: ExpensesData }) {
           {Array.from({ length: rows }).map((_, index) => (
             <div className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50/60 p-3" key={index}>
               {isMerchandise ? (
-                <UiSelect
+                <SyncSelect
                   ariaLabel="Producto"
                   name="itemProductId"
                   options={[
@@ -404,7 +407,7 @@ function PurchaseFields({ data }: { data: ExpensesData }) {
                   name="itemQuantity"
                   placeholder="Cant."
                 />
-                <UiSelect
+                <SyncSelect
                   ariaLabel="Unidad"
                   name="itemUnit"
                   options={data.units.map((unit) => ({ value: unit.value, label: unit.label }))}
@@ -485,7 +488,11 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
   }
 
   return (
-    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 duration-300 animate-in fade-in">
+    <PageEnter>
+      {/* El colchón de abajo deja el último ítem por encima del botón «+»
+          flotante (96px + 56px = tope a 152px; 11rem = 176px le da 24px de
+          aire). Sin esto el «+» tapa la última fila (NEBU-42). */}
+      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+11rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 lg:pb-[calc(env(safe-area-inset-bottom)+7rem)]">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -797,12 +804,12 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <UiSelect
+                  <SyncSelect
                       ariaLabel="Cuenta"
                       name="method"
                       options={data.paymentMethods.map((option) => ({ value: option.value, label: option.label }))}
                     />
-                  <input aria-label="Fecha del pago" className={sheetField} defaultValue={data.todayValue} name="paidAt" type="date" />
+                  <SyncDatePicker defaultValue={data.todayValue} name="paidAt" />
                 </div>
                 <button
                   className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3.5 text-sm font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
@@ -829,7 +836,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                   <MoneyInput aria-label="Importe de la nota de crédito" className={sheetField} name="amount" placeholder="$" />
                   <div className="grid grid-cols-2 gap-2">
                     <input aria-label="Nº de la nota" className={sheetField} name="number" placeholder="Nº" />
-                    <input aria-label="Fecha" className={sheetField} defaultValue={data.todayValue} name="issuedAt" type="date" />
+                    <SyncDatePicker defaultValue={data.todayValue} name="issuedAt" />
                   </div>
                   <input aria-label="Motivo" className={sheetField} name="reason" placeholder="Motivo (opcional)" />
                   <button
@@ -917,7 +924,7 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
                           name="amount"
                           placeholder="$"
                         />
-                        <UiSelect
+                        <SyncSelect
                       ariaLabel="Cuenta"
                       name="method"
                       options={data.paymentMethods.map((option) => ({ value: option.value, label: option.label }))}
@@ -969,6 +976,54 @@ export function ExpensesManager({ data }: { data: ExpensesData }) {
       >
         <Plus className="size-6" />
       </button>
+    </main>
+    </PageEnter>
+  );
+}
+
+// Estado skeleton de ExpensesManager: mismo shell, header, navegador de mes,
+// hero de total y lista de movimientos que el componente real — con bloques
+// placeholder en las posiciones de los datos.
+export function ExpensesManagerSkeleton() {
+  return (
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+11rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 lg:pb-[calc(env(safe-area-inset-bottom)+7rem)]">
+      <header className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="mt-2 h-7 w-24" />
+        </div>
+        <Skeleton className="h-9 w-24 shrink-0 rounded-xl" />
+      </header>
+
+      {/* Navegador de mes */}
+      <div className="mt-4 flex items-center justify-between gap-2 rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-950/5 lg:mx-auto lg:w-full lg:max-w-sm">
+        <Skeleton className="size-10 rounded-xl" />
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="size-10 rounded-xl" />
+      </div>
+
+      {/* Hero: total del mes */}
+      <div className="mt-3 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 p-5 text-white shadow-lg shadow-rose-500/25">
+        <Skeleton className="h-4 w-40 bg-white/20" />
+        <Skeleton className="mt-3 h-9 w-40 bg-white/20" />
+        <Skeleton className="mt-3 h-3 w-28 bg-white/20" />
+      </div>
+
+      {/* Movimientos */}
+      <div className="mt-4 space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div className="flex w-full items-center gap-3 rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-slate-950/5" key={index}>
+            <Skeleton className="size-11 shrink-0 rounded-2xl" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-4 w-1/3 max-w-40" />
+              <Skeleton className="h-3 w-2/3 max-w-56" />
+            </div>
+            <Skeleton className="h-5 w-16 shrink-0" />
+          </div>
+        ))}
+      </div>
+
+      <Skeleton className="fixed bottom-[96px] right-4 z-40 size-14 rounded-full md:bottom-8 md:right-8" />
     </main>
   );
 }

@@ -2,9 +2,12 @@
 
 import { createStaff, updateStaff } from "@/app/staff/actions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { PageEnter } from "@/components/page-enter";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Check, DynamicIcon, KeyRound, MapPin, Plus, X } from "@/components/icons";
 import { useState } from "react";
 import { SelectField } from "@/components/ui/select-field";
+import { Switch } from "@/components/ui/switch";
 
 export type StaffRow = {
   id: string;
@@ -96,19 +99,12 @@ function ActiveToggle({ defaultOn }: { defaultOn: boolean }) {
         <p className="mt-0.5 text-xs text-slate-500">Si lo desactivás, no aparece para cargar ventas.</p>
       </div>
       {on ? <input name="active" type="hidden" value="on" /> : null}
-      <button
-        aria-checked={on}
+      <Switch
         aria-label="Activo"
-        className={`relative h-11 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-emerald-500" : "bg-slate-300"}`}
-        onClick={() => setOn((value) => !value)}
-        role="switch"
-        type="button"
-      >
-        <span
-          className="absolute left-1 top-1/2 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
-          style={{ transform: on ? "translateY(-50%) translateX(1.25rem)" : "translateY(-50%) translateX(0)" }}
-        />
-      </button>
+        checked={on}
+        className="data-[state=checked]:bg-emerald-500"
+        onCheckedChange={setOn}
+      />
     </div>
   );
 }
@@ -123,19 +119,11 @@ function CashCloseToggle({ defaultOn }: { defaultOn: boolean }) {
         <p className="mt-0.5 text-xs text-slate-500">Encargado: cierra la caja de su sucursal desde la terminal, con su PIN.</p>
       </div>
       {on ? <input name="canCloseCash" type="hidden" value="on" /> : null}
-      <button
-        aria-checked={on}
+      <Switch
         aria-label="Puede cerrar caja"
-        className={`relative h-11 w-12 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-primary" : "bg-slate-300"}`}
-        onClick={() => setOn((value) => !value)}
-        role="switch"
-        type="button"
-      >
-        <span
-          className="absolute left-1 top-1/2 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)]"
-          style={{ transform: on ? "translateY(-50%) translateX(1.25rem)" : "translateY(-50%) translateX(0)" }}
-        />
-      </button>
+        checked={on}
+        onCheckedChange={setOn}
+      />
     </div>
   );
 }
@@ -147,7 +135,11 @@ export function StaffsManager({ data }: { data: StaffsData }) {
   const noBranches = data.branches.length === 0;
 
   return (
-    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 duration-300 animate-in fade-in">
+    <PageEnter>
+      {/* El colchón de abajo deja el último ítem por encima del botón «+»
+          flotante (96px + 56px = tope a 152px; 11rem = 176px le da 24px de
+          aire). Sin esto el «+» tapa la última fila (NEBU-42). */}
+      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+11rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 lg:pb-[calc(env(safe-area-inset-bottom)+7rem)]">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -352,6 +344,40 @@ export function StaffsManager({ data }: { data: StaffsData }) {
       >
         <Plus className="size-6" />
       </button>
+    </main>
+    </PageEnter>
+  );
+}
+
+// Estado skeleton de StaffManager: mismo shell, header y filas de empleado
+// (icono, nombre, sucursal, chips de estado) que el componente real.
+export function StaffManagerSkeleton() {
+  return (
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+11rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 lg:pb-[calc(env(safe-area-inset-bottom)+7rem)]">
+      <header className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="mt-2 h-7 w-32" />
+        </div>
+      </header>
+
+      <div className="mt-4 space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div className="flex w-full items-center gap-3 rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-slate-950/5" key={index}>
+            <Skeleton className="size-11 shrink-0 rounded-2xl" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-4 w-1/3 max-w-40" />
+              <Skeleton className="h-3 w-1/2 max-w-32" />
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-1.5">
+              <Skeleton className="h-5 w-14 rounded-full" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <Skeleton className="fixed bottom-[96px] right-4 z-40 size-14 rounded-full md:bottom-8 md:right-8" />
     </main>
   );
 }
