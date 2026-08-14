@@ -18,6 +18,8 @@ const saleErrorMessages: Record<SaleErrorCodeType, string> = {
   [SaleErrorCode.PAYMENTS_TOTAL_MISMATCH]: "El importe del pago no coincide con el total de la venta.",
   [SaleErrorCode.SALE_NOT_FOUND]: "No encontramos la venta o ya no está disponible.",
   [SaleErrorCode.SALE_ALREADY_CANCELLED]: "La venta ya estaba cancelada.",
+  [SaleErrorCode.SALE_HAS_ISSUED_INVOICE]:
+    "La venta ya tiene un comprobante emitido: para anularlo hace falta una nota de crédito, que todavía no está disponible.",
   [SaleErrorCode.INVALID_CUSTOMER_TAX_ID]: "El CUIT/DNI del cliente no es válido.",
   [SaleErrorCode.INSUFFICIENT_STOCK]: "No hay stock suficiente para completar la venta.",
   [SaleErrorCode.ACCOUNT_REQUIRES_CUSTOMER]: "Para cobrar en cuenta corriente elegí un cliente.",

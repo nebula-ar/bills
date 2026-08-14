@@ -475,15 +475,22 @@ export function findStaffSalesInRange(input: { branchId: string; staffId: string
 }
 
 // Para anular hay que saber qué deshacer: qué stock devolver y qué deuda borrar.
-export function findSaleForCancellation(saleId: string) {
+// La anulación se scoping por negocio cuando se conoce (businessId): un call a
+// la action de otra empresa no puede anular ventas ajenas. `businessId`
+// opcional para no romper callers que hoy no lo pasan (se agrega de a uno).
+export function findSaleForCancellation(saleId: string, businessId?: string) {
   return prisma.sale.findFirst({
     where: {
       id: saleId,
       deleted: false,
+      ...(businessId ? { branch: { businessId } } : {}),
     },
     select: {
       id: true,
       status: true,
+      // Para rechazar la anulación de una venta con comprobante ya emitido
+      // (SALE_HAS_ISSUED_INVOICE, ver cancel-sale.use-case).
+      afipStatus: true,
       notes: true,
       branchId: true,
       customerId: true,

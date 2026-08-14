@@ -68,7 +68,7 @@ export async function cancelSaleAction(formData: FormData) {
   }
 
   try {
-    await cancelSale({ saleId, reason });
+    await cancelSale({ saleId, reason, businessId: session.user.businessId, userId: session.user.id });
   } catch (error) {
     if (error instanceof SaleError) {
       redirectWithMessage("error", getSaleErrorMessage(error.code));

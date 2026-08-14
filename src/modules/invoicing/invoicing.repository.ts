@@ -26,6 +26,8 @@ export function findSaleForInvoicing(saleId: string, businessId: string) {
       customerName: true,
       customerTaxId: true,
       customerTaxCondition: true,
+      // Para el guard de doble emisión (INVOICE_ALREADY_ISSUED).
+      afipStatus: true,
     },
   });
 }

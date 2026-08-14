@@ -3,14 +3,80 @@
 import { TaxCondition } from "@/generated/prisma/client";
 import { requireAdminSession } from "@/lib/auth";
 import { getBusinessErrorMessage } from "@/lib/business-error-messages";
+import { getInvoicingErrorMessage } from "@/lib/invoicing-error-messages";
+import { getSaleErrorMessage } from "@/lib/sale-error-messages";
 import { logError } from "@/lib/logger";
 import { BusinessError } from "@/modules/business/business.errors";
 import { requestProductionCertificate } from "@/modules/business/request-production-certificate.use-case";
 import { updateFiscalDataForManagement } from "@/modules/business/update-business-fiscal-data.use-case";
+import { attemptInvoiceEmission } from "@/modules/invoicing/attempt-invoice-emission.use-case";
+import { InvoicingError } from "@/modules/invoicing/invoicing.errors";
+import { cancelSale } from "@/modules/sales/cancel-sale.use-case";
+import { SaleError } from "@/modules/sales/sale.errors";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 const genericErrorMessage = "No pudimos guardar los datos fiscales. Intentá de nuevo.";
 const certificateGenericError = "No pudimos generar el certificado. Intentá de nuevo.";
+const invoiceGenericErrorMessage = "No pudimos emitir la factura. Intentá de nuevo.";
+const cancelGenericErrorMessage = "No pudimos anular la venta. Intentá de nuevo.";
+
+export type ComprobanteActionResult = { ok: true } | { ok: false; error: string };
+
+// Emisión de comprobante desde la grilla de Facturación: no redirige (a
+// diferencia de las acciones de formulario) para que el Dialog pueda mostrar
+// el resultado con el Toast sin recargar la pantalla. Reutiliza el mismo use
+// case que el historial de ventas (attemptInvoiceEmission).
+export async function emitComprobanteAction(saleId: string): Promise<ComprobanteActionResult> {
+  const session = await requireAdminSession();
+
+  try {
+    const result = await attemptInvoiceEmission({ saleId, businessId: session.user.businessId });
+    if (result.ok) {
+      revalidatePath("/facturacion");
+      revalidatePath("/sales");
+    }
+    return result;
+  } catch (error) {
+    if (error instanceof InvoicingError) {
+      return { ok: false, error: getInvoicingErrorMessage(error.code) };
+    }
+
+    await logError("invoice.emit.facturacion", error, { businessId: session.user.businessId, userId: session.user.id, context: { saleId } });
+    return { ok: false, error: invoiceGenericErrorMessage };
+  }
+}
+
+// Anulación de una venta todavía NO facturada desde la grilla de Facturación.
+// Es la misma cancelación que el historial de ventas (revierte stock y cuenta
+// corriente); acá se expone con confirmación en el Dialog. Para ventas con
+// comprobante emitido no se ofrece: anular un comprobante AFIP emitido sería
+// una nota de crédito, que está fuera del alcance de esta migración.
+export async function anularComprobanteAction(formData: FormData): Promise<ComprobanteActionResult> {
+  const session = await requireAdminSession();
+
+  const saleId = parseRequiredString(formData, "saleId");
+  const reason = parseOptionalString(formData, "reason");
+
+  if (!saleId) {
+    return { ok: false, error: "No encontramos la venta para anular." };
+  }
+
+  try {
+    await cancelSale({ saleId, reason: reason ?? undefined, businessId: session.user.businessId, userId: session.user.id });
+  } catch (error) {
+    if (error instanceof SaleError) {
+      return { ok: false, error: getSaleErrorMessage(error.code) };
+    }
+
+    await logError("sale.cancel.facturacion", error, { businessId: session.user.businessId, userId: session.user.id, context: { saleId } });
+    return { ok: false, error: cancelGenericErrorMessage };
+  }
+
+  revalidatePath("/facturacion");
+  revalidatePath("/sales");
+  return { ok: true };
+}
 
 export async function updateFiscalData(formData: FormData) {
   const session = await requireAdminSession();
