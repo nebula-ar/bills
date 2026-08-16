@@ -218,6 +218,54 @@ export function findRecentStockMovements(branchId: string, limit = 50) {
   });
 }
 
+// Últimos movimientos de UN producto en una sucursal, para el historial de su
+// ficha. Distinta de `findRecentStockMovements`, que trae los de toda la
+// sucursal para la pantalla de historial: acá el filtro por producto cambia el
+// índice que conviene usar y hace falta el autor, que allá no se muestra.
+//
+// Se acota con `take` y no se pagina: acá se viene a mirar "qué pasó
+// últimamente", no a auditar. Traer todo para mostrar ocho sería pagar una
+// consulta grande en cada apertura de ficha.
+export async function findProductStockMovements(input: {
+  branchId: string;
+  productId: string;
+  limit?: number;
+}) {
+  const movimientos = await prisma.stockMovement.findMany({
+    where: { branchId: input.branchId, productId: input.productId },
+    orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+    take: input.limit ?? 8,
+    select: {
+      id: true,
+      type: true,
+      quantity: true,
+      reason: true,
+      saleId: true,
+      occurredAt: true,
+      createdById: true,
+    },
+  });
+
+  // Los autores se resuelven en UNA consulta y no con un `include` por fila:
+  // ocho movimientos de la misma cajera serían ocho joins para el mismo nombre.
+  const autorIds = [...new Set(movimientos.map((m) => m.createdById).filter((id): id is string => Boolean(id)))];
+  const autores = autorIds.length
+    ? await prisma.user.findMany({ where: { id: { in: autorIds } }, select: { id: true, name: true } })
+    : [];
+  const nombrePorId = new Map(autores.map((a) => [a.id, a.name]));
+
+  return movimientos.map((m) => ({
+    id: m.id,
+    type: m.type,
+    quantity: m.quantity,
+    reason: m.reason,
+    saleId: m.saleId,
+    occurredAt: m.occurredAt,
+    // Sin usuario no se inventa uno: hay movimientos que asienta el sistema.
+    autor: m.createdById ? nombrePorId.get(m.createdById) ?? null : null,
+  }));
+}
+
 // Productos por debajo del punto de reposición. Es la consulta que alimenta el
 // aviso de "falta reponer" en el inicio.
 export async function findLowStockProducts(businessId: string, branchId?: string) {

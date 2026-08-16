@@ -1,5 +1,6 @@
 import type { ProductKind, Unit } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import type { ProductChangeField } from "@/generated/prisma/enums";
 
 export type CreateGlobalProductRepositoryInput = {
   businessId: string;
@@ -86,6 +87,7 @@ export async function findProductManagementData(businessId: string, selectedBran
       cost: true,
       trackStock: true,
       minStock: true,
+      idealStock: true,
       packSize: true,
       packLabel: true,
       categoryId: true,
@@ -148,6 +150,7 @@ export async function findProductManagementData(businessId: string, selectedBran
         cost: product.cost,
         trackStock: product.trackStock,
         minStock: product.minStock,
+        idealStock: product.idealStock,
         packSize: product.packSize,
         packLabel: product.packLabel,
         categoryId: product.categoryId,
@@ -205,9 +208,20 @@ export function findProductManagementProductById(productId: string, businessId: 
         deleted: false,
       },
     },
+    // Trae los campos auditables además del id: el historial necesita el
+    // "antes", y después del update ese valor ya no existe. Son columnas de la
+    // misma fila, así que no cuesta una consulta extra.
     select: {
       id: true,
       businessId: true,
+      name: true,
+      description: true,
+      sku: true,
+      barcode: true,
+      cost: true,
+      minStock: true,
+      idealStock: true,
+      categoryId: true,
     },
   });
 }
@@ -234,6 +248,7 @@ export type UpdateProductDetailsInput = {
   cost?: number | null;
   trackStock?: boolean;
   minStock?: number | null;
+  idealStock?: number | null;
   packSize?: number | null;
   packLabel?: string | null;
   categoryId?: string | null;
@@ -254,6 +269,7 @@ export function updateProductDetails(input: UpdateProductDetailsInput) {
       ...(input.cost !== undefined ? { cost: input.cost } : {}),
       ...(input.trackStock !== undefined ? { trackStock: input.trackStock } : {}),
       ...(input.minStock !== undefined ? { minStock: input.minStock } : {}),
+      ...(input.idealStock !== undefined ? { idealStock: input.idealStock } : {}),
       ...(input.packSize !== undefined ? { packSize: input.packSize } : {}),
       ...(input.packLabel !== undefined ? { packLabel: input.packLabel } : {}),
       ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
@@ -367,4 +383,77 @@ export async function findCatalogForPromotions(businessId: string) {
 // puede vender nada: el panel lo avisa y el catálogo abre su onboarding.
 export function countActiveProducts(businessId: string) {
   return prisma.product.count({ where: { businessId, deleted: false } });
+}
+
+// Asienta los cambios de un producto. Append-only: nunca se actualiza ni se
+// borra una fila del historial — uno que se puede editar no sirve para lo que
+// existe.
+//
+// `createMany` en una sola llamada y no un create por campo: guardar precio y
+// costo a la vez son dos filas, y dos viajes a la base para eso no se pagan.
+export async function recordProductChanges(input: {
+  productId: string;
+  businessId: string;
+  branchId?: string | null;
+  changedById?: string | null;
+  cambios: { field: ProductChangeField; previous: string | null; next: string | null }[];
+}) {
+  if (input.cambios.length === 0) return;
+
+  await prisma.productChange.createMany({
+    data: input.cambios.map((cambio) => ({
+      productId: input.productId,
+      businessId: input.businessId,
+      branchId: input.branchId ?? null,
+      changedById: input.changedById ?? null,
+      field: cambio.field,
+      previous: cambio.previous,
+      next: cambio.next,
+    })),
+  });
+}
+
+// Historial reciente de un producto, para la pestaña de la ficha.
+//
+// Acotado con `take`: acá se viene a ver qué pasó últimamente. El autor se
+// resuelve en una sola consulta, igual que en los movimientos de stock.
+export async function findProductChanges(input: { productId: string; businessId: string; limit?: number }) {
+  const cambios = await prisma.productChange.findMany({
+    where: { productId: input.productId, businessId: input.businessId },
+    orderBy: [{ changedAt: "desc" }, { id: "desc" }],
+    take: input.limit ?? 12,
+    select: {
+      id: true,
+      field: true,
+      previous: true,
+      next: true,
+      changedAt: true,
+      changedById: true,
+    },
+  });
+
+  const autorIds = [...new Set(cambios.map((c) => c.changedById).filter((id): id is string => Boolean(id)))];
+  const autores = autorIds.length
+    ? await prisma.user.findMany({ where: { id: { in: autorIds } }, select: { id: true, name: true } })
+    : [];
+  const nombrePorId = new Map(autores.map((a) => [a.id, a.name]));
+
+  return cambios.map((c) => ({
+    id: c.id,
+    field: c.field,
+    previous: c.previous,
+    next: c.next,
+    changedAt: c.changedAt,
+    autor: c.changedById ? nombrePorId.get(c.changedById) ?? null : null,
+  }));
+}
+
+// La configuración vigente de un producto en una sucursal. La usa el historial
+// para saber el "antes" del precio y la disponibilidad, que después del upsert
+// ya no se puede recuperar.
+export function findBranchProductConfig(branchId: string, productId: string) {
+  return prisma.branchProductPrice.findFirst({
+    where: { branchId, productId },
+    select: { price: true, active: true },
+  });
 }

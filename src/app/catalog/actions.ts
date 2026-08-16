@@ -1,6 +1,7 @@
 "use server";
 
 import { AppModule, ProductKind, Unit } from "@/generated/prisma/client";
+import type { ProductChangeField, StockMovementType } from "@/generated/prisma/enums";
 import { requireAdminSession } from "@/lib/auth";
 import { requireBusinessContext } from "@/lib/business-context";
 import { verticalFeatures } from "@/lib/vertical";
@@ -10,10 +11,16 @@ import { getProductErrorMessage } from "@/lib/catalog-error-messages";
 import { createFullProduct } from "@/modules/catalog/create-full-product.use-case";
 import { ProductError } from "@/modules/catalog/product.errors";
 import { updateGlobalProduct } from "@/modules/catalog/update-product.use-case";
+import { findProductChanges } from "@/modules/catalog/product.repository";
 import { removeProductImage, saveProductImage } from "@/modules/catalog/product-image.use-case";
 import { upsertBranchProductConfiguration } from "@/modules/catalog/upsert-branch-product-config.use-case";
-import { analizarProductoEnPeriodo } from "@/modules/catalog/product-analytics.use-case";
+import {
+  analizarProductoEnPeriodo,
+  rendimientoDeProducto,
+  serieDiariaDeProducto,
+} from "@/modules/catalog/product-analytics.use-case";
 import { parsePeriodo as parsePeriodoDeAnalisis, rangoDelPeriodo } from "@/modules/sales/sales-period.logic";
+import { findBranchForStock, findProductStockMovements } from "@/modules/stock/stock.repository";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -105,6 +112,7 @@ export async function saveBranchProductConfig(formData: FormData) {
 
   try {
     await upsertBranchProductConfiguration({
+      changedById: session.user.id,
       businessId: session.user.businessId,
       branchId,
       productId,
@@ -137,6 +145,7 @@ export async function toggleProductAvailability(input: {
 
   try {
     await upsertBranchProductConfiguration({
+      changedById: session.user.id,
       businessId: session.user.businessId,
       branchId: input.branchId,
       productId: input.productId,
@@ -185,6 +194,7 @@ export async function updateProductDetails(formData: FormData): Promise<UpdatePr
 
   try {
     await updateGlobalProduct({
+      changedById: session.user.id,
       businessId: session.user.businessId,
       productId,
       name,
@@ -233,6 +243,7 @@ export async function updateProduct(formData: FormData) {
 
   try {
     await updateGlobalProduct({
+      changedById: session.user.id,
       businessId: session.user.businessId,
       productId,
       name,
@@ -262,6 +273,7 @@ function parseCommercialFields(formData: FormData) {
   const unitRaw = parseOptionalString(formData, "unit");
   const costRaw = parseOptionalString(formData, "cost");
   const minStockRaw = parseOptionalString(formData, "minStock");
+  const idealStockRaw = parseOptionalString(formData, "idealStock");
   const packSizeRaw = parseOptionalString(formData, "packSize");
   const kind =
     kindRaw && (Object.values(ProductKind) as string[]).includes(kindRaw) ? (kindRaw as ProductKind) : undefined;
@@ -279,6 +291,9 @@ function parseCommercialFields(formData: FormData) {
     trackStock: kind === undefined ? undefined : kind !== ProductKind.SERVICE,
     // El mínimo se tipea en unidades y se guarda en milésimas, igual que el stock.
     minStock: minStockRaw ? parseQuantityInput(minStockRaw) : null,
+    // El ideal, igual. Contesta otra pregunta que el mínimo: aquél dice
+    // cuándo reponer, éste cuánto.
+    idealStock: idealStockRaw ? parseQuantityInput(idealStockRaw) : null,
     // El bulto se cuenta en unidades enteras: media caja no existe.
     packSize: packSizeRaw ? parseWholeAmount(packSizeRaw) : null,
     packLabel: parseOptionalString(formData, "packLabel") ?? null,
@@ -477,5 +492,144 @@ export async function getProductAnalytics(
       context: { productId, periodo },
     });
     return { ok: false, error: "No pudimos calcular los números. Intentá de nuevo." };
+  }
+}
+
+export type MovimientoDeFicha = {
+  id: string;
+  type: StockMovementType;
+  /** Con signo, en milésimas. */
+  quantity: number;
+  reason: string | null;
+  saleId: string | null;
+  /** ISO: las fechas no cruzan el límite servidor→cliente como Date. */
+  occurredAt: string;
+  autor: string | null;
+};
+
+export type MovimientosDeFichaResult =
+  | { ok: true; movimientos: MovimientoDeFicha[] }
+  | { ok: false; error: string };
+
+// Últimos movimientos de stock de un producto, para el historial de su ficha.
+//
+// La sucursal se valida contra el negocio de la sesión y no se cree la que
+// manda el cliente: sin eso, cambiando un id en el navegador se leería el
+// movimiento de stock de otro comercio.
+export async function getProductStockMovements(
+  productId: string,
+  branchId: string,
+): Promise<MovimientosDeFichaResult> {
+  const session = await requireAdminSession();
+
+  try {
+    const sucursal = await findBranchForStock(branchId, session.user.businessId);
+    if (!sucursal) {
+      return { ok: false, error: "No encontramos esa sucursal." };
+    }
+
+    const movimientos = await findProductStockMovements({ branchId: sucursal.id, productId });
+
+    return {
+      ok: true,
+      movimientos: movimientos.map((m) => ({ ...m, occurredAt: m.occurredAt.toISOString() })),
+    };
+  } catch (error) {
+    logError("catalog.movimientos", error);
+    return { ok: false, error: "No pudimos traer los movimientos." };
+  }
+}
+
+export type SerieDeProductoResult =
+  | { ok: true; serie: { dia: string; etiqueta: string; facturado: number }[] }
+  | { ok: false; error: string };
+
+// Facturación día por día del producto, para el gráfico de Rentabilidad.
+//
+// Los días se piden acá con `new Date()` y no se reciben del cliente: la
+// ventana del gráfico la decide el servidor, no el navegador de quien mira.
+export async function getProductDailySeries(productId: string, dias = 7): Promise<SerieDeProductoResult> {
+  const session = await requireAdminSession();
+
+  try {
+    const acotado = Math.min(Math.max(Math.trunc(dias), 1), 31);
+    const serie = await serieDiariaDeProducto({
+      businessId: session.user.businessId,
+      productId,
+      hasta: new Date(),
+      dias: acotado,
+    });
+
+    return { ok: true, serie };
+  } catch (error) {
+    logError("catalog.serie", error);
+    return { ok: false, error: "No pudimos traer las ventas por día." };
+  }
+}
+
+export type RendimientoResult =
+  | {
+      ok: true;
+      rendimiento: {
+        puesto: number | null;
+        deCuantos: number;
+        participacion: number | null;
+        variacion: number | null;
+        categoriaNombre: string | null;
+      };
+    }
+  | { ok: false; error: string };
+
+// Ranking, participación y comparación del producto para el período elegido.
+//
+// Va aparte del análisis y de la serie: son tres consultas comparativas que
+// recorren las ventas de TODO el negocio, así que solo se pagan si el bloque
+// está a la vista.
+export async function getProductRendimiento(productId: string, periodo: string): Promise<RendimientoResult> {
+  const session = await requireAdminSession();
+
+  try {
+    const rango = rangoDelPeriodo(parsePeriodoDeAnalisis(periodo), new Date());
+    const rendimiento = await rendimientoDeProducto({
+      businessId: session.user.businessId,
+      productId,
+      desde: rango.desde,
+      hasta: rango.hasta,
+    });
+
+    return { ok: true, rendimiento };
+  } catch (error) {
+    logError("catalog.rendimiento", error);
+    return { ok: false, error: "No pudimos comparar contra el resto." };
+  }
+}
+
+export type CambioDeFicha = {
+  id: string;
+  field: ProductChangeField;
+  previous: string | null;
+  next: string | null;
+  changedAt: string;
+  autor: string | null;
+};
+
+export type HistorialResult = { ok: true; cambios: CambioDeFicha[] } | { ok: false; error: string };
+
+// Historial de cambios del producto. El negocio sale de la sesión, nunca del
+// cliente: el historial es de quién cambió qué, y no se lee el de otro comercio
+// cambiando un id en el navegador.
+export async function getProductHistory(productId: string): Promise<HistorialResult> {
+  const session = await requireAdminSession();
+
+  try {
+    const cambios = await findProductChanges({ productId, businessId: session.user.businessId });
+
+    return {
+      ok: true,
+      cambios: cambios.map((c) => ({ ...c, changedAt: c.changedAt.toISOString() })),
+    };
+  } catch (error) {
+    logError("catalog.historial", error);
+    return { ok: false, error: "No pudimos traer el historial." };
   }
 }

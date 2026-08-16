@@ -525,6 +525,15 @@ model Product {
   trackStock     Boolean     @default(false)
   // Punto de reposición: por debajo de esto la app avisa. En milésimas.
   minStock       Int?
+  // A cuánto se quiere volver al reponer. En milésimas.
+  //
+  // Es otra pregunta que `minStock`: el mínimo dice CUÁNDO comprar, éste dice
+  // CUÁNTO. Sin él, la app avisa que quedan 8 medialunas pero el dueño tiene
+  // que acordarse solo de que las quiere en 30, y termina comprando de más o
+  // de menos. Opcional: la mayoría de los rubros no lo usa, y forzarlo sería
+  // pedir un número que nadie tiene pensado.
+  idealStock     Int?
+  changes        ProductChange[]
   // Venta por bulto: cuántas unidades trae la caja/pack. El stock se sigue
   // llevando en unidades sueltas (una caja abierta se vende de a uno), así que
   // esto es solo un atajo de carga: "+1 caja" agrega packSize unidades.
@@ -1850,4 +1859,49 @@ model QuoteItem {
 
   @@index([quoteId])
   @@index([productId])
+}
+
+// Auditoría de cambios de un producto: qué se tocó, de qué a qué y quién.
+//
+// Es append-only, igual que StockMovement: un historial que se puede editar no
+// sirve para lo que existe. El stock ya tenía su rastro; esto cubre lo otro que
+// se cambia y después nadie se acuerda —precio, costo, disponibilidad—, que es
+// justo donde aparecen las discusiones ("¿por qué está a 9.520?").
+//
+// `previous`/`next` van como texto y guardan el valor CRUDO (el entero de la
+// plata, no "$ 9.520"): formatear al guardar congelaría el formato de hoy, y
+// dentro de un año el historial mostraría una moneda o una unidad que ya no se
+// usa. El formato lo pone la pantalla.
+model ProductChange {
+  id          String             @id @default(cuid())
+  productId   String
+  businessId  String
+  // Por sucursal cuando el cambio es de sucursal (precio, disponibilidad).
+  branchId    String?
+  field       ProductChangeField
+  previous    String?
+  next        String?
+  // Opcional: hay cambios que asienta el sistema, y ahí no se inventa un autor.
+  changedById String?
+  changedAt   DateTime           @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, changedAt])
+  @@index([businessId, changedAt])
+}
+
+// Enum y no texto libre: con un string terminaríamos con "price", "precio" y
+// "Precio" conviviendo, y el historial no se podría ni filtrar ni traducir.
+enum ProductChangeField {
+  NAME
+  PRICE
+  COST
+  DESCRIPTION
+  AVAILABILITY
+  MIN_STOCK
+  IDEAL_STOCK
+  SKU
+  BARCODE
+  CATEGORY
 }
