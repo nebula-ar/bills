@@ -4,31 +4,205 @@
    catálogo (DataGrid, Dialog, Uploader, RichTextEditor) con la misma pinta
    que el resto de la app. */
 
-/* ── DataGrid del catálogo: filas como tarjetas del listado viejo ── */
+/* ── Medidas exactas de la tabla de Productos ───────────────────────────
+   Van en CSS plano y no en clases de Tailwind, por dos motivos:
+
+   1. La escala de radios del proyecto sale de `--radius`, así que las
+      utilidades con nombre no caen en píxeles predecibles: `rounded-md` acá
+      mide 12,8px, no los 6 del default. Medido en el navegador.
+   2. Las utilidades de valor arbitrario (`rounded-[6px]`) se generan en el
+      build de producción pero NO en este dev server —verificado: cero reglas
+      `rounded-\[…\]` en el CSS servido, incluso con el cache borrado y
+      arranque en frío—. Depender de eso deja la pantalla distinta según dónde
+      la mires, que es peor que un archivo de CSS.
+   ─────────────────────────────────────────────────────────────────────── */
+/* Padding solo arriba y abajo, cero a los costados. No es media medida: la
+   banda de totales, el borde del encabezado y los separadores de fila están
+   hechos para llegar de borde a borde. Con padding horizontal quedaban con 8px
+   de blanco a cada lado y se leía como un marco adentro de otro —la tarjeta
+   dibujando un borde, y el contenido dibujando otro más chico adentro—.
+   Las dos cosas no pueden convivir, así que el aire va donde no pelea. */
+.catalog-card {
+  border-radius: 14px;
+  padding: 8px 0;
+}
+
+/* La miniatura del producto. El placeholder (sin foto) usa la MISMA clase a
+   propósito: si midiera distinto, las filas sin foto quedarían más bajas y la
+   columna se vería quebrada. */
+.catalog-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+}
+
+/* ── DataGrid del catálogo ──────────────────────────────────────────────
+   Tres cosas mandan acá, en este orden:
+
+   1. CLARIDAD. La cabecera estaba en 12px, gris claro y con `letter-spacing`
+      abierto: se leía peor que los datos que titula. Sube a 13px, peso 700 y
+      un gris que contrasta de verdad. Sigue en mayúsculas —es la convención
+      de tabla del resto de la app— pero sin partirse en dos renglones.
+
+   2. EL CONTENIDO MANDA. La foto del producto es como el dueño lo reconoce,
+      así que crece de 36 a 48px. El cromo (íconos de menú y de orden) se
+      corre: aparece al pasar por encima de la cabecera, no todo el tiempo.
+
+   3. JERARQUÍA POR ESPACIO, NO POR LÍNEAS. Nada de bordes verticales entre
+      columnas: la separación la dan el aire y la alineación (los números a la
+      derecha, con cifras de ancho fijo para que las comas caigan en la misma
+      vertical). Una línea horizontal muy tenue entre filas alcanza para
+      seguir el renglón sin dibujar una grilla de Excel.
+   ─────────────────────────────────────────────────────────────────────── */
 .e-grid.e-catalog-grid {
   border: 0;
   font-size: 0.875rem;
 }
+
+/* Cabecera */
 .e-grid.e-catalog-grid .e-gridheader {
   background: transparent;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  /* El tema le pone una hairline arriba (0,8px sólida) que acá no separa nada:
+     queda flotando adentro del blanco que deja el padding vertical de la
+     tarjeta, y se lee como un renglón de más. El `!important` es necesario:
+     el tema la aplica desde selectores más específicos que este. */
+  border-top: none !important;
 }
 .e-grid.e-catalog-grid .e-gridheader .e-headercell {
   background: transparent;
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
+.e-grid.e-catalog-grid .e-gridheader .e-headertext {
+  color: #475569; /* slate-600: 5.9:1 sobre blanco, el gris de antes no llegaba */
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
+  /* "Disponible" se partía en "DISPONIB / LE". Un título de columna que se
+     corta deja de leerse como título. */
+  white-space: nowrap;
 }
+
+/* El cromo se corre: menú de columna y flecha de orden aparecen al apuntar la
+   cabecera o al enfocar con teclado, y quedan fijos si la columna YA está
+   ordenada o filtrada (ahí dejan de ser cromo y pasan a ser estado). */
+.e-grid.e-catalog-grid .e-columnmenu {
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+.e-grid.e-catalog-grid .e-headercell:hover .e-columnmenu,
+.e-grid.e-catalog-grid .e-headercell:focus-within .e-columnmenu,
+.e-grid.e-catalog-grid .e-columnmenu.e-filtered,
+.e-grid.e-catalog-grid .e-sortfilterdiv {
+  opacity: 1;
+}
+
+/* Aire a los costados, SIN romper el sangrado.
+
+   Va como padding de las celdas de los extremos y no como padding de la
+   tarjeta: el borde de fila y el fondo de la banda de totales viven en la
+   celda, así que siguen llegando hasta el filo mientras el contenido se corre
+   para adentro. (Un `margin-left` no serviría: un <td> ignora el margin.)
+
+   A la derecha se usa `.e-lastcell` y no `:last-child` porque en pantalla
+   chica hay columnas que se esconden: `:last-child` apuntaría a una columna
+   oculta y el aire no aparecería donde se ve. EJ2 mueve `e-lastcell` a la
+   última columna VISIBLE. */
+.e-grid.e-catalog-grid .e-headercell:first-child,
+.e-grid.e-catalog-grid .e-rowcell:first-child,
+.e-grid.e-catalog-grid .e-summarycell:first-child {
+  padding-left: 1.25rem;
+}
+.e-grid.e-catalog-grid .e-lastcell,
+.e-grid.e-catalog-grid .e-summarycell:last-child {
+  padding-right: 1.25rem;
+}
+
+/* Filas */
 .e-grid.e-catalog-grid .e-rowcell {
-  border-bottom: 1px solid #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
   color: #0f172a;
-  padding-top: 0.6rem;
-  padding-bottom: 0.6rem;
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
 }
+/* Números: alineados a la derecha y con cifras de ancho fijo, para poder
+   comparar de un vistazo hacia abajo sin que bailen las comas. */
+.e-grid.e-catalog-grid .e-rowcell.e-templatecell,
+.e-grid.e-catalog-grid .e-rowcell {
+  font-variant-numeric: tabular-nums;
+}
+/* La fila entera abre la ficha, así que tiene que decir que se puede tocar. */
 .e-grid.e-catalog-grid .e-row:hover .e-rowcell {
   background: #f8fafc;
+  cursor: pointer;
 }
+.e-grid.e-catalog-grid .e-row:last-child .e-rowcell {
+  border-bottom: 0;
+}
+
+/* Fila de totales ARRIBA, entre los títulos y los datos: al pie quedaba abajo
+   de diez filas y del paginador, y había que scrollear hasta el final para
+   enterarse de cuánta plata hay en mercadería.
+
+   Se reordena por CSS y NO moviendo el nodo. Syncfusion documenta hacerlo con
+   `getHeaderContent().append(getFooterContent())` en `dataBound`, y funciona en
+   una grilla común, pero acá el pie lo dibuja React (las plantillas de los
+   totales son componentes): sacarle un nodo a React de abajo de su padre le
+   rompe la reconciliación. El síntoma no era la grilla —era que después
+   dejaban de abrirse TODOS los diálogos de la pantalla, incluida la ficha del
+   producto, con la instancia diciendo `visible: true` y el nodo en
+   `e-popup-close`. Con `order` cada uno se queda donde React lo puso.
+
+   El orden se declara completo a propósito: con `order` alcanza con que un solo
+   hijo lo tenga para que el resto quede atrás, así que se numeran todos y se
+   lee de una qué va antes que qué. */
+.e-grid.e-catalog-grid {
+  display: flex;
+  flex-direction: column;
+}
+.e-grid.e-catalog-grid > .e-toolbar {
+  order: 1;
+}
+.e-grid.e-catalog-grid > .e-gridheader {
+  order: 2;
+}
+.e-grid.e-catalog-grid > .e-gridfooter {
+  order: 3;
+  border: 0;
+}
+.e-grid.e-catalog-grid > .e-gridcontent {
+  order: 4;
+}
+.e-grid.e-catalog-grid > .e-gridpager {
+  order: 5;
+}
+/* La línea de arriba ya la pone el `border-bottom` de `.e-gridheader`; acá va
+   solo la de abajo, que separa el resumen de los datos. Con las dos se veía un
+   doble filete. Sin `cursor: pointer` ni hover: es un resumen, no una fila que
+   abra una ficha. */
+.e-grid.e-catalog-grid .e-summaryrow .e-summarycell {
+  background: #f8fafc;
+  border-top: 0;
+  border-bottom: 1px solid #e2e8f0;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  /* El tema corta el texto del resumen en una sola línea. En la columna
+     angosta de mobile eso dejaba "Totales sobre lo q" —cortado, sin puntos
+     suspensivos siquiera—. Un total que no se puede leer no sirve de nada, así
+     que acá se envuelve. */
+  white-space: normal;
+}
+/* El tema pone los totales en itálica y con su gris; acá el número tiene que
+   pesar más que los de arriba, no menos. */
+.e-grid.e-catalog-grid .e-summaryrow .e-summarycell,
+.e-grid.e-catalog-grid .e-summaryrow .e-stackedheadercelldiv {
+  font-style: normal;
+  color: inherit;
+}
+
 /* Empty state y pager con la tipografía del app */
 .e-grid.e-catalog-grid .e-emptyrow {
   padding: 1.5rem 0;
@@ -39,6 +213,28 @@
   border-radius: 1.25rem;
   max-width: min(640px, calc(100vw - 24px));
 }
+
+/* La ficha del producto necesita más ancho que el alta: el alta es un paso a
+   la vez (una pregunta por pantalla) y entra en 640px, pero la ficha muestra
+   foto + datos en dos columnas. Topada en 640 quedaban ~200px por columna y
+   TODO se partía: "Precio en Pasterleria bakert" en dos renglones, el
+   uploader cortado, "Disponible para vender" en dos líneas. */
+.e-dialog.e-catalog-dialog.e-catalog-ficha {
+  max-width: min(880px, calc(100vw - 24px));
+}
+
+/* El acento del tema de Syncfusion es magenta y acá el primario es el Action
+   Blue de la app: sin esto la ficha se veía de otro producto. Se pisan solo
+   los puntos donde el tema mete su color de marca. */
+.e-dialog.e-catalog-dialog .e-btn.e-primary,
+.e-dialog.e-catalog-dialog .e-css.e-btn.e-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.e-dialog.e-catalog-dialog .e-input-group:not(.e-disabled).e-input-focus::before,
+.e-dialog.e-catalog-dialog .e-input-group:not(.e-disabled).e-input-focus::after {
+  background: var(--primary);
+}
 .e-dialog.e-catalog-dialog .e-dlg-header {
   font-family: inherit;
   font-weight: 800;
@@ -48,6 +244,30 @@
   font-family: inherit;
   max-height: 76vh;
   overflow-y: auto;
+}
+
+/* Márgenes internos. El tema traía 18px a los costados, que en un diálogo de
+   880px deja el contenido pegado al borde. El header y el contenido llevan el
+   MISMO valor a propósito: si no coinciden, el título no arranca en la misma
+   vertical que lo de abajo y se nota como un escalón.
+
+   Arriba del contenido va poco (8px) porque lo primero que viene son las
+   pestañas, que ya traen su propio aire; abajo va más, para que el botón de
+   guardar no quede lamiendo el filo. */
+.e-dialog.e-catalog-dialog .e-dlg-header-content {
+  padding: 1.25rem 1.5rem 1rem;
+}
+.e-dialog.e-catalog-dialog.e-catalog-ficha .e-dlg-header-content {
+  padding: 1.25rem 1.75rem 1rem;
+}
+
+/* En la ficha, EJ2 deja el <form> como hermano de `.e-dlg-content` en vez de
+   adentro, así que ese contenedor queda VACÍO. Con padding, esa caja sin
+   contenido metía 36px muertos entre el título y las pestañas: el hueco que se
+   veía no era separación de nada, era una caja vacía ocupando lugar. Se
+   colapsa a cero y el aire real lo pone el padding del form. */
+.e-dialog.e-catalog-dialog.e-catalog-ficha .e-dlg-content {
+  padding: 0;
 }
 
 /* ── RichTextEditor: misma pinta que los inputs de la app ── */
@@ -77,12 +297,120 @@
   padding: 0.75rem 1rem;
 }
 
-/* ── Uploader del catálogo: la zona de drop con la pinta del listado ── */
-.e-upload.e-catalog-uploader .e-file-select-wrap {
-  border-radius: 1.25rem;
+/* ── Uploader del catálogo: oculto, porque la foto ES el control ──
+   El componente ya trae `style={{ display: "none" }}`, pero EJ2 construye su
+   propio wrapper (botón "Navegar…" + zona de drop) al costado del elemento que
+   React renderiza, así que ese inline style no lo alcanza y la caja quedaba a
+   la vista. Resultado: la misma foto representada dos veces, la imagen arriba
+   y un "Navegar… o suelta archivos aquí" abajo.
+
+   Se esconde por CSS sobre la clase que EJ2 sí aplica. El selector se sigue
+   abriendo: `openPicker()` hace click sobre el <input type=file> de adentro, y
+   un input oculto abre igual el diálogo del sistema — es el patrón de toda la
+   vida del input de archivo escondido. */
+.e-upload.e-catalog-uploader {
+  /* Oculto a la vista pero SIGUE RENDERIZANDO. No es lo mismo que
+     `display: none`: Chrome no abre el diálogo de archivos cuando se hace
+     `.click()` por código sobre un input que no se renderiza, así que con
+     `display: none` la foto simplemente no se podía cambiar — el botón parecía
+     no andar. Verificado en el navegador: `getClientRects().length === 0`.
+
+     `position: absolute` lo saca del flujo, así que no ocupa lugar igual. */
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0 !important;
 }
-.e-upload.e-catalog-uploader .e-file-drop {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: #475569;
+
+/* ── Dropdowns con la pinta de los inputs de la app ─────────────────────
+   El DropDownList de EJ2 venía con el tamaño del tema: 29,6px de alto y 12px
+   de radio, contra los 53,6px y 28,8px del resto de los campos de la ficha
+   (medido en el navegador). Al lado de un input normal parecía de otra
+   aplicación —la mitad de alto y con otras esquinas—, y encima queda por
+   debajo del mínimo de 44px que necesita un dedo.
+
+   El radio sale de la misma variable que usa Tailwind acá; el valor de reserva
+   es exactamente lo que mide `rounded-2xl` en este proyecto.
+
+   Este archivo solo se carga en la pantalla de Productos, así que alcanza con
+   apuntar a `.e-ddl` sin acotar más. */
+.e-ddl.e-input-group.e-control-wrapper {
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-2xl, 1.8rem);
+  background: #f8fafc;
+  height: auto;
+  padding: 0;
+  transition:
+    border-color 0.15s ease-out,
+    background-color 0.15s ease-out,
+    box-shadow 0.15s ease-out;
+}
+
+/* El tema dibuja el foco como un subrayado que crece desde abajo. Acá el foco
+   es un anillo alrededor del campo, igual que en todos los inputs: dos idiomas
+   distintos para lo mismo hacen dudar de si son controles distintos. */
+.e-ddl.e-input-group.e-control-wrapper::before,
+.e-ddl.e-input-group.e-control-wrapper::after {
+  display: none !important;
+}
+
+.e-ddl.e-input-group.e-control-wrapper.e-input-focus {
+  border-color: color-mix(in oklab, var(--primary) 40%, transparent);
+  background: #fff;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 15%, transparent);
+}
+
+.e-ddl.e-input-group.e-control-wrapper .e-input,
+.e-ddl.e-input-group.e-control-wrapper input.e-input {
+  background: transparent;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 600;
+  height: auto;
+  padding: 14px 16px;
+}
+
+.e-ddl.e-input-group.e-control-wrapper .e-input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* La flecha, del mismo gris que el resto del cromo y con aire a la derecha. */
+.e-ddl.e-input-group.e-control-wrapper .e-input-group-icon.e-ddl-icon {
+  background: transparent;
+  border: 0;
+  color: #64748b;
+  margin: 0;
+  padding-right: 0.75rem;
+}
+
+/* ── La lista que se abre ── */
+.e-ddl.e-popup {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  box-shadow: 0 16px 40px -12px rgba(15, 23, 42, 0.22);
+  overflow: hidden;
+}
+.e-ddl.e-popup .e-list-item {
+  color: #0f172a;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  /* 44px de alto: es el mínimo para tocar con el dedo sin errarle. */
+  line-height: 1.3;
+  padding: 0.75rem 1rem;
+}
+.e-ddl.e-popup .e-list-item.e-hover {
+  background: #f1f5f9;
+}
+/* La opción elegida se marca con el color de la app, no con el del tema. */
+.e-ddl.e-popup .e-list-item.e-active,
+.e-ddl.e-popup .e-list-item.e-active.e-hover {
+  background: color-mix(in oklab, var(--primary) 10%, transparent);
+  color: var(--primary);
+  font-weight: 800;
 }

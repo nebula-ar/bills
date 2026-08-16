@@ -1,7 +1,7 @@
 "use client";
 
 import { applyProductStockAction, type StockOp } from "@/app/catalog/stock-actions";
-import { ArrowRight, Check, Loader2, Package, X } from "@/components/icons";
+import { Check, Loader2, Package, X } from "@/components/icons";
 import type { Unit } from "@/generated/prisma/enums";
 import { formatQuantity, parseQuantityInput, sanitizeQuantityInput, unitShort } from "@/lib/quantity";
 import { resultadoDeOperacion } from "@/modules/stock/stock-operation.logic";
@@ -29,6 +29,10 @@ const OPS: {
   boton: string;
   pregunta: string;
   ayuda: string;
+  /** El efecto, en dos palabras, para mostrarlo ANTES de elegir. */
+  efecto: string;
+  /** El signo de la cuenta: es lo que distingue las tres de un vistazo. */
+  signo: "+" | "=" | "−";
   placeholder: string;
 }[] = [
   {
@@ -36,6 +40,8 @@ const OPS: {
     boton: "Llegó mercadería",
     pregunta: "¿Cuánto llegó?",
     ayuda: "Se suma a lo que ya había.",
+    efecto: "se suma",
+    signo: "+",
     placeholder: "Lo que entró",
   },
   {
@@ -43,6 +49,8 @@ const OPS: {
     boton: "Conté y hay otra cantidad",
     pregunta: "¿Cuánto hay de verdad?",
     ayuda: "Lo que escribas reemplaza la existencia. No se suma.",
+    efecto: "reemplaza el total",
+    signo: "=",
     placeholder: "Lo que contaste",
   },
   {
@@ -50,6 +58,8 @@ const OPS: {
     boton: "Se perdió o rompió",
     pregunta: "¿Cuánto se perdió?",
     ayuda: "Se descuenta de lo que había.",
+    efecto: "se descuenta",
+    signo: "−",
     placeholder: "Lo que se perdió",
   },
 ];
@@ -147,7 +157,7 @@ export function ProductStockPanel({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-slate-950/5">
+    <div className={`overflow-hidden rounded-2xl ${showSummary ? "bg-slate-50 ring-1 ring-slate-950/5" : ""}`}>
       {/* Qué hay, dicho con todas las letras. "11 un" solo no dice si es lo que
           queda, lo que entró o el mínimo. Se omite cuando el caller ya lo
           muestra arriba (ver `showSummary`). */}
@@ -177,16 +187,38 @@ export function ProductStockPanel({
           Apilados y con el texto entero: en fila y abreviados no se distinguía
           cuál sumaba y cuál reemplazaba. */}
       {!active ? (
-        <div className={`grid gap-1.5 p-2 ${showSummary ? "border-t border-slate-200/70" : ""}`}>
+        <div className={`grid gap-1.5 ${showSummary ? "border-t border-slate-200/70 p-2" : ""}`}>
           {OPS.map((item) => (
             <button
-              className="flex items-center justify-between gap-2 rounded-xl bg-white px-3.5 py-3 text-left text-sm font-black text-slate-700 ring-1 ring-slate-200 transition active:scale-[0.99] hover:ring-slate-300"
+              className="flex items-center gap-3 rounded-xl bg-white px-3 py-2.5 text-left ring-1 ring-slate-200 transition hover:ring-slate-300 active:scale-[0.99]"
               key={item.op}
               onClick={() => abrir(item.op)}
               type="button"
             >
-              {item.boton}
-              <ArrowRight className="size-4 shrink-0 text-slate-400" />
+              {/* El SIGNO en vez de una flecha. La flecha decía "te lleva a otro
+                  lado" —y no lleva a ningún lado, abre un campo acá mismo— y
+                  además era la misma en las tres, justo donde había que
+                  distinguirlas. El signo muestra la cuenta: suma, reemplaza o
+                  resta. Se entiende sin leer. */}
+              <span
+                aria-hidden="true"
+                className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-base font-black ${
+                  item.signo === "+"
+                    ? "bg-emerald-50 text-emerald-700"
+                    : item.signo === "−"
+                      ? "bg-rose-50 text-rose-700"
+                      : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                {item.signo}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-black text-slate-800">{item.boton}</span>
+                {/* El efecto, ANTES de elegir. Estaba escrito pero solo se veía
+                    DESPUÉS de tocar el botón: justo la información que sirve
+                    para decidir cuál tocar aparecía cuando ya habías decidido. */}
+                <span className="block text-xs text-slate-500">{item.efecto}</span>
+              </span>
             </button>
           ))}
         </div>

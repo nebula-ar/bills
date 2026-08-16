@@ -4,6 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 
 import { getProductAnalytics, type AnalisisDeProductoResult } from "@/app/catalog/actions";
 import { Loader2 } from "@/components/icons";
+import { ProductSalesChart } from "@/components/product-sales-chart";
+import { ProductPerformance } from "@/components/product-performance";
 import type { Unit } from "@/generated/prisma/client";
 import { formatQuantity } from "@/lib/quantity";
 import { PERIODO_LABELS, PERIODOS, type Periodo } from "@/modules/sales/sales-period.logic";
@@ -86,6 +88,7 @@ export function ProductAnalyticsTab({
         ))}
       </div>
 
+
       {error ? (
         <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">
           {error}
@@ -155,6 +158,16 @@ export function ProductAnalyticsTab({
                   />
                 ) : null}
               </dl>
+
+              {/* Las tarjetas dicen CUÁNTO; el gráfico dice CUÁNDO. 128 unidades
+                  pueden ser veinte por día o ciento veinte un sábado, y lo que
+                  se compra la semana que viene depende de cuál de las dos es. */}
+              <ProductSalesChart activa={activa} formatearPesos={(v) => pesos.format(v)} productId={productId} />
+
+              {/* Y al final, contra quién. Arriba —donde había quedado por un
+                  error de ubicación— el ranking se leía ANTES de saber de qué
+                  números habla: "#3" sin haber visto todavía cuánto vendió. */}
+              <ProductPerformance activa={activa} periodo={periodo} productId={productId} />
 
               <p className="text-xs text-slate-500">
                 El costo es el que tenía cada venta el día que se hizo, no el de hoy: así el margen del mes

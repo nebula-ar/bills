@@ -24,11 +24,30 @@ type CatalogScanButtonProps = {
   // catálogo vacío lo usa para que la tarjeta entera abra la cámara, en vez de
   // ser una tarjeta con un botón adentro repitiendo su propio título.
   renderTrigger?: (open: () => void) => ReactNode;
+  // Modo controlado, para cuando quien abre la cámara vive afuera: el selector
+  // de "Nuevo producto" es un diálogo del catálogo, no un botón de acá, y el
+  // «+» flotante tiene que llegar al mismo lugar. Los dos props van juntos; si
+  // no vienen, el componente maneja su estado como siempre.
+  scanning?: boolean;
+  onScanningChange?: (open: boolean) => void;
 };
 
-export function CatalogScanButton({ branchId, categories, units, renderTrigger }: CatalogScanButtonProps) {
+export function CatalogScanButton({
+  branchId,
+  categories,
+  units,
+  renderTrigger,
+  scanning: scanningProp,
+  onScanningChange,
+}: CatalogScanButtonProps) {
   const router = useRouter();
-  const [scanning, setScanning] = useState(false);
+  const [scanningPropio, setScanningPropio] = useState(false);
+  const controlado = scanningProp !== undefined;
+  const scanning = controlado ? scanningProp : scanningPropio;
+  const setScanning = (open: boolean) => {
+    if (!controlado) setScanningPropio(open);
+    onScanningChange?.(open);
+  };
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
   const [pending, setPending] = useState<{
@@ -91,7 +110,10 @@ export function CatalogScanButton({ branchId, categories, units, renderTrigger }
     <>
       {renderTrigger ? (
         renderTrigger(() => setScanning(true))
-      ) : (
+      ) : controlado ? // Controlado y sin trigger propio: el botón que abre la cámara vive
+      // afuera, así que acá no se dibuja ninguno. Solo queda la maquinaria
+      // (cámara, búsqueda del código, alta guiada).
+      null : (
         <button
           // Apple reserva el pill (rounded-full) para la acción azul primaria;
           // los botones utilitarios oscuros (Sign In, Bag) van en rounded-md,

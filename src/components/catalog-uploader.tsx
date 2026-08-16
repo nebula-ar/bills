@@ -13,6 +13,12 @@ import { memo, type RefObject } from "react";
 // estable), así el memo corta el re-render y el input sobrevive mientras el
 // diálogo está abierto. Cada apertura del diálogo monta uno nuevo (el form se
 // desmonta al cerrar), así la foto se puede volver a elegir en cada sesión.
+//
+// NO lleva `style={{ display: "none" }}`. Se esconde por CSS
+// (`.e-catalog-uploader`, ver syncfusion-catalog.css) con la técnica de 1px
+// fuera de flujo, porque un input con `display: none` NO recibe el click
+// programático en Chrome: el diálogo de archivos no abre y el botón parece
+// roto. Verificado en el navegador.
 export const CatalogUploader = memo(function CatalogUploader({
   uploaderRef,
   onFile,
@@ -35,7 +41,6 @@ export const CatalogUploader = memo(function CatalogUploader({
         ref={uploaderRef}
         selected={(event) => onFile(event.filesData[0]?.rawFile)}
         showFileList={false}
-        style={{ display: "none" }}
       />
     </div>
   );

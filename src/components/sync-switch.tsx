@@ -14,9 +14,15 @@ type SyncSwitchProps = {
   label?: string;
   /** Cuando el texto va fuera del switch (p. ej. en la ficha del catálogo). */
   ariaLabel?: string;
+  /**
+   * Id del <form> al que pertenece. Permite que el switch viva FUERA del
+   * formulario —en el encabezado de un panel, por ejemplo— y su valor se envíe
+   * igual. Es HTML del montón, no un truco: el atributo `form` existe para esto.
+   */
+  form?: string;
 };
 
-export function SyncSwitch({ name, defaultChecked = false, label, ariaLabel }: SyncSwitchProps) {
+export function SyncSwitch({ name, defaultChecked = false, label, ariaLabel, form }: SyncSwitchProps) {
   const [checked, setChecked] = useState(defaultChecked);
 
   return (
@@ -27,7 +33,7 @@ export function SyncSwitch({ name, defaultChecked = false, label, ariaLabel }: S
         checked={checked}
       />
       {label ? <span className="text-sm font-semibold text-slate-700">{label}</span> : null}
-      {name && checked ? <input name={name} type="hidden" value="on" /> : null}
+      {name && checked ? <input form={form} name={name} type="hidden" value="on" /> : null}
     </span>
   );
 }

@@ -31,6 +31,7 @@ export function SidePanel({
   children,
   title,
   className = "",
+  width = "min(30rem, calc(100vw - 1.5rem))",
 }: {
   open: boolean;
   onClose: () => void;
@@ -38,6 +39,13 @@ export function SidePanel({
   /** Nombre accesible del diálogo. No se dibuja: lo lee el lector de pantalla. */
   title: string;
   className?: string;
+  /**
+   * Ancho del panel. El default (30rem) sirve para una lista o un detalle en
+   * una columna; un formulario que se mira en dos columnas necesita más, y el
+   * valor no se puede pisar por `className` porque acá va como estilo inline.
+   * Siempre topado contra el viewport para no desbordar en pantalla chica.
+   */
+  width?: string;
 }) {
   const [render, setRender] = useState(open);
   const [visible, setVisible] = useState(false);
@@ -188,7 +196,7 @@ export function SidePanel({
           top: "0.75rem",
           right: "0.75rem",
           bottom: "0.75rem",
-          width: "min(30rem, calc(100vw - 1.5rem))",
+          width,
           borderRadius: "1.75rem",
           // Dos capas: la difusa da la sensación de "apoyado" y el anillo de
           // 1px lo recorta contra el fondo oscurecido, que si no le come el

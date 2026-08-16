@@ -97,6 +97,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       trackStock: product.trackStock,
       // El mínimo se guarda en milésimas; el input lo muestra en unidades.
       minStockValue: product.minStock !== null ? formatQuantity(product.minStock) : "",
+      idealStockValue: product.idealStock !== null ? formatQuantity(product.idealStock) : "",
+      idealStockRaw: product.idealStock,
       categoryId: product.categoryId,
       hasPhoto: product.imageUpdatedAt !== null,
       imageVersion: product.imageUpdatedAt?.getTime() ?? null,

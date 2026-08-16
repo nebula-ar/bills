@@ -1,13 +1,13 @@
 "use client";
 
 import { deleteProductImage, uploadProductImage } from "@/app/catalog/actions";
-import { Check, Loader2, Plus, Sparkles, Trash2 } from "@/components/icons";
+import { Camera, Check, Loader2, Plus, Sparkles, Trash2 } from "@/components/icons";
 import { ProductPhotoAiSheet } from "@/components/product-photo-ai-sheet";
 import { resizeImageForUpload } from "@/lib/image-resize";
 import { CatalogUploader } from "@/components/catalog-uploader";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import type { UploaderComponent } from "@syncfusion/ej2-react-inputs";
-import { useCallback, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 // Carga de la foto de un producto. Vive fuera del <form> de datos (los forms no
 // se anidan) y sube por su cuenta: la foto se guarda apenas se elige, así el
@@ -20,6 +20,8 @@ export function ProductPhotoField({
   productName,
   productDescription,
   aiEnabled,
+  compact = false,
+  onPendiente,
 }: {
   productId: string;
   hasPhoto: boolean;
@@ -31,6 +33,24 @@ export function ProductPhotoField({
   productName: string;
   productDescription: string | null;
   aiEnabled: boolean;
+  /**
+   * Modo miniatura, para vivir en el encabezado de la ficha.
+   *
+   * La foto ya es la identidad del producto y se muestra arriba; tenerla otra
+   * vez adentro del formulario como tarjeta grande era la misma imagen dos
+   * veces, ocupando el lugar que se lee primero para algo que se cambia una vez.
+   * Acá la miniatura ES el control.
+   */
+  compact?: boolean;
+  /**
+   * Diferido: elegir o quitar la foto NO va al servidor. Se muestra la vista
+   * previa y se avisa al padre, que la aplica al guardar el formulario.
+   *
+   * Sin esto la foto se guardaba sola mientras el resto de la ficha espera el
+   * botón, y "Cancelar" no la deshacía: quedaba una foto que el usuario nunca
+   * confirmó. Un formulario con botón de guardar tiene que guardar TODO ahí.
+   */
+  onPendiente?: (cambio: { archivo: File | null; quitar: boolean }) => void;
 }) {
   const [photoVersion, setPhotoVersion] = useState<number | null>(hasPhoto ? version : null);
   const [error, setError] = useState<string | null>(null);
@@ -50,12 +70,46 @@ export function ProductPhotoField({
   // Que "Quitar" sea solo para la propia sigue siendo cierto —no se puede borrar
   // un archivo compartido por todos los negocios— pero eso es un motivo para
   // esconder el botón, no para esconder la foto.
-  const src = productImageSrc({ id: productId, imageVersion: photoVersion, catalogSlug });
-  const esPropia = photoVersion !== null;
+  // Lo elegido y todavía no guardado. La vista previa es un objectURL local, así
+  // que se ve al instante sin haber tocado el servidor.
+  const [previaLocal, setPreviaLocal] = useState<string | null>(null);
+  const [quitarPendiente, setQuitarPendiente] = useState(false);
+
+  // El aviso al padre vive en un ref, no en las dependencias de `pick`.
+  // `pick` tiene que mantener su identidad —el CatalogUploader está memoizado y
+  // si cambia se re-renderiza y pierde el input (NEBU-48)—, pero igual tiene que
+  // llamar al callback ACTUAL, no al que existía en el primer render.
+  const avisarPendiente = useRef(onPendiente);
+  useEffect(() => {
+    avisarPendiente.current = onPendiente;
+  }, [onPendiente]);
+
+  // Soltar el objectURL al desmontar: si no, se filtra memoria por cada foto
+  // que se elige y se descarta.
+  useEffect(() => () => {
+    if (previaLocal) URL.revokeObjectURL(previaLocal);
+  }, [previaLocal]);
+
+  const guardada = productImageSrc({ id: productId, imageVersion: photoVersion, catalogSlug });
+  // Lo pendiente pisa lo guardado: es lo que el usuario acaba de elegir.
+  const src = previaLocal ?? (quitarPendiente ? null : guardada);
+  const esPropia = previaLocal !== null || (!quitarPendiente && photoVersion !== null);
 
   // Abre el selector de archivos del Uploader.
+  //
+  // `element` ES el <input type=file>: EJ2 se inicializa SOBRE el input, no lo
+  // envuelve. Buscar adentro con `querySelector` devolvía null y el click nunca
+  // salía — el botón parecía no andar. Se contemplan los dos casos por si una
+  // versión futura cambia de estrategia, y se cae al DOM si el ref no llegó.
   function openPicker() {
-    uploaderRef.current?.element.querySelector<HTMLInputElement>("input[type=file]")?.click();
+    const el = uploaderRef.current?.element as HTMLElement | undefined;
+    const input =
+      el instanceof HTMLInputElement
+        ? el
+        : el?.querySelector<HTMLInputElement>("input[type=file]") ??
+          document.querySelector<HTMLInputElement>(".e-catalog-uploader input[type=file]");
+
+    input?.click();
   }
 
   // Estable a propósito (useCallback con productId, que no cambia dentro de la
@@ -78,6 +132,19 @@ export function ProductPhotoField({
           setError("Esa foto es HEIC y este dispositivo no puede procesarla. Convertila a JPG o PNG, o sacala con otra app.");
           return;
         }
+        // Diferido: no se sube nada todavía. Se muestra lo elegido y se avisa
+        // al padre, que la manda al guardar junto con el resto de la ficha.
+        if (avisarPendiente.current) {
+          setPreviaLocal((anterior) => {
+            if (anterior) URL.revokeObjectURL(anterior);
+            return URL.createObjectURL(resized);
+          });
+          setQuitarPendiente(false);
+          avisarPendiente.current({ archivo: resized, quitar: false });
+          uploaderRef.current?.clearAll();
+          return;
+        }
+
         const formData = new FormData();
         formData.set("productId", productId);
         formData.set("file", resized);
@@ -100,6 +167,17 @@ export function ProductPhotoField({
 
   function remove() {
     setError(null);
+
+    if (onPendiente) {
+      setPreviaLocal((anterior) => {
+        if (anterior) URL.revokeObjectURL(anterior);
+        return null;
+      });
+      setQuitarPendiente(true);
+      onPendiente({ archivo: null, quitar: true });
+      return;
+    }
+
     startTransition(async () => {
       const result = await deleteProductImage(productId);
       if (result.ok) {
@@ -121,6 +199,89 @@ export function ProductPhotoField({
     // archivos si se difiere con timeout después del tap.
     openPicker();
     setAiOpen(false);
+  }
+
+  if (compact) {
+    return (
+      <div className="flex shrink-0 flex-col items-center gap-1.5">
+        <button
+          aria-label={src ? "Cambiar foto del producto" : "Agregar foto al producto"}
+          className="group relative size-20 shrink-0 overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-slate-950/5 transition active:scale-95"
+          disabled={isPending}
+          onClick={() => (src || !aiEnabled ? openPicker() : openAi("origin"))}
+          type="button"
+        >
+          {src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img alt="" className="size-full object-cover" src={src} />
+          ) : (
+            <span className="flex size-full items-center justify-center text-slate-400">
+              <Plus className="size-6" />
+            </span>
+          )}
+          {/* La invitación aparece al apuntar: una miniatura sola no dice que
+              se puede tocar, y un cartel permanente encima de la foto tapa
+              justo lo que sirve para reconocer el producto. */}
+          <span className="absolute inset-0 flex items-center justify-center bg-slate-950/45 opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
+            <Camera className="size-5 text-white" />
+          </span>
+          {isPending ? (
+            <span className="absolute inset-0 flex items-center justify-center bg-white/70">
+              <Loader2 className="size-5 animate-spin text-primary" />
+            </span>
+          ) : null}
+        </button>
+
+        {/* Las dos acciones que no son "cambiar", en chico y solo cuando
+            aplican: generar con IA sirve siempre, quitar solo sobre la foto
+            propia —la del catálogo la comparten todos los negocios—. */}
+        <div className="flex items-center gap-1">
+          {aiEnabled ? (
+            <button
+              aria-label={esPropia ? "Mejorar con IA" : "Generar con IA"}
+              className="flex size-7 items-center justify-center rounded-lg text-primary transition hover:bg-primary/10 active:scale-95"
+              disabled={isPending}
+              onClick={() => openAi(esPropia ? "enhance" : "origin")}
+              title={esPropia ? "Mejorar con IA" : "Generar con IA"}
+              type="button"
+            >
+              <Sparkles className="size-4" />
+            </button>
+          ) : null}
+          {esPropia ? (
+            <button
+              aria-label="Quitar foto"
+              className="flex size-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 active:scale-95"
+              disabled={isPending}
+              onClick={remove}
+              title="Quitar foto"
+              type="button"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          ) : null}
+        </div>
+
+        <CatalogUploader onFile={pick} uploaderRef={uploaderRef} />
+
+        {error ? <p className="w-20 text-center text-[0.625rem] font-bold text-rose-600">{error}</p> : null}
+
+        {aiEnabled ? (
+          <ProductPhotoAiSheet
+            initialMode={aiInitialMode}
+            key={aiSession}
+            onClose={() => setAiOpen(false)}
+            onSaved={setPhotoVersion}
+            onUsePhoto={usePhoto}
+            open={aiOpen}
+            productDescription={productDescription}
+            productId={productId}
+            productName={productName}
+            sourceSrc={src}
+          />
+        ) : null}
+      </div>
+    );
   }
 
   return (
