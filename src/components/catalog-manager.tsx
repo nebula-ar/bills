@@ -46,30 +46,12 @@ import {
   Reorder,
   Sort,
 } from "@syncfusion/ej2-react-grids";
-import { DialogComponent } from "@syncfusion/ej2-react-popups";
 import { SwitchComponent } from "@syncfusion/ej2-react-buttons";
-import {
-  Audio,
-  CodeBlock,
-  EmojiPicker,
-  FormatPainter,
-  HtmlEditor,
-  Image,
-  ImportExport,
-  Inject as RteInject,
-  Link as RteLink,
-  PasteCleanup,
-  QuickToolbar,
-  RichTextEditorComponent,
-  Table,
-  Toolbar as RteToolbar,
-  Video,
-} from "@syncfusion/ej2-react-richtexteditor";
 import { UploaderComponent } from "@syncfusion/ej2-react-inputs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { memo, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 
 export type ProductBranchConfig = {
@@ -259,12 +241,7 @@ function totalesDe(productos: ProductRow[]): TotalesDeGrilla {
 // borrarlo deja el formulario igual que como estaba, y avisar "1 cambio sin
 // guardar" ahí es una alarma falsa. La plata se normaliza con el mismo parser
 // que usa el guardado, así que "$ 3.500" y "3500" cuentan como el mismo valor.
-function contarCambios(
-  datos: FormData,
-  producto: ProductRow,
-  config: ProductBranchConfig | null,
-  descripcion: string,
-) {
+function contarCambios(datos: FormData, producto: ProductRow, config: ProductBranchConfig | null) {
   const texto = (campo: string) => String(datos.get(campo) ?? "").trim();
   const plata = (campo: string) => parseAmountInput(texto(campo));
 
@@ -276,7 +253,7 @@ function contarCambios(
     texto("barcode") !== (producto.barcode ?? ""),
     texto("minStock") !== producto.minStockValue,
     texto("idealStock") !== producto.idealStockValue,
-    descripcion.trim() !== (producto.description ?? "").trim(),
+    texto("description") !== (producto.description ?? "").trim(),
     // El switch de disponibilidad manda el campo `active` —no `available`— y
     // solo cuando está prendido: el input oculto directamente no se dibuja si
     // está apagado (ver SyncSwitch), así que "on" o ausente. Es el mismo par
@@ -326,6 +303,46 @@ function BotonesDelPie({ onCancelar, texto }: { onCancelar: () => void; texto: s
   );
 }
 
+
+// La descripción, con su contador.
+//
+// Vive en su propio componente por rendimiento, no por prolijidad: el contador
+// necesita el largo en cada tecla, y si ese estado estuviera en ProductsManager
+// —que contiene la grilla entera de EJ2— cada carácter reconstruiría columnas,
+// plantillas y agregados. Acá adentro, escribir re-renderiza doce palabras.
+//
+// El textarea ES el campo del formulario (`name`), sin input oculto que
+// duplique el valor: dos representaciones del mismo dato terminan divergiendo.
+function CampoDescripcion({ defaultValue, name }: { defaultValue: string; name: string }) {
+  const [largo, setLargo] = useState(defaultValue.length);
+
+  return (
+    <div className="grid gap-2">
+      <span className="text-[0.6875rem] font-bold uppercase tracking-wide text-slate-500">
+        Descripción (opcional)
+      </span>
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 transition focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
+        <textarea
+          className="w-full resize-none bg-transparent px-4 pb-1 pt-3 text-sm font-semibold normal-case text-slate-950 outline-none"
+          defaultValue={defaultValue}
+          maxLength={DESCRIPCION_MAX}
+          name={name}
+          onChange={(event) => setLargo(event.target.value.length)}
+          placeholder="Ej: incluye lavado"
+          rows={3}
+        />
+        <p
+          className={`px-4 pb-2.5 text-right text-[0.6875rem] font-bold ${
+            largo >= DESCRIPCION_MAX ? "text-amber-700" : "text-slate-400"
+          }`}
+        >
+          {largo}/{DESCRIPCION_MAX}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function stockStatusOf(product: ProductRow): StockStatus | null {
   if (product.stockQuantity === null) return null;
   if (product.stockQuantity <= 0) return "out";
@@ -333,62 +350,6 @@ function stockStatusOf(product: ProductRow): StockStatus | null {
   return "ok";
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RichTextEditor de descripción
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// La descripción se guarda y se muestra como TEXTO PLANO (la carta pública y
-// el ticket la renderizan cruda), así que el RTE de EJ2 se usa como superficie
-// de edición multilínea — con undo/redo y en español por el locale global — y
-// al cambiar se descarta el HTML que produce. Guardar HTML habría que
-// sanitizarlo y renderizarlo en todos lados; texto plano no rompe nada.
-function htmlToPlainText(html: string) {
-  return html
-    .replace(/<br\s*\/?>/gi, " ")
-    .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, " ")
-    .replace(/<[^>]+>/g, "")
-    .replace(/\u00a0/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-// El valor viaja en estado del padre: así el editor puede desmontarse (al
-// cambiar de paso del alta) sin perder lo escrito, y el form siempre tiene el
-// input oculto con el texto actual.
-// El `Inject` es obligatorio: sin módulos registrados, el RTE de EJ2 arranca
-// sin el renderer de contenido y revienta con "The renderer Content is not
-// found" (el htmlEditor nunca se instancia). Acá va el set estándar de HTML
-// mode; nosotros solo usamos Undo/Redo del toolbar.
-const DescriptionEditor = memo(function DescriptionEditor({ value, onChange }: { value: string; onChange: (text: string) => void }) {
-  return (
-    <RichTextEditorComponent
-      change={(args) => onChange(htmlToPlainText(String(args.value ?? "")))}
-      cssClass="e-catalog-rte"
-      height={150}
-      placeholder="Ej: incluye lavado"
-      toolbarSettings={{ items: ["Undo", "Redo"] }}
-      value={value}
-    >
-      <RteInject
-        services={[
-          RteToolbar,
-          HtmlEditor,
-          RteLink,
-          Image,
-          QuickToolbar,
-          Table,
-          Video,
-          Audio,
-          PasteCleanup,
-          ImportExport,
-          FormatPainter,
-          EmojiPicker,
-          CodeBlock,
-        ]}
-      />
-    </RichTextEditorComponent>
-  );
-});
 
 // Estado sin resultados del grid: el mismo mensaje del listado viejo.
 // Disponibilidad accionable DESDE LA FILA.
@@ -555,7 +516,6 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const [nuevoNombre, setNuevoNombre] = useState("");
   // La descripción se edita con el RichTextEditor (montado solo cuando el paso
   // está a la vista); el texto vive acá para que cambiar de paso no lo pierda.
-  const [nuevoDescripcion, setNuevoDescripcion] = useState("");
   // El Uploader del paso foto vive oculto; la tarjeta visible dispara su
   // selector (ver openUploaderPicker).
   const nuevoUploaderRef = useRef<UploaderComponent>(null);
@@ -565,7 +525,27 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const [foto, setFoto] = useState<{ file: File; preview: string } | null>(null);
   // El catálogo es la puerta de entrada a cambiar un precio y a corregir stock.
   // Con 60 productos, sin buscador es scroll puro — y el mostrador ya tenía uno.
-  const [search, setSearch] = useState("");
+  // El buscador NO guarda lo tipeado en estado de React.
+  //
+  // Este componente contiene la grilla entera de EJ2, así que un `setState` por
+  // tecla vuelve a construir todo ese árbol —columnas, plantillas, agregados—
+  // aunque los datos no hayan cambiado. Medido acá: 373ms por carácter.
+  //
+  // El input se maneja solo (no controlado) y lo único que llega a React es la
+  // búsqueda ya asentada, 200ms después de la última tecla. Escribir deja de
+  // costar renders, y filtrar pasa a ocurrir una vez por palabra en vez de una
+  // por letra.
+  const [busqueda, setBusqueda] = useState("");
+  const busquedaRef = useRef<number | null>(null);
+
+  function buscar(texto: string) {
+    if (busquedaRef.current !== null) window.clearTimeout(busquedaRef.current);
+    busquedaRef.current = window.setTimeout(() => setBusqueda(texto), 200);
+  }
+
+  useEffect(() => () => {
+    if (busquedaRef.current !== null) window.clearTimeout(busquedaRef.current);
+  }, []);
   const [newBranchId, setNewBranchId] = useState(data.selectedBranchId);
   const [editId, setEditId] = useState<string | null>(null);
   const [editTab, setEditTab] = useState<"producto" | "stock" | "analisis" | "historial">("producto");
@@ -591,7 +571,6 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const [editStockChanged, setEditStockChanged] = useState(false);
   // Texto plano de la descripción del producto en edición, alimentado por el
   // RichTextEditor y enviado en el input oculto del form.
-  const [editDescripcion, setEditDescripcion] = useState("");
   // Igual que newReady: el form de la ficha monta cuando el diálogo terminó de
   // abrirse, y se desmonta al cerrar (cada apertura = Uploader/RTE frescos).
   const [editReady, setEditReady] = useState(false);
@@ -624,7 +603,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
       .replace(/[̀-ͯ]/g, "")
       .toLowerCase();
 
-  const query = normalize(search.trim());
+  const query = normalize(busqueda.trim());
   // Mapa una vez, no un `find` por fila: con 60 productos y 10 categorías eso
   // eran 600 recorridas en cada render de la grilla.
   const categoryNameById = useMemo(
@@ -660,12 +639,12 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   // que engaña. Cuando hay filtro de columna la lista completa la da la grilla;
   // cuando no, son las filas que ya vienen filtradas por el buscador de arriba.
   const gridRef = useRef<GridComponent>(null);
-  const filasTotalizadas = () => {
+  const filasTotalizadas = useCallback(() => {
     const grid = gridRef.current;
     if (!grid?.filterSettings?.columns?.length) return gridRows;
     const filtradas = grid.getFilteredRecords();
     return Array.isArray(filtradas) ? (filtradas as ProductRow[]) : gridRows;
-  };
+  }, [gridRows]);
 
   // Qué se pregunta y en qué orden lo decide el rubro, no este componente.
   const pasos = useMemo(
@@ -692,7 +671,6 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   function resetNew() {
     setNewStep(0);
     setNuevoNombre("");
-    setNuevoDescripcion("");
     if (foto) URL.revokeObjectURL(foto.preview);
     setFoto(null);
   }
@@ -798,10 +776,12 @@ export function ProductsManager({ data }: { data: ProductsData }) {
     });
   }
 
-  function openEdit(id: string) {
+  // `useCallback` para que la grilla pueda memoizarse: si esta función cambiara
+  // de identidad en cada render, el memo de abajo se invalidaría siempre y no
+  // serviría de nada.
+  const openEdit = useCallback((id: string) => {
     setEditReady(false);
     const product = data.products.find((item) => item.id === id);
-    setEditDescripcion(product?.description ?? "");
     setEditBranchId(data.selectedBranchId);
     // Siempre en la primera pestaña: si quedara donde la dejó el producto
     // anterior, abrir una ficha mostraría el stock antes que el nombre.
@@ -817,7 +797,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
     // que nadie tocó.
     setCambios(0);
     setEditId(id);
-  }
+  }, [data.products, data.selectedBranchId]);
 
   function closeEdit() {
     if (!editing) return;
@@ -853,16 +833,478 @@ export function ProductsManager({ data }: { data: ProductsData }) {
     setEscaneando(true);
   }
 
+  // Recalcula margen, ganancia y cantidad de cambios a partir del formulario.
+  // Se llama con retraso desde el `onChange` del form (ver ahí el porqué).
+  const recalculoRef = useRef<number | null>(null);
+
+  function programarRecalculo() {
+    if (recalculoRef.current !== null) window.clearTimeout(recalculoRef.current);
+
+    recalculoRef.current = window.setTimeout(() => {
+      const form = document.getElementById(FORM_FICHA);
+      if (!(form instanceof HTMLFormElement) || !editing) return;
+
+      const datos = new FormData(form);
+      const precio = parseAmountInput(String(datos.get("price") ?? ""));
+      const costo = parseAmountInput(String(datos.get("cost") ?? ""));
+
+      setMargenVivo(margenPct(costo, precio));
+      // Ganancia por unidad. Solo cuando están los dos: con uno solo no es
+      // cero, es desconocida, y mostrar "+$9.520" sobre un costo que falta
+      // haría creer que ese producto no cuesta nada.
+      setGananciaViva(precio !== null && costo !== null ? precio - costo : null);
+      setCambios(contarCambios(datos, editing, editConfig) + (fotoPendiente ? 1 : 0));
+    }, 150);
+  }
+
+  // Si el panel se cierra con un recálculo en vuelo, no queda un timer
+  // escribiendo estado sobre una ficha que ya no está.
+  useEffect(() => () => {
+    if (recalculoRef.current !== null) window.clearTimeout(recalculoRef.current);
+  }, []);
+
   function selectBranch(id: string) {
     startTransition(() => router.push(`/catalog?branchId=${id}`, { scroll: false }));
   }
+
+  // La grilla se memoiza aparte a propósito. Sin esto, cada tecla en un
+  // campo de la ficha re-renderiza este componente —el conteo de cambios, el
+  // margen vivo— y arrastra la tabla entera con él: la lista parpadea como si
+  // se estuviera recargando, y da la impresión de que algo se guardó. No se
+  // guarda nada; la ficha escribe recién con "Guardar cambios". Pero la
+  // pantalla no debería sugerir lo contrario.
+  const grilla = useMemo(
+    () => (
+        <div className="catalog-card overflow-hidden bg-white shadow-sm ring-1 ring-slate-950/5">
+          <GridComponent
+            allowFiltering
+            allowPaging
+            allowReordering
+            // Filtro por MENÚ y no por barra: la barra dibujaba una fila de
+            // inputs vacíos abajo de cada cabecera, que ocupaba lugar
+            // permanente para algo que casi nunca se usa —y con el buscador
+            // de arriba, encima, había dos maneras de buscar lo mismo. En
+            // el menú de columna sigue estando, pero solo cuando se busca.
+            filterSettings={{ type: "Menu" }}
+            allowSorting
+            allowTextWrap
+            cssClass="e-catalog-grid e-gestion-grid e-dashboard-grid"
+            dataSource={gridRows}
+            emptyRecordTemplate={() => <EmptyProducts singular={data.catalogSingular.toLowerCase()} />}
+            height="auto"
+            pageSettings={pageSettings}
+            ref={gridRef}
+            recordClick={(args) => {
+              // Tocar la fila abre la ficha, MENOS sobre los controles que
+              // hacen lo suyo ahí mismo (el switch de disponibilidad).
+              //
+              // Se decide acá y no con stopPropagation en el control:
+              // Syncfusion escucha con un listener nativo en la fila, que
+              // corre ANTES que cualquier handler de React —React delega en
+              // la raíz del documento—, así que frenar el evento desde el
+              // switch llega tarde y el modal se abría igual.
+              const destino = args.target as HTMLElement | undefined;
+              if (destino?.closest("[data-sin-abrir-ficha]")) return;
+
+              // `rowData`, NO `data`: el evento de la grilla trae la fila en
+              // `rowData` y `args.data` viene siempre undefined, así que
+              // tocar la fila no abría nada. Verificado en el navegador
+              // leyendo las claves reales del evento.
+              const row = (args as { rowData?: ProductRow }).rowData;
+              if (row?.id) openEdit(row.id);
+            }}
+            // Sin selector de columnas y, por lo tanto, sin toolbar: era lo
+            // único que quedaba ahí, y una barra entera para un solo control
+            // de preferencia no se paga. Al sacar el módulo ColumnChooser
+            // también desaparece su entrada del menú de columna, que es el
+            // otro lugar donde asomaba.
+            //
+            // El menú de columna sigue: eso es ordenar y filtrar, que son
+            // tareas, no preferencias de quién mira.
+            showColumnMenu
+            width="100%"
+          >
+            <ColumnsDirective>
+              <ColumnDirective
+                field="name"
+                headerText={data.catalogPlural}
+                template={(product: ProductRow) => {
+                  const imageSrc = productImageSrc(product);
+                  // La foto es como el dueño reconoce el producto —más
+                  // rápido que leyendo el nombre—, así que va a 64px: a 36
+                  // no se distinguía una medialuna de una factura. Esquina
+                  // de 6px, más cuadrada que redonda, para que la foto se
+                  // lea como foto y no como avatar. El anillo la despega
+                  // del fondo blanco cuando tiene bordes claros.
+                  //
+                  // Las medidas (64px y la esquina de 6) viven en
+                  // `syncfusion-catalog.css` bajo `.catalog-thumb`, no en
+                  // clases de Tailwind: ahí está explicado por qué.
+                  //
+                  // El placeholder (sin foto) va del mismo tamaño y con la
+                  // misma esquina a propósito: si midiera distinto, las
+                  // filas sin foto quedarían más bajas y la columna se
+                  // vería rota.
+                  return (
+                    <div className="flex min-w-0 items-center gap-3 py-0.5">
+                      {imageSrc ? (
+                        // Miniatura ya normalizada a 512px por nuestra propia ruta: no
+                        // hay nada que `next/image` pueda optimizar.
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img alt="" className="catalog-thumb shrink-0 object-cover ring-1 ring-slate-950/5" src={imageSrc} />
+                      ) : (
+                        <span className="catalog-thumb flex shrink-0 items-center justify-center bg-primary/10 text-primary">
+                          <DynamicIcon className="size-6" name={data.catalogIcon} />
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        {/* Un escalón claro entre el nombre y su contexto:
+                            15px semibold contra 13px gris. Antes los dos
+                            pesaban casi igual y la fila se leía como un
+                            bloque en vez de "esto es, y esto lo describe".
+
+                            El nombre es un <button> de verdad, no un <p>:
+                            al sacar la columna "Editar" la ficha se quedaba
+                            sin forma de abrirse con teclado —una fila de
+                            grilla no es focuseable por sí sola— y eso deja
+                            afuera a quien no usa mouse. Además es el patrón
+                            esperado: el nombre del registro abre el
+                            registro. El click en la fila sigue funcionando
+                            igual; que se dispare dos veces sobre el nombre
+                            no molesta, `openEdit` con el mismo id es
+                            idempotente. */}
+                        <button
+                          className="block w-full truncate rounded text-left text-[0.9375rem] font-bold leading-tight text-slate-950 outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                          onClick={() => openEdit(product.id)}
+                          type="button"
+                        >
+                          {product.familyName ? (
+                            <>
+                              {product.familyName}{" "}
+                              <span className="font-semibold text-slate-500">{product.variantLabel}</span>
+                            </>
+                          ) : (
+                            product.name
+                          )}
+                        </button>
+                        {/* Categoría y unidad como subtítulo: son lo que
+                            distingue dos productos de nombre parecido
+                            ("Medialuna" suelta vs por docena). Acá no
+                            cuestan una columna. */}
+                        <p className="mt-0.5 truncate text-[0.8125rem] text-slate-500">
+                          {categoryNameById.get(product.categoryId ?? "") ?? "Sin categoría"} · {unitLabel(product.unit as never)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }}
+                width="auto"
+              />
+              {/* Columnas secundarias: en pantalla chica queda Producto +
+                  Precio. `hideAtMedia` muestra la columna cuando la media
+                  query MATCHEA (ver latest-sales-grid.tsx), así que la
+                  query es el ancho MÍNIMO en el que aparece.
+
+                  Los cortes son 768 y 1024 a propósito: son los mismos en
+                  los que el contenedor se ensancha (`md:max-w-none`,
+                  `lg:px-8`). Antes se revelaban a 641 mientras el main
+                  seguía capado en 560px hasta 1024: en una tablet las
+                  columnas fijas sumaban 514px y a la del NOMBRE le
+                  quedaban 14 — o sea, la tabla no decía de qué producto
+                  era cada fila. Si se toca un ancho de columna o el
+                  `max-w` del main, estos números se revisan juntos. */}
+              {/* La marca va en la CELDA, no en el control de adentro: el
+                  evento de la grilla reporta como `target` la celda, y
+                  `closest` busca hacia arriba —nunca hacia adentro—, así
+                  que marcando solo el switch el guard no encontraba nada y
+                  cambiar la disponibilidad abría igual la ficha. */}
+              <ColumnDirective
+                customAttributes={{ "data-sin-abrir-ficha": "true" }}
+                field="available"
+                headerText="Disponible"
+                hideAtMedia="(min-width: 768px)"
+                template={(product: ProductRow) => (
+                  <AvailabilityCell branchId={data.selectedBranchId} onChanged={() => router.refresh()} product={product} />
+                )}
+                textAlign="Center"
+                width={148}
+              />
+              {data.features.stock ? (
+                <ColumnDirective
+                  field="stockQuantity"
+                  headerText="Stock"
+                  hideAtMedia="(min-width: 768px)"
+                  template={(product: ProductRow) => {
+                    // Tres estados, no dos: "se acabó" y "está por acabarse"
+                    // piden acciones distintas —reponer ya o anotarlo para
+                    // la próxima compra— y con un solo ámbar se leían igual.
+                    const estado = stockStatusOf(product);
+                    if (estado === null) return null;
+                    const tono =
+                      estado === "out"
+                        ? { caja: "bg-rose-50 text-rose-700", punto: "bg-rose-500" }
+                        : estado === "low"
+                          ? { caja: "bg-[#FDF0D5] text-[#8A5A1E]", punto: "bg-amber-500" }
+                          : { caja: "bg-slate-100 text-slate-500", punto: "bg-slate-400" };
+
+                    return (
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.7rem] font-bold ${tono.caja}`}>
+                        <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${tono.punto}`} />
+                        {formatQuantity(product.stockQuantity as number, product.unit as never)}
+                      </span>
+                    );
+                  }}
+                  width={118}
+                />
+              ) : null}
+              {/* El orden y el filtro usan `priceValue` (numérico): los
+                  strings formateados no ordenan ni filtran bien. El
+                  template sigue mostrando `priceLabel` para el ojo.
+                  `null` = sin precio y EJ2 lo deja al final en orden
+                  ascendente (ver comparador numérico de DataUtil). */}
+              {/* Costo al lado del precio, no escondido en la ficha: sin
+                  los dos juntos no se puede leer el margen, que es la
+                  pregunta que el dueño trae. Se oculta en mobile, donde
+                  solo entran Producto y Precio. */}
+              <ColumnDirective
+                field="cost"
+                headerText="Costo"
+                hideAtMedia="(min-width: 768px)"
+                template={(product: ProductRow) => (
+                  <span className="text-[0.9375rem] font-semibold text-slate-600">
+                    {product.cost !== null ? money(product.cost) : "—"}
+                  </span>
+                )}
+                textAlign="Right"
+                type="number"
+                width={120}
+              />
+              <ColumnDirective
+                field="priceValue"
+                headerText="Precio"
+                template={(product: ProductRow) => (
+                  <span className="text-[0.9375rem] font-bold text-slate-950">
+                    {product.priceLabel}
+                  </span>
+                )}
+                textAlign="Right"
+                type="number"
+                width={128}
+              />
+              {/* Margen calculado, no guardado: sale de costo y precio. Se
+                  pinta cuando queda por debajo de 30%, que es lo que hay
+                  que ver de un vistazo. "—" cuando falta alguno de los dos
+                  — no se inventa un número (ver AGENTS.md). */}
+              <ColumnDirective
+                field="margen"
+                headerText="Margen"
+                hideAtMedia="(min-width: 1024px)"
+                template={(product: ProductRow) => {
+                  const margen = margenPct(product.cost, product.priceValue);
+                  // Un costo cargado mal (222.222 con precio 5) da
+                  // -4.444.340%, que desbordaba la celda y rompía la fila.
+                  // Por debajo de -999% el número exacto no informa nada
+                  // —ya se sabe que está mal— así que se corta y el título
+                  // guarda el valor real por si alguien lo necesita.
+                  const desbordado = margen !== null && margen < -999;
+                  return (
+                    <span
+                      className={`text-[0.9375rem] font-bold ${margen !== null && margen < 30 ? "text-rose-600" : "text-slate-600"}`}
+                      title={desbordado ? `${margen}%` : undefined}
+                    >
+                      {margen === null ? "—" : desbordado ? "< -999%" : `${margen}%`}
+                    </span>
+                  );
+                }}
+                textAlign="Right"
+                // "MARGEN" pide 66px de texto y el resto de la cabecera
+                // —padding, menú de columna, flecha de orden— come ~61px
+                // fijos (12 de ellos son el aire lateral de `.e-lastcell`),
+                // así que el piso real son 127 y por debajo el título se
+                // corta en "MARG…". Todo medido en el navegador; el ancho
+                // de más sale de la columna del nombre, que es `auto`.
+                width={140}
+              />
+              {/* Acá había una columna con un botón "Editar" por fila. Se
+                  fue: repetía once veces una acción que ya hace la fila
+                  entera, y se comía 86px de ancho —en mobile, de los pocos
+                  que hay— para decir algo que el hover y el cursor ya
+                  dicen. Lo que sí aportaba, poder abrir la ficha con
+                  teclado, ahora lo cubre el nombre del producto, que es un
+                  botón de verdad. */}
+            </ColumnsDirective>
+            {/* Pie de totales. Ninguno es la suma de su columna, y es a
+                propósito: sumar precios unitarios ($9.520 + $5.290 + …) da
+                un número que no existe en ningún lado, y sumar existencias
+                mezcla peras con kilos. Cada pie contesta la pregunta que sí
+                se le hace a esa columna, sobre lo que HAY en stock. El
+                detalle del cálculo está en `totalesDe`.
+
+                El valor que calcula EJ2 no se usa —de ahí el `Count`, que
+                solo sirve para que la columna tenga pie—: cada plantilla
+                saca su número de `filasTotalizadas()`, porque el agregado
+                de la grilla solo ve la página. */}
+            <AggregatesDirective>
+              <AggregateDirective>
+                <AggregateColumnsDirective>
+                  {/* La columna ancha lleva el rótulo: si cada número
+                      arrastrara su propia leyenda, el pie sería una fila de
+                      texto chico. Acá se dice una vez sobre qué se totaliza
+                      y abajo los números quedan limpios y comparables. */}
+                  <AggregateColumnDirective
+                    field="name"
+                    footerTemplate={() => {
+                      const total = totalesDe(filasTotalizadas());
+                      return (
+                        <div className="text-left">
+                          {/* "Tu mercadería hoy" y no "Totales": totales es
+                              una palabra de tabla, no de negocio. Esta
+                              celda arranca la frase que completan los
+                              números de la derecha ("… $213.065 si la
+                              reponés, $644.100 si la vendés"). */}
+                          <p className="text-[0.8125rem] font-black text-slate-950">Tu mercadería hoy</p>
+                          <p className="mt-0.5 text-[0.6875rem] font-semibold text-slate-500">
+                            {total.conStock} {total.conStock === 1 ? "producto" : "productos"} con stock
+                            {/* No se disimula: si falta un costo, el total
+                                de costo queda corto y el margen sale mejor
+                                de lo que es. Se dice cuántos son, y el
+                                título largo explica por qué importa. */}
+                            {total.sinCosto > 0 ? (
+                              <span
+                                className="text-amber-700"
+                                title="Quedan fuera de la cuenta: sin costo cargado no se sabe cuánto valen, y contarlos como cero infla la ganancia."
+                              >
+                                {" "}
+                                · {total.sinCosto} sin costo
+                              </span>
+                            ) : null}
+                          </p>
+                        </div>
+                      );
+                    }}
+                    type="Count"
+                  />
+                  {data.features.stock ? (
+                    <AggregateColumnDirective
+                        field="stockQuantity"
+                      footerTemplate={() => {
+                        const total = totalesDe(filasTotalizadas());
+                        // Cuántos hay que reponer, no cuántas unidades: las
+                        // unidades no se pueden sumar entre sí (40 unidades
+                        // + 2 kg no es "42 de algo") y además lo accionable
+                        // es a cuántos productos hay que salir a comprar.
+                        // "Nada por reponer" y no "Todo con stock": los dos
+                        // estados quedan sobre el mismo eje (cuántos hay que
+                        // ir a comprar), así que se comparan de un vistazo.
+                        // Y no repite "stock", que ya lo dice la celda de la
+                        // izquierda.
+                        return total.porReponer > 0 ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FDF0D5] px-2 py-0.5 text-[0.6875rem] font-bold text-[#8A5A1E]">
+                            <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-amber-500" />
+                            {total.porReponer} por reponer
+                          </span>
+                        ) : (
+                          <span className="text-[0.6875rem] font-semibold text-slate-500">Nada por reponer</span>
+                        );
+                      }}
+                      type="Count"
+                    />
+                  ) : null}
+                  <AggregateColumnDirective
+                    field="cost"
+                    footerTemplate={() => {
+                      const total = totalesDe(filasTotalizadas());
+                      // `Product.cost` es el costo de REPOSICIÓN (lo último
+                      // que se pagó), así que esto es lo que saldría volver
+                      // a comprar lo que hay. NO es el valor del inventario:
+                      // el patrimonio se valúa a promedio ponderado y sale
+                      // de `StockLevel.avgCost` (ver AGENTS.md). Por eso el
+                      // rótulo no dice "costo total de mercadería": eso se
+                      // lee como cuánto vale el inventario, y ese número es
+                      // otro.
+                      //
+                      // Y dice "todas las unidades" en serio, no de adorno:
+                      // arriba la columna muestra el costo de UNA, así que
+                      // sin decirlo el pie se puede leer como unitario. Es
+                      // la duda que aparece primero.
+                      return (
+                        <div className="text-right">
+                          <p className="text-[0.9375rem] font-black text-slate-950">{money(total.costo)}</p>
+                          <p
+                            className="text-[0.6875rem] font-semibold text-slate-500"
+                            title="Lo que te saldría volver a comprar toda la existencia, al último costo cargado. No es la valuación del inventario: eso va a promedio ponderado."
+                          >
+                            reponer todas las unidades
+                          </p>
+                        </div>
+                      );
+                    }}
+                    type="Count"
+                  />
+                  <AggregateColumnDirective
+                    field="priceValue"
+                    footerTemplate={() => {
+                      const total = totalesDe(filasTotalizadas());
+                      return (
+                        <div className="text-right">
+                          <p className="text-[0.9375rem] font-black text-slate-950">{money(total.precio)}</p>
+                          <p
+                            className="text-[0.6875rem] font-semibold text-slate-500"
+                            title="Lo que entraría si vendieras toda la existencia a precio de lista. Ojo: no es la suma de la columna —esa sumaría precios unitarios—, es precio × existencia."
+                          >
+                            vender todas las unidades
+                          </p>
+                        </div>
+                      );
+                    }}
+                    type="Count"
+                  />
+                  <AggregateColumnDirective
+                    field="margen"
+                    footerTemplate={() => {
+                      const total = totalesDe(filasTotalizadas());
+                      // Sale de los DOS totales de arriba, no del promedio
+                      // de los márgenes de cada fila: el promedio simple le
+                      // da el mismo peso a un alfajor que a 60 medialunas.
+                      // El rótulo no dice "ponderado" —es jerga y el que
+                      // mira esto no la usa—; que sea ponderado se nota en
+                      // que el número es el correcto, no en el cartel.
+                      return (
+                        <div className="text-right">
+                          <p
+                            className={`text-[0.9375rem] font-black ${
+                              total.margen !== null && total.margen < 30 ? "text-rose-600" : "text-slate-950"
+                            }`}
+                          >
+                            {total.margen === null ? "—" : `${total.margen}%`}
+                          </p>
+                          <p
+                            className="text-[0.6875rem] font-semibold text-slate-500"
+                            title="Sale de los dos totales (1 − costo ÷ venta), no de promediar el margen de cada producto: así 60 medialunas pesan más que un alfajor."
+                          >
+                            de ganancia
+                          </p>
+                        </div>
+                      );
+                    }}
+                    type="Count"
+                  />
+                </AggregateColumnsDirective>
+              </AggregateDirective>
+            </AggregatesDirective>
+            <Inject services={[Aggregate, ColumnMenu, Reorder, Page, Sort, Filter]} />
+          </GridComponent>
+        </div>
+    ),
+    [data, categoryNameById, gridRows, pageSettings, openEdit, filasTotalizadas, router],
+  );
 
   return (
     <PageEnter>
       {/* El colchón de abajo deja el último ítem por encima del botón «+»
           flotante (96px + 56px = tope a 152px; 11rem = 176px le da 24px de
           aire). Sin esto el «+» tapa el precio de la última fila (NEBU-42). */}
-      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+11rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 lg:pb-[calc(env(safe-area-inset-bottom)+7rem)]">
+      <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+11rem)] pt-6 text-slate-950 md:max-w-none lg:px-8 lg:pb-[calc(env(safe-area-inset-bottom)+7rem)]">
       <header className="flex items-center justify-between gap-4 duration-500 animate-in fade-in slide-in-from-top-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-500">{data.businessName}</p>
@@ -941,9 +1383,9 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 <input
                   aria-label={`Buscar ${data.catalogPlural.toLowerCase()}`}
                   className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-11 pr-3 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40"
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) => buscar(event.target.value)}
                   placeholder={`Buscar ${data.catalogPlural.toLowerCase()}…`}
-                  value={search}
+                  defaultValue=""
                 />
               </div>
             ) : null}
@@ -955,418 +1397,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 (o en "Editar") abre la ficha. */}
             {/* Radio y padding de la tarjeta viven en `.catalog-card`
                 (syncfusion-catalog.css), no en clases de Tailwind. */}
-            <div className="catalog-card overflow-hidden bg-white shadow-sm ring-1 ring-slate-950/5">
-              <GridComponent
-                allowFiltering
-                allowPaging
-                allowReordering
-                // Filtro por MENÚ y no por barra: la barra dibujaba una fila de
-                // inputs vacíos abajo de cada cabecera, que ocupaba lugar
-                // permanente para algo que casi nunca se usa —y con el buscador
-                // de arriba, encima, había dos maneras de buscar lo mismo. En
-                // el menú de columna sigue estando, pero solo cuando se busca.
-                filterSettings={{ type: "Menu" }}
-                allowSorting
-                allowTextWrap
-                cssClass="e-catalog-grid e-gestion-grid e-dashboard-grid"
-                dataSource={gridRows}
-                emptyRecordTemplate={() => <EmptyProducts singular={data.catalogSingular.toLowerCase()} />}
-                height="auto"
-                pageSettings={pageSettings}
-                ref={gridRef}
-                recordClick={(args) => {
-                  // Tocar la fila abre la ficha, MENOS sobre los controles que
-                  // hacen lo suyo ahí mismo (el switch de disponibilidad).
-                  //
-                  // Se decide acá y no con stopPropagation en el control:
-                  // Syncfusion escucha con un listener nativo en la fila, que
-                  // corre ANTES que cualquier handler de React —React delega en
-                  // la raíz del documento—, así que frenar el evento desde el
-                  // switch llega tarde y el modal se abría igual.
-                  const destino = args.target as HTMLElement | undefined;
-                  if (destino?.closest("[data-sin-abrir-ficha]")) return;
-
-                  // `rowData`, NO `data`: el evento de la grilla trae la fila en
-                  // `rowData` y `args.data` viene siempre undefined, así que
-                  // tocar la fila no abría nada. Verificado en el navegador
-                  // leyendo las claves reales del evento.
-                  const row = (args as { rowData?: ProductRow }).rowData;
-                  if (row?.id) openEdit(row.id);
-                }}
-                // Sin selector de columnas y, por lo tanto, sin toolbar: era lo
-                // único que quedaba ahí, y una barra entera para un solo control
-                // de preferencia no se paga. Al sacar el módulo ColumnChooser
-                // también desaparece su entrada del menú de columna, que es el
-                // otro lugar donde asomaba.
-                //
-                // El menú de columna sigue: eso es ordenar y filtrar, que son
-                // tareas, no preferencias de quién mira.
-                showColumnMenu
-                width="100%"
-              >
-                <ColumnsDirective>
-                  <ColumnDirective
-                    field="name"
-                    headerText={data.catalogPlural}
-                    template={(product: ProductRow) => {
-                      const imageSrc = productImageSrc(product);
-                      // La foto es como el dueño reconoce el producto —más
-                      // rápido que leyendo el nombre—, así que va a 64px: a 36
-                      // no se distinguía una medialuna de una factura. Esquina
-                      // de 6px, más cuadrada que redonda, para que la foto se
-                      // lea como foto y no como avatar. El anillo la despega
-                      // del fondo blanco cuando tiene bordes claros.
-                      //
-                      // Las medidas (64px y la esquina de 6) viven en
-                      // `syncfusion-catalog.css` bajo `.catalog-thumb`, no en
-                      // clases de Tailwind: ahí está explicado por qué.
-                      //
-                      // El placeholder (sin foto) va del mismo tamaño y con la
-                      // misma esquina a propósito: si midiera distinto, las
-                      // filas sin foto quedarían más bajas y la columna se
-                      // vería rota.
-                      return (
-                        <div className="flex min-w-0 items-center gap-3 py-0.5">
-                          {imageSrc ? (
-                            // Miniatura ya normalizada a 512px por nuestra propia ruta: no
-                            // hay nada que `next/image` pueda optimizar.
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img alt="" className="catalog-thumb shrink-0 object-cover ring-1 ring-slate-950/5" src={imageSrc} />
-                          ) : (
-                            <span className="catalog-thumb flex shrink-0 items-center justify-center bg-primary/10 text-primary">
-                              <DynamicIcon className="size-6" name={data.catalogIcon} />
-                            </span>
-                          )}
-                          <div className="min-w-0">
-                            {/* Un escalón claro entre el nombre y su contexto:
-                                15px semibold contra 13px gris. Antes los dos
-                                pesaban casi igual y la fila se leía como un
-                                bloque en vez de "esto es, y esto lo describe".
-
-                                El nombre es un <button> de verdad, no un <p>:
-                                al sacar la columna "Editar" la ficha se quedaba
-                                sin forma de abrirse con teclado —una fila de
-                                grilla no es focuseable por sí sola— y eso deja
-                                afuera a quien no usa mouse. Además es el patrón
-                                esperado: el nombre del registro abre el
-                                registro. El click en la fila sigue funcionando
-                                igual; que se dispare dos veces sobre el nombre
-                                no molesta, `openEdit` con el mismo id es
-                                idempotente. */}
-                            <button
-                              className="block w-full truncate rounded text-left text-[0.9375rem] font-bold leading-tight text-slate-950 outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-                              onClick={() => openEdit(product.id)}
-                              type="button"
-                            >
-                              {product.familyName ? (
-                                <>
-                                  {product.familyName}{" "}
-                                  <span className="font-semibold text-slate-500">{product.variantLabel}</span>
-                                </>
-                              ) : (
-                                product.name
-                              )}
-                            </button>
-                            {/* Categoría y unidad como subtítulo: son lo que
-                                distingue dos productos de nombre parecido
-                                ("Medialuna" suelta vs por docena). Acá no
-                                cuestan una columna. */}
-                            <p className="mt-0.5 truncate text-[0.8125rem] text-slate-500">
-                              {categoryNameById.get(product.categoryId ?? "") ?? "Sin categoría"} · {unitLabel(product.unit as never)}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    }}
-                    width="auto"
-                  />
-                  {/* Estado y Stock son columnas secundarias: en mobile queda
-                      Producto + Precio + Editar. OJO con hideAtMedia: la
-                      columna se muestra cuando la media query MATCHES (ver
-                      latest-sales-grid.tsx), así que la query es (min-width:
-                      641px) para ocultarlas por debajo de 640px. */}
-                  {/* La marca va en la CELDA, no en el control de adentro: el
-                      evento de la grilla reporta como `target` la celda, y
-                      `closest` busca hacia arriba —nunca hacia adentro—, así
-                      que marcando solo el switch el guard no encontraba nada y
-                      cambiar la disponibilidad abría igual la ficha. */}
-                  <ColumnDirective
-                    customAttributes={{ "data-sin-abrir-ficha": "true" }}
-                    field="available"
-                    headerText="Disponible"
-                    hideAtMedia="(min-width: 641px)"
-                    template={(product: ProductRow) => (
-                      <AvailabilityCell branchId={data.selectedBranchId} onChanged={() => router.refresh()} product={product} />
-                    )}
-                    textAlign="Center"
-                    width={148}
-                  />
-                  {data.features.stock ? (
-                    <ColumnDirective
-                      field="stockQuantity"
-                      headerText="Stock"
-                      hideAtMedia="(min-width: 641px)"
-                      template={(product: ProductRow) => {
-                        // Tres estados, no dos: "se acabó" y "está por acabarse"
-                        // piden acciones distintas —reponer ya o anotarlo para
-                        // la próxima compra— y con un solo ámbar se leían igual.
-                        const estado = stockStatusOf(product);
-                        if (estado === null) return null;
-                        const tono =
-                          estado === "out"
-                            ? { caja: "bg-rose-50 text-rose-700", punto: "bg-rose-500" }
-                            : estado === "low"
-                              ? { caja: "bg-[#FDF0D5] text-[#8A5A1E]", punto: "bg-amber-500" }
-                              : { caja: "bg-slate-100 text-slate-500", punto: "bg-slate-400" };
-
-                        return (
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.7rem] font-bold ${tono.caja}`}>
-                            <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${tono.punto}`} />
-                            {formatQuantity(product.stockQuantity as number, product.unit as never)}
-                          </span>
-                        );
-                      }}
-                      width={118}
-                    />
-                  ) : null}
-                  {/* El orden y el filtro usan `priceValue` (numérico): los
-                      strings formateados no ordenan ni filtran bien. El
-                      template sigue mostrando `priceLabel` para el ojo.
-                      `null` = sin precio y EJ2 lo deja al final en orden
-                      ascendente (ver comparador numérico de DataUtil). */}
-                  {/* Costo al lado del precio, no escondido en la ficha: sin
-                      los dos juntos no se puede leer el margen, que es la
-                      pregunta que el dueño trae. Se oculta en mobile, donde
-                      solo entran Producto y Precio. */}
-                  <ColumnDirective
-                    field="cost"
-                    headerText="Costo"
-                    hideAtMedia="(min-width: 641px)"
-                    template={(product: ProductRow) => (
-                      <span className="text-[0.9375rem] font-semibold text-slate-600">
-                        {product.cost !== null ? money(product.cost) : "—"}
-                      </span>
-                    )}
-                    textAlign="Right"
-                    type="number"
-                    width={120}
-                  />
-                  <ColumnDirective
-                    field="priceValue"
-                    headerText="Precio"
-                    template={(product: ProductRow) => (
-                      <span className="text-[0.9375rem] font-bold text-slate-950">
-                        {product.priceLabel}
-                      </span>
-                    )}
-                    textAlign="Right"
-                    type="number"
-                    width={128}
-                  />
-                  {/* Margen calculado, no guardado: sale de costo y precio. Se
-                      pinta cuando queda por debajo de 30%, que es lo que hay
-                      que ver de un vistazo. "—" cuando falta alguno de los dos
-                      — no se inventa un número (ver AGENTS.md). */}
-                  <ColumnDirective
-                    field="margen"
-                    headerText="Margen"
-                    hideAtMedia="(min-width: 861px)"
-                    template={(product: ProductRow) => {
-                      const margen = margenPct(product.cost, product.priceValue);
-                      // Un costo cargado mal (222.222 con precio 5) da
-                      // -4.444.340%, que desbordaba la celda y rompía la fila.
-                      // Por debajo de -999% el número exacto no informa nada
-                      // —ya se sabe que está mal— así que se corta y el título
-                      // guarda el valor real por si alguien lo necesita.
-                      const desbordado = margen !== null && margen < -999;
-                      return (
-                        <span
-                          className={`text-[0.9375rem] font-bold ${margen !== null && margen < 30 ? "text-rose-600" : "text-slate-600"}`}
-                          title={desbordado ? `${margen}%` : undefined}
-                        >
-                          {margen === null ? "—" : desbordado ? "< -999%" : `${margen}%`}
-                        </span>
-                      );
-                    }}
-                    textAlign="Right"
-                    // "MARGEN" pide 66px de texto y el resto de la cabecera
-                    // —padding, menú de columna, flecha de orden— come ~61px
-                    // fijos (12 de ellos son el aire lateral de `.e-lastcell`),
-                    // así que el piso real son 127 y por debajo el título se
-                    // corta en "MARG…". Todo medido en el navegador; el ancho
-                    // de más sale de la columna del nombre, que es `auto`.
-                    width={140}
-                  />
-                  {/* Acá había una columna con un botón "Editar" por fila. Se
-                      fue: repetía once veces una acción que ya hace la fila
-                      entera, y se comía 86px de ancho —en mobile, de los pocos
-                      que hay— para decir algo que el hover y el cursor ya
-                      dicen. Lo que sí aportaba, poder abrir la ficha con
-                      teclado, ahora lo cubre el nombre del producto, que es un
-                      botón de verdad. */}
-                </ColumnsDirective>
-                {/* Pie de totales. Ninguno es la suma de su columna, y es a
-                    propósito: sumar precios unitarios ($9.520 + $5.290 + …) da
-                    un número que no existe en ningún lado, y sumar existencias
-                    mezcla peras con kilos. Cada pie contesta la pregunta que sí
-                    se le hace a esa columna, sobre lo que HAY en stock. El
-                    detalle del cálculo está en `totalesDe`.
-
-                    El valor que calcula EJ2 no se usa —de ahí el `Count`, que
-                    solo sirve para que la columna tenga pie—: cada plantilla
-                    saca su número de `filasTotalizadas()`, porque el agregado
-                    de la grilla solo ve la página. */}
-                <AggregatesDirective>
-                  <AggregateDirective>
-                    <AggregateColumnsDirective>
-                      {/* La columna ancha lleva el rótulo: si cada número
-                          arrastrara su propia leyenda, el pie sería una fila de
-                          texto chico. Acá se dice una vez sobre qué se totaliza
-                          y abajo los números quedan limpios y comparables. */}
-                      <AggregateColumnDirective
-                        field="name"
-                        footerTemplate={() => {
-                          const total = totalesDe(filasTotalizadas());
-                          return (
-                            <div className="text-left">
-                              {/* "Tu mercadería hoy" y no "Totales": totales es
-                                  una palabra de tabla, no de negocio. Esta
-                                  celda arranca la frase que completan los
-                                  números de la derecha ("… $213.065 si la
-                                  reponés, $644.100 si la vendés"). */}
-                              <p className="text-[0.8125rem] font-black text-slate-950">Tu mercadería hoy</p>
-                              <p className="mt-0.5 text-[0.6875rem] font-semibold text-slate-500">
-                                {total.conStock} {total.conStock === 1 ? "producto" : "productos"} con stock
-                                {/* No se disimula: si falta un costo, el total
-                                    de costo queda corto y el margen sale mejor
-                                    de lo que es. Se dice cuántos son, y el
-                                    título largo explica por qué importa. */}
-                                {total.sinCosto > 0 ? (
-                                  <span
-                                    className="text-amber-700"
-                                    title="Quedan fuera de la cuenta: sin costo cargado no se sabe cuánto valen, y contarlos como cero infla la ganancia."
-                                  >
-                                    {" "}
-                                    · {total.sinCosto} sin costo
-                                  </span>
-                                ) : null}
-                              </p>
-                            </div>
-                          );
-                        }}
-                        type="Count"
-                      />
-                      {data.features.stock ? (
-                        <AggregateColumnDirective
-                            field="stockQuantity"
-                          footerTemplate={() => {
-                            const total = totalesDe(filasTotalizadas());
-                            // Cuántos hay que reponer, no cuántas unidades: las
-                            // unidades no se pueden sumar entre sí (40 unidades
-                            // + 2 kg no es "42 de algo") y además lo accionable
-                            // es a cuántos productos hay que salir a comprar.
-                            // "Nada por reponer" y no "Todo con stock": los dos
-                            // estados quedan sobre el mismo eje (cuántos hay que
-                            // ir a comprar), así que se comparan de un vistazo.
-                            // Y no repite "stock", que ya lo dice la celda de la
-                            // izquierda.
-                            return total.porReponer > 0 ? (
-                              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FDF0D5] px-2 py-0.5 text-[0.6875rem] font-bold text-[#8A5A1E]">
-                                <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-amber-500" />
-                                {total.porReponer} por reponer
-                              </span>
-                            ) : (
-                              <span className="text-[0.6875rem] font-semibold text-slate-500">Nada por reponer</span>
-                            );
-                          }}
-                          type="Count"
-                        />
-                      ) : null}
-                      <AggregateColumnDirective
-                        field="cost"
-                        footerTemplate={() => {
-                          const total = totalesDe(filasTotalizadas());
-                          // `Product.cost` es el costo de REPOSICIÓN (lo último
-                          // que se pagó), así que esto es lo que saldría volver
-                          // a comprar lo que hay. NO es el valor del inventario:
-                          // el patrimonio se valúa a promedio ponderado y sale
-                          // de `StockLevel.avgCost` (ver AGENTS.md). Por eso el
-                          // rótulo no dice "costo total de mercadería": eso se
-                          // lee como cuánto vale el inventario, y ese número es
-                          // otro.
-                          //
-                          // Y dice "todas las unidades" en serio, no de adorno:
-                          // arriba la columna muestra el costo de UNA, así que
-                          // sin decirlo el pie se puede leer como unitario. Es
-                          // la duda que aparece primero.
-                          return (
-                            <div className="text-right">
-                              <p className="text-[0.9375rem] font-black text-slate-950">{money(total.costo)}</p>
-                              <p
-                                className="text-[0.6875rem] font-semibold text-slate-500"
-                                title="Lo que te saldría volver a comprar toda la existencia, al último costo cargado. No es la valuación del inventario: eso va a promedio ponderado."
-                              >
-                                reponer todas las unidades
-                              </p>
-                            </div>
-                          );
-                        }}
-                        type="Count"
-                      />
-                      <AggregateColumnDirective
-                        field="priceValue"
-                        footerTemplate={() => {
-                          const total = totalesDe(filasTotalizadas());
-                          return (
-                            <div className="text-right">
-                              <p className="text-[0.9375rem] font-black text-slate-950">{money(total.precio)}</p>
-                              <p
-                                className="text-[0.6875rem] font-semibold text-slate-500"
-                                title="Lo que entraría si vendieras toda la existencia a precio de lista. Ojo: no es la suma de la columna —esa sumaría precios unitarios—, es precio × existencia."
-                              >
-                                vender todas las unidades
-                              </p>
-                            </div>
-                          );
-                        }}
-                        type="Count"
-                      />
-                      <AggregateColumnDirective
-                        field="margen"
-                        footerTemplate={() => {
-                          const total = totalesDe(filasTotalizadas());
-                          // Sale de los DOS totales de arriba, no del promedio
-                          // de los márgenes de cada fila: el promedio simple le
-                          // da el mismo peso a un alfajor que a 60 medialunas.
-                          // El rótulo no dice "ponderado" —es jerga y el que
-                          // mira esto no la usa—; que sea ponderado se nota en
-                          // que el número es el correcto, no en el cartel.
-                          return (
-                            <div className="text-right">
-                              <p
-                                className={`text-[0.9375rem] font-black ${
-                                  total.margen !== null && total.margen < 30 ? "text-rose-600" : "text-slate-950"
-                                }`}
-                              >
-                                {total.margen === null ? "—" : `${total.margen}%`}
-                              </p>
-                              <p
-                                className="text-[0.6875rem] font-semibold text-slate-500"
-                                title="Sale de los dos totales (1 − costo ÷ venta), no de promediar el margen de cada producto: así 60 medialunas pesan más que un alfajor."
-                              >
-                                de ganancia
-                              </p>
-                            </div>
-                          );
-                        }}
-                        type="Count"
-                      />
-                    </AggregateColumnsDirective>
-                  </AggregateDirective>
-                </AggregatesDirective>
-                <Inject services={[Aggregate, ColumnMenu, Reorder, Page, Sort, Filter]} />
-              </GridComponent>
-            </div>
+            {grilla}
           </>
         )}
       </div>
@@ -1375,18 +1406,31 @@ export function ProductsManager({ data }: { data: ProductsData }) {
           bottom sheet: el mismo flujo paso a paso, ahora en un modal con su
           botón de cierre propio (tooltip y aria en español por el locale es).
           El contenido scrollea dentro del diálogo (max-height en el CSS). */}
-      <DialogComponent
-        animationSettings={{ duration: 200, effect: "Fade" }}
-        close={closeNew}
-        cssClass="e-catalog-dialog e-gestion-dialog"
-        header={createdProduct ? "Listo" : pasoActual.title}
-        isModal
-        open={() => setNewReady(true)}
-        overlayClick={closeNew}
-        showCloseIcon
-        visible={newOpen}
-        width="92%"
+      {/* El alta entra desde la derecha, igual que la ficha: dos formas de
+          cargar lo mismo no pueden aparecer de dos maneras distintas. Y el
+          DialogComponent de EJ2 en esta pantalla se quedaba con la instancia en
+          `visible: true` y el nodo en `e-popup-close` —abierto para el
+          componente, invisible para el usuario—; esto es React puro sobre un
+          portal, con trampa de foco y cierre con Escape. */}
+      <SidePanel
+        onClose={closeNew}
+        open={newOpen}
+        title={createdProduct ? "Listo" : pasoActual.title}
+        width="min(30rem, calc(100vw - 1.5rem))"
       >
+        <header className="flex shrink-0 items-start justify-between gap-3 px-7 pb-4 pt-6">
+          <h2 className="min-w-0 text-xl font-black tracking-tight text-slate-950">
+            {createdProduct ? "Listo" : pasoActual.title}
+          </h2>
+          <button
+            aria-label="Cerrar"
+            className="-mr-1 -mt-1 flex size-10 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 active:scale-95"
+            onClick={closeNew}
+            type="button"
+          >
+            <X className="size-5" />
+          </button>
+        </header>
         {/* El contenido monta recién cuando el Dialog terminó de abrirse
             (evento `open` = fin de la animación): el RTE y el Uploader no se
             inicializan ni cerrados ni abriéndose. Al cerrar se desmonta todo,
@@ -1429,9 +1473,17 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             </div>
           </div>
         ) : (
-          <form className="flex flex-col" onSubmit={(event) => event.preventDefault()} ref={newFormRef}>
+          <form
+            className="flex min-h-0 flex-1 flex-col"
+            onSubmit={(event) => event.preventDefault()}
+            ref={newFormRef}
+          >
           <input name="branchId" type="hidden" value={newBranchId} />
-          <div className="mb-4 flex items-end justify-between gap-3">
+
+          {/* Scrollea el contenido, no el panel: el pie con "Seguir" queda
+              siempre a mano, y el progreso del paso tampoco se va de pantalla
+              al bajar —es lo que dice dónde estás parado. */}
+          <div className="shrink-0 px-7 pb-4 flex items-end justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-black uppercase tracking-wide text-primary">
                 Paso {newStep + 1} de {pasos.length}
@@ -1449,7 +1501,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
           {/* Los campos de TODOS los pasos quedan montados; sólo se muestra el
               del paso actual. Así volver atrás no borra lo cargado y el submit
               final manda todo junto, sin duplicar el valor en estado. */}
-          <div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-6">
             <div className="space-y-4" hidden={pasoActual.id !== "identidad"}>
               <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Nombre
@@ -1462,17 +1514,22 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   value={nuevoNombre}
                 />
               </label>
-              {/* La descripción con el RichTextEditor de EJ2. Se monta solo
-                  cuando el paso está a la vista (un RTE oculto inicializa a
-                  ancho 0); el texto vive en estado y viaja en el input oculto,
-                  que siempre está en el form. */}
+              {/* Textarea, no el editor enriquecido. La descripción se guarda y
+                  se muestra como TEXTO PLANO —la carta pública y el ticket la
+                  renderizan cruda—, así que una barra con deshacer y rehacer
+                  ofrecía formato que después se tira. Es el mismo cambio que ya
+                  hicimos en la ficha: el alta y la edición del mismo campo no
+                  pueden usar controles distintos.
+
+                  De paso se arregla el placeholder, que salía en MAYÚSCULAS
+                  porque heredaba el `uppercase` de la etiqueta.
+
+                  El texto vive en estado y viaja en el input oculto, que siempre
+                  está en el form: el campo se desmonta al cambiar de paso y uno
+                  desmontado no se envía. */}
               {pasoActual.id === "identidad" ? (
-                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                  Descripción (opcional)
-                  <DescriptionEditor value={nuevoDescripcion} onChange={setNuevoDescripcion} />
-                </label>
+                <CampoDescripcion defaultValue="" name="description" />
               ) : null}
-              <input name="description" type="hidden" value={nuevoDescripcion} />
             </div>
 
             <div className="space-y-4" hidden={pasoActual.id !== "foto"}>
@@ -1591,7 +1648,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             ) : null}
           </div>
 
-          <div className="mt-5 border-t border-slate-100 pt-4">
+          <div className="shrink-0 border-t border-slate-100 px-7 py-4">
             {newError ? (
               <p className="mb-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">{newError}</p>
             ) : null}
@@ -1637,7 +1694,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
         </form>
         )
         ) : null}
-      </DialogComponent>
+      </SidePanel>
 
       {/* Ficha del producto: entra desde la derecha.
           Es un panel y no un diálogo centrado porque acá se viene a MIRAR y
@@ -1678,7 +1735,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   // que su cambio no dispara el `onChange` que lleva la cuenta.
                   const form = document.getElementById(FORM_FICHA);
                   const datos = form instanceof HTMLFormElement ? new FormData(form) : null;
-                  setCambios((datos ? contarCambios(datos, editing, editConfig, editDescripcion) : 0) + 1);
+                  setCambios((datos ? contarCambios(datos, editing, editConfig) : 0) + 1);
                 }}
                 key={editing.id}
                 productDescription={editing.description}
@@ -1799,23 +1856,22 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             className="flex min-h-0 flex-1 flex-col"
             id={FORM_FICHA}
             key={editing.id}
-            onChange={(event) => {
-              const formEl = event.currentTarget;
-              const datos = new FormData(formEl);
-              const precio = parseAmountInput(String(datos.get("price") ?? ""));
-              const costo = parseAmountInput(String(datos.get("cost") ?? ""));
-              setMargenVivo(margenPct(costo, precio));
-              // Ganancia por unidad. Solo cuando están los dos: con uno solo no
-              // es cero, es desconocida, y mostrar "+$9.520" sobre un costo que
-              // falta haría creer que ese producto no cuesta nada.
-              setGananciaViva(precio !== null && costo !== null ? precio - costo : null);
-              setCambios(contarCambios(datos, editing, editConfig, editDescripcion) + (fotoPendiente ? 1 : 0));
-            }}
+            // Se recalcula 150ms DESPUÉS de la última tecla, no en cada una.
+            //
+            // Cada recálculo arma un FormData con el formulario entero —están
+            // montados los campos de todas las pestañas, no solo los visibles—,
+            // compara ocho campos y dispara un re-render que arrastra a la
+            // grilla de EJ2 con todas sus plantillas. Hacer eso por carácter es
+            // lo que se sentía como tipeo trabado.
+            //
+            // Nada de lo que se recalcula es urgente: el margen, la ganancia y
+            // el contador de cambios son resultados, no la letra que se está
+            // escribiendo. El input responde solo, sin pasar por React.
+            onChange={() => programarRecalculo()}
           >
             <input name="branchId" type="hidden" value={editBranchId} />
             <input name="productId" type="hidden" value={editing.id} />
             <input name="configured" type="hidden" value={editConfig?.configured ? "true" : "false"} />
-            <input name="description" type="hidden" value={editDescripcion} />
 
             {/* Dos pestañas. La ficha mezclaba lo que se mira todos los días
                 —nombre, precio, foto— con lo que se configura una vez —códigos,
@@ -2012,28 +2068,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                     después se tira. Un control tiene que poder hacer lo que
                     aparenta. El contador avisa el límite antes de chocarlo, no
                     después. */}
-                <div className="grid gap-2">
-                  <span className="text-[0.6875rem] font-bold uppercase tracking-wide text-slate-500">
-                    Descripción (opcional)
-                  </span>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 transition focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
-                    <textarea
-                      className="w-full resize-none bg-transparent px-4 pb-1 pt-3 text-sm font-semibold text-slate-950 outline-none"
-                      maxLength={DESCRIPCION_MAX}
-                      onChange={(event) => setEditDescripcion(event.target.value)}
-                      placeholder="Ej: incluye lavado"
-                      rows={3}
-                      value={editDescripcion}
-                    />
-                    <p
-                      className={`px-4 pb-2.5 text-right text-[0.6875rem] font-bold ${
-                        editDescripcion.length >= DESCRIPCION_MAX ? "text-amber-700" : "text-slate-400"
-                      }`}
-                    >
-                      {editDescripcion.length}/{DESCRIPCION_MAX}
-                    </p>
-                  </div>
-                </div>
+                <CampoDescripcion defaultValue={editing.description ?? ""} name="description" />
 
                 {/* Lo que casi nunca se toca, al final y en una fila: categoría
                     y código no son la razón por la que se abre una ficha. */}
@@ -2290,7 +2325,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 // real — con bloques placeholder en las posiciones de los datos.
 export function ProductsManagerSkeleton() {
   return (
-    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+11rem)] pt-6 text-slate-950 lg:max-w-none lg:px-8 lg:pb-[calc(env(safe-area-inset-bottom)+7rem)]">
+    <main className="mx-auto min-h-dvh w-full min-w-0 max-w-[560px] overflow-x-clip bg-[var(--background)] px-4 pb-[calc(env(safe-area-inset-bottom)+11rem)] pt-6 text-slate-950 md:max-w-none lg:px-8 lg:pb-[calc(env(safe-area-inset-bottom)+7rem)]">
       <header className="flex items-center justify-between gap-4">
         <div className="min-w-0">
           <Skeleton className="h-4 w-32" />
