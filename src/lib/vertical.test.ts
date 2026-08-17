@@ -1,4 +1,7 @@
-import { AppModule, Vertical } from "@/generated/prisma/enums";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+
+import { AppModule, ProductKind, Vertical } from "@/generated/prisma/enums";
 import { describe, expect, it } from "vitest";
 
 import { CONFIGURABLE_MODULES, MODULE_INFO, MODULE_REQUIRES } from "./app-modules";
@@ -209,6 +212,54 @@ describe("módulos de gastronomía", () => {
   it("se pueden prender y apagar desde configuración", () => {
     for (const modulo of [AppModule.TABLES, AppModule.KITCHEN, AppModule.RECIPES]) {
       expect(CONFIGURABLE_MODULES, modulo).toContain(modulo);
+    }
+  });
+});
+
+// Un negocio que recién arranca no subió ni una foto: lo único que ve en la
+// grilla es lo que trajo el catálogo del rubro. Una mercadería sembrada sin
+// foto queda como un cuadrito gris, y el dueño concluye que la app no muestra
+// fotos. Ver `productImageSrc`.
+describe("fotos del catálogo semilla", () => {
+  const CATALOG_IMAGE_DIR = resolve(process.cwd(), "public/catalog/produce");
+
+  const seeded = VERTICAL_ORDER.flatMap((vertical) =>
+    VERTICAL_PRESETS[vertical].catalog.map((item) => ({ vertical, item })),
+  );
+
+  it("toda mercadería sembrada declara su foto", () => {
+    // Solo la mercadería: un corte de pelo no tiene foto de catálogo, y pedirle
+    // una obligaría a inventar uno genérico que no representa a nadie.
+    for (const { vertical, item } of seeded) {
+      if (item.kind !== ProductKind.GOOD) continue;
+      expect(item.catalogSlug, `${vertical} · ${item.name}: sin catalogSlug`).toBeTruthy();
+    }
+  });
+
+  it("cada foto declarada existe en public/", () => {
+    // Un slug con un typo no rompe el build ni el render: devuelve 404 y la
+    // grilla queda con el hueco. Este test es el único lugar donde se nota.
+    for (const { vertical, item } of seeded) {
+      if (!item.catalogSlug) continue;
+
+      const file = resolve(CATALOG_IMAGE_DIR, `${item.catalogSlug}.webp`);
+      expect(existsSync(file), `${vertical} · ${item.name}: falta ${item.catalogSlug}.webp`).toBe(true);
+    }
+  });
+
+  it("cada foto es cuadrada", async () => {
+    // La grilla del POS reserva un cuadrado por producto. Una foto apaisada no
+    // rompe nada —por eso se coló— pero deja el renglón desparejo contra las
+    // que sí lo son, incluidas las que sube el dueño (512x512, ver
+    // `saveProductImage`). El bajador tenía `withoutEnlargement`, que con
+    // `cover` se niega a agrandar y devolvía 512x400.
+    const { default: sharp } = await import("sharp");
+
+    for (const { vertical, item } of seeded) {
+      if (!item.catalogSlug) continue;
+
+      const { width, height } = await sharp(resolve(CATALOG_IMAGE_DIR, `${item.catalogSlug}.webp`)).metadata();
+      expect(width, `${vertical} · ${item.name}: ${width}x${height}`).toBe(height);
     }
   });
 });

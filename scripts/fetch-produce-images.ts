@@ -1,5 +1,6 @@
-// Baja las fotos del catálogo de verdulería desde Wikimedia Commons y las deja
-// listas para servir.
+// Baja las fotos del catálogo compartido desde Wikimedia Commons y las deja
+// listas para servir. Cubre dos listas: el catálogo de verdulería (que trae sus
+// propios precios y unidades) y la mercadería semilla del resto de los rubros.
 //
 //   npx tsx scripts/fetch-produce-images.ts          (solo lo que falta)
 //   npx tsx scripts/fetch-produce-images.ts --force   (rehace todo)
@@ -25,6 +26,7 @@ import { resolve } from "node:path";
 import { PRODUCE_CATALOG } from "../src/modules/catalog/produce-catalog.data";
 import { PRODUCE_IMAGE_PINS } from "./produce-image-pins";
 import { PRODUCE_IMAGE_QUERIES } from "./produce-image-queries";
+import { SEED_IMAGE_QUERIES } from "./seed-image-queries";
 
 // Commons exige un User-Agent que identifique a quien consulta; con uno genérico
 // devuelve 403.
@@ -231,7 +233,13 @@ async function toSquareWebp(thumbUrl: string): Promise<Buffer> {
     .rotate()
     // Mismo recorte que las fotos que sube el dueño: al centro y cuadrado, para
     // que la grilla no quede despareja.
-    .resize(SIDE, SIDE, { fit: "cover", position: "centre", withoutEnlargement: true })
+    //
+    // Sin `withoutEnlargement` a propósito. Con esa opción, `cover` no agranda:
+    // si el lado corto del original mide menos de 512 —pasa con las apaisadas,
+    // que a 1024 de ancho quedan en 400 de alto— devuelve 512x400 y el recorte
+    // deja de ser cuadrado. Una foto apenas escalada se nota mucho menos que un
+    // renglón de la grilla más bajo que los otros.
+    .resize(SIDE, SIDE, { fit: "cover", position: "centre" })
     .webp({ quality: 80 })
     .toBuffer();
 }
@@ -245,9 +253,16 @@ async function main() {
   let downloaded = 0;
   let skipped = 0;
 
-  for (const item of PRODUCE_CATALOG) {
+  // Las dos listas terminan en el mismo directorio: para el navegador es un solo
+  // catálogo de fotos, y un slug repetido sería la misma imagen igual.
+  const targets = [
+    ...PRODUCE_CATALOG.map((item) => ({ slug: item.slug, query: PRODUCE_IMAGE_QUERIES[item.slug] })),
+    ...Object.entries(SEED_IMAGE_QUERIES).map(([slug, query]) => ({ slug, query })),
+  ];
+
+  for (const item of targets) {
     const file = resolve(OUT_DIR, `${item.slug}.webp`);
-    const query = PRODUCE_IMAGE_QUERIES[item.slug];
+    const query = item.query;
 
     if (!query) {
       failures.push({ slug: item.slug, reason: "sin búsqueda definida" });
