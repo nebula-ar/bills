@@ -4,7 +4,13 @@ import { SaleChannel } from "@/generated/prisma/enums";
 
 import { pasosDelCobro, puedeAvanzar } from "./checkout-steps.logic";
 
-const claves = (input: { usaSalon: boolean; canal: SaleChannel; pagaEnEfectivo?: boolean; destinoYaElegido?: boolean }) =>
+const claves = (input: {
+  usaSalon: boolean;
+  canal: SaleChannel;
+  pagaEnEfectivo?: boolean;
+  destinoYaElegido?: boolean;
+  carritoVisible?: boolean;
+}) =>
   pasosDelCobro({ pagaEnEfectivo: false, ...input }).map((paso) => paso.key);
 
 describe("qué pasos tiene el cobro", () => {
@@ -122,5 +128,22 @@ describe("cuándo se puede avanzar", () => {
   it("los pasos sin condición dejan pasar", () => {
     expect(puedeAvanzar({ paso: "donde", tieneMesa: false, pagoValido: false })).toBe(true);
     expect(puedeAvanzar({ paso: "confirmar", tieneMesa: false, pagoValido: false })).toBe(true);
+  });
+
+  it("en un teléfono el pedido se repasa PRIMERO", () => {
+    // Sin carrito a la vista, elegir cómo te pagan antes de ver qué cobrás es
+    // firmar sin leer.
+    expect(claves({ usaSalon: false, canal: SaleChannel.COUNTER, carritoVisible: false })).toEqual([
+      "pedido",
+      "pago",
+      "confirmar",
+    ]);
+  });
+
+  it("en escritorio NO aparece: el carrito ya está al costado", () => {
+    expect(claves({ usaSalon: false, canal: SaleChannel.COUNTER, carritoVisible: true })).toEqual([
+      "pago",
+      "confirmar",
+    ]);
   });
 });

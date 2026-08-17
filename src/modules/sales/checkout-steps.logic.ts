@@ -12,7 +12,7 @@ import { SaleChannel } from "@/generated/prisma/enums";
  * verlo.
  */
 export type PasoDeCobro = {
-  key: "donde" | "mesa" | "pago" | "efectivo" | "confirmar";
+  key: "pedido" | "donde" | "mesa" | "pago" | "efectivo" | "confirmar";
   titulo: string;
 };
 
@@ -32,8 +32,19 @@ export function pasosDelCobro(input: {
   // cargar el primer producto, así que es siempre: los dos pasos quedaron sin
   // uso y el nombre viejo ya no describía nada.
   destinoYaElegido?: boolean;
+  // Si el carrito se ve mientras se cobra. En escritorio sí: el panel "Pedido"
+  // está siempre al costado. En un teléfono NO, así que se llega a elegir medio
+  // de pago sin haber visto nunca lo que se está por cobrar.
+  carritoVisible?: boolean;
 }): PasoDeCobro[] {
   return [
+    // Repasar el pedido, PRIMERO y solo cuando no se ve.
+    //
+    // En escritorio sería un toque de más para confirmar algo que ya está a la
+    // vista, que es justo lo que este módulo evita. En el teléfono es al revés:
+    // sin este paso, la primera vez que ves lo que cobrás es después de haber
+    // elegido cómo te pagan.
+    ...(input.carritoVisible === false ? ([{ key: "pedido", titulo: "Tu pedido" }] as const) : []),
     ...(input.usaSalon && !input.destinoYaElegido ? ([{ key: "donde", titulo: "¿Dónde?" }] as const) : []),
     // La mesa solo se pregunta si ya se dijo que es una mesa. Preguntarla
     // siempre obligaría a saltearla en cada venta de mostrador.

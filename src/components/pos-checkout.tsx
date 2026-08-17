@@ -534,7 +534,23 @@ export function PosCheckout({
   // Solo el efectivo en un pago necesita vuelto: con tarjeta se cobra justo, y
   // en un pago dividido no hay un "con cuánto paga" único.
   const pagaEnEfectivo = !splitMode && singleMethod === "CASH" && total > 0;
-  const pasos = pasosDelCobro({ usaSalon: usesTables, canal: channel, pagaEnEfectivo, destinoYaElegido: true });
+  // ¿El panel "Pedido" está al costado? Es el mismo corte que usa el layout
+  // (`lg:grid-cols-[1fr_22rem]`), leído acá porque de eso depende un PASO del
+  // cobro, y un paso no se puede decidir con una clase de CSS.
+  //
+  // Arranca en true y se corrige en el efecto: el server no sabe el ancho de la
+  // pantalla, y adivinar daría un HTML que no coincide con el del cliente.
+  const [carritoVisible, setCarritoVisible] = useState(true);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const sincronizar = () => setCarritoVisible(mq.matches);
+    sincronizar();
+    mq.addEventListener("change", sincronizar);
+    return () => mq.removeEventListener("change", sincronizar);
+  }, []);
+
+  const pasos = pasosDelCobro({ usaSalon: usesTables, canal: channel, pagaEnEfectivo, destinoYaElegido: true, carritoVisible });
   const pasoIdx = Math.min(paso, pasos.length - 1);
   const pasoActual = pasos[pasoIdx].key;
   const esUltimoPaso = pasoIdx === pasos.length - 1;
@@ -1917,8 +1933,12 @@ export function PosCheckout({
               </div>
             ) : null}
 
-            {/* Pedido */}
-            {pasoActual === "confirmar" ? (
+            {/* Pedido.
+                Se muestra en "confirmar" y también en el paso "pedido", que en
+                un teléfono va PRIMERO: ahí no hay panel al costado, así que sin
+                esto la primera vez que ves lo que estás cobrando es después de
+                haber elegido cómo te pagan. */}
+            {pasoActual === "confirmar" || pasoActual === "pedido" ? (
             <section>
               <p className="mb-2 text-sm font-black uppercase tracking-wide text-slate-500">Tu pedido</p>
               {hasItems ? (
