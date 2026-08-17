@@ -235,12 +235,12 @@ export const VERTICAL_PRESETS: Record<Vertical, VerticalPreset> = {
     labels: RETAIL_LABELS,
     categories: ["Golosinas", "Bebidas", "Cigarrillos", "Snacks", "Almacén"],
     catalog: [
-      { name: "Alfajor triple", price: 1800, category: "Golosinas", kind: ProductKind.GOOD, cost: 1100, stock: 40 },
-      { name: "Chicles", price: 900, category: "Golosinas", kind: ProductKind.GOOD, cost: 500, stock: 60 },
-      { name: "Gaseosa 500 ml", price: 2200, category: "Bebidas", kind: ProductKind.GOOD, cost: 1400, stock: 36 },
-      { name: "Agua saborizada 1,5 L", price: 2800, category: "Bebidas", kind: ProductKind.GOOD, cost: 1800, stock: 24 },
-      { name: "Papas fritas", price: 3200, category: "Snacks", kind: ProductKind.GOOD, cost: 2000, stock: 30 },
-      { name: "Atado de cigarrillos", price: 4500, category: "Cigarrillos", kind: ProductKind.GOOD, cost: 3600, stock: 25 },
+      { name: "Alfajor triple", price: 1800, category: "Golosinas", kind: ProductKind.GOOD, cost: 1100, stock: 40, catalogSlug: "alfajor-triple" },
+      { name: "Chicles", price: 900, category: "Golosinas", kind: ProductKind.GOOD, cost: 500, stock: 60, catalogSlug: "chicles" },
+      { name: "Gaseosa 500 ml", price: 2200, category: "Bebidas", kind: ProductKind.GOOD, cost: 1400, stock: 36, catalogSlug: "gaseosa-500-ml" },
+      { name: "Agua saborizada 1,5 L", price: 2800, category: "Bebidas", kind: ProductKind.GOOD, cost: 1800, stock: 24, catalogSlug: "agua-saborizada" },
+      { name: "Papas fritas", price: 3200, category: "Snacks", kind: ProductKind.GOOD, cost: 2000, stock: 30, catalogSlug: "papas-fritas" },
+      { name: "Atado de cigarrillos", price: 4500, category: "Cigarrillos", kind: ProductKind.GOOD, cost: 3600, stock: 25, catalogSlug: "atado-de-cigarrillos" },
     ],
   },
 

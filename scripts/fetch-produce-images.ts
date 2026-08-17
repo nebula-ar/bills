@@ -231,7 +231,13 @@ async function toSquareWebp(thumbUrl: string): Promise<Buffer> {
     .rotate()
     // Mismo recorte que las fotos que sube el dueño: al centro y cuadrado, para
     // que la grilla no quede despareja.
-    .resize(SIDE, SIDE, { fit: "cover", position: "centre", withoutEnlargement: true })
+    //
+    // Sin `withoutEnlargement` a propósito. Con esa opción, `cover` no agranda:
+    // si el lado corto del original mide menos de 512 —pasa con las apaisadas,
+    // que a 1024 de ancho quedan en 400 de alto— devuelve 512x400 y el recorte
+    // deja de ser cuadrado. Una foto apenas escalada se nota mucho menos que un
+    // renglón de la grilla más bajo que los otros.
+    .resize(SIDE, SIDE, { fit: "cover", position: "centre" })
     .webp({ quality: 80 })
     .toBuffer();
 }
