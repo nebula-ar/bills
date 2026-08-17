@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { AppModule, ProductKind, Vertical } from "@/generated/prisma/enums";
+import { AppModule, Vertical } from "@/generated/prisma/enums";
 import { describe, expect, it } from "vitest";
 
 import { CONFIGURABLE_MODULES, MODULE_INFO, MODULE_REQUIRES } from "./app-modules";
@@ -217,24 +217,15 @@ describe("módulos de gastronomía", () => {
 });
 
 // Un negocio que recién arranca no subió ni una foto: lo único que ve en la
-// grilla es lo que trajo el catálogo del rubro. Una mercadería sembrada sin
-// foto queda como un cuadrito gris, y el dueño concluye que la app no muestra
-// fotos. Ver `productImageSrc`.
+// grilla es lo que trajo el catálogo del rubro. No todos los rubros tienen foto
+// todavía —declarar una es opcional— pero la que se declara tiene que estar y
+// tiene que servir. Ver `productImageSrc`.
 describe("fotos del catálogo semilla", () => {
   const CATALOG_IMAGE_DIR = resolve(process.cwd(), "public/catalog/produce");
 
   const seeded = VERTICAL_ORDER.flatMap((vertical) =>
     VERTICAL_PRESETS[vertical].catalog.map((item) => ({ vertical, item })),
   );
-
-  it("toda mercadería sembrada declara su foto", () => {
-    // Solo la mercadería: un corte de pelo no tiene foto de catálogo, y pedirle
-    // una obligaría a inventar uno genérico que no representa a nadie.
-    for (const { vertical, item } of seeded) {
-      if (item.kind !== ProductKind.GOOD) continue;
-      expect(item.catalogSlug, `${vertical} · ${item.name}: sin catalogSlug`).toBeTruthy();
-    }
-  });
 
   it("cada foto declarada existe en public/", () => {
     // Un slug con un typo no rompe el build ni el render: devuelve 404 y la

@@ -1,6 +1,5 @@
-// Baja las fotos del catálogo compartido desde Wikimedia Commons y las deja
-// listas para servir. Cubre dos listas: el catálogo de verdulería (que trae sus
-// propios precios y unidades) y la mercadería semilla del resto de los rubros.
+// Baja las fotos del catálogo de verdulería desde Wikimedia Commons y las deja
+// listas para servir.
 //
 //   npx tsx scripts/fetch-produce-images.ts          (solo lo que falta)
 //   npx tsx scripts/fetch-produce-images.ts --force   (rehace todo)
@@ -26,7 +25,6 @@ import { resolve } from "node:path";
 import { PRODUCE_CATALOG } from "../src/modules/catalog/produce-catalog.data";
 import { PRODUCE_IMAGE_PINS } from "./produce-image-pins";
 import { PRODUCE_IMAGE_QUERIES } from "./produce-image-queries";
-import { SEED_IMAGE_QUERIES } from "./seed-image-queries";
 
 // Commons exige un User-Agent que identifique a quien consulta; con uno genérico
 // devuelve 403.
@@ -253,16 +251,9 @@ async function main() {
   let downloaded = 0;
   let skipped = 0;
 
-  // Las dos listas terminan en el mismo directorio: para el navegador es un solo
-  // catálogo de fotos, y un slug repetido sería la misma imagen igual.
-  const targets = [
-    ...PRODUCE_CATALOG.map((item) => ({ slug: item.slug, query: PRODUCE_IMAGE_QUERIES[item.slug] })),
-    ...Object.entries(SEED_IMAGE_QUERIES).map(([slug, query]) => ({ slug, query })),
-  ];
-
-  for (const item of targets) {
+  for (const item of PRODUCE_CATALOG) {
     const file = resolve(OUT_DIR, `${item.slug}.webp`);
-    const query = item.query;
+    const query = PRODUCE_IMAGE_QUERIES[item.slug];
 
     if (!query) {
       failures.push({ slug: item.slug, reason: "sin búsqueda definida" });

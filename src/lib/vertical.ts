@@ -156,8 +156,8 @@ export const VERTICAL_PRESETS: Record<Vertical, VerticalPreset> = {
       { name: "Corte y barba", price: 14500, category: "Cortes" },
       { name: "Perfilado de barba", price: 6500, category: "Barba" },
       { name: "Color express", price: 18000, category: "Color" },
-      { name: "Cera modeladora", price: 7000, category: "Productos", kind: ProductKind.GOOD, cost: 4200, stock: 12, catalogSlug: "cera-modeladora" },
-      { name: "Shampoo", price: 9500, category: "Productos", kind: ProductKind.GOOD, cost: 5800, stock: 8, catalogSlug: "shampoo" },
+      { name: "Cera modeladora", price: 7000, category: "Productos", kind: ProductKind.GOOD, cost: 4200, stock: 12 },
+      { name: "Shampoo", price: 9500, category: "Productos", kind: ProductKind.GOOD, cost: 5800, stock: 8 },
     ],
   },
 
@@ -197,7 +197,7 @@ export const VERTICAL_PRESETS: Record<Vertical, VerticalPreset> = {
       { name: "Kapping gel", price: 16000, category: "Manos y pies" },
       { name: "Limpieza facial", price: 20000, category: "Tratamientos" },
       { name: "Depilación media pierna", price: 9000, category: "Depilación" },
-      { name: "Crema de manos", price: 8500, category: "Productos", kind: ProductKind.GOOD, cost: 5000, stock: 10, catalogSlug: "crema-de-manos" },
+      { name: "Crema de manos", price: 8500, category: "Productos", kind: ProductKind.GOOD, cost: 5000, stock: 10 },
     ],
   },
 
@@ -214,11 +214,11 @@ export const VERTICAL_PRESETS: Record<Vertical, VerticalPreset> = {
     labels: RETAIL_LABELS,
     categories: ["Remeras", "Pantalones", "Camperas", "Calzado", "Accesorios"],
     catalog: [
-      { name: "Remera lisa", price: 18000, category: "Remeras", kind: ProductKind.GOOD, cost: 9000, stock: 20, catalogSlug: "remera-lisa" },
-      { name: "Jean clásico", price: 45000, category: "Pantalones", kind: ProductKind.GOOD, cost: 24000, stock: 12, catalogSlug: "jean-clasico" },
-      { name: "Campera de abrigo", price: 89000, category: "Camperas", kind: ProductKind.GOOD, cost: 48000, stock: 6, catalogSlug: "campera-de-abrigo" },
-      { name: "Zapatilla urbana", price: 72000, category: "Calzado", kind: ProductKind.GOOD, cost: 40000, stock: 8, catalogSlug: "zapatilla-urbana" },
-      { name: "Gorra", price: 15000, category: "Accesorios", kind: ProductKind.GOOD, cost: 7000, stock: 15, catalogSlug: "gorra" },
+      { name: "Remera lisa", price: 18000, category: "Remeras", kind: ProductKind.GOOD, cost: 9000, stock: 20 },
+      { name: "Jean clásico", price: 45000, category: "Pantalones", kind: ProductKind.GOOD, cost: 24000, stock: 12 },
+      { name: "Campera de abrigo", price: 89000, category: "Camperas", kind: ProductKind.GOOD, cost: 48000, stock: 6 },
+      { name: "Zapatilla urbana", price: 72000, category: "Calzado", kind: ProductKind.GOOD, cost: 40000, stock: 8 },
+      { name: "Gorra", price: 15000, category: "Accesorios", kind: ProductKind.GOOD, cost: 7000, stock: 15 },
     ],
   },
 
@@ -257,15 +257,12 @@ export const VERTICAL_PRESETS: Record<Vertical, VerticalPreset> = {
     labels: RETAIL_LABELS,
     categories: ["Frutas", "Verduras", "Aromáticas", "Almacén", "Huevos y lácteos"],
     catalog: [
-      // Estas ya tenían su foto en el catálogo de verdulería; faltaba nombrarla.
-      // Donde la semilla es genérica ("Papa", "Lechuga") se elige la variedad
-      // más común de góndola, que es la que el dueño va a reconocer.
-      { name: "Banana", price: 2400, category: "Frutas", kind: ProductKind.GOOD, unit: Unit.KG, cost: 1500, stock: 30, catalogSlug: "banana" },
-      { name: "Manzana roja", price: 3200, category: "Frutas", kind: ProductKind.GOOD, unit: Unit.KG, cost: 2000, stock: 25, catalogSlug: "manzana-roja" },
-      { name: "Tomate", price: 2900, category: "Verduras", kind: ProductKind.GOOD, unit: Unit.KG, cost: 1700, stock: 20, catalogSlug: "tomate" },
-      { name: "Papa", price: 1600, category: "Verduras", kind: ProductKind.GOOD, unit: Unit.KG, cost: 900, stock: 50, catalogSlug: "papa-lavada" },
-      { name: "Lechuga", price: 1800, category: "Verduras", kind: ProductKind.GOOD, cost: 1000, stock: 18, catalogSlug: "lechuga-criolla" },
-      { name: "Huevos por docena", price: 5200, category: "Huevos y lácteos", kind: ProductKind.GOOD, unit: Unit.DOZEN, cost: 3800, stock: 15, catalogSlug: "huevos-por-docena" },
+      { name: "Banana", price: 2400, category: "Frutas", kind: ProductKind.GOOD, unit: Unit.KG, cost: 1500, stock: 30 },
+      { name: "Manzana roja", price: 3200, category: "Frutas", kind: ProductKind.GOOD, unit: Unit.KG, cost: 2000, stock: 25 },
+      { name: "Tomate", price: 2900, category: "Verduras", kind: ProductKind.GOOD, unit: Unit.KG, cost: 1700, stock: 20 },
+      { name: "Papa", price: 1600, category: "Verduras", kind: ProductKind.GOOD, unit: Unit.KG, cost: 900, stock: 50 },
+      { name: "Lechuga", price: 1800, category: "Verduras", kind: ProductKind.GOOD, cost: 1000, stock: 18 },
+      { name: "Huevos por docena", price: 5200, category: "Huevos y lácteos", kind: ProductKind.GOOD, unit: Unit.DOZEN, cost: 3800, stock: 15 },
     ],
   },
 
@@ -282,12 +279,12 @@ export const VERTICAL_PRESETS: Record<Vertical, VerticalPreset> = {
     labels: RETAIL_LABELS,
     categories: ["Hilos y lanas", "Cintas y elásticos", "Botones", "Telas", "Herramientas"],
     catalog: [
-      { name: "Ovillo de lana", price: 6500, category: "Hilos y lanas", kind: ProductKind.GOOD, cost: 3900, stock: 30, catalogSlug: "ovillo-de-lana" },
-      { name: "Hilo de coser", price: 1900, category: "Hilos y lanas", kind: ProductKind.GOOD, cost: 1100, stock: 60, catalogSlug: "hilo-de-coser" },
-      { name: "Cinta de raso", price: 1200, category: "Cintas y elásticos", kind: ProductKind.GOOD, unit: Unit.METER, cost: 700, stock: 80, catalogSlug: "cinta-de-raso" },
-      { name: "Elástico 2 cm", price: 900, category: "Cintas y elásticos", kind: ProductKind.GOOD, unit: Unit.METER, cost: 500, stock: 100, catalogSlug: "elastico-2-cm" },
-      { name: "Botón nacarado", price: 400, category: "Botones", kind: ProductKind.GOOD, cost: 200, stock: 200, catalogSlug: "boton-nacarado" },
-      { name: "Tela de algodón", price: 8900, category: "Telas", kind: ProductKind.GOOD, unit: Unit.METER, cost: 5400, stock: 45, catalogSlug: "tela-de-algodon" },
+      { name: "Ovillo de lana", price: 6500, category: "Hilos y lanas", kind: ProductKind.GOOD, cost: 3900, stock: 30 },
+      { name: "Hilo de coser", price: 1900, category: "Hilos y lanas", kind: ProductKind.GOOD, cost: 1100, stock: 60 },
+      { name: "Cinta de raso", price: 1200, category: "Cintas y elásticos", kind: ProductKind.GOOD, unit: Unit.METER, cost: 700, stock: 80 },
+      { name: "Elástico 2 cm", price: 900, category: "Cintas y elásticos", kind: ProductKind.GOOD, unit: Unit.METER, cost: 500, stock: 100 },
+      { name: "Botón nacarado", price: 400, category: "Botones", kind: ProductKind.GOOD, cost: 200, stock: 200 },
+      { name: "Tela de algodón", price: 8900, category: "Telas", kind: ProductKind.GOOD, unit: Unit.METER, cost: 5400, stock: 45 },
     ],
   },
 
@@ -304,11 +301,11 @@ export const VERTICAL_PRESETS: Record<Vertical, VerticalPreset> = {
     labels: RETAIL_LABELS,
     categories: ["Herramientas", "Electricidad", "Plomería", "Ferretería general", "Pinturería"],
     catalog: [
-      { name: "Martillo carpintero", price: 18000, category: "Herramientas", kind: ProductKind.GOOD, cost: 11000, stock: 10, catalogSlug: "martillo-carpintero" },
-      { name: "Cable unipolar 2,5 mm", price: 2200, category: "Electricidad", kind: ProductKind.GOOD, unit: Unit.METER, cost: 1400, stock: 200, catalogSlug: "cable-unipolar" },
-      { name: "Rollo de teflón", price: 1500, category: "Plomería", kind: ProductKind.GOOD, cost: 800, stock: 50, catalogSlug: "rollo-de-teflon" },
-      { name: "Tornillo autoperforante", price: 150, category: "Ferretería general", kind: ProductKind.GOOD, cost: 80, stock: 500, catalogSlug: "tornillo-autoperforante" },
-      { name: "Látex interior 4 L", price: 32000, category: "Pinturería", kind: ProductKind.GOOD, cost: 21000, stock: 12, catalogSlug: "latex-interior" },
+      { name: "Martillo carpintero", price: 18000, category: "Herramientas", kind: ProductKind.GOOD, cost: 11000, stock: 10 },
+      { name: "Cable unipolar 2,5 mm", price: 2200, category: "Electricidad", kind: ProductKind.GOOD, unit: Unit.METER, cost: 1400, stock: 200 },
+      { name: "Rollo de teflón", price: 1500, category: "Plomería", kind: ProductKind.GOOD, cost: 800, stock: 50 },
+      { name: "Tornillo autoperforante", price: 150, category: "Ferretería general", kind: ProductKind.GOOD, cost: 80, stock: 500 },
+      { name: "Látex interior 4 L", price: 32000, category: "Pinturería", kind: ProductKind.GOOD, cost: 21000, stock: 12 },
     ],
   },
 
