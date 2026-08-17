@@ -24,7 +24,9 @@
     "db:studio": "prisma studio",
     "db:pg:generate": "prisma generate",
     "db:pg:deploy": "prisma migrate deploy",
-    "db:pg:seed": "prisma db seed"
+    "db:pg:seed": "prisma db seed",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",

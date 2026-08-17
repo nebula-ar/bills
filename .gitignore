@@ -58,3 +58,10 @@ next-env.d.ts
 # Lo que se commitea es el resultado: los .webp de 512 en public/catalog/.
 /sheets
 /.sheet-preview
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+# Cookies de sesión de los e2e: son credenciales vivas, no artefactos.
+/e2e/.auth/
