@@ -1772,7 +1772,15 @@ export function PosCheckout({
 
       {/* Selector de talles de un modelo */}
       <DialogComponent
-        animationSettings={{ effect: "Zoom", duration: 200 }}
+        // En el teléfono entra DESDE ABAJO, no con un zoom desde el centro:
+        // ahí ocupa toda la pantalla, y una hoja que sube se lee como "vine de
+        // acá y me voy a ir para acá". El zoom desde el centro es de un diálogo
+        // que flota sobre algo; abajo de 1024px no flota sobre nada.
+        animationSettings={
+          carritoVisible
+            ? { effect: "Zoom", duration: 200 }
+            : { effect: "SlideBottom", duration: 320 }
+        }
         close={() => setOpenFamily(null)}
         closeOnEscape
         cssClass="e-pos-dialog"
