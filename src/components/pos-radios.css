@@ -1,0 +1,76 @@
+/*
+ * Radios del mostrador: escalón corto, tope 12px.
+ *
+ * La app usa `--radius: 1rem` con multiplicadores, así que `rounded-2xl` mide
+ * 28,8px y `rounded-xl` 22,4px. En una pantalla que es casi toda tarjetas
+ * apiladas, ese redondeo hace que todo se lea como burbujas: nada parece un
+ * plano de trabajo y las esquinas se comen el contenido de las fotos.
+ *
+ * No se reescriben las clases una por una. Tailwind compila `rounded-2xl` a
+ * `border-radius: var(--radius-2xl)`, así que redefinir esas variables acá
+ * adentro reescala TODA la pantalla de una y deja la jerarquía intacta: lo que
+ * era más redondo que otra cosa lo sigue siendo, solo que en otro rango.
+ *
+ * La escala sigue la regla concéntrica de Apple —el radio interno es el externo
+ * menos el padding que los separa— aterrizada a tres escalones:
+ *
+ *   12px  superficie externa: la tarjeta de un paso, el panel del desplegable
+ *   10px  bloques dentro de esa superficie
+ *    8px  controles: inputs, botones, filas de opción
+ *    6px  detalles: chips, miniaturas, avisos chicos
+ *
+ * `rounded-full` NO se toca. Una píldora no es un radio de 999px que haya que
+ * bajar: es una forma distinta —cápsula— y es la que separa un botón de acción
+ * de un contenedor. Aplanarla borraría esa diferencia.
+ */
+.pos-radios {
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 12px;
+  --radius-3xl: 12px;
+  --radius-4xl: 12px;
+}
+
+/*
+ * Y las clases, además de las variables.
+ *
+ * Redefinir los tokens no alcanzó: Tailwind resuelve parte de esta escala a un
+ * literal en vez de dejar el `var()`, así que nueve elementos seguían en
+ * 28,8px. Con el prefijo `.pos-radios` la especificidad gana sin `!important` y
+ * sin tocar el resto de la app.
+ */
+.pos-radios .rounded-4xl,
+.pos-radios .rounded-3xl,
+.pos-radios .rounded-2xl {
+  border-radius: 12px;
+}
+
+.pos-radios .rounded-xl {
+  border-radius: 10px;
+}
+
+.pos-radios .rounded-lg,
+.pos-radios .rounded-md {
+  border-radius: 8px;
+}
+
+.pos-radios .rounded-sm {
+  border-radius: 6px;
+}
+
+/* El borde de arriba de una hoja que sube desde abajo: mismo tope. */
+.pos-radios .rounded-t-\[2\.75rem\] {
+  border-radius: 12px 12px 0 0;
+}
+
+/*
+ * El buscador de productos es un componente de Syncfusion y trae su propio
+ * radio en su hoja de estilos, sin pasar por Tailwind. Es el único que quedaba
+ * fuera de escala: 16px contra los 10 del resto de los controles.
+ */
+.pos-radios .e-input-group.e-pos-search,
+.pos-radios .e-input-group.e-pos-search.e-ddl {
+  border-radius: 10px;
+}

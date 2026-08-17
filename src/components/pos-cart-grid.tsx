@@ -75,7 +75,12 @@ export function PosCartGrid({
                 />
               ) : null}
               <span className="min-w-0">
-                <span className="block truncate font-black text-slate-950">{row.name}</span>
+                {/* Dos renglones antes que recortar. Es el momento de tomar plata:
+                    "Capuc…" no se puede verificar, y un nombre a medias es lo
+                    que hace que alguien cobre otra cosa sin enterarse. */}
+                <span className="block font-black leading-snug text-slate-950 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
+                  {row.name}
+                </span>
                 {interactive ? (
                   <span className="block text-xs font-bold text-slate-400">
                     {money(row.price)}

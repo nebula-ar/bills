@@ -7,7 +7,15 @@ import { BarcodeScanner } from "@/components/barcode-scanner";
 import { ScanConfirmSheet, type ScannedProduct } from "@/components/scan-confirm-sheet";
 import { findProductToSell } from "@/app/sales/new/scan-actions";
 import { SyncfusionProvider } from "@/components/syncfusion-provider";
+import "@/components/pos-radios.css";
+
 import { PosCartGrid } from "@/components/pos-cart-grid";
+import { PosNavbar } from "@/components/pos-navbar";
+import {
+  canalDeDestino,
+  vendedorParaDestino,
+  type Destino,
+} from "@/modules/sales/pos-navbar.logic";
 import { AutoCompleteComponent } from "@syncfusion/ej2-react-dropdowns";
 import { NumericTextBoxComponent } from "@syncfusion/ej2-react-inputs";
 import { DialogComponent } from "@syncfusion/ej2-react-popups";
@@ -34,9 +42,9 @@ import {
   CreditCard,
   Minus,
   Plus,
+  Trash2,
   QrCode,
   ReceiptText,
-  Search,
   ShoppingBag,
   Smartphone,
   Split,
@@ -48,7 +56,6 @@ import {
 } from "@/components/icons";
 import { useEffect, useMemo, useRef, useState, useTransition, type ComponentType } from "react";
 import { SelectField } from "@/components/ui/select-field";
-import Link from "next/link";
 
 export type PosProduct = {
   productId: string;
@@ -80,7 +87,28 @@ export type PosBranch = {
   staffs: { id: string; name: string }[];
   // Mesas del salón, para decir a cuál fue lo que se cobró. Vacío en los rubros
   // que no usan el módulo.
-  tables: { id: string; name: string; sector: string | null }[];
+  tables: {
+    id: string;
+    name: string;
+    sector: string | null;
+    /**
+     * La comanda abierta de esa mesa. null = mesa libre.
+     *
+     * Viaja con la mesa y no aparte porque el selector del navbar las muestra
+     * juntas: cuál es, cuánto tiene y quién la atiende. Los minutos vienen
+     * calculados del servidor —un `Date.now()` por teléfono daría un número
+     * distinto en cada uno—.
+     */
+    comanda: {
+      orderId: string;
+      total: number;
+      items: number;
+      /** Cargados y todavía SIN mandar a cocina. El total no los suma. */
+      pendientes: number;
+      staffId: string | null;
+      minutosAbierta: number;
+    } | null;
+  }[];
   // Comandas abiertas en mesa y su total: plata servida y todavía sin cobrar.
   openTables?: { mesas: number; total: number };
   products: PosProduct[];
@@ -159,17 +187,6 @@ const CANALES: { key: SaleChannel; label: string; pista: string; icono: Componen
 
 // Las mesas se muestran por sector porque así está el salón de verdad: el que
 // cobra ubica "Vereda 3" mirando el patio, no recorriendo una lista alfabética.
-function agruparPorSector(mesas: PosBranch["tables"]) {
-  const porSector = new Map<string, PosBranch["tables"]>();
-  for (const mesa of mesas) {
-    // Las mesas sin sector existen: quedan así si alguien borra el sector.
-    const sector = mesa.sector ?? "Sin sector";
-    const actuales = porSector.get(sector);
-    if (actuales) actuales.push(mesa);
-    else porSector.set(sector, [mesa]);
-  }
-  return [...porSector.entries()];
-}
 
 // Dónde se recuerda quién cobró la última vez en este teléfono.
 const STAFF_MEMORY_KEY = "bills:ultimo-vendedor";
@@ -203,13 +220,6 @@ function initialStaffId(branch: PosBranch | undefined, sellsAsStaffId: string | 
   return branch.staffs.length === 1 ? branch.staffs[0].id : "";
 }
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 export function PosCheckout({
   branches,
@@ -522,12 +532,10 @@ export function PosCheckout({
   // Los pasos y sus condiciones viven en checkout-steps.logic, con tests: son
   // reglas de negocio ("sin salón no se pregunta la mesa"), no maquetado.
   const mesas = branch?.tables ?? [];
-  const abiertas = branch?.openTables?.mesas ?? 0;
-  const totalAbierto = branch?.openTables?.total ?? 0;
   // Solo el efectivo en un pago necesita vuelto: con tarjeta se cobra justo, y
   // en un pago dividido no hay un "con cuánto paga" único.
   const pagaEnEfectivo = !splitMode && singleMethod === "CASH" && total > 0;
-  const pasos = pasosDelCobro({ usaSalon: usesTables, canal: channel, pagaEnEfectivo, mesaFija: Boolean(order) });
+  const pasos = pasosDelCobro({ usaSalon: usesTables, canal: channel, pagaEnEfectivo, destinoYaElegido: true });
   const pasoIdx = Math.min(paso, pasos.length - 1);
   const pasoActual = pasos[pasoIdx].key;
   const esUltimoPaso = pasoIdx === pasos.length - 1;
@@ -544,9 +552,104 @@ export function PosCheckout({
   // Preguntar "¿quién atiende?" cuando hay UNA sola opción es un toque de más
   // antes de cobrar, y la respuesta ya la sabemos. Mismo criterio que la
   // sucursal acá arriba: el paso aparece solo si hay algo que elegir.
-  const preguntarStaff = branch.staffs.length > 1;
-  const staffStep = preguntarStaff ? branchStep + 1 : branchStep;
-  const productStep = staffStep + 1;
+  // El destino NO es estado nuevo: se deriva de `channel` y `tableId`, que son
+  // los que viajan a `submitSale`. Duplicarlo en un tercer estado abriría la
+  // puerta a que el navbar diga "Mesa 12" y la venta se grabe como mostrador.
+  const destino: Destino =
+    channel === SaleChannel.TABLE && tableId
+      ? { tipo: "mesa", tableId, nombre: branch.tables.find((mesa) => mesa.id === tableId)?.name ?? "Mesa" }
+      : { tipo: "caja" };
+
+  function elegirDestino(siguiente: Destino) {
+    const mesaElegida =
+      siguiente.tipo === "mesa" ? branch.tables.find((m) => m.id === siguiente.tableId) : undefined;
+
+    // Si la mesa YA tiene una comanda, se navega con su `orderId` en vez de
+    // solo marcar el destino: esa ruta ya existe y es la que usa el botón
+    // "Cobrar" del salón. El servidor la busca, la trae y el carrito arranca
+    // con sus renglones (ver el `useState` de `cart`). Sin esto se elegía la
+    // mesa y el carrito quedaba vacío, que es lo contrario de lo que uno
+    // espera al ir a cobrarla.
+    //
+    // Navegación DURA (`window.location`) y no `router.push`.
+    //
+    // Con push la URL cambiaba y la pantalla se quedaba con los datos de antes:
+    // la pastilla seguía diciendo "Caja" y el carrito vacío, aunque el
+    // `orderId` ya estuviera en la barra de direcciones. Es el mismo problema
+    // que documenta AGENTS.md —"el redirect con flash en la URL NO vuelve a
+    // pedir el árbol"— y acá el árbol es justamente lo que hay que volver a
+    // pedir, porque la comanda la resuelve el servidor.
+    //
+    // Se pierde lo que hubiera cargado en Caja. Es el precio de reusar el
+    // camino que ya funciona; lo correcto es que el POS sostenga los dos
+    // contextos sin navegar, y eso es lo que falta construir.
+    if (mesaElegida?.comanda) {
+      window.location.assign(`/sales/new?orderId=${mesaElegida.comanda.orderId}&branchId=${branchId}`);
+      return;
+    }
+
+    setChannel(canalDeDestino(siguiente));
+    setTableId(siguiente.tipo === "mesa" ? siguiente.tableId : null);
+
+    // Al pararse en una mesa, el vendedor pasa a ser SU mozo: es un dato
+    // guardado y le gana a lo que hubiera elegido a mano el que está en la
+    // caja. La comisión es de quien atendió la mesa.
+    const mesa = siguiente.tipo === "mesa" ? branch.tables.find((m) => m.id === siguiente.tableId) : undefined;
+    const { staffId: proximo } = vendedorParaDestino({
+      actual: staffId || null,
+      mozoDeLaMesa: mesa?.comanda?.staffId ?? null,
+      disponibles: branch.staffs,
+    });
+    if (proximo && proximo !== staffId) chooseStaff(proximo);
+  }
+
+  // El vendedor ya NO es un paso del cuerpo: vive en el navbar. Seguía sumando
+  // uno igual, así que el catálogo quedaba numerado como "2" y mostraba el
+  // título "¿Qué se llevó?" para justificar una secuencia que no existía.
+  //
+  // Con esto el catálogo vuelve a ser el paso 1 cuando no hay que elegir
+  // sucursal, y entonces `Step` no dibuja ni el número ni el título —ya lo
+  // contempla: "un paso que es el único de la pantalla no necesita rótulo"—.
+  // Son 44px de alto que vuelven a los productos, que es lo que se vino a
+  // hacer acá.
+  // Los cinco que más se vendieron en los últimos 30 días. `salesRank` ya viene
+  // calculado del servidor (`findTopSellingProductIds`), así que acá es solo
+  // ordenar. Sin ese dato —negocio nuevo, sin ventas— la lista queda vacía y el
+  // bloque no se dibuja.
+  const masVendidos = useMemo(() => {
+    if (!salesRank) return [];
+    return [...branch.products]
+      .filter((p) => (salesRank[p.productId] ?? 0) > 0)
+      .sort((a, b) => (salesRank[b.productId] ?? 0) - (salesRank[a.productId] ?? 0))
+      .slice(0, 5);
+  }, [branch.products, salesRank]);
+
+  const productStep = branchStep + 1;
+
+  // El destino y el vendedor son propiedades de ESTA VENTA, así que su lugar
+  // natural es el panel del pedido, junto a los renglones y al total. Ahí van
+  // en escritorio.
+  //
+  // Arriba solo sobreviven en mobile, donde el panel del pedido no está al
+  // costado sino abajo: escondidos ahí, el mozo no vería a qué mesa está
+  // cargando, que es justo el dato que no se puede equivocar.
+  //
+  // Es el MISMO elemento en dos ranuras, no dos copias: se define una vez y se
+  // muestra en una o en otra según el ancho.
+  const navbar = (
+        <PosNavbar
+          destino={destino}
+          mesas={branch.tables}
+          onDestino={elegirDestino}
+          onStaff={chooseStaff}
+          pendientes={0}
+          staffId={staffId || null}
+          staffIcon={staffIcon}
+          staffs={branch.staffs}
+          total={total}
+          usaSalon={usesTables}
+        />
+  );
 
   function selectBranch(nextId: string) {
     const nextBranch = branches.find((item) => item.id === nextId);
@@ -841,40 +944,24 @@ export function PosCheckout({
       reservarle 7rem acá era regalar alto. La pantalla llega hasta el borde y
       el catálogo pasa POR DEBAJO del nav; el respiro se lo damos adentro del
       scroll, donde solo empuja al último renglón. */}
-      <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-[560px] flex-col overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:h-screen lg:max-w-none lg:overflow-hidden lg:px-8 lg:pb-6">
+      <main className="pos-radios mx-auto flex min-h-screen w-full min-w-0 max-w-[560px] flex-col overflow-x-clip px-4 pb-40 pt-6 text-slate-950 lg:h-screen lg:max-w-none lg:overflow-hidden lg:px-8 lg:pb-6">
       {/* Sin encabezado propio: el nombre del negocio y un título que dice
           "Nueva venta" en una pantalla a la que se entra a propósito son dos
           renglones de alto que no informan nada, y acá el alto es el catálogo.
           Para volver está el nav de abajo, que además marca dónde estás. El
           título de la primera tarjeta oficia de título de la pantalla. */}
-      {/* Atajo al salón. Cobrar una mesa empieza en el salón —hay que ver cuál
-          está ocupada y qué consumió— y desde acá el camino era el nav de
-          abajo, dos toques y una pantalla intermedia. Es un solo renglón y
-          aparece únicamente donde hay mesas: en un kiosco sería ruido. */}
-      {usesTables ? (
-        <Link
-          className="mb-3 flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.99] lg:mb-4"
-          href="/salon"
-        >
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-            <TableService className="size-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-black text-slate-950">
-              {abiertas > 0
-                ? `${abiertas} ${abiertas === 1 ? "mesa abierta" : "mesas abiertas"}`
-                : "Cobrar una mesa"}
-            </span>
-            <span className="block text-xs text-slate-500">
-              {abiertas > 0 ? `${money(totalAbierto)} servidos sin cobrar` : "Mirá el salón y cerrá la cuenta desde ahí"}
-            </span>
-          </span>
-          {abiertas > 0 ? (
-            <span className="shrink-0 rounded-full bg-primary px-2.5 py-1 text-xs font-black text-white">{abiertas}</span>
-          ) : null}
-          <ArrowRight className="size-5 shrink-0 text-slate-400" />
-        </Link>
-      ) : null}
+      {/* La barra de arriba: a dónde va la venta, cómo está esa mesa, quién
+          atiende y cuánto lleva.
+
+          Reemplaza a dos cosas. Al cartel de "2 mesas abiertas", que avisaba
+          que había algo sin cerrar pero no dejaba ir a ninguna: el selector
+          muestra cada mesa CON su plata y se entra de un toque. Y al paso
+          "¿Quién atiende?", que dibujaba una tarjeta por empleado en cada
+          venta —con veinticinco era un muro— para mostrar un dato que casi
+          siempre ya estaba resuelto. */}
+      {/* En mobile la barra sí necesita su propia superficie: no está adentro
+          de ninguna tarjeta. */}
+      <div className="mb-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-950/5 lg:hidden">{navbar}</div>
 
       <div className="lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_22rem] lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:gap-6">
         <div className="lg:flex lg:min-h-0 lg:min-w-0 lg:flex-col">
@@ -900,36 +987,6 @@ export function PosCheckout({
         </Step>
       ) : null}
 
-      {preguntarStaff ? (
-      <Step iconName={staffIcon} step={staffStep} title="¿Quién atiende?" delay={140}>
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-          {branch.staffs.map((staff) => {
-            const active = staff.id === staffId;
-            return (
-              <button
-                className={`flex items-center gap-3 rounded-2xl p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] ${
-                  active ? "bg-primary text-white shadow-sm shadow-primary/25" : "bg-white text-slate-700 ring-1 ring-slate-950/5"
-                }`}
-                data-testid="staff-option"
-                key={staff.id}
-                onClick={() => chooseStaff(staff.id)}
-                type="button"
-              >
-                <span
-                  className={`flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-black ${
-                    active ? "bg-white/20 text-white" : "bg-primary/10 text-primary"
-                  }`}
-                >
-                  {initials(staff.name)}
-                </span>
-                <span className="min-w-0 text-sm font-black leading-tight">{staff.name}</span>
-              </button>
-            );
-          })}
-        </div>
-      </Step>
-      ) : null}
-
       <Step
         crece
         delay={200}
@@ -941,9 +998,8 @@ export function PosCheckout({
         // título vuelve, porque ahí sí ordena una secuencia.
         title={productStep > 1 ? "¿Qué se llevó?" : undefined}
       >
-        <div className="mb-2.5 flex items-center gap-2">
+        <div className="mb-2 flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-400" />
             {/* El AutoComplete va en su PROPIO contenedor, sin hermanos que React
                 reconcilie: EJ2 re-parentea el <input> en span.e-input-group al
                 montar, y el siguiente commit de React sobre un hermano —el ícono
@@ -989,7 +1045,7 @@ export function PosCheckout({
                 itemTemplate={(item: PosProduct) => (
                   <div className="flex min-w-0 items-center justify-between gap-3">
                     <span className="min-w-0 truncate font-bold text-slate-950">{item.name}</span>
-                    <span className="shrink-0 text-sm font-black tabular-nums text-primary">{money(item.price)}</span>
+                    <span className="shrink-0 text-sm font-black tabular-nums text-slate-950">{money(item.price)}</span>
                   </div>
                 )}
                 minLength={1}
@@ -1027,11 +1083,14 @@ export function PosCheckout({
             </button>
           ) : null}
         </div>
+        {/* Alto ajustado: 40px de pastilla en vez de 44, y menos aire arriba y
+            abajo. Sigue por encima del mínimo táctil cómodo y devuelve un
+            renglón entero a los productos, que es lo que se mira. */}
         {categorias.length > 1 ? (
-          <div className="-mx-1 mb-2.5 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-1 mb-2 flex gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
-              className={`flex min-h-11 shrink-0 items-center rounded-full px-4 py-2 text-base font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                categoria === null ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
+              className={`flex min-h-10 shrink-0 items-center rounded-full px-3.5 py-1.5 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                categoria === null ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
               }`}
               onClick={() => setCategoria(null)}
               type="button"
@@ -1040,7 +1099,7 @@ export function PosCheckout({
             </button>
             {categorias.map((c) => (
               <button
-                className={`flex min-h-11 shrink-0 items-center gap-2 rounded-full px-4 py-2 text-base font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                className={`flex min-h-10 shrink-0 items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                   categoria === c.nombre ? "bg-primary text-white" : "bg-white text-slate-600 ring-1 ring-slate-950/5"
                 }`}
                 key={c.nombre}
@@ -1106,7 +1165,9 @@ export function PosCheckout({
                     <span className="line-clamp-2 text-base font-black leading-tight text-slate-950">
                       {product.familyName ?? product.name}
                     </span>
-                    <span className="font-display text-xl font-black text-primary">{money(product.price)}</span>
+                    {/* El precio es un DATO, no una acción. En rosa competía de igual a
+                        igual con el botón de cobrar, que es lo único que mueve plata. */}
+                    <span className="font-display text-xl font-black text-slate-950">{money(product.price)}</span>
                     <span className="mt-1.5 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-slate-100 text-xs font-black text-slate-700">
                       {inCart > 0 ? `${formatQuantity(inCart)} en el pedido` : `${entry.variants.length} talles`}
                     </span>
@@ -1141,7 +1202,7 @@ export function PosCheckout({
                 // elemento sobre el recorte, así que el filo sale limpio. Los
                 // 2px están siempre y solo cambia el color: si aparecieran al
                 // elegir, la tarjeta saltaría 4px.
-                className={`flex min-h-[7.5rem] flex-col overflow-hidden rounded-lg border-2 bg-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+                className={`relative flex min-h-[7.5rem] flex-col overflow-hidden rounded-lg border-2 bg-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
                   overStock
                     ? "border-destructive shadow-sm"
                     : active
@@ -1190,9 +1251,12 @@ export function PosCheckout({
                         de costado y con la fila esperando. Cuesta filas
                         visibles y las vale. */}
                     <span className="line-clamp-2 text-base font-black leading-tight text-slate-950">{product.name}</span>
-                    <span className="font-display text-xl font-black text-primary">
+                    {/* En negro: el precio es un DATO. En rosa competía de igual
+                        a igual con "Cobrar", que es la única acción que mueve
+                        plata, y con cinco precios en pantalla ganaban ellos. */}
+                    <span className="font-display text-xl font-black text-slate-950">
                       {money(product.price)}
-                      {byWeight ? <span className="text-sm font-bold text-primary">/{unitShort(product.unit)}</span> : null}
+                      {byWeight ? <span className="text-sm font-bold text-slate-500">/{unitShort(product.unit)}</span> : null}
                     </span>
                     {/* Pasarse del stock NO se puede avisar con color: en este
                         rubro el rosa es la marca, y el `--destructive` está a
@@ -1213,10 +1277,14 @@ export function PosCheckout({
                   </span>
                 </button>
 
+                {/* La franja de controles se reserva SIEMPRE, tenga o no
+                    cantidad. Antes solo existía cuando el producto ya estaba en
+                    el pedido, así que la tarjeta crecía al agregar y toda la
+                    grilla se reacomodaba debajo del dedo: el producto que ibas
+                    a tocar después se movía de lugar justo cuando lo mirabas.
+                    Vacía no se ve, pero ocupa. */}
+                <div className="min-h-[3rem]">
                 {byWeight || active || (features.packs && product.packSize && product.packSize > 1) ? (
-                  // Los controles llevan su propio margen porque la tarjeta ya
-                  // no tiene padding: se lo sacamos para que la foto llegue al
-                  // borde.
                   <div className="space-y-1.5 px-2.5 pb-2.5">
                     {byWeight ? (
                       // Por peso o por metro no tiene sentido el +/-: se tipea.
@@ -1297,7 +1365,43 @@ export function PosCheckout({
                       </button>
                     ) : null}
                   </div>
-                ) : null}
+                ) : (
+                  // Sin cantidad, la franja NO queda vacía: lleva el "+".
+                  //
+                  // Reservar el alto arregló que las tarjetas saltaran al
+                  // agregar, pero dejó una banda blanca permanente en cada
+                  // una —diez en pantalla— y eso es peor que el salto: se paga
+                  // siempre, no solo al tocar.
+                  //
+                  // Y de paso resuelve algo que no estaba resuelto: hasta acá
+                  // NADA decía que tocando la tarjeta se agregaba el producto.
+                  // Había que descubrirlo.
+                  // Flota sobre la esquina de la FOTO.
+                  //
+                  // Primero lo puse debajo del precio: la tarjeta crecía 44px,
+                  // y por diez tarjetas es una fila entera de productos menos.
+                  // Después lo subí con margen negativo: dejaba de crecer pero
+                  // quedaba compartiendo renglón con "Quedan N", apretado.
+                  //
+                  // Absoluto sobre la tarjeta no ocupa alto NI ancho de nadie, y
+                  // cae donde la mano ya está yendo: la foto es lo que se toca.
+                  <div className="absolute right-2 top-2">
+                    <button
+                      aria-label={`Agregar ${product.name}`}
+                      // Vidrio esmerilado: la foto se ve pasar por atrás en vez de quedar
+                      // tapada por un disco blanco. `supports-[backdrop-filter]`
+                      // porque sin soporte el fondo translúcido dejaría el ícono
+                      // ilegible sobre una foto clara; ahí cae en blanco pleno.
+                      className="flex size-10 items-center justify-center rounded-full bg-white/95 text-slate-800 shadow-sm ring-1 ring-white/60 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-90 disabled:opacity-40 supports-[backdrop-filter]:bg-white/55 supports-[backdrop-filter]:backdrop-blur-md supports-[backdrop-filter]:hover:bg-white/70"
+                      disabled={outOfStock}
+                      onClick={() => addProduct(product.productId)}
+                      type="button"
+                    >
+                      <Plus className="size-5" />
+                    </button>
+                  </div>
+                )}
+                </div>
               </div>
             );
           })}
@@ -1327,6 +1431,9 @@ export function PosCheckout({
               abierta todo el día, y el número que se canta tiene que estar
               siempre en el mismo lugar. */}
           <div className="flex h-full flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-950/5">
+            {/* A dónde va y quién la hace: lo primero del pedido, porque
+                condiciona todo lo que sigue. */}
+            <div className="mb-3 border-b border-slate-100 pb-3 [&_[data-total]]:hidden">{navbar}</div>
             {/* Mismo tamaño e icono que el título de las tarjetas de la
                 izquierda: son dos encabezados de la misma fila, y si uno es más
                 chico la fila se ve torcida aunque las cajas estén alineadas. */}
@@ -1339,7 +1446,90 @@ export function PosCheckout({
                 {/* El DataGrid del detalle scrollea adentro (height 100%): el
                     resto del panel —descuentos, total, botón— queda fijo. */}
                 <div className="mt-4 min-h-0 flex-1">
-                  <PosCartGrid items={cartGridItems} />
+{/* Lista propia, no la grilla de Syncfusion.
+                      Esa grilla necesita ~280px solo para cantidad, total y
+                      borrar, y esta columna mide 352px: el nombre se quedaba
+                      sin lugar y el encabezado se renderizaba en vertical, una
+                      letra por línea. Probado.
+
+                      Acá los controles van DEBAJO del nombre en vez de al lado,
+                      así el ancho deja de ser el problema. Y sin grilla no hay
+                      encabezado de columnas, que para cuatro renglones era
+                      puro adorno. */}
+                  <ul className="flex flex-col">
+                    {cartGridItems.map((item) => {
+                      const unidades = item.quantity / QUANTITY_SCALE;
+                      return (
+                        <li
+                          className="flex items-center gap-2 rounded-lg px-1 py-1.5 transition hover:bg-slate-50"
+                          key={item.productId}
+                        >
+                          {item.imageSrc ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img alt="" className="size-8 shrink-0 rounded-md object-cover" src={item.imageSrc} />
+                          ) : null}
+
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-black leading-tight text-slate-950">
+                              {item.name}
+                            </span>
+                            <span className="block text-xs font-bold tabular-nums text-slate-500">
+                              {money(item.price * unidades)}
+                            </span>
+                          </span>
+
+                          {/* Todo en UNA fila. Con los controles debajo del
+                              nombre cada producto gastaba 76px para decir "1":
+                              con doce productos se veían cuatro. Acá entran el
+                              doble. */}
+                          <span className="flex shrink-0 items-center gap-1">
+                            <button
+                              // Con uno, bajar equivale a sacarlo: se evita el
+                              // paso muerto de dejarlo en cero para borrarlo
+                              // después.
+                              aria-label={
+                                unidades <= 1 ? `Sacar ${item.name} del pedido` : `Quitar uno de ${item.name}`
+                              }
+                              className="grid size-8 place-items-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-slate-200 active:scale-90"
+                              onClick={() =>
+                                unidades <= 1 ? removeProduct(item.productId) : decreaseProduct(item.productId)
+                              }
+                              type="button"
+                            >
+                              <Minus className="size-3.5" />
+                            </button>
+                            <span className="min-w-8 text-center text-sm font-black tabular-nums text-slate-950">
+                              {formatQuantity(item.quantity, item.unit)}
+                            </span>
+                            <button
+                              aria-label={`Agregar uno de ${item.name}`}
+                              className="grid size-8 place-items-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-slate-200 active:scale-90"
+                              onClick={() => addProduct(item.productId)}
+                              type="button"
+                            >
+                              <Plus className="size-3.5" />
+                            </button>
+
+                            {/* El tacho, SIEMPRE, a la derecha del "+".
+                                Lo había hecho aparecer solo con cantidad 1, que
+                                es exactamente al revés: ahí el "−" ya alcanza.
+                                El caso que lo justifica es el contrario —20
+                                unidades cargadas— donde sin tacho hay que tocar
+                                "−" veinte veces para sacar un renglón que se
+                                cargó por error. */}
+                            <button
+                              aria-label={`Sacar ${item.name} del pedido`}
+                              className="ml-0.5 grid size-8 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive active:scale-90"
+                              onClick={() => removeProduct(item.productId)}
+                              type="button"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
                 {discountTotal > 0 ? (
                   <div className="mt-3 space-y-1 rounded-2xl bg-emerald-50 p-3">
@@ -1386,6 +1576,35 @@ export function PosCheckout({
                   <p className="text-sm text-slate-500">
                     Tocá un {catalogSingular.toLowerCase()} para sumarlo.
                   </p>
+
+                  {/* Lo que más sale, como atajo.
+                      Con el carrito vacío esta columna era medio metro de
+                      blanco que no hacía nada hasta la primera venta, y un
+                      mostrador arranca así todos los días. Los que más se
+                      venden son los que más se van a tocar: ponerlos a un
+                      toque acá ahorra buscarlos en la grilla. */}
+                  {masVendidos.length > 0 ? (
+                    <div className="mt-6 w-full">
+                      <p className="mb-2 text-[0.6875rem] font-bold uppercase tracking-wide text-slate-400">
+                        Lo que más sale
+                      </p>
+                      <div className="flex flex-col gap-1.5">
+                        {masVendidos.map((p) => (
+                          <button
+                            className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5 text-left transition hover:bg-slate-100 active:scale-[0.99]"
+                            key={p.productId}
+                            onClick={() => addProduct(p.productId)}
+                            type="button"
+                          >
+                            <span className="min-w-0 truncate text-sm font-black text-slate-950">{p.name}</span>
+                            <span className="shrink-0 text-sm font-black tabular-nums text-slate-500">
+                              {money(p.price)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* El total queda a la vista aunque esté en cero: es el número
@@ -1765,45 +1984,6 @@ export function PosCheckout({
                   );
                 })}
               </div>
-            ) : null}
-
-            {/* Paso "¿Qué mesa?": mini plano agrupado por sector, como el salón.
-                Se toca la mesa, no se elige de una lista desplegable: el mozo
-                sabe dónde está sentado el cliente, no en qué posición del
-                combo. */}
-            {pasoActual === "mesa" ? (
-              mesas.length === 0 ? (
-                <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
-                  No hay mesas cargadas todavía. Cargalas en Salón.
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {agruparPorSector(mesas).map(([sector, delSector]) => (
-                    <div key={sector}>
-                      <p className="mb-2 text-sm font-black uppercase tracking-wide text-slate-500">{sector}</p>
-                      <div className="grid grid-cols-4 gap-2">
-                        {delSector.map((mesa) => {
-                          const elegida = tableId === mesa.id;
-                          return (
-                            <button
-                              className={`relative grid aspect-square place-items-center rounded-2xl border-2 text-xl font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                                elegida
-                                  ? "border-primary bg-primary text-white shadow-sm shadow-primary/25"
-                                  : "border-slate-200 bg-white text-slate-700"
-                              }`}
-                              key={mesa.id}
-                              onClick={() => setTableId(elegida ? null : mesa.id)}
-                              type="button"
-                            >
-                              {mesa.name}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )
             ) : null}
 
             {/* Pedido */}
