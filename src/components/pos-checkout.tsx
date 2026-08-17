@@ -19,7 +19,7 @@ import {
 import { AutoCompleteComponent } from "@syncfusion/ej2-react-dropdowns";
 import { NumericTextBoxComponent } from "@syncfusion/ej2-react-inputs";
 import { DialogComponent } from "@syncfusion/ej2-react-popups";
-import { ToastComponent } from "@syncfusion/ej2-react-notifications";
+import { toast } from "sonner";
 import { TAX_CONDITION_LABELS } from "@/lib/invoice-labels";
 import {
   allowsFraction,
@@ -327,7 +327,6 @@ export function PosCheckout({
   // Con cuánto paga el cliente, para calcular el vuelto. Vacío = pagó justo.
   const [cashReceived, setCashReceived] = useState("");
   // Toast de feedback del mostrador (venta registrada / error), ver showToast.
-  const toastRef = useRef<ToastComponent | null>(null);
   // Referencia al buscador (AutoComplete) para limpiarlo al elegir un producto.
   const searchRef = useRef<AutoCompleteComponent | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -342,16 +341,16 @@ export function PosCheckout({
   );
   const customerTaxIdHasError = customerTaxIdCheck !== null && !customerTaxIdCheck.valid;
 
-  // Feedback de operaciones con el Toast de Syncfusion: la venta guardada (ok)
-  // y los errores al registrarla. Los avisos del lector de código siguen en el
-  // pill del escáner (ver avisar), que es donde tienen contexto.
+  // Feedback de operaciones con `sonner`, que es el aviso del resto de la app
+  // y ya vive montado en el layout. Estaba con el Toast de Syncfusion y se
+  // notaba: otra tipografía, otra forma y otro lugar que el resto de los
+  // avisos, en la pantalla donde más se cobra.
+  //
+  // Los avisos del lector de código siguen en el pill del escáner (ver
+  // `avisar`), que es donde tienen contexto.
   function showToast(kind: "success" | "error", title: string, content?: string) {
-    toastRef.current?.show({
-      title,
-      content,
-      cssClass: `e-pos-toast e-pos-toast-${kind}`,
-      timeOut: kind === "error" ? 6000 : 3200,
-    });
+    const mostrar = kind === "error" ? toast.error : toast.success;
+    mostrar(title, { description: content, duration: kind === "error" ? 6000 : 3200 });
   }
 
   // Productos que llegaron por el lector y no estaban en la lista con la que se
@@ -2377,12 +2376,6 @@ export function PosCheckout({
       {/* Toast de feedback del mostrador: venta registrada (ok) y errores al
           registrar. Los avisos del lector de código siguen en el pill del
           escáner (ver avisar), que es donde tienen contexto. */}
-      <ToastComponent
-        position={{ X: "Center", Y: "Bottom" }}
-        ref={toastRef}
-        showCloseButton
-        width="min(24rem, calc(100vw - 2rem))"
-      />
       </main>
     </SyncfusionProvider>
   );

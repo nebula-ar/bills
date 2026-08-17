@@ -255,49 +255,8 @@
   backdrop-filter: blur(2px);
 }
 
-/* ── Toast de feedback: abajo al centro, redondeado, con marca ── */
-.e-toast-container.e-toast-bottom-center {
-  margin-bottom: 1.25rem;
-}
-.e-toast.e-pos-toast {
-  border-radius: 1rem;
-  border: 1px solid #f1f5f9;
-  box-shadow: 0 15px 40px -12px rgb(15 23 42 / 0.35);
-  min-height: 3.25rem;
-  align-items: center;
-  background: #fff;
-}
-.e-toast.e-pos-toast .e-toast-message .e-toast-title {
-  color: #0f172a;
-  font-size: 0.95rem;
-  font-weight: 800;
-  line-height: 1.3;
-}
-.e-toast.e-pos-toast .e-toast-message .e-toast-content {
-  color: #64748b;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-.e-toast.e-pos-toast.e-pos-toast-success .e-toast-message .e-toast-title,
-.e-toast.e-pos-toast.e-pos-toast-success .e-toast-message .e-toast-content {
-  color: #047857;
-}
-.e-toast.e-pos-toast.e-pos-toast-success {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
-}
-.e-toast.e-pos-toast.e-pos-toast-error .e-toast-message .e-toast-title,
-.e-toast.e-pos-toast.e-pos-toast-error .e-toast-message .e-toast-content {
-  color: #be123c;
-}
-.e-toast.e-pos-toast.e-pos-toast-error {
-  background: #fff1f2;
-  border-color: #fecdd3;
-}
-.e-toast.e-pos-toast .e-toast-close-icon {
-  color: #94a3b8;
-  font-size: 14px;
-}
+/* El aviso de la venta usa `sonner`, como el resto de la app: los estilos
+   del Toast de Syncfusion que vivían acá se fueron con él. */
 
 /* ── NumericTextBox de cantidades y montos: inputs del app ── */
 .e-pos-numeric.e-input-group.e-control-wrapper {
