@@ -19,6 +19,32 @@ import { memo, type RefObject } from "react";
 // fuera de flujo, porque un input con `display: none` NO recibe el click
 // programático en Chrome: el diálogo de archivos no abre y el botón parece
 // roto. Verificado en el navegador.
+/**
+ * Abre el selector de archivos del Uploader.
+ *
+ * Vive acá, al lado del componente, porque el motivo por el que no es un
+ * `querySelector` directo es un detalle de ESTE uploader: `element` ES el
+ * `<input type=file>` —EJ2 se inicializa SOBRE el input, no lo envuelve—, así
+ * que buscar adentro devuelve null y el click nunca sale. El botón queda mudo,
+ * sin error en consola.
+ *
+ * Ya pasó dos veces: se arregló en la ficha y el alta se quedó con la versión
+ * vieja. Una sola copia, entonces.
+ *
+ * Se contemplan los dos casos por si una versión futura de EJ2 cambia de
+ * estrategia, y se cae al DOM si el ref todavía no llegó.
+ */
+export function abrirSelectorDeFoto(uploaderRef: RefObject<UploaderComponent | null>) {
+  const el = uploaderRef.current?.element as HTMLElement | undefined;
+  const input =
+    el instanceof HTMLInputElement
+      ? el
+      : el?.querySelector<HTMLInputElement>("input[type=file]") ??
+        document.querySelector<HTMLInputElement>(".e-catalog-uploader input[type=file]");
+
+  input?.click();
+}
+
 export const CatalogUploader = memo(function CatalogUploader({
   uploaderRef,
   onFile,

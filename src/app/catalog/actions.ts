@@ -1,6 +1,6 @@
 "use server";
 
-import { AppModule, ProductKind, Unit } from "@/generated/prisma/client";
+import { AppModule, ProductKind } from "@/generated/prisma/client";
 import type { ProductChangeField, StockMovementType } from "@/generated/prisma/enums";
 import { requireAdminSession } from "@/lib/auth";
 import { requireBusinessContext } from "@/lib/business-context";
@@ -8,6 +8,14 @@ import { verticalFeatures } from "@/lib/vertical";
 import { parseQuantityInput } from "@/lib/quantity";
 import { logError } from "@/lib/logger";
 import { getProductErrorMessage } from "@/lib/catalog-error-messages";
+import {
+  parseCommercialFields,
+  parseOptionalString,
+  parsePrice,
+  parseRequiredString,
+  parseWholeAmount,
+  quiereConfigurarSucursal,
+} from "@/modules/catalog/catalog-form.logic";
 import { createFullProduct } from "@/modules/catalog/create-full-product.use-case";
 import { ProductError } from "@/modules/catalog/product.errors";
 import { updateGlobalProduct } from "@/modules/catalog/update-product.use-case";
@@ -234,8 +242,7 @@ export async function updateProduct(formData: FormData) {
     redirectWithMessage("error", "Completá el nombre del ítem.", branchId ?? undefined);
   }
 
-  const priceEntered = typeof priceRaw === "string" && priceRaw.trim().length > 0;
-  const wantsConfig = configured || active || priceEntered;
+  const wantsConfig = quiereConfigurarSucursal({ configured, active, priceRaw });
 
   if (wantsConfig && !price) {
     redirectWithMessage("error", "Poné un precio válido para configurarlo o habilitarlo.", branchId);
@@ -259,86 +266,6 @@ export async function updateProduct(formData: FormData) {
   }
 
   redirectWithMessage("success", "Ítem actualizado.", branchId);
-}
-
-// Los campos comerciales solo llegan desde la pantalla de catálogo cuando el
-// rubro los usa. Si el formulario no los mandó, se devuelven `undefined` para
-// que el caso de uso no los pise.
-function parseCommercialFields(formData: FormData) {
-  if (formData.get("hasCommercialFields") !== "true") {
-    return {};
-  }
-
-  const kindRaw = parseOptionalString(formData, "kind");
-  const unitRaw = parseOptionalString(formData, "unit");
-  const costRaw = parseOptionalString(formData, "cost");
-  const minStockRaw = parseOptionalString(formData, "minStock");
-  const idealStockRaw = parseOptionalString(formData, "idealStock");
-  const packSizeRaw = parseOptionalString(formData, "packSize");
-  const kind =
-    kindRaw && (Object.values(ProductKind) as string[]).includes(kindRaw) ? (kindRaw as ProductKind) : undefined;
-
-  return {
-    kind,
-    unit: unitRaw && (Object.values(Unit) as string[]).includes(unitRaw) ? (unitRaw as Unit) : undefined,
-    sku: parseOptionalString(formData, "sku") ?? null,
-    barcode: parseOptionalString(formData, "barcode") ?? null,
-    cost: costRaw ? parseWholeAmount(costRaw) : null,
-    // Se deduce del tipo en vez de preguntarse: un servicio no tiene existencias
-    // y un producto físico sí, siempre. Preguntarlo aparte permitía guardar la
-    // contradicción "servicio que descuenta stock", y en la práctica el tilde
-    // estaba puesto en todos.
-    trackStock: kind === undefined ? undefined : kind !== ProductKind.SERVICE,
-    // El mínimo se tipea en unidades y se guarda en milésimas, igual que el stock.
-    minStock: minStockRaw ? parseQuantityInput(minStockRaw) : null,
-    // El ideal, igual. Contesta otra pregunta que el mínimo: aquél dice
-    // cuándo reponer, éste cuánto.
-    idealStock: idealStockRaw ? parseQuantityInput(idealStockRaw) : null,
-    // El bulto se cuenta en unidades enteras: media caja no existe.
-    packSize: packSizeRaw ? parseWholeAmount(packSizeRaw) : null,
-    packLabel: parseOptionalString(formData, "packLabel") ?? null,
-    categoryId: parseOptionalString(formData, "categoryId") ?? null,
-  };
-}
-
-function parseWholeAmount(value: string) {
-  const amount = Number(value.replace(/\./g, "").replace(",", "."));
-  return Number.isInteger(amount) && amount >= 0 ? amount : null;
-}
-
-function parseRequiredString(formData: FormData, key: string) {
-  const value = formData.get(key);
-
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const trimmedValue = value.trim();
-  return trimmedValue.length > 0 ? trimmedValue : null;
-}
-
-function parseOptionalString(formData: FormData, key: string) {
-  const value = formData.get(key);
-
-  if (typeof value !== "string") {
-    return undefined;
-  }
-
-  const trimmedValue = value.trim();
-  return trimmedValue.length > 0 ? trimmedValue : undefined;
-}
-
-function parsePrice(value: FormDataEntryValue | null) {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  // El precio llega con separador de miles ("28.000"): acá el punto siempre
-  // separa miles, nunca decimales (ver src/lib/money.ts).
-  const normalizedValue = value.trim().replace(/\./g, "").replace(",", ".");
-  const price = Number(normalizedValue);
-
-  return Number.isInteger(price) && price > 0 ? price : null;
 }
 
 async function handleProductActionError(

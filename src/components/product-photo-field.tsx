@@ -4,7 +4,7 @@ import { deleteProductImage, uploadProductImage } from "@/app/catalog/actions";
 import { Camera, Check, Loader2, Plus, Sparkles, Trash2 } from "@/components/icons";
 import { ProductPhotoAiSheet } from "@/components/product-photo-ai-sheet";
 import { resizeImageForUpload } from "@/lib/image-resize";
-import { CatalogUploader } from "@/components/catalog-uploader";
+import { abrirSelectorDeFoto, CatalogUploader } from "@/components/catalog-uploader";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import type { UploaderComponent } from "@syncfusion/ej2-react-inputs";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -95,22 +95,9 @@ export function ProductPhotoField({
   const src = previaLocal ?? (quitarPendiente ? null : guardada);
   const esPropia = previaLocal !== null || (!quitarPendiente && photoVersion !== null);
 
-  // Abre el selector de archivos del Uploader.
-  //
-  // `element` ES el <input type=file>: EJ2 se inicializa SOBRE el input, no lo
-  // envuelve. Buscar adentro con `querySelector` devolvía null y el click nunca
-  // salía — el botón parecía no andar. Se contemplan los dos casos por si una
-  // versión futura cambia de estrategia, y se cae al DOM si el ref no llegó.
-  function openPicker() {
-    const el = uploaderRef.current?.element as HTMLElement | undefined;
-    const input =
-      el instanceof HTMLInputElement
-        ? el
-        : el?.querySelector<HTMLInputElement>("input[type=file]") ??
-          document.querySelector<HTMLInputElement>(".e-catalog-uploader input[type=file]");
-
-    input?.click();
-  }
+  // Por qué no es un `querySelector` directo está explicado en
+  // `abrirSelectorDeFoto`, al lado del uploader.
+  const openPicker = () => abrirSelectorDeFoto(uploaderRef);
 
   // Estable a propósito (useCallback con productId, que no cambia dentro de la
   // ficha): el CatalogUploader está memoizado y un cambio de identidad lo

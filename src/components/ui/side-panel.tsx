@@ -12,8 +12,22 @@ import { createPortal } from "react-dom";
 const CURVE = "cubic-bezier(0.32, 0.72, 0, 1)";
 const ENTER_MS = 440;
 
+// A partir de acá el panel entra desde el costado; abajo de esto sube desde el
+// piso y tapa la pantalla. Es el mismo corte que usan la grilla y el layout de
+// Productos (768px), a propósito: si el panel cambiara de forma en un ancho y
+// las columnas en otro, habría un rango donde la pantalla se ve a mitad de
+// camino entre dos diseños.
+const ANCHO_MOBILE = "(max-width: 767px)";
+
 /**
- * Panel modal que entra desde el borde derecho.
+ * Panel modal. Entra desde el borde derecho, y en mobile sube desde abajo
+ * ocupando la pantalla entera.
+ *
+ * Son la misma pieza y no dos porque el contenido es el mismo: lo único que
+ * cambia es de qué borde entra. Duplicarla en un `SidePanel` y un `BottomSheet`
+ * obligaría a mantener dos veces la trampa de foco, el Escape, el bloqueo del
+ * scroll y el desmontaje diferido — y ahí es donde una de las dos se queda
+ * atrás.
  *
  * Es un diálogo de verdad, no un div que aparece: atrapa el foco mientras está
  * abierto, cierra con Escape, devuelve el foco a donde estaba al cerrar y se
@@ -49,6 +63,19 @@ export function SidePanel({
 }) {
   const [render, setRender] = useState(open);
   const [visible, setVisible] = useState(false);
+  // Arranca en false y se corrige en el efecto: el server no sabe el ancho de
+  // la pantalla, y adivinar acá daría un HTML que no coincide con el del
+  // cliente. Se escucha el cambio y no solo el valor inicial porque rotar el
+  // teléfono con el panel abierto cruza el breakpoint.
+  const [esMobile, setEsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia(ANCHO_MOBILE);
+    const sincronizar = () => setEsMobile(mq.matches);
+    sincronizar();
+    mq.addEventListener("change", sincronizar);
+    return () => mq.removeEventListener("change", sincronizar);
+  }, []);
   const panelRef = useRef<HTMLDivElement>(null);
   // A dónde volver el foco cuando esto se cierre: casi siempre la fila de la
   // tabla que lo abrió. Si no se restaura, el foco se va al principio del
@@ -175,15 +202,22 @@ export function SidePanel({
         type="button"
       />
 
-      {/* Separado del borde y con esquinas redondeadas: apoyado sobre la
-          pantalla en vez de cortado contra ella. Pegado al borde y en ángulo
-          recto parecía que la ventana se había partido al medio, no que se
-          hubiera abierto algo encima.
+      {/* En escritorio: separado del borde y con esquinas redondeadas, apoyado
+          sobre la pantalla en vez de cortado contra ella. Pegado al borde y en
+          ángulo recto parecía que la ventana se había partido al medio, no que
+          se hubiera abierto algo encima.
 
           El desplazamiento de salida se calcula con el margen incluido
           (`calc(100% + 0.75rem)`): con `100%` pelado el panel quedaba con su
           propio margen a la vista y la sombra asomaba por el costado en vez de
-          irse del todo. */}
+          irse del todo.
+
+          En mobile no hay margen que dejar. Un panel de 30rem separado 12px de
+          cada borde en una pantalla de 375px es la pantalla entera igual, pero
+          con las esquinas comiéndose contenido y un marco oscuro de 12px que no
+          se puede tocar. Sube desde el piso y ocupa todo: la ficha tiene cuatro
+          pestañas y un pie fijo, y cada píxel de alto es una fila menos de
+          scroll. */}
       <div
         aria-label={title}
         aria-modal="true"
@@ -193,18 +227,34 @@ export function SidePanel({
         role="dialog"
         style={{
           position: "absolute",
-          top: "0.75rem",
-          right: "0.75rem",
-          bottom: "0.75rem",
-          width,
-          borderRadius: "1.75rem",
-          // Dos capas: la difusa da la sensación de "apoyado" y el anillo de
-          // 1px lo recorta contra el fondo oscurecido, que si no le come el
-          // borde. Misma familia que la sombra del bottom sheet.
-          boxShadow: "0 32px 64px -16px rgba(15,23,42,0.32), 0 0 0 1px rgba(15,23,42,0.05)",
           willChange: "transform",
-          transform: open && visible ? "translateX(0)" : "translateX(calc(100% + 0.75rem))",
           transition: `transform ${ENTER_MS}ms ${CURVE}`,
+          ...(esMobile
+            ? {
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+                borderRadius: 0,
+                // El blanco llega hasta el borde, el contenido no: sin esto el
+                // encabezado se mete abajo del notch y el pie fijo queda tapado
+                // por la barra de gestos.
+                paddingTop: "env(safe-area-inset-top)",
+                paddingBottom: "env(safe-area-inset-bottom)",
+                transform: open && visible ? "translateY(0)" : "translateY(100%)",
+              }
+            : {
+                top: "0.75rem",
+                right: "0.75rem",
+                bottom: "0.75rem",
+                width,
+                borderRadius: "1.75rem",
+                // Dos capas: la difusa da la sensación de "apoyado" y el anillo
+                // de 1px lo recorta contra el fondo oscurecido, que si no le
+                // come el borde. Misma familia que la sombra del bottom sheet.
+                boxShadow: "0 32px 64px -16px rgba(15,23,42,0.32), 0 0 0 1px rgba(15,23,42,0.05)",
+                transform: open && visible ? "translateX(0)" : "translateX(calc(100% + 0.75rem))",
+              }),
         }}
         tabIndex={-1}
       >

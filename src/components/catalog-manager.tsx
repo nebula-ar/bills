@@ -23,10 +23,16 @@ import { NivelDeInventarioPanel } from "@/components/inventory-level-panel";
 import { ProductMovements } from "@/components/product-movements";
 import { ProductHistory } from "@/components/product-history";
 import { ProductPhotoField } from "@/components/product-photo-field";
-import { CatalogUploader } from "@/components/catalog-uploader";
+import { abrirSelectorDeFoto, CatalogUploader } from "@/components/catalog-uploader";
 import { ProductAnalyticsTab } from "@/components/product-analytics-tab";
-import { formatQuantity, QUANTITY_SCALE, unitLabel } from "@/lib/quantity";
+import { formatQuantity, unitLabel } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
+import {
+  contarCambios,
+  margenPct,
+  stockStatusOf,
+  totalesDe,
+} from "@/modules/catalog/grilla-catalogo.logic";
 import { ArrowLeft, ArrowRight, Check, CircleSlash, DynamicIcon, Loader2, Plus, Search, Trash2, X } from "@/components/icons";
 import { SyncSwitch } from "@/components/sync-switch";
 import { SyncSelect } from "@/components/sync-select";
@@ -158,113 +164,6 @@ function money(value: number): string {
 // datos o el precio no es válido — nunca se inventa un número cuando falta
 // costo o precio (mismo espíritu que el resto del proyecto con `unitCost`
 // faltante, ver AGENTS.md).
-function margenPct(cost: number | null, price: number | null): number | null {
-  if (cost === null || price === null || price <= 0) return null;
-  return Math.round((1 - cost / price) * 100);
-}
-
-type StockStatus = "out" | "low" | "ok";
-
-// Mutuamente excluyente y con prioridad: sin stock gana aunque también esté
-// bajo el mínimo (0 es, por definición, lo más bajo que hay). null = el
-// producto no lleva control de stock.
-// Totales del pie de la grilla.
-//
-// Sumar la columna tal cual habría dado números sin sentido, y peor: números
-// con pinta de oficiales. Sumar precios unitarios ($9.520 + $5.290 + …) no es
-// plata que exista en ningún lado, y sumar existencias mezcla peras con kilos
-// —40 unidades + 10 docenas + 2 kg no es "52 de algo"—.
-//
-// Lo que sí significa algo:
-// - Costo  → Σ(costo × existencia): lo que hay inmovilizado en mercadería.
-// - Precio → Σ(precio × existencia): lo que daría venderla toda.
-// - Margen → se calcula sobre esos DOS totales, no promediando porcentajes.
-//   El promedio simple le da el mismo peso a un alfajor que a 60 medialunas.
-// - Stock  → cuántos productos, no cuántas unidades, justo por lo de las
-//   unidades mezcladas.
-//
-// Solo entran los que tienen existencia y el dato cargado: un producto sin
-// costo no vale cero, no se sabe cuánto vale, y contarlo como cero infla el
-// margen (mismo criterio que `unitCost` faltante en AGENTS.md).
-type TotalesDeGrilla = {
-  productos: number;
-  conStock: number;
-  porReponer: number;
-  costo: number;
-  precio: number;
-  margen: number | null;
-  sinCosto: number;
-};
-
-function totalesDe(productos: ProductRow[]): TotalesDeGrilla {
-  let conStock = 0;
-  let porReponer = 0;
-  let costo = 0;
-  let precio = 0;
-  let sinCosto = 0;
-
-  for (const producto of productos) {
-    const estado = stockStatusOf(producto);
-    if (estado === "out" || estado === "low") porReponer += 1;
-
-    const existencia = producto.stockQuantity;
-    if (existencia === null || existencia <= 0) continue;
-    conStock += 1;
-
-    // La existencia viene en milésimas (ver lib/quantity.ts).
-    const unidades = existencia / QUANTITY_SCALE;
-    // Un producto sin costo no vale cero: no se sabe cuánto vale. Contarlo como
-    // cero abarata el total y por lo tanto infla el margen, así que queda
-    // afuera y se avisa cuántos son (mismo criterio que `unitCost` en AGENTS.md).
-    // Un servicio sin costo no es un hueco, pero acá ya filtramos por existencia
-    // y un servicio no lleva stock.
-    if (producto.cost === null) sinCosto += 1;
-    else costo += producto.cost * unidades;
-    if (producto.priceValue !== null) precio += producto.priceValue * unidades;
-  }
-
-  return {
-    productos: productos.length,
-    conStock,
-    porReponer,
-    costo: Math.round(costo),
-    precio: Math.round(precio),
-    margen: precio > 0 && costo > 0 ? Math.round((1 - costo / precio) * 100) : null,
-    sinCosto,
-  };
-}
-
-
-// Cuántos campos de la ficha difieren de lo que está guardado.
-//
-// Se compara valor contra valor y no "¿tocó una tecla?": escribir un 5 y
-// borrarlo deja el formulario igual que como estaba, y avisar "1 cambio sin
-// guardar" ahí es una alarma falsa. La plata se normaliza con el mismo parser
-// que usa el guardado, así que "$ 3.500" y "3500" cuentan como el mismo valor.
-function contarCambios(datos: FormData, producto: ProductRow, config: ProductBranchConfig | null) {
-  const texto = (campo: string) => String(datos.get(campo) ?? "").trim();
-  const plata = (campo: string) => parseAmountInput(texto(campo));
-
-  const comparaciones: boolean[] = [
-    texto("name") !== producto.name,
-    plata("price") !== (config?.priceValue ? parseAmountInput(config.priceValue) : null),
-    plata("cost") !== producto.cost,
-    texto("sku") !== (producto.sku ?? ""),
-    texto("barcode") !== (producto.barcode ?? ""),
-    texto("minStock") !== producto.minStockValue,
-    texto("idealStock") !== producto.idealStockValue,
-    texto("description") !== (producto.description ?? "").trim(),
-    // El switch de disponibilidad manda el campo `active` —no `available`— y
-    // solo cuando está prendido: el input oculto directamente no se dibuja si
-    // está apagado (ver SyncSwitch), así que "on" o ausente. Es el mismo par
-    // que lee la action al guardar.
-    (datos.get("active") === "on") !== (config?.available ?? false),
-  ];
-
-  return comparaciones.filter(Boolean).length;
-}
-
-
 // Los botones del pie de la ficha.
 //
 // Van en su propio componente por una razón concreta: `useFormStatus` solo ve
@@ -343,14 +242,6 @@ function CampoDescripcion({ defaultValue, name }: { defaultValue: string; name: 
   );
 }
 
-function stockStatusOf(product: ProductRow): StockStatus | null {
-  if (product.stockQuantity === null) return null;
-  if (product.stockQuantity <= 0) return "out";
-  if (product.minStockRaw !== null && product.stockQuantity <= product.minStockRaw) return "low";
-  return "ok";
-}
-
-
 // Estado sin resultados del grid: el mismo mensaje del listado viejo.
 // Disponibilidad accionable DESDE LA FILA.
 //
@@ -415,14 +306,6 @@ function EmptyProducts({ singular }: { singular: string }) {
       <p className="text-sm font-bold text-slate-700">No encontramos ningún {singular} con eso.</p>
     </div>
   );
-}
-
-// Abre el selector de archivos del Uploader de EJ2 (que vive oculto: la tarjeta
-// visible es la que dibuja el estado). El input de archivo está siempre en el
-// DOM aunque el wrapper esté con display:none, así que el click programático
-// funciona en todos los navegadores.
-function openUploaderPicker(ref: { current: { element: HTMLElement } | null }) {
-  ref.current?.element.querySelector<HTMLInputElement>("input[type=file]")?.click();
 }
 
 function BranchSelect({
@@ -491,6 +374,8 @@ export function ProductsManager({ data }: { data: ProductsData }) {
     id: string;
     name: string;
     description: string | null;
+    /** Lo que se tipeó en el alta. null = se creó sin precio. */
+    price: number | null;
   } | null>(null);
   // Alta paso a paso. Los campos de todos los pasos quedan montados dentro de un
   // mismo <form> y sólo se muestra el del paso actual: así los valores se
@@ -552,12 +437,21 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   // Precio y costo se leen del <form> al tipear para recalcular el margen en
   // vivo. `MoneyInput` no expone su valor —guarda el suyo propio— así que se
   // toman con FormData desde el onChange del formulario, que sí burbujea.
-  const [margenVivo, setMargenVivo] = useState<number | null>(null);
+  // `undefined` = todavía nadie tocó el formulario, así que hay que mostrar lo
+  // que dice el producto. `null` = se tocó y NO alcanza para calcular (falta el
+  // costo o el precio). La diferencia importa: antes los dos eran `null` y el
+  // margen se sembraba en `openEdit` con el producto buscado EN EL MOMENTO DEL
+  // CLICK. Al entrar por "Ver su ficha" recién creado, ese producto todavía no
+  // estaba en la lista —`router.refresh()` no bloquea—, así que quedaba en null
+  // para siempre: los inputs se dibujaban bien cuando llegaba el refresco, pero
+  // Ganancia y Margen seguían diciendo "—" y "cargá costo y precio" sobre un
+  // producto que tenía las dos cosas. Lo encontró un e2e.
+  const [margenVivo, setMargenVivo] = useState<number | null | undefined>(undefined);
   // Ganancia en pesos por unidad. Va junto al margen porque son dos preguntas
   // distintas: el % dice si el precio está bien puesto, los pesos dicen cuánto
   // deja cada venta. Con 63% de margen sobre $630 y sobre $9.520 el dueño toma
   // decisiones muy distintas, y el porcentaje solo no las distingue.
-  const [gananciaViva, setGananciaViva] = useState<number | null>(null);
+  const [gananciaViva, setGananciaViva] = useState<number | null | undefined>(undefined);
   // Cuántos campos difieren de lo guardado. No es un booleano "hay cambios":
   // decir CUÁNTOS es lo que deja cerrar sin miedo —o frenar a tiempo— sin
   // tener que releer el formulario entero buscando qué se tocó.
@@ -578,6 +472,15 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const newBranchName = data.branches.find((branch) => branch.id === newBranchId)?.name ?? "";
   const editConfig = editing?.branchConfigs.find((config) => config.branchId === editBranchId) ?? null;
   const editBranchName = data.branches.find((branch) => branch.id === editBranchId)?.name ?? "";
+
+  // Mientras nadie tocó nada, manda el producto. Después manda lo tipeado.
+  const margenMostrado = margenVivo === undefined ? margenPct(editing?.cost ?? null, editing?.priceValue ?? null) : margenVivo;
+  const gananciaMostrada =
+    gananciaViva === undefined
+      ? editing && editing.cost !== null && editing.priceValue !== null
+        ? editing.priceValue - editing.cost
+        : null
+      : gananciaViva;
 
   // El contenido del Dialog monta recién después de la animación de apertura
   // (200ms, ver animationSettings de los diálogos): los componentes EJ2 no se
@@ -611,13 +514,28 @@ export function ProductsManager({ data }: { data: ProductsData }) {
     [data.categories],
   );
 
-  const visibleProducts = query
-    ? data.products.filter((product) =>
-        [product.name, product.familyName ?? "", product.sku ?? "", product.barcode ?? ""].some((field) =>
-          normalize(field).includes(query),
-        ),
-      )
-    : data.products;
+  // `useMemo` y no un filtro suelto. Sin él, la rama del `query` devuelve un
+  // ARRAY NUEVO en cada render: `gridRows` lo tiene como dependencia, así que
+  // se recalcula, la grilla recibe un `dataSource` con otra identidad y EJ2
+  // vuelve a vincular todo —prende su spinner, marca `aria-busy` y repinta las
+  // plantillas de cada celda—.
+  //
+  // Lo tramposo es que solo pasa con el buscador CON TEXTO: vacío devuelve
+  // `data.products` tal cual, que sí es estable. Probándolo a mano sin filtro
+  // daba cero re-renders y parecía arreglado; con una búsqueda puesta —que es
+  // lo que uno hace para encontrar el producto que quiere editar— la tabla
+  // parpadeaba con cada tecla de la ficha. Lo encontró un e2e.
+  const visibleProducts = useMemo(
+    () =>
+      query
+        ? data.products.filter((product) =>
+            [product.name, product.familyName ?? "", product.sku ?? "", product.barcode ?? ""].some((field) =>
+              normalize(field).includes(query),
+            ),
+          )
+        : data.products,
+    [query, data.products],
+  );
 
   // El margen se calcula acá y viaja como campo de la fila, en vez de salir
   // solo del template de la columna. La grilla no puede ordenar, filtrar ni
@@ -701,6 +619,20 @@ export function ProductsManager({ data }: { data: ProductsData }) {
     resetNew();
   }
 
+  // La confirmación dice que se puede cambiar todo desde la ficha; esta es la
+  // puerta. Sin ella la frase es un dato inútil: obliga a cerrar, buscar el
+  // producto en la lista y abrirlo a mano. Y es el camino natural, porque el
+  // alta no pregunta el stock inicial: se carga ahí.
+  //
+  // El producto ya está en `data.products`: `submitNewProduct` refrescó apenas
+  // creó, así que para cuando esta pantalla se ve, la lista está al día.
+  function verFicha() {
+    const id = createdProduct?.id;
+    if (!id) return;
+    closeNew();
+    openEdit(id);
+  }
+
   // Estable a propósito (useCallback sin deps, setFoto con updater funcional):
   // el CatalogUploader está memoizado y si esta función cambiara de identidad
   // re-renderizaría y perdería el input (NEBU-48).
@@ -771,7 +703,16 @@ export function ProductsManager({ data }: { data: ProductsData }) {
         }
       }
 
-      setCreatedProduct({ id: result.productId, name: result.name, description: result.description });
+      setCreatedProduct({
+        id: result.productId,
+        name: result.name,
+        description: result.description,
+        // Se lee del form y no de la respuesta porque la acción no lo devuelve.
+        // Sirve para que la confirmación muestre lo que quedó guardado: es el
+        // único momento en que se puede pescar un precio mal tipeado sin tener
+        // que ir a buscarlo a la lista.
+        price: parseAmountInput(String(formData.get("price") ?? "")),
+      });
       router.refresh();
     });
   }
@@ -781,23 +722,21 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   // serviría de nada.
   const openEdit = useCallback((id: string) => {
     setEditReady(false);
-    const product = data.products.find((item) => item.id === id);
     setEditBranchId(data.selectedBranchId);
     // Siempre en la primera pestaña: si quedara donde la dejó el producto
     // anterior, abrir una ficha mostraría el stock antes que el nombre.
     setEditTab("producto");
-    // El margen arranca con lo que ya tiene el producto: si esperara al primer
-    // tipeo, abrir la ficha mostraría "—" sobre datos que sí existen.
-    setMargenVivo(margenPct(product?.cost ?? null, product?.priceValue ?? null));
-    setGananciaViva(
-      product && product.cost !== null && product.priceValue !== null ? product.priceValue - product.cost : null,
-    );
+    // No se siembra con el producto de acá: puede no estar todavía en la lista.
+    // Se deriva de `editing` al dibujar, que sí se recalcula cuando llega el
+    // refresco (ver `margenMostrado` más abajo).
+    setMargenVivo(undefined);
+    setGananciaViva(undefined);
     // Recién abierta no hay nada tocado. Si quedara el conteo de la ficha
     // anterior, abrir un producto mostraría "3 cambios sin guardar" sobre datos
     // que nadie tocó.
     setCambios(0);
     setEditId(id);
-  }, [data.products, data.selectedBranchId]);
+  }, [data.selectedBranchId]);
 
   function closeEdit() {
     if (!editing) return;
@@ -1437,38 +1376,88 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             así cada apertura arranca con componentes frescos. */}
         {newReady ? (
           createdProduct ? (
-          /* Confirmación y nada más. La foto ya se preguntó como paso del alta:
-             volver a pedirla acá era hacerle el mismo trámite dos veces. */
-          <div className="flex flex-col">
-            <p className="truncate text-xl font-black tracking-tight text-slate-950">{createdProduct.name}</p>
-            <div className="mt-4 flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-4">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
-                <Check className="size-6" />
-              </span>
-              <p className="text-sm font-bold leading-6 text-emerald-900">
-                Ya está en tu {data.catalogPlural.toLowerCase()}. Podés cambiarle lo que sea desde su ficha.
+          /* Confirmación. La foto ya se preguntó como paso del alta: volver a
+             pedirla acá era hacerle el mismo trámite dos veces.
+
+             Misma estructura que el form (scroll arriba, pie fijo abajo) y el
+             mismo `px-7` que el encabezado. Antes este bloque no tenía padding
+             lateral: el nombre arrancaba pegado al borde del panel. */
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-6">
+              {/* Lo que quedó guardado, no un cartel de "todo bien". El alta
+                  son varios pasos y el último es el único momento en que se
+                  puede pescar un precio mal tipeado sin salir a buscarlo. La
+                  miniatura repite la del listado —mismo tamaño, mismo
+                  placeholder— para que se reconozca como la misma cosa. */}
+              <div className="flex items-center gap-3.5 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-950/5">
+                {foto ? (
+                  // Preview local en memoria: no hay nada que `next/image` optimice.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img alt="" className="catalog-thumb shrink-0 object-cover ring-1 ring-slate-950/5" src={foto.preview} />
+                ) : (
+                  <span className="catalog-thumb flex shrink-0 items-center justify-center bg-primary/10 text-primary">
+                    <DynamicIcon className="size-6" name={data.catalogIcon} />
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate text-base font-black tracking-tight text-slate-950">{createdProduct.name}</p>
+                  <p
+                    className={`mt-0.5 truncate text-sm font-bold ${
+                      createdProduct.price === null ? "text-slate-400" : "text-slate-600"
+                    }`}
+                  >
+                    {createdProduct.price === null ? "Sin precio" : money(createdProduct.price)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Una línea, no una tarjeta. El título del panel ya dice que
+                  terminó y el resumen de arriba muestra qué quedó: un bloque
+                  verde de cuatro renglones para repetirlo era el elemento más
+                  pesado de la pantalla diciendo lo que menos aportaba. */}
+              <p className="mt-3.5 flex items-center gap-2 px-1 text-sm font-bold text-emerald-700">
+                <Check className="size-4 shrink-0" />
+                Ya está en tus {data.catalogPlural.toLowerCase()}.
               </p>
+
+              {/* El alta deja crear sin precio, y sin precio no se puede
+                  vender. Este es el momento de decirlo: el botón para
+                  arreglarlo está justo abajo. */}
+              {createdProduct.price === null ? (
+                <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold leading-6 text-amber-800">
+                  Le falta el precio, así que todavía no se puede vender. Cargalo desde su ficha.
+                </p>
+              ) : null}
+
+              {newError ? (
+                <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">{newError}</p>
+              ) : null}
             </div>
-            {newError ? (
-              <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">{newError}</p>
-            ) : null}
-            <div className="mt-5 flex items-center gap-3">
-              {/* Cargar catálogo es una tarea repetitiva: obligar a cerrar y
-                  volver a abrir por cada ítem es cobrarle dos toques a algo
-                  que se hace veinte veces seguidas. */}
+
+            {/* Pie fijo, igual que en los pasos anteriores. Suelto en el medio
+                del panel dejaba un vacío enorme abajo y las acciones flotando
+                donde nadie las busca.
+
+                Ya no hay botón "Listo": repetía el título del panel y hacía lo
+                mismo que la X de arriba. Los dos que quedan son los únicos que
+                llevan a algún lado, y el que manda es "Cargar otro" —cargar el
+                catálogo se hace veinte veces seguidas, y obligar a cerrar y
+                reabrir por cada ítem es cobrar dos toques cada vez—. */}
+            <div className="flex shrink-0 items-center gap-3 border-t border-slate-100 px-7 py-5">
               <button
                 className="flex-1 rounded-2xl border border-slate-200 px-4 py-4 text-base font-black text-slate-700 transition hover:bg-slate-50 active:scale-[0.99]"
+                onClick={verFicha}
+                type="button"
+              >
+                Ver su ficha
+              </button>
+              <button
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
                 onClick={crearOtro}
                 type="button"
               >
+                <Plus className="size-5" />
                 Cargar otro
-              </button>
-              <button
-                className="flex-1 rounded-2xl bg-primary px-4 py-4 text-base font-black text-white shadow-sm shadow-primary/25 transition hover:bg-primary-strong active:scale-[0.99]"
-                onClick={closeNew}
-                type="button"
-              >
-                Listo
               </button>
             </div>
           </div>
@@ -1553,7 +1542,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               ) : (
                 <button
                   className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center transition hover:border-primary/40 hover:bg-white"
-                  onClick={() => openUploaderPicker(nuevoUploaderRef)}
+                  onClick={() => abrirSelectorDeFoto(nuevoUploaderRef)}
                   type="button"
                 >
                   <Plus className="size-8 text-slate-400" />
@@ -1881,7 +1870,16 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 Se ocultan con CSS y NO se desmontan: es un solo <form>, y un
                 campo desmontado no se envía. Cambiar de pestaña borraría en
                 silencio lo que el usuario escribió del otro lado. */}
-            <div className="flex shrink-0 gap-2 border-b border-slate-100 px-7 pb-2">
+            {/* `overflow-x-auto`: las cuatro pestañas miden 409px y en un
+                teléfono de 375 la última quedaba cortada contra el borde y sin
+                forma de llegar a ella —el contenedor desbordaba con
+                `visible`—. Historial existía y era inalcanzable.
+
+                No se achica el texto ni el padding para que entren: en otro
+                rubro las etiquetas son más largas y el problema vuelve. Que
+                scrollee, y que el pedazo visible de la última avise que hay
+                más. */}
+            <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-slate-100 px-7 pb-2">
               {(
                 [
                   // Ninguna se llama como el todo: la ficha del producto es el
@@ -1999,11 +1997,11 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                     <p className="text-[0.6875rem] font-bold uppercase tracking-wide text-slate-500">Ganancia</p>
                     <p
                       className={`mt-0.5 text-xl font-black ${
-                        gananciaViva === null ? "text-slate-400" : gananciaViva < 0 ? "text-rose-600" : "text-emerald-700"
+                        gananciaMostrada === null ? "text-slate-400" : gananciaMostrada < 0 ? "text-rose-600" : "text-emerald-700"
                       }`}
                       style={{ fontVariantNumeric: "tabular-nums" }}
                     >
-                      {gananciaViva === null ? "—" : `${gananciaViva > 0 ? "+" : ""}${money(gananciaViva)}`}
+                      {gananciaMostrada === null ? "—" : `${gananciaMostrada > 0 ? "+" : ""}${money(gananciaMostrada)}`}
                     </p>
                     <p className="text-[0.6875rem] text-slate-500">por unidad</p>
                   </div>
@@ -2011,14 +2009,14 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                     <p className="text-[0.6875rem] font-bold uppercase tracking-wide text-slate-500">Margen</p>
                     <p
                       className={`mt-0.5 text-xl font-black ${
-                        margenVivo === null ? "text-slate-400" : margenVivo < 30 ? "text-rose-600" : "text-emerald-700"
+                        margenMostrado === null ? "text-slate-400" : margenMostrado < 30 ? "text-rose-600" : "text-emerald-700"
                       }`}
                       style={{ fontVariantNumeric: "tabular-nums" }}
                     >
-                      {margenVivo === null ? "—" : `${margenVivo}%`}
+                      {margenMostrado === null ? "—" : `${margenMostrado}%`}
                     </p>
                     <p className="text-[0.6875rem] text-slate-500">
-                      {margenVivo === null ? "cargá costo y precio" : "sobre el precio"}
+                      {margenMostrado === null ? "cargá costo y precio" : "sobre el precio"}
                     </p>
                   </div>
                 </div>
