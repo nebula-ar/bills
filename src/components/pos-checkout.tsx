@@ -9,7 +9,7 @@ import { findProductToSell } from "@/app/sales/new/scan-actions";
 import { SyncfusionProvider } from "@/components/syncfusion-provider";
 import "@/components/pos-radios.css";
 
-import { PosCartGrid } from "@/components/pos-cart-grid";
+import { PosCartList } from "@/components/pos-cart-list";
 import { PosNavbar } from "@/components/pos-navbar";
 import {
   canalDeDestino,
@@ -42,7 +42,6 @@ import {
   CreditCard,
   Minus,
   Plus,
-  Trash2,
   QrCode,
   ReceiptText,
   ShoppingBag,
@@ -440,7 +439,7 @@ export function PosCheckout({
     .filter((product) => cart[product.productId])
     .map((product) => ({ ...product, quantity: cart[product.productId] }));
   // Renglones del pedido tal como los consume el DataGrid del detalle
-  // (PosCartGrid): el panel "Pedido" de escritorio y el paso "Tu pedido" del
+  // (PosCartList): el panel "Pedido" de escritorio y el paso "Tu pedido" del
   // cobro comparten el mismo grid.
   const cartGridItems = cartItems.map((item) => ({
     productId: item.productId,
@@ -1456,80 +1455,12 @@ export function PosCheckout({
                       así el ancho deja de ser el problema. Y sin grilla no hay
                       encabezado de columnas, que para cuatro renglones era
                       puro adorno. */}
-                  <ul className="flex flex-col">
-                    {cartGridItems.map((item) => {
-                      const unidades = item.quantity / QUANTITY_SCALE;
-                      return (
-                        <li
-                          className="flex items-center gap-2 rounded-lg px-1 py-1.5 transition hover:bg-slate-50"
-                          key={item.productId}
-                        >
-                          {item.imageSrc ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img alt="" className="size-8 shrink-0 rounded-md object-cover" src={item.imageSrc} />
-                          ) : null}
-
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-black leading-tight text-slate-950">
-                              {item.name}
-                            </span>
-                            <span className="block text-xs font-bold tabular-nums text-slate-500">
-                              {money(item.price * unidades)}
-                            </span>
-                          </span>
-
-                          {/* Todo en UNA fila. Con los controles debajo del
-                              nombre cada producto gastaba 76px para decir "1":
-                              con doce productos se veían cuatro. Acá entran el
-                              doble. */}
-                          <span className="flex shrink-0 items-center gap-1">
-                            <button
-                              // Con uno, bajar equivale a sacarlo: se evita el
-                              // paso muerto de dejarlo en cero para borrarlo
-                              // después.
-                              aria-label={
-                                unidades <= 1 ? `Sacar ${item.name} del pedido` : `Quitar uno de ${item.name}`
-                              }
-                              className="grid size-8 place-items-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-slate-200 active:scale-90"
-                              onClick={() =>
-                                unidades <= 1 ? removeProduct(item.productId) : decreaseProduct(item.productId)
-                              }
-                              type="button"
-                            >
-                              <Minus className="size-3.5" />
-                            </button>
-                            <span className="min-w-8 text-center text-sm font-black tabular-nums text-slate-950">
-                              {formatQuantity(item.quantity, item.unit)}
-                            </span>
-                            <button
-                              aria-label={`Agregar uno de ${item.name}`}
-                              className="grid size-8 place-items-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-slate-200 active:scale-90"
-                              onClick={() => addProduct(item.productId)}
-                              type="button"
-                            >
-                              <Plus className="size-3.5" />
-                            </button>
-
-                            {/* El tacho, SIEMPRE, a la derecha del "+".
-                                Lo había hecho aparecer solo con cantidad 1, que
-                                es exactamente al revés: ahí el "−" ya alcanza.
-                                El caso que lo justifica es el contrario —20
-                                unidades cargadas— donde sin tacho hay que tocar
-                                "−" veinte veces para sacar un renglón que se
-                                cargó por error. */}
-                            <button
-                              aria-label={`Sacar ${item.name} del pedido`}
-                              className="ml-0.5 grid size-8 place-items-center rounded-full text-slate-400 transition hover:bg-destructive/10 hover:text-destructive active:scale-90"
-                              onClick={() => removeProduct(item.productId)}
-                              type="button"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </button>
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  <PosCartList
+                    items={cartGridItems}
+                    onAdd={addProduct}
+                    onDecrease={decreaseProduct}
+                    onRemove={removeProduct}
+                  />
                 </div>
                 {discountTotal > 0 ? (
                   <div className="mt-3 space-y-1 rounded-2xl bg-emerald-50 p-3">
@@ -1991,9 +1922,7 @@ export function PosCheckout({
             <section>
               <p className="mb-2 text-sm font-black uppercase tracking-wide text-slate-500">Tu pedido</p>
               {hasItems ? (
-                <PosCartGrid
-                  height="auto"
-                  interactive
+                <PosCartList
                   items={cartGridItems}
                   onAdd={addProduct}
                   onDecrease={decreaseProduct}
