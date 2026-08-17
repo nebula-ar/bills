@@ -322,7 +322,15 @@ export const VERTICAL_PRESETS: Record<Vertical, VerticalPreset> = {
     modules: [...RETAIL_MODULES, AppModule.TABLES, AppModule.KITCHEN, AppModule.RECIPES],
     // Se escanea y se repone por bulto (la docena de facturas), pero no hay
     // talles. Y se encarga una torta por link, así que la página es catálogo.
-    features: { ...RESTOCK_FEATURES, publicPage: "catalog" },
+    // `barcodes: false`: una panadería vende medialunas y facturas, que no
+    // vienen con código de barras. El lector ocupaba lugar en el mostrador —la
+    // pantalla que más se usa— para algo que nadie iba a escanear nunca.
+    //
+    // Se apaga la FEATURE y no se esconde el botón en el JSX: así desaparece de
+    // todos lados a la vez (el alta de productos también pregunta por el código)
+    // y el día que una panadería empiece a vender gaseosas embotelladas, se
+    // prende de nuevo desde acá.
+    features: { ...RESTOCK_FEATURES, barcodes: false, publicPage: "catalog" },
     labels: RETAIL_LABELS,
     categories: ["Panes", "Facturas", "Pastelería", "Bebidas"],
     // Con foto: en un mostrador se vende mirando, no leyendo una lista. El POS

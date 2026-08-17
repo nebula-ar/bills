@@ -157,14 +157,22 @@ describe("pastelería", () => {
     expect(modules).toContain(AppModule.CASH);
   });
 
-  it("vende mercadería: se escanea y se repone por bulto", () => {
+  it("vende mercadería y se repone por bulto, pero NO se escanea", () => {
     // Una docena de facturas es un bulto. Un corte de pelo no.
     const features = verticalFeatures(Vertical.BAKERY);
 
-    expect(features.barcodes).toBe(true);
     expect(features.packs).toBe(true);
     // Talles no: una medialuna no viene en S/M/L.
     expect(features.variants).toBe(false);
+
+    // Códigos de barras tampoco: las medialunas y las facturas no vienen con
+    // uno. El lector estaba ocupando lugar en el mostrador —la pantalla que más
+    // se usa— para algo que nadie iba a escanear.
+    //
+    // Es una decisión de producto, no una limitación: el día que una panadería
+    // venda gaseosas embotelladas se prende de nuevo en `vertical.ts`, y este
+    // test es el que hay que dar vuelta.
+    expect(features.barcodes).toBe(false);
   });
 
   it("su página pública es un catálogo, no una agenda de turnos", () => {
