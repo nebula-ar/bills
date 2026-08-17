@@ -1,4 +1,4 @@
-import { OrderStatus, TableStatus } from "@/generated/prisma/enums";
+import { KdsStatus, OrderStatus, TableStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -45,6 +45,94 @@ export function findMesasParaCobrar(businessId: string, branchId: string) {
     where: { businessId, branchId, deleted: false },
     orderBy: [{ sector: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
     select: { id: true, name: true, sector: { select: { name: true } } },
+  });
+}
+
+/**
+ * Las mesas de la sucursal, cada una con su comanda abierta si la tiene.
+ *
+ * Es el detalle que `resumenDeMesasAbiertas` deliberadamente NO trae. Las dos
+ * conviven porque contestan preguntas distintas: aquélla es el aviso del
+ * mostrador ("¿queda algo sin cerrar antes de irme?"), ésta es el selector de
+ * mesa del POS, donde hay que elegir una y para eso hace falta ver cuánto tiene
+ * cada una y quién la está atendiendo.
+ *
+ * Dos consultas y no un `include`: las mesas libres no tienen comanda, así que
+ * un join las dejaría afuera o traería filas en null. Se cruzan en memoria, que
+ * con las mesas de un salón es gratis.
+ */
+export async function mesasConComanda(businessId: string, branchId: string) {
+  const [mesas, comandas] = await Promise.all([
+    prisma.table.findMany({
+      where: { businessId, branchId, deleted: false },
+      orderBy: [{ sector: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, sector: { select: { name: true } } },
+    }),
+    prisma.order.findMany({
+      where: {
+        businessId,
+        branchId,
+        status: OrderStatus.OPEN,
+        deleted: false,
+        tableId: { not: null },
+      },
+      select: {
+        id: true,
+        tableId: true,
+        total: true,
+        staffId: true,
+        openedAt: true,
+        _count: { select: { items: true } },
+      },
+    }),
+  ]);
+
+  // Cuántos renglones quedaron en borrador por comanda.
+  //
+  // Va aparte y no como `_count` filtrado para que quede a la vista lo que
+  // significa: `kdsStatus: CART` es lo que se cargó y TODAVÍA NO se mandó a
+  // cocina. El total de la comanda no lo suma —un borrador no se pidió, y
+  // cobrarlo sería cobrar algo que la cocina nunca vio—, así que una mesa puede
+  // mostrar $0 y tener tres platos esperando. Sin este número, esa mesa se ve
+  // igual que una vacía.
+  const pendientesPorComanda =
+    comandas.length === 0
+      ? []
+      : await prisma.orderItem.groupBy({
+          by: ["orderId"],
+          where: { orderId: { in: comandas.map((comanda) => comanda.id) }, kdsStatus: KdsStatus.CART },
+          _count: { _all: true },
+        });
+  const pendientes = new Map(pendientesPorComanda.map((fila) => [fila.orderId, fila._count._all]));
+
+  const porMesa = new Map(comandas.map((comanda) => [comanda.tableId, comanda]));
+  // Una sola lectura del reloj para todas: si cada mesa tomara la suya, dos
+  // abiertas en el mismo minuto podrían mostrar minutos distintos.
+  const ahora = Date.now();
+
+  return mesas.map((mesa) => {
+    const comanda = porMesa.get(mesa.id);
+    return {
+      id: mesa.id,
+      name: mesa.name,
+      sector: mesa.sector?.name ?? null,
+      comanda: comanda
+        ? {
+            orderId: comanda.id,
+            total: comanda.total,
+            items: comanda._count.items,
+            // El mozo de la mesa. Al elegirla, el POS pasa a vender como él:
+            // la comisión es de quien atendió, no de quien apretó cobrar.
+            staffId: comanda.staffId,
+            pendientes: pendientes.get(comanda.id) ?? 0,
+            // Los minutos se calculan ACÁ y no en la pantalla. Dos motivos: un
+            // `Date.now()` por teléfono daría un número distinto en cada uno
+            // según su reloj, y en un componente de React es una función impura
+            // en pleno render (lo marca el linter, con razón).
+            minutosAbierta: Math.max(0, Math.round((ahora - comanda.openedAt.getTime()) / 60_000)),
+          }
+        : null,
+    };
   });
 }
 

@@ -23,16 +23,21 @@ export function pasosDelCobro(input: {
   // tarjeta se cobra justo, y en un pago dividido no hay un "con cuánto paga"
   // único porque son varios montos.
   pagaEnEfectivo: boolean;
-  // Se está cobrando una comanda que YA tiene mesa: "dónde" y "qué mesa" no se
-  // preguntan porque la respuesta ya está en la comanda, y preguntarla nomás
-  // para reescribir el mismo dato es un toque de más con el cliente esperando.
-  mesaFija?: boolean;
+  // El destino ya está decidido antes de abrir el cobro, así que "dónde" y "qué
+  // mesa" no se preguntan: la respuesta ya está y volver a pedirla es un toque
+  // de más con el cliente esperando.
+  //
+  // Se llamaba `mesaFija` porque el único caso era cobrar una comanda que ya
+  // traía su mesa. Ahora el navbar del mostrador decide el destino ANTES de
+  // cargar el primer producto, así que es siempre: los dos pasos quedaron sin
+  // uso y el nombre viejo ya no describía nada.
+  destinoYaElegido?: boolean;
 }): PasoDeCobro[] {
   return [
-    ...(input.usaSalon && !input.mesaFija ? ([{ key: "donde", titulo: "¿Dónde?" }] as const) : []),
+    ...(input.usaSalon && !input.destinoYaElegido ? ([{ key: "donde", titulo: "¿Dónde?" }] as const) : []),
     // La mesa solo se pregunta si ya se dijo que es una mesa. Preguntarla
     // siempre obligaría a saltearla en cada venta de mostrador.
-    ...(input.usaSalon && !input.mesaFija && input.canal === SaleChannel.TABLE
+    ...(input.usaSalon && !input.destinoYaElegido && input.canal === SaleChannel.TABLE
       ? ([{ key: "mesa", titulo: "¿Qué mesa?" }] as const)
       : []),
     { key: "pago", titulo: "¿Cómo paga?" },

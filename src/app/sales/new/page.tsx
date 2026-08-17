@@ -9,7 +9,7 @@ import { findUserWithSellsAs } from "@/modules/auth/user.repository";
 import { getSaleEntryBranches } from "@/modules/sales/get-sale-entry-options.use-case";
 import { findTopSellingProductIds } from "@/modules/sales/sale.repository";
 import { findStockLevelsForBranches } from "@/modules/stock/stock.repository";
-import { findMesasParaCobrar, resumenDeMesasAbiertas } from "@/modules/tables/tables.repository";
+import { mesasConComanda, resumenDeMesasAbiertas } from "@/modules/tables/tables.repository";
 import { getOrderForCheckout } from "@/modules/tables/orders.use-cases";
 import { PosCheckoutClient } from "@/components/pos-checkout-client";
 import type { PosBranch, PosCustomer } from "@/components/pos-checkout";
@@ -83,9 +83,9 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
     usesCustomers ? getCustomersForSale(business.id) : Promise.resolve([]),
     usesTables
       ? Promise.all(
-          branches.map(async (branch) => [branch.id, await findMesasParaCobrar(business.id, branch.id)] as const),
+          branches.map(async (branch) => [branch.id, await mesasConComanda(business.id, branch.id)] as const),
         ).then((pares) => new Map(pares))
-      : new Map<string, { id: string; name: string; sector: { name: string } | null }[]>(),
+      : new Map<string, Awaited<ReturnType<typeof mesasConComanda>>>(),
     // Cuánta plata quedó sentada en el salón. Es lo que convierte el atajo en un
     // aviso: sin el número hay que ir a mirar para saber si hay algo sin cerrar.
     usesTables
@@ -99,10 +99,23 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
     id: branch.id,
     name: branch.name,
     staffs: branch.users.map((staff) => ({ id: staff.id, name: staff.name })),
+    // Cada mesa viaja con su comanda abierta: el selector del navbar necesita
+    // mostrar cuánto tiene cada una y quién la atiende, y al elegirla el POS
+    // pasa a vender como ese mozo.
     tables: (mesasPorSucursal.get(branch.id) ?? []).map((mesa) => ({
       id: mesa.id,
       name: mesa.name,
-      sector: mesa.sector?.name ?? null,
+      sector: mesa.sector,
+      comanda: mesa.comanda
+        ? {
+            orderId: mesa.comanda.orderId,
+            total: mesa.comanda.total,
+            items: mesa.comanda.items,
+            pendientes: mesa.comanda.pendientes,
+            staffId: mesa.comanda.staffId,
+            minutosAbierta: mesa.comanda.minutosAbierta,
+          }
+        : null,
     })),
     openTables: abiertasPorSucursal.get(branch.id) ?? { mesas: 0, total: 0 },
     products: branch.productPrices.map((productPrice) => ({
