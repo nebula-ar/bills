@@ -366,11 +366,32 @@
     margin: 0 !important;
     border-radius: 0 !important;
 
-    /* OJO: acá NO va `transform: none`.
-       Estaba, para reposicionar el diálogo, y mataba la animación: EJ2 hace el
-       `SlideBottom` moviendo el `transform`, así que pisarlo dejaba la hoja
-       apareciendo de golpe. La posición se resuelve con `bottom`/`left`, que no
-       compiten con la animación. */
+    /* La animación es NUESTRA, no la de Syncfusion.
+       Primero intenté con su `SlideBottom` y no se veía: el mismo CSS que
+       reposiciona la hoja llevaba `transform: none !important` y EJ2 anima
+       moviendo el transform, así que se pisaban. Sacar esa línea tampoco
+       alcanzó, porque el `!important` de la altura le sigue ganando a lo que
+       Syncfusion escribe inline.
+       Con un keyframe propio no hay nada que negociar: el transform es de esta
+       regla y de nadie más. La curva es la misma del bottom sheet de la app
+       (ui/bottom-sheet.tsx): arranca rápido y frena largo. */
+    animation: pos-hoja-sube 320ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  @keyframes pos-hoja-sube {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  /* Con `prefers-reduced-motion` no se desliza: aparece y listo. */
+  @media (prefers-reduced-motion: reduce) {
+    .e-dialog.e-pos-dialog {
+      animation: none;
+    }
   }
 
   /* El contenido acompaña: sin esto el diálogo mide toda la pantalla y adentro

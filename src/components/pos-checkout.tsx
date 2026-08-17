@@ -1779,7 +1779,10 @@ export function PosCheckout({
         animationSettings={
           carritoVisible
             ? { effect: "Zoom", duration: 200 }
-            : { effect: "SlideBottom", duration: 320 }
+            : // "None": en el teléfono la anima el CSS (`pos-hoja-sube`). Dos
+              // animaciones sobre el mismo transform se pisan y no se ve
+              // ninguna.
+              { effect: "None", duration: 0 }
         }
         close={() => setOpenFamily(null)}
         closeOnEscape
