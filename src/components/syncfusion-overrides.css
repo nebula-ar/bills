@@ -375,7 +375,30 @@
        Con un keyframe propio no hay nada que negociar: el transform es de esta
        regla y de nadie más. La curva es la misma del bottom sheet de la app
        (ui/bottom-sheet.tsx): arranca rápido y frena largo. */
-    animation: pos-hoja-sube 320ms cubic-bezier(0.32, 0.72, 0, 1);
+    /* `!important`: sin eso se veían LAS DOS. Syncfusion escribe su animación
+       inline al abrir, así que la nuestra se sumaba en vez de reemplazarla y la
+       hoja hacía primero su efecto y después el nuestro. Con `!important` la
+       de esta regla es la única que corre. */
+  }
+
+  /* La animación va por `.e-pos-dialog` SOLA.
+     El `cssClass` del componente NO termina en el diálogo sino en su
+     CONTENEDOR: las clases reales son `e-dlg-container e-pos-dialog
+     e-dlg-center-center`. Por eso el selector `.e-dialog.e-pos-dialog` no
+     aplicaba nunca —pide dos clases que no conviven— y se veía solo la
+     animación de Syncfusion.
+     La geometría de arriba usa el selector doble y funciona porque ahí sí
+     apunta al diálogo; esta apunta al contenedor, que es lo que se mueve. */
+  .e-pos-dialog {
+    animation: pos-hoja-sube 320ms cubic-bezier(0.32, 0.72, 0, 1) !important;
+  }
+
+  /* Ni el fondo oscuro ni el diálogo de adentro hacen su propio efecto: el
+     único movimiento es el del contenedor subiendo. Sin esto se veían las dos,
+     una atrás de la otra. */
+  .e-dlg-overlay,
+  .e-pos-dialog .e-dialog {
+    animation: none !important;
   }
 
   @keyframes pos-hoja-sube {
