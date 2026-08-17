@@ -364,8 +364,13 @@
     height: 100dvh !important;
     max-height: 100dvh !important;
     margin: 0 !important;
-    transform: none !important;
     border-radius: 0 !important;
+
+    /* OJO: acá NO va `transform: none`.
+       Estaba, para reposicionar el diálogo, y mataba la animación: EJ2 hace el
+       `SlideBottom` moviendo el `transform`, así que pisarlo dejaba la hoja
+       apareciendo de golpe. La posición se resuelve con `bottom`/`left`, que no
+       compiten con la animación. */
   }
 
   /* El contenido acompaña: sin esto el diálogo mide toda la pantalla y adentro
