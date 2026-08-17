@@ -20,6 +20,7 @@ import { AutoCompleteComponent } from "@syncfusion/ej2-react-dropdowns";
 import { NumericTextBoxComponent } from "@syncfusion/ej2-react-inputs";
 import { DialogComponent } from "@syncfusion/ej2-react-popups";
 import { toast } from "sonner";
+import { Confetti } from "@/components/confetti";
 import { TAX_CONDITION_LABELS } from "@/lib/invoice-labels";
 import {
   allowsFraction,
@@ -310,6 +311,11 @@ export function PosCheckout({
   // enfrente, "¿lo tomó?" se contesta mirando, no revisando el total.
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  // El cierre de la venta se festeja, no se avisa. Un toast que se va solo es
+  // para "guardado"; acá se acaba de cobrar, y esa es la unica pantalla del dia
+  // que vale la pena marcar. Se apaga solo a los 2s: el que cobra ya esta
+  // mirando al siguiente cliente.
+  const [ventaHecha, setVentaHecha] = useState(false);
   // El cobro va por pasos: una sola pantalla larga obliga a scrollear con el
   // cliente enfrente y se cobra con el método que quedó de la venta anterior.
   const [paso, setPaso] = useState(0);
@@ -326,7 +332,8 @@ export function PosCheckout({
   const [splitRows, setSplitRows] = useState<SplitRow[]>([]);
   // Con cuánto paga el cliente, para calcular el vuelto. Vacío = pagó justo.
   const [cashReceived, setCashReceived] = useState("");
-  // Toast de feedback del mostrador (venta registrada / error), ver showToast.
+  // Aviso de ERROR del mostrador. El éxito no pasa por acá: se festeja con el
+  // cartel de confeti (ver `ventaHecha`).
   // Referencia al buscador (AutoComplete) para limpiarlo al elegir un producto.
   const searchRef = useRef<AutoCompleteComponent | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -350,6 +357,8 @@ export function PosCheckout({
   // `avisar`), que es donde tienen contexto.
   function showToast(kind: "success" | "error", title: string, content?: string) {
     const mostrar = kind === "error" ? toast.error : toast.success;
+    // Los errores duran casi el doble: hay que poder leerlos antes de que se
+    // vayan, y el que cobra no los está esperando.
     mostrar(title, { description: content, duration: kind === "error" ? 6000 : 3200 });
   }
 
@@ -932,7 +941,8 @@ export function PosCheckout({
         setCustomerTaxCondition(TaxCondition.CONSUMIDOR_FINAL);
         setTip("");
         setCheckoutOpen(false);
-        showToast("success", "¡Venta registrada!", "Ya podés cargar la siguiente.");
+        setVentaHecha(true);
+        window.setTimeout(() => setVentaHecha(false), 2000);
       } else {
         showToast("error", "No se pudo registrar la venta", result.error);
       }
@@ -2376,6 +2386,21 @@ export function PosCheckout({
       {/* Toast de feedback del mostrador: venta registrada (ok) y errores al
           registrar. Los avisos del lector de código siguen en el pill del
           escáner (ver avisar), que es donde tienen contexto. */}
+      {/* El mismo festejo que el terminal de empleados (staff-sale-terminal):
+          confeti, tilde verde y dos renglones. Es la pantalla que cierra el
+          trabajo, y hasta recién se resolvía con un toast que se iba solo. */}
+      {ventaHecha ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 backdrop-blur-sm duration-200 animate-in fade-in">
+          <Confetti />
+          <div className="relative flex flex-col items-center gap-3 rounded-2xl bg-white px-12 py-10 shadow-2xl duration-300 animate-in zoom-in-95">
+            <span className="flex size-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+              <Check className="size-11" />
+            </span>
+            <p className="text-xl font-black text-slate-950">¡Venta registrada!</p>
+            <p className="text-sm text-slate-500">Ya podés cargar la siguiente.</p>
+          </div>
+        </div>
+      ) : null}
       </main>
     </SyncfusionProvider>
   );
