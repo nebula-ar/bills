@@ -161,10 +161,11 @@ export function updateStaff(input: UpdateStaffRepositoryInput) {
   });
 }
 
-export function updateStaffPinHash(staffId: string, pinHash: string) {
+export function updateStaffPinHash(staffId: string, businessId: string, pinHash: string) {
   return prisma.user.updateMany({
     where: {
       id: staffId,
+      businessId,
       active: true,
       deleted: false,
       role: UserRole.STAFF,

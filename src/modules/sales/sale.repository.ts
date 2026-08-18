@@ -76,6 +76,11 @@ export function findSaleBranch(branchId: string) {
   });
 }
 
+// PENDIENTE: le falta el `businessId` como a todas las demás. No es un
+// agujero abierto —`createSale` verifica después que el empleado sea de la
+// sucursal de la venta— pero es la última que queda con la garantía puesta en
+// el llamador. Atarlo obliga a partir el `Promise.all` de `createSale` para
+// tener el negocio antes, y eso merece su propio cambio y no la cola de otro.
 export function findSaleStaff(staffId: string) {
   return prisma.user.findUnique({
     where: {

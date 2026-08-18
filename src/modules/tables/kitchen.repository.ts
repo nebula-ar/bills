@@ -44,9 +44,10 @@ export function findRenglon(businessId: string, itemId: string) {
   });
 }
 
-export function avanzarRenglon(itemId: string, siguiente: KdsStatus) {
+export function avanzarRenglon(itemId: string, businessId: string, siguiente: KdsStatus) {
   return prisma.orderItem.update({
-    where: { id: itemId },
+    // El renglón se ata por la comanda: OrderItem no tiene businessId propio.
+    where: { id: itemId, order: { businessId } },
     data: {
       kdsStatus: siguiente,
       // Se marca cuándo estuvo listo: es el dato con el que después se mide

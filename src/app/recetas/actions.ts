@@ -48,7 +48,7 @@ export async function crearInsumoAction(formData: FormData) {
 }
 
 export async function ponerEnRecetaAction(formData: FormData) {
-  await requireModule(AppModule.RECIPES);
+  const { session } = await requireModule(AppModule.RECIPES);
 
   const productId = texto(formData, "productId");
   const cantidad = parseQuantityInput(texto(formData, "quantity"), Unit.KG);
@@ -59,6 +59,7 @@ export async function ponerEnRecetaAction(formData: FormData) {
 
   await ponerEnReceta({
     productId,
+    businessId: session.user.businessId,
     ingredientId: texto(formData, "ingredientId"),
     quantity: cantidad,
   });
@@ -68,10 +69,10 @@ export async function ponerEnRecetaAction(formData: FormData) {
 }
 
 export async function sacarDeRecetaAction(formData: FormData) {
-  await requireModule(AppModule.RECIPES);
+  const { session } = await requireModule(AppModule.RECIPES);
 
   const productId = texto(formData, "productId");
-  await sacarDeReceta(texto(formData, "recipeItemId"));
+  await sacarDeReceta(texto(formData, "recipeItemId"), session.user.businessId);
 
   revalidatePath("/recetas");
   volver("/recetas", "ok", "Insumo quitado de la receta", `&producto=${productId}`);

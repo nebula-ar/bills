@@ -97,7 +97,12 @@ export async function updateBranchTerminal(input: {
 
   const staffId = await resolveStaffId(terminal.branchId, input.staffId);
 
-  return updateTerminalDetails({ terminalId: terminal.id, name, staffId });
+  return updateTerminalDetails({
+    terminalId: terminal.id,
+    businessId: input.businessId,
+    name,
+    staffId,
+  });
 }
 
 export async function deleteBranchTerminal(input: { businessId: string; terminalId: string }) {
@@ -107,5 +112,5 @@ export async function deleteBranchTerminal(input: { businessId: string; terminal
     throw new Error("TERMINAL_NOT_FOUND");
   }
 
-  return softDeleteTerminal(terminal.id);
+  return softDeleteTerminal(terminal.id, input.businessId);
 }

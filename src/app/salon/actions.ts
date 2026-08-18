@@ -66,6 +66,7 @@ export async function alternarOcupacionAction(input: {
 
   const resultado = await alternarOcupacion({
     tableId: input.tableId,
+    businessId: session.user.businessId,
     status: input.status,
     tieneComandaAbierta: input.tieneComandaAbierta,
     userId: session.user.id,
@@ -103,7 +104,11 @@ export async function editarMesaAction(input: {
 export async function eliminarMesaAction(input: { tableId: string }): Promise<Resultado> {
   const { session } = await requireModule(AppModule.TABLES);
 
-  const resultado = await eliminarMesa({ tableId: input.tableId, userId: session.user.id });
+  const resultado = await eliminarMesa({
+    tableId: input.tableId,
+    businessId: session.user.businessId,
+    userId: session.user.id,
+  });
 
   if (resultado.ok) revalidatePath("/salon");
 

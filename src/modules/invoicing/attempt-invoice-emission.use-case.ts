@@ -32,7 +32,7 @@ export async function attemptInvoiceEmission(input: AttemptInvoiceEmissionInput)
   const business = await findBusinessForInvoicing(input.businessId);
 
   if (!business || !isBusinessFiscallyConfigured(business)) {
-    await markInvoiceNotConfigured(sale.id, "Faltan datos fiscales del negocio");
+    await markInvoiceNotConfigured(sale.id, input.businessId, "Faltan datos fiscales del negocio");
     throw new InvoicingError(InvoicingErrorCode.FISCAL_DATA_INCOMPLETE);
   }
 
@@ -68,7 +68,7 @@ export async function attemptInvoiceEmission(input: AttemptInvoiceEmissionInput)
     return { ok: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo emitir la factura";
-    await markInvoiceFailed(sale.id, invoiceType, message);
+    await markInvoiceFailed(sale.id, input.businessId, invoiceType, message);
     return { ok: false, error: message };
   }
 }

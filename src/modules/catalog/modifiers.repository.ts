@@ -76,27 +76,28 @@ export function crearModificador(input: {
 }
 
 /** Reemplaza a qué productos se les ofrece el grupo. */
-export function asignarProductos(groupId: string, productIds: string[]) {
+export function asignarProductos(groupId: string, businessId: string, productIds: string[]) {
   return prisma.modifierGroup.update({
-    where: { id: groupId },
+    where: { id: groupId, businessId },
     data: { products: { set: productIds.map((id) => ({ id })) } },
     select: { id: true },
   });
 }
 
-export function borrarGrupo(groupId: string, userId: string) {
+export function borrarGrupo(groupId: string, businessId: string, userId: string) {
   // Borrado lógico como todo en Bills: una comanda vieja puede seguir
   // apuntando a este grupo.
   return prisma.modifierGroup.update({
-    where: { id: groupId },
+    where: { id: groupId, businessId },
     data: { deleted: true, deletedAt: new Date(), deletedById: userId },
     select: { id: true },
   });
 }
 
-export function borrarModificador(modifierId: string, userId: string) {
+export function borrarModificador(modifierId: string, businessId: string, userId: string) {
   return prisma.modifier.update({
-    where: { id: modifierId },
+    // El modificador cuelga del grupo, que sí tiene negocio.
+    where: { id: modifierId, group: { businessId } },
     data: { deleted: true, deletedAt: new Date(), deletedById: userId },
     select: { id: true },
   });

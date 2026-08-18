@@ -10,9 +10,9 @@ import { prisma } from "@/lib/prisma";
 // es dos filas —OWNER para el panel, STAFF para el mostrador— y `sellsAsId` es
 // el único lazo entre las dos (ver registerBusiness). null = no atiende él, así
 // que hay que preguntar quién atiende.
-export function findUserWithSellsAs(userId: string) {
-  return prisma.user.findUnique({
-    where: { id: userId },
+export function findUserWithSellsAs(userId: string, businessId: string) {
+  return prisma.user.findFirst({
+    where: { id: userId, businessId },
     select: { name: true, sellsAsId: true },
   });
 }

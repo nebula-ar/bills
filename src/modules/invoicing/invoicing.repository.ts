@@ -54,9 +54,15 @@ export function markInvoiceIssued(input: MarkInvoiceIssuedInput) {
   });
 }
 
-export function markInvoiceFailed(saleId: string, invoiceType: InvoiceType | null, error: string) {
+export function markInvoiceFailed(
+  saleId: string,
+  businessId: string,
+  invoiceType: InvoiceType | null,
+  error: string,
+) {
   return prisma.sale.update({
-    where: { id: saleId },
+    // La venta cuelga de la sucursal: Sale no tiene businessId propio.
+    where: { id: saleId, branch: { businessId } },
     data: {
       afipStatus: AfipStatus.FAILED,
       invoiceType: invoiceType ?? undefined,
@@ -65,9 +71,9 @@ export function markInvoiceFailed(saleId: string, invoiceType: InvoiceType | nul
   });
 }
 
-export function markInvoiceNotConfigured(saleId: string, error: string) {
+export function markInvoiceNotConfigured(saleId: string, businessId: string, error: string) {
   return prisma.sale.update({
-    where: { id: saleId },
+    where: { id: saleId, branch: { businessId } },
     data: {
       afipStatus: AfipStatus.NOT_CONFIGURED,
       afipError: error,

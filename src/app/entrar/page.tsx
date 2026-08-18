@@ -25,7 +25,7 @@ export default async function EntrarPage() {
   // a `/`: un cajero rebotaba entre las dos rutas para siempre y la pantalla
   // quedaba trabada en su esqueleto, sin un error en el log.
   const session = await requireAppSession();
-  const user = await findUserWithSellsAs(session.user.id);
+  const user = await findUserWithSellsAs(session.user.id, session.user.businessId);
 
   // Solo el nombre de pila: "Hola, María Fernanda Gómez" no lo saluda nadie.
   const firstName = (user?.name ?? "").trim().split(" ")[0] ?? "";

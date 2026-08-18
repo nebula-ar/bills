@@ -18,7 +18,7 @@ export async function avanzarAction(formData: FormData) {
   const renglon = await findRenglon(session.user.businessId, itemId);
 
   if (renglon && puedeAvanzar(renglon.kdsStatus, capabilitiesOf(session.user.role))) {
-    await avanzarRenglon(itemId, siguienteEstado(renglon.kdsStatus));
+    await avanzarRenglon(itemId, session.user.businessId, siguienteEstado(renglon.kdsStatus));
   }
 
   revalidatePath("/cocina");

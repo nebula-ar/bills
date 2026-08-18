@@ -140,6 +140,7 @@ export async function crearMesa(input: {
  */
 export async function alternarOcupacion(input: {
   tableId: string;
+  businessId: string;
   status: TableStatus;
   tieneComandaAbierta: boolean;
   userId: string;
@@ -151,7 +152,7 @@ export async function alternarOcupacion(input: {
   const siguiente =
     input.status === TableStatus.OCCUPIED ? TableStatus.FREE : TableStatus.OCCUPIED;
 
-  await setTableStatus(input.tableId, siguiente, input.userId);
+  await setTableStatus(input.tableId, input.businessId, siguiente, input.userId);
 
   return { ok: true };
 }
@@ -179,7 +180,14 @@ export async function editarMesa(input: {
     return { ok: false, error: `Ya hay una mesa "${name}" en esta sucursal` };
   }
 
-  await updateTable({ tableId: input.tableId, name, seats: input.seats, sectorId: input.sectorId, userId: input.userId });
+  await updateTable({
+    tableId: input.tableId,
+    businessId: input.businessId,
+    name,
+    seats: input.seats,
+    sectorId: input.sectorId,
+    userId: input.userId,
+  });
 
   return { ok: true };
 }
@@ -191,15 +199,19 @@ export async function editarMesa(input: {
  * plata que hay sentada, solo la esconde. Libérala o cobrala primero, mismo
  * criterio que `alternarOcupacion`.
  */
-export async function eliminarMesa(input: { tableId: string; userId: string }): Promise<Resultado> {
-  const mesa = await findTableForManage(input.tableId);
+export async function eliminarMesa(input: {
+  tableId: string;
+  businessId: string;
+  userId: string;
+}): Promise<Resultado> {
+  const mesa = await findTableForManage(input.tableId, input.businessId);
   if (!mesa) return { ok: false, error: "Esa mesa ya no existe" };
 
   if (mesa.status === TableStatus.OCCUPIED || mesa.orders.length > 0) {
     return { ok: false, error: "La mesa está ocupada: liberala antes de eliminarla" };
   }
 
-  await softDeleteTable({ tableId: input.tableId, userId: input.userId });
+  await softDeleteTable({ tableId: input.tableId, businessId: input.businessId, userId: input.userId });
 
   return { ok: true };
 }
@@ -221,7 +233,12 @@ export async function editarSector(input: {
     return { ok: false, error: `Ya existe un sector "${name}"` };
   }
 
-  await updateSector({ sectorId: input.sectorId, name, userId: input.userId });
+  await updateSector({
+    sectorId: input.sectorId,
+    businessId: input.businessId,
+    name,
+    userId: input.userId,
+  });
 
   return { ok: true };
 }

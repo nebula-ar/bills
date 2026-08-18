@@ -64,9 +64,9 @@ export async function findRecentBaskets(businessId: string, from: Date) {
   return sales.map((sale) => ({ productIds: sale.items.map((item) => item.description) }));
 }
 
-export function findLoyaltyEntries(customerId: string) {
+export function findLoyaltyEntries(customerId: string, businessId: string) {
   return prisma.loyaltyEntry.findMany({
-    where: { customerId },
+    where: { customerId, customer: { businessId } },
     orderBy: { createdAt: "desc" },
     select: { id: true, points: true, note: true, saleId: true, createdAt: true },
   });

@@ -252,9 +252,9 @@ export function findSectorByName(businessId: string, branchId: string, name: str
 }
 
 /** Libera u ocupa una mesa (sentar gente sin cargar nada todavía). */
-export function setTableStatus(tableId: string, status: TableStatus, userId: string) {
+export function setTableStatus(tableId: string, businessId: string, status: TableStatus, userId: string) {
   return prisma.table.update({
-    where: { id: tableId },
+    where: { id: tableId, businessId },
     data: { status, updatedById: userId },
     select: { id: true },
   });
@@ -270,9 +270,9 @@ export function findTokensDeMesas(businessId: string, branchId: string) {
 }
 
 /** Lo que hace falta para decidir si una mesa se puede eliminar. */
-export function findTableForManage(tableId: string) {
+export function findTableForManage(tableId: string, businessId: string) {
   return prisma.table.findFirst({
-    where: { id: tableId, deleted: false },
+    where: { id: tableId, businessId, deleted: false },
     select: {
       status: true,
       orders: { where: { status: OrderStatus.OPEN, deleted: false }, select: { id: true }, take: 1 },
@@ -282,29 +282,30 @@ export function findTableForManage(tableId: string) {
 
 export function updateTable(input: {
   tableId: string;
+  businessId: string;
   name: string;
   seats: number;
   sectorId: string | null;
   userId: string;
 }) {
   return prisma.table.update({
-    where: { id: input.tableId },
+    where: { id: input.tableId, businessId: input.businessId },
     data: { name: input.name, seats: input.seats, sectorId: input.sectorId, updatedById: input.userId },
     select: { id: true },
   });
 }
 
-export function softDeleteTable(input: { tableId: string; userId: string }) {
+export function softDeleteTable(input: { tableId: string; businessId: string; userId: string }) {
   return prisma.table.update({
-    where: { id: input.tableId },
+    where: { id: input.tableId, businessId: input.businessId },
     data: { deleted: true, deletedAt: new Date(), deletedById: input.userId },
     select: { id: true },
   });
 }
 
-export function updateSector(input: { sectorId: string; name: string; userId: string }) {
+export function updateSector(input: { sectorId: string; businessId: string; name: string; userId: string }) {
   return prisma.sector.update({
-    where: { id: input.sectorId },
+    where: { id: input.sectorId, businessId: input.businessId },
     data: { name: input.name, updatedById: input.userId },
     select: { id: true },
   });

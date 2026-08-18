@@ -131,19 +131,34 @@ export function crearInsumo(input: {
   });
 }
 
-export function ponerEnReceta(input: { productId: string; ingredientId: string; quantity: number }) {
+export function ponerEnReceta(input: {
+  productId: string;
+  businessId: string;
+  ingredientId: string;
+  quantity: number;
+}) {
   return prisma.recipeItem.upsert({
     where: {
       productId_ingredientId: { productId: input.productId, ingredientId: input.ingredientId },
+      // El plato y el insumo tienen que ser los dos de este negocio: sin
+      // esto se podía meter el insumo de otro en la receta propia.
+      product: { businessId: input.businessId },
+      ingredient: { businessId: input.businessId },
     },
-    create: input,
+    create: {
+      productId: input.productId,
+      ingredientId: input.ingredientId,
+      quantity: input.quantity,
+    },
     update: { quantity: input.quantity },
     select: { id: true },
   });
 }
 
-export function sacarDeReceta(recipeItemId: string) {
-  return prisma.recipeItem.delete({ where: { id: recipeItemId }, select: { id: true } });
+export function sacarDeReceta(recipeItemId: string, businessId: string) {
+  return prisma.recipeItem.deleteMany({
+    where: { id: recipeItemId, product: { businessId } },
+  });
 }
 
 export function findReceta(businessId: string, productId: string) {

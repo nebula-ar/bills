@@ -277,9 +277,9 @@ export function findOperatingPurchasesInRange(businessId: string, from?: Date, t
 
 // El último ingreso por compra de un producto. Sirve para no pisar el costo de
 // reposición cuando se carga una factura vieja traspapelada.
-export async function findLastPurchaseMovementAt(productId: string) {
+export async function findLastPurchaseMovementAt(productId: string, businessId: string) {
   const movement = await prisma.stockMovement.findFirst({
-    where: { productId, type: StockMovementType.PURCHASE },
+    where: { productId, product: { businessId }, type: StockMovementType.PURCHASE },
     orderBy: { occurredAt: "desc" },
     select: { occurredAt: true },
   });

@@ -81,12 +81,12 @@ export async function crearModificadorAction(formData: FormData) {
 }
 
 export async function asignarProductosAction(formData: FormData) {
-  await requireModule(AppModule.TABLES);
+  const { session } = await requireModule(AppModule.TABLES);
 
   const groupId = texto(formData, "groupId");
   const productIds = formData.getAll("productIds").filter((v): v is string => typeof v === "string");
 
-  await asignarProductos(groupId, productIds);
+  await asignarProductos(groupId, session.user.businessId, productIds);
 
   revalidatePath("/opciones");
   volver("ok", "Productos actualizados");
@@ -95,7 +95,7 @@ export async function asignarProductosAction(formData: FormData) {
 export async function borrarGrupoAction(formData: FormData) {
   const { session } = await requireModule(AppModule.TABLES);
 
-  await borrarGrupo(texto(formData, "groupId"), session.user.id);
+  await borrarGrupo(texto(formData, "groupId"), session.user.businessId, session.user.id);
 
   revalidatePath("/opciones");
   volver("ok", "Grupo eliminado");
@@ -104,7 +104,7 @@ export async function borrarGrupoAction(formData: FormData) {
 export async function borrarModificadorAction(formData: FormData) {
   const { session } = await requireModule(AppModule.TABLES);
 
-  await borrarModificador(texto(formData, "modifierId"), session.user.id);
+  await borrarModificador(texto(formData, "modifierId"), session.user.businessId, session.user.id);
 
   revalidatePath("/opciones");
   volver("ok", "Opción eliminada");

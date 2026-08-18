@@ -69,7 +69,7 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
   // Si el que entró atiende, el mostrador arranca con él elegido en vez de
   // preguntar quién atiende en cada venta (ver registerBusiness: el dueño que
   // atiende tiene un gemelo empleado).
-  const currentUser = await findUserWithSellsAs(session.user.id);
+  const currentUser = await findUserWithSellsAs(session.user.id, session.user.businessId);
 
   // Ranking de los últimos 30 días para ordenar la grilla por lo que más sale.
   const rankFrom = new Date();

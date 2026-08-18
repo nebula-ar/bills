@@ -252,7 +252,7 @@ export async function createPurchase(input: PurchaseInput) {
   // mercadería entró de verdad.
   const lastPurchaseAt = new Map<string, Date | null>();
   for (const productId of trackedIds) {
-    lastPurchaseAt.set(productId, await findLastPurchaseMovementAt(productId));
+    lastPurchaseAt.set(productId, await findLastPurchaseMovementAt(productId, input.businessId));
   }
 
   const purchase = await prisma.$transaction(async (tx) => {

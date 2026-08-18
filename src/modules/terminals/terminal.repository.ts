@@ -147,16 +147,22 @@ export function createTerminal(input: { branchId: string; name: string; staffId?
   });
 }
 
-export function updateTerminalDetails(input: { terminalId: string; name: string; staffId?: string | null }) {
+export function updateTerminalDetails(input: {
+  terminalId: string;
+  businessId: string;
+  name: string;
+  staffId?: string | null;
+}) {
   return prisma.terminal.update({
-    where: { id: input.terminalId },
+    // La terminal cuelga de la sucursal, que sí tiene negocio.
+    where: { id: input.terminalId, branch: { businessId: input.businessId } },
     data: { name: input.name, staffId: input.staffId ?? null },
   });
 }
 
-export function softDeleteTerminal(terminalId: string) {
+export function softDeleteTerminal(terminalId: string, businessId: string) {
   return prisma.terminal.update({
-    where: { id: terminalId },
+    where: { id: terminalId, branch: { businessId } },
     data: {
       deleted: true,
       deletedAt: new Date(),
