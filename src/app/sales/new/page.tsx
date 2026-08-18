@@ -173,7 +173,14 @@ export default async function NewSalePage({ searchParams }: NewSalePageProps) {
       quote={quote ? { id: quote.id, customerId: quote.customerId, items: quote.items } : null}
       order={
         order
-          ? { id: order.id, tableId: order.tableId, tableName: order.tableName, waiterName: order.waiterName, items: order.items }
+          ? {
+              id: order.id,
+              tableId: order.tableId,
+              tableName: order.tableName,
+              waiterName: order.waiterName,
+              items: order.items,
+              extras: order.extras,
+            }
           : null
       }
       features={verticalFeatures(business.vertical)}

@@ -159,6 +159,13 @@ export type PosCheckoutProps = {
     tableName: string | null;
     waiterName: string | null;
     items: { productId: string; quantity: number }[];
+    /**
+     * Cuánta plata suman las opciones elegidas en la mesa. El carrito es un
+     * mapa de cantidades y no tiene dónde guardarlas, así que el POS todavía no
+     * las cobra: las AVISA, con el detalle, para que el cajero las agregue.
+     * Ver extras-de-comanda.logic.ts.
+     */
+    extras?: { total: number; detalle: { name: string; amount: number }[] };
   } | null;
 };
 
@@ -2018,6 +2025,45 @@ export function PosCheckout({
                     </span>
                   </div>
                 ) : null}
+              </div>
+            ) : null}
+
+            {/* Las opciones de la mesa NO están en este total.
+                
+                El carrito es un mapa de cantidades: no tiene dónde guardar una
+                opción ni un precio por renglón, así que el POS reprecia a lista
+                y el "Extra queso +$500" que el cliente ya vio en la mesa queda
+                afuera. Arreglarlo de raíz es cambiarle la estructura al
+                carrito, que es el camino de la plata y va en su propio cambio.
+                
+                Mientras tanto se dice, con el número y el detalle: un extra que
+                no se cobra y no se ve es plata que se va sin que nadie se
+                entere; uno que se ve, el cajero lo agrega a mano. */}
+            {order?.extras && order.extras.total !== 0 ? (
+              <div className="space-y-1.5 rounded-2xl bg-amber-50 p-3.5 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-black text-amber-800">
+                    {order.extras.total > 0 ? "Faltan los agregados" : "La mesa tenía descuentos"}
+                  </span>
+                  <span className="shrink-0 font-black text-amber-800">
+                    {order.extras.total > 0 ? "+" : "−"}
+                    {money(Math.abs(order.extras.total))}
+                  </span>
+                </div>
+                <ul className="space-y-0.5">
+                  {order.extras.detalle.map((extra) => (
+                    <li className="flex items-center justify-between gap-3 text-xs font-semibold text-amber-700" key={extra.name}>
+                      <span className="truncate">{extra.name}</span>
+                      <span className="shrink-0">
+                        {extra.amount > 0 ? "+" : "−"}
+                        {money(Math.abs(extra.amount))}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs font-semibold text-amber-700">
+                  Este total no los incluye. Agregalos a mano antes de cobrar.
+                </p>
               </div>
             ) : null}
 

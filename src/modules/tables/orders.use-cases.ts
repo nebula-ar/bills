@@ -14,6 +14,7 @@ import {
   quitarRenglon,
   restarUnidadRenglon,
 } from "./orders.repository";
+import { extrasDeComanda } from "./extras-de-comanda.logic";
 import { motivoParaNoCancelar, totalesDeComanda, validarCantidad } from "./order-lifecycle";
 import { effectiveUnitPrice, validarSeleccion } from "@/modules/catalog/modifiers";
 import { findGruposDeProducto } from "@/modules/catalog/modifiers.repository";
@@ -165,6 +166,17 @@ export async function getOrderForCheckout(businessId: string, orderId: string) {
     tableName: comanda.table?.name ?? null,
     waiterName: comanda.staff?.name ?? null,
     items: comanda.items.map((item) => ({ productId: item.productId as string, quantity: item.quantity })),
+    // Cuánta plata suman las opciones elegidas. El POS todavía no las puede
+    // cobrar —su carrito es un mapa de cantidades y no tiene dónde ponerlas—
+    // así que por ahora se avisa en pantalla: un extra que no se cobra y no se
+    // ve es plata que se va sin que nadie se entere.
+    extras: extrasDeComanda(
+      comanda.items.map((item) => ({
+        productId: item.productId as string,
+        quantity: item.quantity,
+        opciones: item.modifiers,
+      })),
+    ),
   };
 }
 

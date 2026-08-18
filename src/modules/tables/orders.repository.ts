@@ -189,7 +189,14 @@ export function findOrderForCheckout(businessId: string, orderId: string) {
       staff: { select: { name: true } },
       items: {
         where: { kdsStatus: { not: KdsStatus.CART } },
-        select: { productId: true, quantity: true },
+        select: {
+          productId: true,
+          quantity: true,
+          // Las opciones elegidas viajan con el renglón. Sin esto el cobro las
+          // pierde: el POS reprecia a lista y el "Extra queso +$500" que el
+          // cliente ya vio en la mesa no se cobra.
+          modifiers: { select: { name: true, priceDelta: true } },
+        },
       },
     },
   });
