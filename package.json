@@ -26,7 +26,8 @@
     "db:pg:deploy": "prisma migrate deploy",
     "db:pg:seed": "prisma db seed",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "test:tenancy": "vitest run --config vitest.tenancy.config.ts"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",
