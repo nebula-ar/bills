@@ -38,19 +38,12 @@ export function findBranchesForManagement(businessId: string) {
   });
 }
 
-export function findManagementBusiness() {
-  return prisma.business.findFirst({
-    where: {
-      deleted: false,
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-    select: {
-      id: true,
-    },
-  });
-}
+// `findManagementBusiness()` vivía acá y se borró a propósito: devolvía el
+// PRIMER negocio de toda la base, sin mirar la sesión. No lo llamaba nadie, y
+// esa era justamente la razón para sacarlo — quedaba a un import de distancia
+// de que alguien lo usara para "resolver el negocio actual" y le sirviera a un
+// cliente los datos de otro. El negocio actual sale de la sesión, siempre:
+// `requireBusinessContext()` en src/lib/business-context.ts.
 
 export function createBranch(input: CreateBranchRepositoryInput) {
   return prisma.branch.create({
