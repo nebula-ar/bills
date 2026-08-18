@@ -6,6 +6,7 @@ import { getBranchProductConfiguration } from "@/modules/catalog/get-branch-cata
 import { presetCatalogFor } from "@/modules/catalog/preset-catalog";
 import { promotionShortLabel } from "@/lib/promotion-labels";
 import { promocionesDeProducto } from "@/modules/promotions/promotion.logic";
+import { estadoDeVencimiento } from "@/modules/stock/vencimientos";
 import { findActivePromotions } from "@/modules/promotions/promotion.repository";
 import { ProductsManager, type ProductRow, type ProductsData } from "@/components/catalog-manager";
 import { SyncfusionCatalogProvider } from "@/components/syncfusion-catalog-provider";
@@ -104,6 +105,13 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       imageVersion: product.imageUpdatedAt?.getTime() ?? null,
       catalogSlug: product.catalogSlug,
       stockQuantity: product.stockQuantity,
+      // Vencimiento de lo que hay en ESTA sucursal. El estado se calcula acá,
+      // en el servidor, con el mismo `ahora` que usa el resto de la pantalla:
+      // si cada fila preguntara la hora por su cuenta, dos filas podrían caer
+      // en días distintos. Y `estadoDeVencimiento` no puede llamar a
+      // `new Date()` por su cuenta, es lógica pura (AGENTS.md).
+      expiresAtValue: product.expiresAt ? product.expiresAt.toISOString().slice(0, 10) : null,
+      expiryState: estadoDeVencimiento(product.expiresAt, ahora),
       minStockRaw: product.minStock,
       packSize: product.packSize,
       packLabel: product.packLabel,
@@ -130,7 +138,13 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     categories,
     units: Object.values(Unit).map((unit) => ({ value: unit, label: unitLabel(unit) })),
     catalogIcon: preset.catalogIcon,
-    features: { ...verticalFeatures(business.vertical), stock: business.has(AppModule.STOCK) },
+    features: {
+      ...verticalFeatures(business.vertical),
+      stock: business.has(AppModule.STOCK),
+      // Con Recetas prendido el catálogo además administra insumos: son
+      // productos que se compran y se guardan, pero nunca se venden.
+      recipes: business.has(AppModule.RECIPES),
+    },
     selectedBranchName: selectedBranch.name,
     verticalLabel: preset.label,
     // Muestra de lo que se cargaría de una, para que se vea antes de tocar.

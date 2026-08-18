@@ -1,5 +1,7 @@
+import { ProductKind } from "@/generated/prisma/enums";
 import { parseAmountInput } from "@/lib/money";
 import { QUANTITY_SCALE } from "@/lib/quantity";
+import { seVende } from "@/modules/tables/recipes";
 
 /**
  * Los números que muestra la pantalla de Productos: el margen de una fila, el
@@ -122,6 +124,8 @@ export type FilaEditable = {
   barcode: string | null;
   minStockValue: string;
   idealStockValue: string;
+  /** `ProductKind`. Decide si el precio y la disponibilidad se editan. */
+  kind: string;
 };
 
 export type ConfigDeSucursal = {
@@ -146,9 +150,16 @@ export function contarCambios(
   const texto = (campo: string) => String(datos.get(campo) ?? "").trim();
   const plata = (campo: string) => parseAmountInput(texto(campo));
 
+  // Un insumo no edita precio ni disponibilidad: esos campos ni se dibujan en
+  // su ficha (no se vende). Compararlos igual contaba como "cambio" un valor
+  // que la pantalla no ofrece tocar, y el aviso "2 cambios sin guardar"
+  // aparecía al abrir la ficha y no se iba nunca. Pasa de verdad: un producto
+  // que se vendía y se convirtió a insumo se queda con su config de sucursal.
+  const vendible = seVende(producto.kind as ProductKind);
+
   const comparaciones: boolean[] = [
     texto("name") !== producto.name,
-    plata("price") !== (config?.priceValue ? parseAmountInput(config.priceValue) : null),
+    vendible && plata("price") !== (config?.priceValue ? parseAmountInput(config.priceValue) : null),
     plata("cost") !== producto.cost,
     texto("sku") !== (producto.sku ?? ""),
     texto("barcode") !== (producto.barcode ?? ""),
@@ -159,8 +170,39 @@ export function contarCambios(
     // solo cuando está prendido: el input oculto directamente no se dibuja si
     // está apagado (ver SyncSwitch), así que "on" o ausente. Es el mismo par
     // que lee la action al guardar.
-    (datos.get("active") === "on") !== (config?.available ?? false),
+    vendible && (datos.get("active") === "on") !== (config?.available ?? false),
   ];
 
   return comparaciones.filter(Boolean).length;
+}
+
+/**
+ * Parte el catálogo en lo que se vende y lo que se usa para producir.
+ *
+ * Son dos tablas distintas porque contestan preguntas distintas: de la
+ * medialuna se mira el precio y el margen; de la harina, cuánto queda y cuánto
+ * sale el kilo. Un insumo NO tiene precio —nunca se vende— así que mezclarlo en
+ * la misma lista deja media fila diciendo "Sin precio", que no es un dato
+ * faltante sino una columna que no le corresponde.
+ *
+ * La regla de qué se vende no se reescribe acá: sale de `seVende`, que es donde
+ * vive desde que los insumos son `Product` (ver src/modules/tables/recipes.ts).
+ * Repetir un `kind !== INGREDIENT` suelto es cómo la harina termina en el POS.
+ *
+ * El orden de entrada se respeta: la grilla ya llega ordenada por nombre desde
+ * el servidor, y reordenar acá haría saltar la lista al cambiar de pestaña.
+ */
+export function separarCatalogo<T extends { kind: string }>(filas: T[]): { vendibles: T[]; insumos: T[] } {
+  const vendibles: T[] = [];
+  const insumos: T[] = [];
+
+  for (const fila of filas) {
+    if (seVende(fila.kind as ProductKind)) {
+      vendibles.push(fila);
+    } else {
+      insumos.push(fila);
+    }
+  }
+
+  return { vendibles, insumos };
 }

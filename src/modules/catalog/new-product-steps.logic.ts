@@ -28,6 +28,11 @@ export type NewProductStepsInput = {
   catalogSingular: string;
   // Cuando el negocio tiene una sola sucursal no se pregunta a cuál va.
   branchName: string | null;
+  // Un insumo se compra y se guarda, pero NUNCA se vende (la harina de la
+  // panadería). Por eso no pasa por el paso del precio: preguntarle a cuánto
+  // sale es invitar a cargar uno, y con precio cargado termina vendible en el
+  // mostrador.
+  esInsumo?: boolean;
 };
 
 export function newProductSteps(input: NewProductStepsInput): NewProductStep[] {
@@ -36,8 +41,10 @@ export function newProductSteps(input: NewProductStepsInput): NewProductStep[] {
     {
       id: "identidad",
       icon: "solar:tag-bold",
-      title: `¿Qué ${singular} estás cargando?`,
-      subtitle: "El nombre es con el que lo vas a buscar para vender.",
+      title: input.esInsumo ? "¿Qué insumo estás cargando?" : `¿Qué ${singular} estás cargando?`,
+      subtitle: input.esInsumo
+        ? "El nombre es con el que lo vas a buscar para armar una receta."
+        : "El nombre es con el que lo vas a buscar para vender.",
       optional: false,
     },
     {
@@ -47,14 +54,17 @@ export function newProductSteps(input: NewProductStepsInput): NewProductStep[] {
       subtitle: "En el mostrador se vende mirando, no leyendo una lista.",
       optional: true,
     },
-    {
+  ];
+
+  if (!input.esInsumo) {
+    steps.push({
       id: "precio",
       icon: "solar:tag-price-bold",
       title: input.branchName ? `¿A cuánto lo vendés en ${input.branchName}?` : "¿A cuánto lo vendés?",
       subtitle: "Sin precio se crea igual, pero no se puede vender todavía.",
       optional: true,
-    },
-  ];
+    });
+  }
 
   if (input.features.stock) {
     steps.push({
@@ -78,7 +88,12 @@ export function newProductSteps(input: NewProductStepsInput): NewProductStep[] {
     });
   }
 
-  if (input.hasCategories) {
+  // La categoría es de VENTA: agrupa la carta pública y es el blanco de las
+  // promociones, y un insumo está excluido de las dos (`kind: { not: INGREDIENT }`).
+  // En una panadería las opciones son Panes, Facturas, Bebidas y Pastelería:
+  // ninguna es donde va la harina, así que preguntarlo es ofrecer cuatro
+  // respuestas que están todas mal.
+  if (input.hasCategories && !input.esInsumo) {
     steps.push({
       id: "categoria",
       icon: "solar:widget-add-bold",

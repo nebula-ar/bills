@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { ProductKind, Unit } from "@/generated/prisma/enums";
 
 import {
+  costoPorUnidad,
+  kindParaAlta,
   parseCommercialFields,
   parseOptionalString,
   parsePrice,
@@ -216,5 +218,69 @@ describe("quiereConfigurarSucursal", () => {
 
   it("un precio de solo espacios no cuenta como intención", () => {
     expect(quiereConfigurarSucursal({ configured: false, active: false, priceRaw: "   " })).toBe(false);
+  });
+});
+
+describe("kindParaAlta", () => {
+  it("el insumo gana sobre todo lo demás", () => {
+    // Un insumo NUNCA se vende, así que ni el rubro ni la cantidad inicial
+    // pueden convertirlo en mercadería. Si esto se rompe, la harina aparece en
+    // el mostrador a la venta.
+    expect(kindParaAlta({ esInsumo: true, vendeMercaderia: true, stock: 40_000 })).toBe(
+      ProductKind.INGREDIENT,
+    );
+    expect(kindParaAlta({ esInsumo: true, vendeMercaderia: false, stock: null })).toBe(
+      ProductKind.INGREDIENT,
+    );
+  });
+
+  it("el rubro decide, no si el dueño se acordó de tipear la cantidad", () => {
+    // En una panadería una medialuna es mercadería aunque todavía no sepa
+    // cuántas tiene.
+    expect(kindParaAlta({ esInsumo: false, vendeMercaderia: true, stock: null })).toBe(ProductKind.GOOD);
+  });
+
+  it("una cantidad inicial convierte el ítem en mercadería aunque el rubro sea de servicios", () => {
+    // El escape hatch: la barbería que además vende shampoo.
+    expect(kindParaAlta({ esInsumo: false, vendeMercaderia: false, stock: 12_000 })).toBe(ProductKind.GOOD);
+  });
+
+  it("sin rubro de mercadería y sin cantidad, es un servicio", () => {
+    expect(kindParaAlta({ esInsumo: false, vendeMercaderia: false, stock: null })).toBe(ProductKind.SERVICE);
+    // Cero no es una cantidad: "tengo cero" no dice que sea mercadería.
+    expect(kindParaAlta({ esInsumo: false, vendeMercaderia: false, stock: 0 })).toBe(ProductKind.SERVICE);
+  });
+});
+
+describe("costoPorUnidad", () => {
+  it("la bolsa de harina: $30.000 por 25 kg son $1.200 el kilo", () => {
+    // El panadero compra por bolsa y la receta cuenta por kilo. La división la
+    // hace el sistema porque es donde se cuela el error que después aparece
+    // como un margen raro.
+    expect(costoPorUnidad({ precioDelBulto: 30_000, cuantoTrae: 25_000 })).toBe(1_200);
+  });
+
+  it("redondea a pesos enteros, como toda la plata del sistema", () => {
+    // $30.000 / 23 kg = $1.304,34…
+    expect(costoPorUnidad({ precioDelBulto: 30_000, cuantoTrae: 23_000 })).toBe(1_304);
+  });
+
+  it("una fracción de unidad también divide bien", () => {
+    // Medio litro a $500 son $1.000 el litro. Si esto se rompiera, el costo
+    // saldría a la mitad y la ganancia inflada.
+    expect(costoPorUnidad({ precioDelBulto: 500, cuantoTrae: 500 })).toBe(1_000);
+  });
+
+  it("sin precio o sin cuánto trae, no hay costo: null, nunca cero", () => {
+    // Un cero acá sería "me sale gratis", que es la mentira más cara que puede
+    // decir el sistema: da margen 100% sobre un costo que no se sabe.
+    expect(costoPorUnidad({ precioDelBulto: null, cuantoTrae: 25_000 })).toBeNull();
+    expect(costoPorUnidad({ precioDelBulto: 30_000, cuantoTrae: null })).toBeNull();
+    expect(costoPorUnidad({ precioDelBulto: 30_000, cuantoTrae: 0 })).toBeNull();
+  });
+
+  it("acepta el bulto bonificado", () => {
+    // Costo cero es raro pero existe, y acá SÍ es un dato: lo pagaste cero.
+    expect(costoPorUnidad({ precioDelBulto: 0, cuantoTrae: 25_000 })).toBe(0);
   });
 });

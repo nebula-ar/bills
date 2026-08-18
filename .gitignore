@@ -65,3 +65,6 @@ next-env.d.ts
 /blob-report/
 # Cookies de sesión de los e2e: son credenciales vivas, no artefactos.
 /e2e/.auth/
+
+# Indice local de CodeGraph: es por checkout y no se comparte.
+.codegraph/

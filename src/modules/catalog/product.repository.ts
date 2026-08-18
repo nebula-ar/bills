@@ -98,7 +98,12 @@ export async function findProductManagementData(businessId: string, selectedBran
       family: { select: { id: true, name: true } },
       // Existencia en la sucursal elegida: se muestra en la lista y en la
       // ficha, para no tener que ir a otra pantalla a preguntarla.
-      stockLevels: { where: { branchId: selectedBranch.id }, select: { quantity: true } },
+      // `expiresAt` viaja con la existencia porque es de la MISMA fila: el
+      // vencimiento es de lo que hay en esta sucursal, no del producto.
+      stockLevels: {
+        where: { branchId: selectedBranch.id },
+        select: { quantity: true, expiresAt: true },
+      },
       branchPrices: {
         where: {
           deleted: false,
@@ -161,6 +166,7 @@ export async function findProductManagementData(businessId: string, selectedBran
         variantLabel: product.variantLabel,
         // null = el producto no lleva control de stock.
         stockQuantity: product.trackStock ? product.stockLevels[0]?.quantity ?? 0 : null,
+        expiresAt: product.stockLevels[0]?.expiresAt ?? null,
         configured: branchPrice !== null,
         suggestedPrice,
         branchPrice: branchPrice

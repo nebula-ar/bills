@@ -1,5 +1,5 @@
 import { ProductKind, Unit } from "@/generated/prisma/enums";
-import { parseQuantityInput } from "@/lib/quantity";
+import { parseQuantityInput, QUANTITY_SCALE } from "@/lib/quantity";
 
 /**
  * Cómo se interpreta lo que el dueño tipeó en la pantalla de Productos.
@@ -131,6 +131,62 @@ export function parseCommercialFields(formData: FormData): CommercialFields {
     packLabel: parseOptionalString(formData, "packLabel") ?? null,
     categoryId: parseOptionalString(formData, "categoryId") ?? null,
   };
+}
+
+/**
+ * Qué se está dando de alta: mercadería, un servicio o un insumo.
+ *
+ * El insumo gana sobre todo lo demás y no se deduce de nada: se pide explícito.
+ * Un `INGREDIENT` es un producto que NUNCA se vende (la harina de la panadería),
+ * así que ni el rubro ni la cantidad inicial pueden convertirlo en mercadería:
+ * si eso pasara, la harina aparecería en el mostrador a la venta.
+ *
+ * Para el resto manda el RUBRO, no si el dueño se acordó de tipear cuántos
+ * tenía: en una panadería una medialuna es mercadería aunque todavía no sepa el
+ * número. La cantidad inicial queda como escape hatch para el caso inverso —la
+ * barbería que además vende shampoo—, donde el rubro es de servicios pero ese
+ * ítem puntual sí se cuenta.
+ */
+export function kindParaAlta(input: {
+  esInsumo: boolean;
+  vendeMercaderia: boolean;
+  stock: number | null;
+}): ProductKind {
+  if (input.esInsumo) {
+    return ProductKind.INGREDIENT;
+  }
+
+  const esMercaderia = input.vendeMercaderia || (input.stock !== null && input.stock > 0);
+  return esMercaderia ? ProductKind.GOOD : ProductKind.SERVICE;
+}
+
+/**
+ * El costo de UNA unidad entera del insumo, a partir de lo que se pagó por el
+ * bulto y de cuánto trae.
+ *
+ * El panadero compra una bolsa de 25 kg a $30.000; la receta necesita saber
+ * cuánto sale el kilo. La división la hace el sistema y no el dueño porque es
+ * exactamente donde se cuela el error que después aparece como un margen raro y
+ * que nadie sabe de dónde salió.
+ *
+ * `cuantoTrae` viene en milésimas, como toda cantidad del sistema (ver
+ * src/lib/quantity.ts), así que la escala se cancela contra el precio.
+ *
+ * Devuelve `null` —nunca cero— cuando falta un dato: un cero acá significaría
+ * "me sale gratis" y daría margen del 100% sobre un costo que en realidad no se
+ * sabe. El sistema prefiere decir que no sabe.
+ */
+export function costoPorUnidad(input: {
+  precioDelBulto: number | null;
+  cuantoTrae: number | null;
+}): number | null {
+  const { precioDelBulto, cuantoTrae } = input;
+
+  if (precioDelBulto === null || cuantoTrae === null || cuantoTrae <= 0) {
+    return null;
+  }
+
+  return Math.round((precioDelBulto * QUANTITY_SCALE) / cuantoTrae);
 }
 
 /**

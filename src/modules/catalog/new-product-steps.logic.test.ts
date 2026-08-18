@@ -36,6 +36,25 @@ describe("newProductSteps", () => {
     expect(ids(base)).toEqual(["identidad", "foto", "precio", "existencia", "codigo", "categoria"]);
   });
 
+  it("un insumo tampoco pasa por la categoría", () => {
+    // Las categorías del sistema son de VENTA: agrupan la carta pública y son
+    // el blanco de las promociones, y un insumo está excluido de las dos. En
+    // una panadería las opciones son Panes, Facturas, Bebidas y Pastelería:
+    // ofrecerle cuatro respuestas que están todas mal es invitar a cargar mal
+    // el dato.
+    expect(ids({ ...base, esInsumo: true })).not.toContain("categoria");
+  });
+
+  it("un insumo no pasa por el paso del precio", () => {
+    // Un insumo NUNCA se vende, así que preguntarle a cuánto sale es invitar a
+    // cargar un precio que después lo deja vendible en el mostrador.
+    const insumo = ids({ ...base, esInsumo: true });
+
+    expect(insumo).not.toContain("precio");
+    // El resto se sigue preguntando: la harina se compra, se guarda y se cuenta.
+    expect(insumo).toEqual(["identidad", "foto", "existencia", "codigo"]);
+  });
+
   it("sin categorías cargadas no se pregunta por categoría", () => {
     expect(ids({ ...base, hasCategories: false })).not.toContain("categoria");
   });

@@ -131,6 +131,22 @@ export function crearInsumo(input: {
   });
 }
 
+/**
+ * Un insumo del negocio, con su unidad.
+ *
+ * La unidad es el dato que hace falta ANTES de interpretar la cantidad de un
+ * renglón: `RecipeItem.quantity` son milésimas de la unidad del insumo, y si se
+ * parsea con la unidad equivocada la receta guarda otra cosa. El filtro por
+ * `businessId` va en la firma, no en el llamador: es lo que evita meter el
+ * insumo de otro negocio en la receta propia.
+ */
+export function findInsumoDelNegocio(businessId: string, ingredientId: string) {
+  return prisma.product.findFirst({
+    where: { id: ingredientId, businessId, kind: ProductKind.INGREDIENT, deleted: false },
+    select: { id: true, name: true, unit: true },
+  });
+}
+
 export function ponerEnReceta(input: {
   productId: string;
   businessId: string;

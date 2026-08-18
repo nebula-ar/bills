@@ -5,6 +5,7 @@ import { QUANTITY_SCALE } from "@/lib/quantity";
 import {
   contarCambios,
   margenPct,
+  separarCatalogo,
   stockStatusOf,
   totalesDe,
   type FilaConPlata,
@@ -185,6 +186,7 @@ describe("contarCambios", () => {
     barcode: null,
     minStockValue: "5",
     idealStockValue: "30",
+    kind: "GOOD",
   };
   const config = { available: true, priceValue: "9520" };
 
@@ -264,5 +266,84 @@ describe("contarCambios", () => {
     const datos = fichaIntacta({ price: "9.520" });
     datos.delete("active");
     expect(contarCambios(datos, guardado, null)).toBe(1);
+  });
+});
+
+describe("separarCatalogo", () => {
+  const harina = { kind: "INGREDIENT", name: "Harina" };
+  const medialuna = { kind: "GOOD", name: "Medialuna" };
+  const corte = { kind: "SERVICE", name: "Corte" };
+
+  it("el insumo va a su lado y lo demás al de venta", () => {
+    const { vendibles, insumos } = separarCatalogo([medialuna, harina, corte]);
+
+    expect(insumos).toEqual([harina]);
+    // Un servicio se vende igual que la mercadería: lo único que separa la
+    // pestaña es NO tener precio, y un corte de pelo sí tiene.
+    expect(vendibles).toEqual([medialuna, corte]);
+  });
+
+  it("respeta el orden en que venían", () => {
+    // La grilla ya llega ordenada por nombre desde el servidor; separar no
+    // puede reordenar o la lista salta cada vez que se cambia de pestaña.
+    const { vendibles } = separarCatalogo([corte, medialuna]);
+    expect(vendibles.map((p) => p.name)).toEqual(["Corte", "Medialuna"]);
+  });
+
+  it("sin insumos, la lista de insumos queda vacía y no null", () => {
+    // El llamador pregunta `insumos.length` para decidir si dibuja las
+    // pestañas: un null ahí lo rompe en un negocio sin recetas.
+    const { vendibles, insumos } = separarCatalogo([medialuna]);
+    expect(insumos).toEqual([]);
+    expect(vendibles).toEqual([medialuna]);
+  });
+
+  it("una lista vacía no explota", () => {
+    expect(separarCatalogo([])).toEqual({ vendibles: [], insumos: [] });
+  });
+});
+
+describe("contarCambios sobre un insumo", () => {
+  // Un insumo arrastra config de sucursal cuando ANTES fue un producto que se
+  // vendía y después se lo convirtió. La ficha ya no dibuja ni el precio ni el
+  // switch de disponibilidad, así que esos campos no viajan en el FormData.
+  const insumo = {
+    name: "Harina",
+    description: null,
+    cost: 1_200,
+    sku: null,
+    barcode: null,
+    minStockValue: "",
+    idealStockValue: "",
+    kind: "INGREDIENT",
+  };
+
+  function formDeInsumo(): FormData {
+    const datos = new FormData();
+    datos.set("name", "Harina");
+    datos.set("cost", "1200");
+    datos.set("sku", "");
+    datos.set("barcode", "");
+    datos.set("minStock", "");
+    datos.set("idealStock", "");
+    datos.set("description", "");
+    return datos;
+  }
+
+  it("no inventa cambios por el precio ni la disponibilidad que ya no se editan", () => {
+    // Sin este guard el contador decía "2 cambios sin guardar" apenas se abría
+    // la ficha y no se iba nunca: la comparación leía "" contra el precio viejo
+    // y `false` contra la disponibilidad vieja, y ninguno de los dos se podía
+    // tocar desde la pantalla.
+    const cambios = contarCambios(formDeInsumo(), insumo, { available: true, priceValue: "3000" });
+
+    expect(cambios).toBe(0);
+  });
+
+  it("sigue contando lo que el insumo SÍ edita", () => {
+    const datos = formDeInsumo();
+    datos.set("cost", "1500");
+
+    expect(contarCambios(datos, insumo, { available: true, priceValue: "3000" })).toBe(1);
   });
 });

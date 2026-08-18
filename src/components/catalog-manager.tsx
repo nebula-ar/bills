@@ -10,6 +10,8 @@ import {
 import { resizeImageForUpload } from "@/lib/image-resize";
 import { parseAmountInput } from "@/lib/money";
 import { newProductSteps, puedeAvanzar } from "@/modules/catalog/new-product-steps.logic";
+import { textosDeInsumo } from "@/modules/catalog/insumo-textos.logic";
+import { Unit } from "@/generated/prisma/enums";
 import { PageEnter } from "@/components/page-enter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MoneyInput } from "@/components/money-input";
@@ -25,11 +27,14 @@ import { ProductHistory } from "@/components/product-history";
 import { ProductPhotoField } from "@/components/product-photo-field";
 import { abrirSelectorDeFoto, CatalogUploader } from "@/components/catalog-uploader";
 import { ProductAnalyticsTab } from "@/components/product-analytics-tab";
-import { formatQuantity, unitLabel } from "@/lib/quantity";
+import { ProductRecipeTab } from "@/components/product-recipe-tab";
+import { ProductExpiryField } from "@/components/product-expiry-field";
+import { formatQuantity, unitLabel, unitShort } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import {
   contarCambios,
   margenPct,
+  separarCatalogo,
   stockStatusOf,
   totalesDe,
 } from "@/modules/catalog/grilla-catalogo.logic";
@@ -97,6 +102,10 @@ export type ProductRow = {
   stockQuantity: number | null;
   // Mínimo en milésimas, para marcar los que hay que reponer.
   minStockRaw: number | null;
+  // Vencimiento de lo que hay en la sucursal elegida, en ISO corto. El estado
+  // ya viene resuelto del servidor, con un solo "ahora" para toda la pantalla.
+  expiresAtValue: string | null;
+  expiryState: "sin-fecha" | "ok" | "pronto" | "hoy" | "vencido";
   // Venta por bulto: cuántas unidades trae y cómo lo llama el rubro.
   packSize: number | null;
   packLabel: string | null;
@@ -129,7 +138,7 @@ export type ProductsData = {
   catalogIcon: string;
   // Qué herramientas le sirven a este rubro (ver src/lib/vertical.ts) más el
   // módulo de stock, que decide si el producto muestra su existencia.
-  features: { variants: boolean; barcodes: boolean; packs: boolean; stock: boolean };
+  features: { variants: boolean; barcodes: boolean; packs: boolean; stock: boolean; recipes: boolean };
   // Nombre de la sucursal elegida, para decir "en Sucursal Centro quedan 12".
   selectedBranchName: string;
   // Rubro y catálogo sugerido, para el onboarding del catálogo vacío.
@@ -155,6 +164,10 @@ const sheetInput =
 
 
 const moneyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+
+// "30 sep" y no "30/09/2026": en una columna angosta la fecha larga se corta, y
+// el año casi nunca es la duda con un vencimiento.
+const fechaCorta = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short", timeZone: "UTC" });
 
 function money(value: number): string {
   return moneyFormatter.format(value);
@@ -364,6 +377,10 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isCreating, startCreating] = useTransition();
+  // Qué mitad del catálogo se está mirando. Lo que se vende y lo que se usa
+  // para producir son dos tablas distintas: de la medialuna se mira el precio y
+  // el margen, de la harina cuánto queda y cuánto sale el kilo.
+  const [catalogTab, setCatalogTab] = useState<"vendibles" | "insumos">("vendibles");
   const [newOpen, setNewOpen] = useState(false);
   // El contenido del Dialog se monta recién cuando quedó abierto y estable:
   // los componentes EJ2 (RTE, Uploader) no sobreviven a inicializarse con el
@@ -399,6 +416,13 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const [elegirAlta, setElegirAlta] = useState(false);
   const [escaneando, setEscaneando] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState("");
+  // Si lo que se está cargando es un insumo. Solo se pregunta con Recetas
+  // prendido; en cualquier otro negocio el alta sigue siendo la de siempre.
+  const [nuevoEsInsumo, setNuevoEsInsumo] = useState(false);
+  // Cómo se mide el insumo. Arranca en kilos porque es lo que más se carga en
+  // una panadería, pero se pregunta siempre: es el dato del que cuelga toda la
+  // receta, y equivocarlo no rompe nada a la vista, solo devuelve mal el costo.
+  const [nuevaUnidad, setNuevaUnidad] = useState<Unit>(Unit.KG);
   // La descripción se edita con el RichTextEditor (montado solo cuando el paso
   // está a la vista); el texto vive acá para que cambiar de paso no lo pierda.
   // El Uploader del paso foto vive oculto; la tarjeta visible dispara su
@@ -433,7 +457,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   }, []);
   const [newBranchId, setNewBranchId] = useState(data.selectedBranchId);
   const [editId, setEditId] = useState<string | null>(null);
-  const [editTab, setEditTab] = useState<"producto" | "stock" | "analisis" | "historial">("producto");
+  const [editTab, setEditTab] = useState<"producto" | "stock" | "receta" | "analisis" | "historial">("producto");
   // Precio y costo se leen del <form> al tipear para recalcular el margen en
   // vivo. `MoneyInput` no expone su valor —guarda el suyo propio— así que se
   // toman con FormData desde el onChange del formulario, que sí burbujea.
@@ -525,16 +549,26 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   // daba cero re-renders y parecía arreglado; con una búsqueda puesta —que es
   // lo que uno hace para encontrar el producto que quiere editar— la tabla
   // parpadeaba con cada tecla de la ficha. Lo encontró un e2e.
+  const { vendibles, insumos } = useMemo(() => separarCatalogo(data.products), [data.products]);
+
+  // Las pestañas aparecen solo cuando hay algo del otro lado. Un negocio sin
+  // recetas —o con Recetas prendido pero sin un solo insumo cargado— no tiene
+  // nada que elegir, y una pregunta con una sola respuesta es un click regalado.
+  const conPestanas = data.features.recipes && insumos.length > 0;
+  const enInsumos = conPestanas && catalogTab === "insumos";
+  const productosDeLaPestana = conPestanas ? (enInsumos ? insumos : vendibles) : data.products;
+
+
   const visibleProducts = useMemo(
     () =>
       query
-        ? data.products.filter((product) =>
+        ? productosDeLaPestana.filter((product) =>
             [product.name, product.familyName ?? "", product.sku ?? "", product.barcode ?? ""].some((field) =>
               normalize(field).includes(query),
             ),
           )
-        : data.products,
-    [query, data.products],
+        : productosDeLaPestana,
+    [query, productosDeLaPestana],
   );
 
   // El margen se calcula acá y viaja como campo de la fila, en vez de salir
@@ -572,8 +606,9 @@ export function ProductsManager({ data }: { data: ProductsData }) {
         hasCategories: data.categories.length > 0,
         catalogSingular: data.catalogSingular,
         branchName: data.branches.length > 1 ? newBranchName : null,
+        esInsumo: nuevoEsInsumo,
       }),
-    [data.features.barcodes, data.features.stock, data.categories.length, data.catalogSingular, data.branches.length, newBranchName],
+    [data.features.barcodes, data.features.stock, data.categories.length, data.catalogSingular, data.branches.length, newBranchName, nuevoEsInsumo],
   );
 
   // Referencia ESTABLE a propósito: si el objeto se recreara en cada render,
@@ -583,12 +618,28 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   // producción; en dev lo enmascara StrictMode).
   const pageSettings = useMemo(() => ({ pageSize: 10, pageSizes: [10, 20, 50] }), []);
 
+  // Cómo se le habla al dueño según cómo mide el insumo: los kilos no se
+  // preguntan con las mismas palabras ni con los mismos ejemplos que las
+  // unidades (ver insumo-textos.logic.ts).
+  const textosInsumo = textosDeInsumo(nuevaUnidad);
+
+  // ¿La ficha abierta es la de un insumo? De ahí cuelga todo lo que la ficha
+  // NO tiene que mostrar: precio, disponibilidad, ganancia, margen y
+  // rentabilidad son preguntas sobre algo que se vende, y un insumo no se
+  // vende. Se lee del producto abierto, no de la pestaña de la lista: a la
+  // ficha también se llega desde el buscador.
+  const editandoInsumo = editing?.kind === "INGREDIENT";
+
   const pasoActual = pasos[Math.min(newStep, pasos.length - 1)];
   const esUltimoPaso = newStep >= pasos.length - 1;
 
   function resetNew() {
     setNewStep(0);
     setNuevoNombre("");
+    // Sin esto, cargar un insumo y volver a abrir el alta arrancaba de nuevo en
+    // "insumo": el siguiente producto se creaba sin precio y no se podía vender.
+    setNuevoEsInsumo(false);
+    setNuevaUnidad(Unit.KG);
     if (foto) URL.revokeObjectURL(foto.preview);
     setFoto(null);
   }
@@ -815,7 +866,21 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const grilla = useMemo(
     () => (
         <div className="catalog-card overflow-hidden bg-white shadow-sm ring-1 ring-slate-950/5">
+          {/* `key` por pestaña para FORZAR el remonte, y no es un truco: EJ2 lee
+              sus <ColumnDirective> una sola vez, al montar, y después ignora que
+              los hijos cambiaron. Sin esto, cambiar de pestaña actualizaba el
+              pie —los `footerTemplate` son funciones que React vuelve a
+              ejecutar— pero dejaba las columnas de Disponible, Precio y Margen
+              dibujadas sobre los insumos, con "Sin precio" en cada fila.
+
+              Por eso el `data.features.stock ? … : null` de más abajo sí anda:
+              ese valor no cambia nunca en runtime. Este sí.
+
+              El remonte pierde el orden y la página al cambiar de pestaña, y
+              está bien que los pierda: son dos tablas distintas, no dos vistas
+              de la misma. */}
           <GridComponent
+            key={enInsumos ? "insumos" : "vendibles"}
             allowFiltering
             allowPaging
             allowReordering
@@ -866,7 +931,10 @@ export function ProductsManager({ data }: { data: ProductsData }) {
             <ColumnsDirective>
               <ColumnDirective
                 field="name"
-                headerText={data.catalogPlural}
+                // En la pestaña de insumos la cabecera decía "Productos", que
+                // es la etiqueta del rubro para lo que se vende. Un insumo no
+                // es eso, justamente.
+                headerText={enInsumos ? "Insumos" : data.catalogPlural}
                 template={(product: ProductRow) => {
                   const imageSrc = productImageSrc(product);
                   // La foto es como el dueño reconoce el producto —más
@@ -929,9 +997,32 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                         {/* Categoría y unidad como subtítulo: son lo que
                             distingue dos productos de nombre parecido
                             ("Medialuna" suelta vs por docena). Acá no
-                            cuestan una columna. */}
+                            cuestan una columna.
+
+                            En un insumo la categoría no va: las categorías son
+                            de venta —agrupan la carta y son el blanco de las
+                            promociones— y un insumo está fuera de las dos, así
+                            que ni siquiera se le pregunta al crearlo. Un "Sin
+                            categoría" ahí sería avisar de un dato faltante que
+                            nunca va a llenarse. Queda cómo se mide, que es lo
+                            que de verdad distingue un insumo. */}
                         <p className="mt-0.5 truncate text-[0.8125rem] text-slate-500">
-                          {categoryNameById.get(product.categoryId ?? "") ?? "Sin categoría"} · {unitLabel(product.unit as never)}
+                          {enInsumos
+                            ? unitLabel(product.unit as never)
+                            : `${categoryNameById.get(product.categoryId ?? "") ?? "Sin categoría"} · ${unitLabel(product.unit as never)}`}
+                          {/* El hueco se dice, no se disimula (AGENTS.md): un
+                              insumo sin costo hace que la receta que lo lleva
+                              devuelva un costo corto, y de ahí sale un margen
+                              inflado que se ve sano. Va acá y no en un cartel
+                              general porque lo que hace falta es saber CUÁL. */}
+                          {enInsumos && product.cost === null ? (
+                            <span
+                              className="ml-1.5 font-bold text-amber-700"
+                              title="Sin costo cargado, toda receta que lleve este insumo va a devolver un costo más bajo del real, y el margen va a salir mejor de lo que es."
+                            >
+                              · sin costo
+                            </span>
+                          ) : null}
                         </p>
                       </div>
                     </div>
@@ -957,17 +1048,24 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   `closest` busca hacia arriba —nunca hacia adentro—, así
                   que marcando solo el switch el guard no encontraba nada y
                   cambiar la disponibilidad abría igual la ficha. */}
-              <ColumnDirective
-                customAttributes={{ "data-sin-abrir-ficha": "true" }}
-                field="available"
-                headerText="Disponible"
-                hideAtMedia="(min-width: 768px)"
-                template={(product: ProductRow) => (
-                  <AvailabilityCell branchId={data.selectedBranchId} onChanged={() => router.refresh()} product={product} />
-                )}
-                textAlign="Center"
-                width={148}
-              />
+              {/* Disponible, Precio y Margen no existen para un insumo: no se
+                  vende, así que no hay nada que poner a la venta ni margen que
+                  sacar. Dejarlas dibujadas llenaba media tabla de "Sin precio",
+                  que no es un dato faltante —es una columna que no le
+                  corresponde a esa fila. */}
+              {!enInsumos ? (
+                <ColumnDirective
+                  customAttributes={{ "data-sin-abrir-ficha": "true" }}
+                  field="available"
+                  headerText="Disponible"
+                  hideAtMedia="(min-width: 768px)"
+                  template={(product: ProductRow) => (
+                    <AvailabilityCell branchId={data.selectedBranchId} onChanged={() => router.refresh()} product={product} />
+                  )}
+                  textAlign="Center"
+                  width={148}
+                />
+              ) : null}
               {data.features.stock ? (
                 <ColumnDirective
                   field="stockQuantity"
@@ -1005,35 +1103,122 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   los dos juntos no se puede leer el margen, que es la
                   pregunta que el dueño trae. Se oculta en mobile, donde
                   solo entran Producto y Precio. */}
+              {/* "Costo por unidad" en la cabecera no entraba en 120px y salía
+                  cortado en "COSTO POR U…". Y aunque entrara, sería el rótulo
+                  equivocado: la unidad NO es la misma en todas las filas —la
+                  harina va por kilo y los huevos por docena—, así que un
+                  encabezado no puede decirlo por todas. Va en la celda, al lado
+                  del número, donde es cierto fila por fila. */}
               <ColumnDirective
                 field="cost"
                 headerText="Costo"
                 hideAtMedia="(min-width: 768px)"
                 template={(product: ProductRow) => (
                   <span className="text-[0.9375rem] font-semibold text-slate-600">
-                    {product.cost !== null ? money(product.cost) : "—"}
+                    {product.cost === null ? (
+                      "—"
+                    ) : enInsumos ? (
+                      <>
+                        {money(product.cost)}
+                        <span className="ml-1 text-[0.8125rem] font-medium text-slate-400">
+                          / {unitShort(product.unit as never)}
+                        </span>
+                      </>
+                    ) : (
+                      money(product.cost)
+                    )}
                   </span>
                 )}
                 textAlign="Right"
                 type="number"
-                width={120}
+                width={enInsumos ? 150 : 120}
               />
-              <ColumnDirective
-                field="priceValue"
-                headerText="Precio"
-                template={(product: ProductRow) => (
-                  <span className="text-[0.9375rem] font-bold text-slate-950">
-                    {product.priceLabel}
-                  </span>
-                )}
-                textAlign="Right"
-                type="number"
-                width={128}
-              />
+              {/* El mínimo, solo en insumos y solo ahí porque es lo que explica
+                  el color de la columna de al lado: sin él, una existencia en
+                  ámbar avisa que hay poco sin decir poco respecto de qué. En la
+                  tabla de venta esa columna no entra —ya compite con precio y
+                  margen— y el dato vive en la ficha. */}
+              {/* El vencimiento como columna y no solo en la ficha: "qué se me
+                  está por vencer" es una pregunta de LISTA. Abrir producto por
+                  producto para enterarse es cómo se pierde una bolsa de
+                  levadura —o un sachet de leche. Ordenable, así que se puede
+                  poner lo más urgente arriba.
+
+                  En las dos pestañas: un producto que se vende también vence.
+                  Del lado de venta se esconde en pantallas chicas, donde ya
+                  compite con precio, costo y margen.
+
+                  Se dibuja SIEMPRE que el negocio lleve stock, aunque no haya
+                  ninguna fecha cargada todavía. Estuvo un rato condicionada a
+                  que existiera al menos una, para no mostrar una columna de
+                  guiones — y el resultado fue que nadie se enteraba de que el
+                  vencimiento existía: la primera persona que la usó no la
+                  encontró. Una columna vacía es una invitación a llenarla; una
+                  que aparece sola cuando ya sabés usarla no la ve nadie. */}
+              {data.features.stock ? (
+                <ColumnDirective
+                  field="expiresAtValue"
+                  headerText="Vence"
+                  hideAtMedia={enInsumos ? undefined : "(min-width: 1024px)"}
+                  template={(product: ProductRow) => {
+                    if (!product.expiresAtValue) {
+                      return <span className="text-[0.9375rem] font-semibold text-slate-400">—</span>;
+                    }
+
+                    // Solo se pinta lo que hay que resolver: un "ok" en color
+                    // compite con lo urgente y termina apagándolo.
+                    const tono =
+                      product.expiryState === "vencido"
+                        ? "text-rose-600"
+                        : product.expiryState === "hoy" || product.expiryState === "pronto"
+                          ? "text-amber-700"
+                          : "text-slate-600";
+
+                    return (
+                      <span className={`text-[0.9375rem] font-semibold ${tono}`}>
+                        {fechaCorta.format(new Date(`${product.expiresAtValue}T12:00:00Z`))}
+                      </span>
+                    );
+                  }}
+                  textAlign="Right"
+                  width={130}
+                />
+              ) : null}
+              {enInsumos ? (
+                <ColumnDirective
+                  field="minStockRaw"
+                  headerText="Mínimo"
+                  template={(product: ProductRow) => (
+                    <span className="text-[0.9375rem] font-semibold text-slate-500">
+                      {product.minStockRaw !== null
+                        ? formatQuantity(product.minStockRaw, product.unit as never)
+                        : "—"}
+                    </span>
+                  )}
+                  textAlign="Right"
+                  type="number"
+                  width={130}
+                />
+              ) : null}
+              {!enInsumos ? (
+                <ColumnDirective
+                  field="priceValue"
+                  headerText="Precio"
+                  template={(product: ProductRow) => (
+                    <span className="text-[0.9375rem] font-bold text-slate-950">
+                      {product.priceLabel}
+                    </span>
+                  )}
+                  textAlign="Right"
+                  type="number"
+                  width={128}
+                />
+              ) : null}
               {/* Margen calculado, no guardado: sale de costo y precio. Se
                   pinta cuando queda por debajo de 30%, que es lo que hay
                   que ver de un vistazo. "—" cuando falta alguno de los dos
                   — no se inventa un número (ver AGENTS.md). */}
+              {!enInsumos ? (
               <ColumnDirective
                 field="margen"
                 headerText="Margen"
@@ -1064,6 +1249,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 // de más sale de la columna del nombre, que es `auto`.
                 width={140}
               />
+              ) : null}
               {/* Acá había una columna con un botón "Editar" por fila. Se
                   fue: repetía once veces una acción que ya hace la fila
                   entera, y se comía 86px de ancho —en mobile, de los pocos
@@ -1101,9 +1287,19 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                               celda arranca la frase que completan los
                               números de la derecha ("… $213.065 si la
                               reponés, $644.100 si la vendés"). */}
-                          <p className="text-[0.8125rem] font-black text-slate-950">Tu mercadería hoy</p>
+                          <p className="text-[0.8125rem] font-black text-slate-950">
+                            {enInsumos ? "Tus insumos hoy" : "Tu mercadería hoy"}
+                          </p>
                           <p className="mt-0.5 text-[0.6875rem] font-semibold text-slate-500">
-                            {total.conStock} {total.conStock === 1 ? "producto" : "productos"} con stock
+                            {total.conStock}{" "}
+                            {enInsumos
+                              ? total.conStock === 1
+                                ? "insumo"
+                                : "insumos"
+                              : total.conStock === 1
+                                ? "producto"
+                                : "productos"}{" "}
+                            con stock
                             {/* No se disimula: si falta un costo, el total
                                 de costo queda corto y el margen sale mejor
                                 de lo que es. Se dice cuántos son, y el
@@ -1180,6 +1376,11 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                     }}
                     type="Count"
                   />
+                  {/* Los pies de Precio y Margen se van con sus columnas. Un
+                      agregado apuntando a una columna que no está dibujada
+                      queda huérfano, y "vender todas las unidades" sobre
+                      insumos sería un número inventado: no se venden. */}
+                  {!enInsumos ? (
                   <AggregateColumnDirective
                     field="priceValue"
                     footerTemplate={() => {
@@ -1198,6 +1399,8 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                     }}
                     type="Count"
                   />
+                  ) : null}
+                  {!enInsumos ? (
                   <AggregateColumnDirective
                     field="margen"
                     footerTemplate={() => {
@@ -1228,6 +1431,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                     }}
                     type="Count"
                   />
+                  ) : null}
                 </AggregateColumnsDirective>
               </AggregateDirective>
             </AggregatesDirective>
@@ -1235,7 +1439,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
           </GridComponent>
         </div>
     ),
-    [data, categoryNameById, gridRows, pageSettings, openEdit, filasTotalizadas, router],
+    [data, categoryNameById, gridRows, pageSettings, openEdit, filasTotalizadas, router, enInsumos],
   );
 
   return (
@@ -1334,6 +1538,45 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 acentos, sin mayúsculas); la grilla suma orden por columna,
                 filtros por columna, paginación y toolbar. Un toque en la fila
                 (o en "Editar") abre la ficha. */}
+            {/* Lo que se vende y lo que se usa para producir, separados. Un
+                insumo no tiene precio ni margen —nunca se vende—, así que
+                mezclarlo dejaba media tabla diciendo "Sin precio", que se lee
+                como un dato que falta y no como una columna que no le toca.
+
+                Aparecen recién cuando hay un insumo cargado: antes de eso no
+                hay nada que elegir. */}
+            {conPestanas ? (
+              <div className="flex gap-2 border-b border-slate-200">
+                {(
+                  [
+                    { key: "vendibles", label: data.catalogPlural, cantidad: vendibles.length },
+                    { key: "insumos", label: "Insumos", cantidad: insumos.length },
+                  ] as const
+                ).map((pestana) => (
+                  <button
+                    aria-current={catalogTab === pestana.key ? "true" : undefined}
+                    className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 pb-2.5 text-sm font-black transition ${
+                      catalogTab === pestana.key
+                        ? "border-primary text-primary"
+                        : "border-transparent text-slate-500 hover:text-slate-700"
+                    }`}
+                    key={pestana.key}
+                    onClick={() => setCatalogTab(pestana.key)}
+                    type="button"
+                  >
+                    {pestana.label}
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 text-xs ${
+                        catalogTab === pestana.key ? "bg-primary/10" : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {pestana.cantidad}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
             {/* Radio y padding de la tarjeta viven en `.catalog-card`
                 (syncfusion-catalog.css), no en clases de Tailwind. */}
             {grilla}
@@ -1519,6 +1762,41 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               {pasoActual.id === "identidad" ? (
                 <CampoDescripcion defaultValue="" name="description" />
               ) : null}
+
+              {/* Qué se está cargando. Se pregunta acá y no en un paso propio
+                  porque cambia los pasos que siguen: un insumo no pasa por el
+                  precio. Y se pregunta solo con Recetas prendido —un kiosco no
+                  tiene insumos que cargar—, así que el alta de siempre no
+                  cambia para nadie más.
+
+                  El valor viaja en un input oculto: el servidor no le cree al
+                  navegador, vuelve a chequear el módulo antes de grabar. */}
+              {data.features.recipes ? (
+                <div className="grid gap-2">
+                  <span className="text-xs font-black uppercase tracking-wide text-slate-500">Qué es</span>
+                  <input name="esInsumo" type="hidden" value={nuevoEsInsumo ? "true" : "false"} />
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { insumo: false, titulo: `Lo vendo`, ayuda: "Va al mostrador con su precio." },
+                      { insumo: true, titulo: "Es un insumo", ayuda: "Lo usás para producir. No se vende." },
+                    ] as const).map((opcion) => (
+                      <button
+                        className={`rounded-2xl border px-4 py-3 text-left transition ${
+                          nuevoEsInsumo === opcion.insumo
+                            ? "border-primary bg-primary/5"
+                            : "border-slate-200 bg-white hover:border-primary/40"
+                        }`}
+                        key={opcion.titulo}
+                        onClick={() => setNuevoEsInsumo(opcion.insumo)}
+                        type="button"
+                      >
+                        <span className="block text-sm font-black text-slate-950">{opcion.titulo}</span>
+                        <span className="mt-0.5 block text-xs font-semibold text-slate-500">{opcion.ayuda}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="space-y-4" hidden={pasoActual.id !== "foto"}>
@@ -1577,26 +1855,77 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 buscar el producto de nuevo, uno por uno. */}
             {data.features.stock ? (
               <div className="space-y-4" hidden={pasoActual.id !== "existencia"}>
+                {/* La unidad va PRIMERA y solo en el insumo. Es de lo que cuelga
+                    toda la receta: `RecipeItem.quantity` son milésimas de la
+                    unidad del insumo, así que con la harina en "unidades" el
+                    costo del budín sale mal y nada falla a la vista.
+
+                    Para el resto del catálogo la unidad se sigue editando en la
+                    ficha, como siempre. */}
+                {nuevoEsInsumo ? (
+                  <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                    ¿Cómo lo medís?
+                    <input name="unit" type="hidden" value={nuevaUnidad} />
+                    <SyncSelect
+                      ariaLabel="Cómo lo medís"
+                      defaultValue={nuevaUnidad}
+                      onChange={(valor) => setNuevaUnidad(valor as Unit)}
+                      options={data.units}
+                    />
+                  </label>
+                ) : null}
+
                 <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                  ¿Cuántos tenés? (opcional)
+                  {nuevoEsInsumo ? `${textosInsumo.cuantoHay} (opcional)` : "¿Cuántos tenés? (opcional)"}
                   <input
                     className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
                     inputMode="decimal"
                     name="stock"
-                    placeholder="Ej: 12"
+                    placeholder={nuevoEsInsumo ? textosInsumo.ejemploCantidad : "Ej: 12"}
                   />
                 </label>
-                <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                  ¿Cuánto te cuesta? (opcional)
-                  <MoneyInput
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
-                    name="cost"
-                    placeholder="$"
-                  />
-                </label>
+
+                {/* El insumo se compra por bulto y la receta lo cuenta por
+                    unidad. Preguntarle el costo por kilo lo obliga a dividir
+                    $30.000 entre 25 de memoria, y ahí es donde se cuela el error
+                    que después aparece como un margen raro que nadie entiende.
+                    Le pedimos los dos números que tiene delante —la factura del
+                    proveedor— y dividimos nosotros. */}
+                {nuevoEsInsumo ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                      ¿Cuánto pagaste? (opcional)
+                      <MoneyInput
+                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
+                        name="cost"
+                        placeholder="$"
+                      />
+                    </label>
+                    <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                      {textosInsumo.cuantoTrae}
+                      <input
+                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
+                        inputMode="decimal"
+                        name="bultoTrae"
+                        placeholder={textosInsumo.ejemploBulto}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <label className="grid gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                    ¿Cuánto te cuesta? (opcional)
+                    <MoneyInput
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold text-slate-950 outline-none transition focus:border-primary/40 focus:bg-white"
+                      name="cost"
+                      placeholder="$"
+                    />
+                  </label>
+                )}
+
                 <p className="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-                  El costo es lo que pagaste, no lo que cobrás. Sin él la ganancia queda inflada y te lo vamos a avisar
-                  en el panel.
+                  {nuevoEsInsumo
+                    ? `Con lo que pagaste y cuánto trae sacamos cuánto te sale ${textosInsumo.porUnidad}, que es lo que usa la receta. Si falta alguno de los dos, el costo queda sin cargar.`
+                    : "El costo es lo que pagaste, no lo que cobrás. Sin él la ganancia queda inflada y te lo vamos a avisar en el panel."}
                 </p>
               </div>
             ) : null}
@@ -1619,7 +1948,13 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               </div>
             ) : null}
 
-            {data.categories.length > 0 ? (
+            {/* Se DESMONTA para el insumo, no alcanza con sacarle el paso. Los
+                campos de todos los pasos quedan montados a la vez, así que
+                elegir "Panes", volver atrás y recién ahí marcar "es un insumo"
+                dejaba el select cargado y sin pantalla donde verlo: la harina
+                se creaba en Panes y nadie se enteraba. Un campo desmontado no
+                se envía. */}
+            {data.categories.length > 0 && !nuevoEsInsumo ? (
               <div className="space-y-4" hidden={pasoActual.id !== "categoria"}>
                 <div className="grid gap-2">
                   <span className="text-xs font-black uppercase tracking-wide text-slate-500">Categoría (opcional)</span>
@@ -1763,7 +2098,10 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                     identifican al producto, no los que se editan. */}
                 <p className="mt-0.5 truncate text-sm text-slate-500">
                   {[
-                    categoryNameById.get(editing.categoryId ?? "") ?? "Sin categoría",
+                    // La categoría es de venta y a un insumo ni se le pregunta
+                    // al crearlo: un "Sin categoría" ahí avisa de un hueco que
+                    // nunca se va a llenar.
+                    editandoInsumo ? null : categoryNameById.get(editing.categoryId ?? "") ?? "Sin categoría",
                     unitLabel(editing.unit as never),
                     editing.sku ?? editing.barcode ?? null,
                   ]
@@ -1778,21 +2116,27 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                     todo había un switch que decía lo mismo: para prender o
                     apagar un producto había que scrollear hasta el fondo
                     buscando el interruptor de algo que ya estabas mirando. */}
-                <div className="mt-2 flex items-center gap-2">
-                  <AvailabilityToggle
-                    defaultOn={editConfig?.available || !editConfig?.configured}
-                    form={FORM_FICHA}
-                    key={editBranchId}
-                  />
-                  <span className="text-sm font-bold text-slate-600">Disponible para vender</span>
-                  {/* "Sin configurar" no es lo mismo que "no disponible": uno
-                      nunca se tocó, el otro se apagó a propósito. */}
-                  {!editConfig?.configured ? (
-                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700">
-                      Sin configurar
-                    </span>
-                  ) : null}
-                </div>
+                {/* En un insumo no hay nada que habilitar: no se vende. El
+                    switch venía además en ON por `!configured`, así que la
+                    ficha de la harina afirmaba "Disponible para vender" —lo
+                    contrario de lo que el sistema hace con ella. */}
+                {!editandoInsumo ? (
+                  <div className="mt-2 flex items-center gap-2">
+                    <AvailabilityToggle
+                      defaultOn={editConfig?.available || !editConfig?.configured}
+                      form={FORM_FICHA}
+                      key={editBranchId}
+                    />
+                    <span className="text-sm font-bold text-slate-600">Disponible para vender</span>
+                    {/* "Sin configurar" no es lo mismo que "no disponible": uno
+                        nunca se tocó, el otro se apagó a propósito. */}
+                    {!editConfig?.configured ? (
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700">
+                        Sin configurar
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
               {/* El nombre del producto ES el título, así que el botón no lo
                   repite: solo cierra. */}
@@ -1860,7 +2204,13 @@ export function ProductsManager({ data }: { data: ProductsData }) {
           >
             <input name="branchId" type="hidden" value={editBranchId} />
             <input name="productId" type="hidden" value={editing.id} />
-            <input name="configured" type="hidden" value={editConfig?.configured ? "true" : "false"} />
+            {/* Para un insumo NO viaja: es la señal que dispara el upsert de
+                configuración de sucursal, y un insumo no se configura en
+                ninguna. El servidor lo vuelve a chequear igual (ver
+                `esInsumo` en updateProduct). */}
+            {!editandoInsumo ? (
+              <input name="configured" type="hidden" value={editConfig?.configured ? "true" : "false"} />
+            ) : null}
 
             {/* Dos pestañas. La ficha mezclaba lo que se mira todos los días
                 —nombre, precio, foto— con lo que se configura una vez —códigos,
@@ -1887,7 +2237,15 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   // adentro decía que las otras dos no son parte de la ficha.
                   { key: "producto", label: "General" },
                   { key: "stock", label: data.features.stock ? "Inventario" : "Códigos" },
-                  { key: "analisis", label: "Rentabilidad" },
+                  // La receta es de lo que se ELABORA, así que no va en un
+                  // insumo (la harina no lleva harina) ni en un negocio sin el
+                  // módulo. Y va acá, pegada a Inventario: las dos hablan de lo
+                  // que hay que tener para poder vender.
+                  ...(data.features.recipes && !editandoInsumo
+                    ? [{ key: "receta", label: "Receta" } as const]
+                    : []),
+                  // Rentabilidad mide ventas; un insumo no tiene ninguna.
+                  ...(editandoInsumo ? [] : [{ key: "analisis", label: "Rentabilidad" } as const]),
                   { key: "historial", label: "Historial" },
                 ] as const
               ).map((pestana) => (
@@ -1928,7 +2286,10 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 sabe qué producto abrió, lo está viendo arriba. */}
             <div className={editTab === "producto" ? "grid gap-5" : "hidden"}>
               <div className="space-y-4">
-                {!editConfig?.configured ? (
+                {/* "Cargalo para poder venderlo" sobre un insumo es una
+                    instrucción para romper el sistema: si le cargás precio se
+                    vuelve vendible, que es exactamente lo que no queremos. */}
+                {!editConfig?.configured && !editandoInsumo ? (
                   <p className="flex items-center gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
                     <CircleSlash className="size-4 shrink-0" />
                     Sin precio{editBranchName ? ` en ${editBranchName}` : " en esta sucursal"} — cargalo para poder venderlo.
@@ -1944,28 +2305,40 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                     decisión. Encerrados se leen como un bloque, y la ganancia
                     de abajo queda claramente colgando de ellos. */}
                 <div className="rounded-2xl border border-slate-200 p-4">
-                  <p className="mb-3 text-sm font-black text-slate-950">Precio y costos</p>
+                  <p className="mb-3 text-sm font-black text-slate-950">
+                    {editandoInsumo ? "Costo" : "Precio y costos"}
+                  </p>
                   <div className="grid gap-3 sm:grid-cols-2">
                   {/* "Precio", no "PRECIO EN PASTERLERIA BAKERT": en mayúsculas
                       esa frase se partía en dos renglones y desalineaba la
                       fila. La sucursal baja a un renglón de ayuda, en minúscula
                       y solo cuando hay más de una. */}
-                  <label className="grid min-w-0 gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                    Precio
-                    <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
-                      <span className="text-lg font-black text-slate-600">$</span>
-                      <MoneyInput
-                        className="w-full min-w-0 bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
-                        defaultValue={editConfig?.priceValue ?? ""}
-                        key={editBranchId}
-                        name="price"
-                        placeholder="0"
-                      />
-                    </div>
-                  </label>
+                  {/* El campo de precio se DESMONTA para un insumo, no se
+                      esconde: un input escondido igual viaja en el FormData, y
+                      un precio guardado sobre un insumo lo vuelve vendible. */}
+                  {!editandoInsumo ? (
+                    <label className="grid min-w-0 gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                      Precio
+                      <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
+                        <span className="text-lg font-black text-slate-600">$</span>
+                        <MoneyInput
+                          className="w-full min-w-0 bg-transparent px-2 py-3.5 text-lg font-black text-slate-950 outline-none"
+                          defaultValue={editConfig?.priceValue ?? ""}
+                          key={editBranchId}
+                          name="price"
+                          placeholder="0"
+                        />
+                      </div>
+                    </label>
+                  ) : null}
 
                   <label className="grid min-w-0 gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                    Costo
+                    {/* De un insumo el costo es por unidad entera, y es de
+                        donde sale el costo de la receta: decirlo evita que
+                        alguien cargue acá lo que pagó por la bolsa. */}
+                    {editandoInsumo
+                      ? `Costo por ${unitLabel(editing.unit as never).toLowerCase()}`
+                      : "Costo"}
                     <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/15">
                       <span className="text-lg font-black text-slate-600">$</span>
                       <MoneyInput
@@ -1992,6 +2365,11 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                     No se editan —salen de precio y costo—, así que van como
                     tarjetas de resultado y no como campos. "—" cuando falta
                     alguno de los dos: no se inventa un número (AGENTS.md). */}
+                {/* Ganancia y margen salen de precio menos costo. Sin precio no
+                    hay ninguno de los dos, y dos tarjetas diciendo "—, cargá
+                    costo y precio" sobre un insumo mandan a cargar un precio
+                    que no debe existir. */}
+                {!editandoInsumo ? (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-950/5">
                     <p className="text-[0.6875rem] font-bold uppercase tracking-wide text-slate-500">Ganancia</p>
@@ -2020,7 +2398,8 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                     </p>
                   </div>
                 </div>
-                {data.branches.length > 1 && editBranchName ? (
+                ) : null}
+                {!editandoInsumo && data.branches.length > 1 && editBranchName ? (
                   <p className="text-xs text-slate-500">El precio es de {editBranchName}.</p>
                 ) : null}
 
@@ -2070,20 +2449,33 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 
                 {/* Lo que casi nunca se toca, al final y en una fila: categoría
                     y código no son la razón por la que se abre una ficha. */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="grid gap-1.5 text-[0.6875rem] font-bold uppercase tracking-wide text-slate-500">
-                    Categoría
-                    <SyncSelect
-                      ariaLabel="Categoría"
-                      defaultValue={editing.categoryId ?? ""}
-                      key={editing.id}
-                      name="categoryId"
-                      options={[
-                        { value: "", label: "Sin categoría" },
-                        ...data.categories.map((category) => ({ value: category.id, label: category.name })),
-                      ]}
-                    />
-                  </label>
+                <div className={`grid gap-4 ${editandoInsumo ? "" : "sm:grid-cols-2"}`}>
+                  {/* La categoría es de VENTA: agrupa la carta y es el blanco
+                      de las promociones, y un insumo está fuera de las dos —al
+                      crearlo ni se la preguntamos. Dejar el campo era ofrecerle
+                      Panes, Facturas y Bebidas para clasificar la harina.
+
+                      Al desmontarlo, `categoryId` deja de viajar y el guardado
+                      lo escribe como null (`parseOptionalString(...) ?? null`).
+                      Acá eso es lo que queremos: si el producto se convirtió a
+                      insumo con una categoría de venta encima, guardar la ficha
+                      la limpia. El código interno sí queda: el de proveedor de
+                      una bolsa de harina es un dato útil. */}
+                  {!editandoInsumo ? (
+                    <label className="grid gap-1.5 text-[0.6875rem] font-bold uppercase tracking-wide text-slate-500">
+                      Categoría
+                      <SyncSelect
+                        ariaLabel="Categoría"
+                        defaultValue={editing.categoryId ?? ""}
+                        key={editing.id}
+                        name="categoryId"
+                        options={[
+                          { value: "", label: "Sin categoría" },
+                          ...data.categories.map((category) => ({ value: category.id, label: category.name })),
+                        ]}
+                      />
+                    </label>
+                  ) : null}
                   <label className="grid gap-1.5 text-[0.6875rem] font-bold uppercase tracking-wide text-slate-500">
                     Código interno
                     <input
@@ -2117,6 +2509,17 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   minimo={editing.minStockRaw}
                   unidad={editing.unit as never}
                 />
+              ) : null}
+
+              {/* Pegado a la existencia, porque es lo que esa fecha califica:
+                  no vence "el producto", vence lo que hay acá. Vivía solo en la
+                  pestaña Insumos de /recetas, que se elimina.
+
+                  Se muestra en todo lo que lleva stock y no solo en insumos: la
+                  leche de un kiosco también vence, y la regla del proyecto es
+                  que el rubro no condiciona la lógica. */}
+              {data.features.stock && editing.trackStock ? (
+                <ProductExpiryField branchId={editBranchId} key={editing.id} productId={editing.id} />
               ) : null}
 
               {/* La existencia y sus operaciones: es lo que se viene a hacer
@@ -2168,7 +2571,14 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                     {/* De acá sale si lleva stock: un servicio no tiene
                         existencias y un producto físico sí. Antes había además
                         un tilde "Controlar stock" que decía lo mismo y permitía
-                        guardar la contradicción. */}
+                        guardar la contradicción.
+
+                        El insumo se ofrece solo con Recetas prendido, pero se
+                        LISTA siempre que el producto ya sea uno: sin esa
+                        segunda condición, abrir la harina mostraba el campo
+                        vacío —el valor no estaba entre las opciones— y bastaba
+                        con tocarlo para que pasara a mercadería y apareciera a
+                        la venta en el mostrador. */}
                     <SyncSelect
                       ariaLabel="Tipo"
                       defaultValue={editing.kind}
@@ -2176,13 +2586,19 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                       options={[
                         { value: "GOOD", label: "Producto físico (lleva stock)" },
                         { value: "SERVICE", label: "Servicio (no lleva stock)" },
+                        ...(data.features.recipes || editing.kind === "INGREDIENT"
+                          ? [{ value: "INGREDIENT", label: "Insumo (no se vende)" }]
+                          : []),
                       ]}
                     />
                   </label>
                   <label className="grid min-w-0 gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
-                    Se vende por
+                    {/* Un insumo no se vende, así que "se vende por" es una
+                        contradicción justo en el campo del que cuelga toda la
+                        receta. Lo que se pregunta es cómo se mide. */}
+                    {editing.kind === "INGREDIENT" ? "Cómo lo medís" : "Se vende por"}
                     <SyncSelect
-                      ariaLabel="Se vende por"
+                      ariaLabel={editing.kind === "INGREDIENT" ? "Cómo lo medís" : "Se vende por"}
                       defaultValue={editing.unit}
                       name="unit"
                       options={data.units.map((unit) => ({ value: unit.value, label: unit.label }))}
@@ -2233,6 +2649,20 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               <ProductHistory activa={editTab === "historial"} key={editing.id} productId={editing.id} />
             ) : null}
 
+            {editTab === "receta" ? (
+              <ProductRecipeTab
+                activa
+                branchId={editBranchId}
+                insumos={insumos.map((insumo) => ({ id: insumo.id, name: insumo.name, unit: insumo.unit }))}
+                key={editing.id}
+                // `parseAmountInput` y no `Number`: es el mismo parser que usa
+                // el resto de la pantalla y entiende el punto como separador de
+                // MILES. Con `Number`, un "9.520" daría 9,52.
+                precio={editConfig?.priceValue ? parseAmountInput(editConfig.priceValue) : null}
+                productId={editing.id}
+              />
+            ) : null}
+
             {editTab === "analisis" ? (
               <ProductAnalyticsTab
                 activa
@@ -2269,7 +2699,9 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               <div className="flex shrink-0 items-center gap-2">
                 <BotonesDelPie
                   onCancelar={closeEdit}
-                  texto={editConfig?.configured ? "Guardar cambios" : "Habilitar en esta sucursal"}
+                  texto={
+                    editandoInsumo || editConfig?.configured ? "Guardar cambios" : "Habilitar en esta sucursal"
+                  }
                 />
               </div>
             </div>

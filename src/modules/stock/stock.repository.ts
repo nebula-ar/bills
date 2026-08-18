@@ -200,6 +200,43 @@ export function findBranchForStock(branchId: string, businessId: string) {
   });
 }
 
+/**
+ * Cuándo se vence lo que hay del producto en esa sucursal.
+ *
+ * Va por sucursal y no por producto porque dos bolsas del mismo insumo vencen
+ * distinto: la de Centro no es la de Palermo.
+ */
+export function findStockExpiry(branchId: string, productId: string) {
+  return prisma.stockLevel.findUnique({
+    where: { branchId_productId: { branchId, productId } },
+    select: { expiresAt: true },
+  });
+}
+
+/**
+ * Carga o limpia el vencimiento de lo que hay en la sucursal.
+ *
+ * `businessId` está en la firma a propósito, aunque el upsert no lo use en el
+ * `where`: el llamador TIENE que haber validado antes que la sucursal y el
+ * producto son de ese negocio. La versión que vivía en recipes.repository no lo
+ * pedía y su acción tomaba los dos ids crudos del formulario, así que cualquier
+ * usuario logueado podía escribirle el vencimiento al stock de OTRO negocio
+ * mandando ids ajenos: el guard validaba la sesión, no la pertenencia.
+ */
+export function setStockExpiry(input: {
+  businessId: string;
+  branchId: string;
+  productId: string;
+  expiresAt: Date | null;
+}) {
+  return prisma.stockLevel.upsert({
+    where: { branchId_productId: { branchId: input.branchId, productId: input.productId } },
+    create: { branchId: input.branchId, productId: input.productId, expiresAt: input.expiresAt },
+    update: { expiresAt: input.expiresAt },
+    select: { id: true },
+  });
+}
+
 // Últimos movimientos de una sucursal, para la pantalla de historial.
 export function findRecentStockMovements(branchId: string, limit = 50) {
   return prisma.stockMovement.findMany({

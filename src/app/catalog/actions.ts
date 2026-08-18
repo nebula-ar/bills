@@ -1,6 +1,6 @@
 "use server";
 
-import { AppModule, ProductKind } from "@/generated/prisma/client";
+import { AppModule, ProductKind, Unit } from "@/generated/prisma/client";
 import type { ProductChangeField, StockMovementType } from "@/generated/prisma/enums";
 import { requireAdminSession } from "@/lib/auth";
 import { requireBusinessContext } from "@/lib/business-context";
@@ -9,6 +9,8 @@ import { parseQuantityInput } from "@/lib/quantity";
 import { logError } from "@/lib/logger";
 import { getProductErrorMessage } from "@/lib/catalog-error-messages";
 import {
+  costoPorUnidad,
+  kindParaAlta,
   parseCommercialFields,
   parseOptionalString,
   parsePrice,
@@ -58,17 +60,41 @@ export async function createProduct(formData: FormData): Promise<CreateProductRe
   const description = parseOptionalString(formData, "description") ?? null;
   const costRaw = parseOptionalString(formData, "cost");
   const stockRaw = parseOptionalString(formData, "stock");
+
+  // Qué es lo que se está dando de alta (ver `kindParaAlta`). El insumo se pide
+  // explícito y solo existe con Recetas prendido: sin el módulo nadie tiene por
+  // qué poder crear un producto que no se vende.
+  const features = verticalFeatures(business.vertical);
+  const esInsumo = formData.get("esInsumo") === "true" && business.has(AppModule.RECIPES);
+
+  // Cómo se mide. Hasta acá el alta NUNCA mandaba la unidad, así que todo caía
+  // en el default `UNIT` — y `UNIT` no admite fracciones: una bolsa de "25,5"
+  // kg se parseaba a null y el producto quedaba con existencia cero sin que
+  // nadie se enterara. En un insumo además arruina la receta, porque
+  // `RecipeItem.quantity` son milésimas DE LA UNIDAD DEL INSUMO: con la harina
+  // en unidades, 120 deja de ser 0,12 kg y el costo del budín sale mal sin que
+  // falle nada.
+  const unitRaw = parseOptionalString(formData, "unit");
+  const unit =
+    unitRaw && (Object.values(Unit) as string[]).includes(unitRaw) ? (unitRaw as Unit) : Unit.UNIT;
+
   // La cantidad se tipea en unidades y se guarda en milésimas, igual que todo
   // lo demás (ver src/lib/quantity.ts).
-  const stock = stockRaw ? parseQuantityInput(stockRaw) : null;
+  const stock = stockRaw ? parseQuantityInput(stockRaw, unit) : null;
+  const kind = kindParaAlta({ esInsumo, vendeMercaderia: features.goods, stock });
 
-  // Qué es lo que se está dando de alta lo decide el RUBRO, no si el dueño se
-  // acordó de tipear cuántos tenía: en una panadería una medialuna es mercadería
-  // aunque todavía no sepa el número. La cantidad inicial queda como escape
-  // hatch para el caso inverso —la barbería que además vende shampoo—, donde el
-  // rubro es de servicios pero ese ítem puntual sí se cuenta.
-  const features = verticalFeatures(business.vertical);
-  const esMercaderia = features.goods || (stock !== null && stock > 0);
+  // El insumo se compra por bulto y la receta lo cuenta por unidad: se pregunta
+  // lo que pagó por la bolsa y cuánto trae, y la división la hace el sistema.
+  // Para todo lo demás el costo se tipea directo, como siempre.
+  const bultoRaw = parseOptionalString(formData, "bultoTrae");
+  const cost = esInsumo
+    ? costoPorUnidad({
+        precioDelBulto: costRaw ? parseWholeAmount(costRaw) : null,
+        cuantoTrae: bultoRaw ? parseQuantityInput(bultoRaw, unit) : null,
+      })
+    : costRaw
+      ? parseWholeAmount(costRaw)
+      : null;
 
   try {
     // Un solo camino: el ítem, su precio (si lo puso) y la existencia inicial
@@ -81,11 +107,14 @@ export async function createProduct(formData: FormData): Promise<CreateProductRe
       name,
       description,
       price,
-      cost: costRaw ? parseWholeAmount(costRaw) : null,
+      cost,
       stock,
+      unit,
       categoryId: parseOptionalString(formData, "categoryId") ?? null,
-      trackStock: esMercaderia && business.has(AppModule.STOCK),
-      kind: esMercaderia ? ProductKind.GOOD : ProductKind.SERVICE,
+      // El insumo lleva stock igual que la mercadería: se compra, se guarda y
+      // se consume. Lo único que no hace es venderse.
+      trackStock: kind !== ProductKind.SERVICE && business.has(AppModule.STOCK),
+      kind,
       reason: "Carga inicial",
       userId: session.user.id,
     });
@@ -242,7 +271,16 @@ export async function updateProduct(formData: FormData) {
     redirectWithMessage("error", "Completá el nombre del ítem.", branchId ?? undefined);
   }
 
-  const wantsConfig = quiereConfigurarSucursal({ configured, active, priceRaw });
+  const campos = parseCommercialFields(formData);
+
+  // Un insumo no se configura por sucursal: no tiene precio porque no se vende.
+  // El guard vive acá y no solo en el JSX a propósito. La ficha ya no dibuja el
+  // precio ni el switch para un insumo, pero un producto que se convirtió a
+  // insumo puede arrastrar una configuración de sucursal vieja, y con
+  // `configured: true` y sin precio el guardado moría en "Poné un precio válido
+  // para configurarlo o habilitarlo": la ficha quedaba imposible de guardar.
+  const esInsumo = campos.kind === ProductKind.INGREDIENT;
+  const wantsConfig = !esInsumo && quiereConfigurarSucursal({ configured, active, priceRaw });
 
   if (wantsConfig && !price) {
     redirectWithMessage("error", "Poné un precio válido para configurarlo o habilitarlo.", branchId);
@@ -255,7 +293,7 @@ export async function updateProduct(formData: FormData) {
       productId,
       name,
       description,
-      ...parseCommercialFields(formData),
+      ...campos,
     });
 
     if (wantsConfig && price) {
