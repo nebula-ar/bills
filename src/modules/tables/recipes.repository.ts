@@ -14,30 +14,6 @@ import { prisma } from "@/lib/prisma";
  * producción.
  */
 
-/**
- * Elaborables CON su receta completa.
- *
- * La usa Producción, que necesita los insumos de cada uno para decir qué se
- * puede hacer con lo que hay.
- */
-export function findElaborables(businessId: string) {
-  return prisma.product.findMany({
-    where: { businessId, kind: { not: ProductKind.INGREDIENT }, deleted: false },
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      receta: {
-        select: {
-          id: true,
-          quantity: true,
-          ingredient: { select: { id: true, name: true, unit: true, cost: true } },
-        },
-      },
-    },
-  });
-}
-
 /** La receta de UN producto, con su precio en la sucursal para el margen. */
 export function findRecetaDeProducto(businessId: string, productId: string, branchId?: string) {
   return prisma.product.findFirst({

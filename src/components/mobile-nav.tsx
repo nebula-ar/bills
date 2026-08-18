@@ -45,7 +45,6 @@ const STAT_LABELS: Record<string, (n: number) => string> = {
   "/salon": (n) => `${n} ${n === 1 ? "mesa" : "mesas"}`,
   "/cocina": (n) => `${n} en preparación`,
   "/opciones": (n) => `${n} ${n === 1 ? "opción" : "opciones"}`,
-  "/produccion": (n) => `${n} ${n === 1 ? "tanda" : "tandas"} hoy`,
   "/mermas": (n) => `${n} ${n === 1 ? "registro" : "registros"}`,
 };
 

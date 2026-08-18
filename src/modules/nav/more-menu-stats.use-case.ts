@@ -7,12 +7,6 @@ type StatFetcher = (businessId: string, branchId: string) => Promise<number>;
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
-function inicioDelDia(): Date {
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  return hoy;
-}
-
 // Un conteo por atajo del menú "Más". Cada uno refleja lo mismo que el dueño
 // vería si entrara a esa pantalla, no un número inventado para que la tarjeta
 // no quede vacía.
@@ -37,8 +31,6 @@ const FETCHERS: Record<string, StatFetcher> = {
       },
     }),
   "/opciones": (businessId) => prisma.modifier.count({ where: { businessId, deleted: false } }),
-  "/produccion": (businessId, branchId) =>
-    prisma.production.count({ where: { businessId, branchId, createdAt: { gte: inicioDelDia() } } }),
   "/mermas": (businessId, branchId) =>
     prisma.stockMovement.count({
       where: {

@@ -29,6 +29,7 @@ import { abrirSelectorDeFoto, CatalogUploader } from "@/components/catalog-uploa
 import { ProductAnalyticsTab } from "@/components/product-analytics-tab";
 import { ProductRecipeTab } from "@/components/product-recipe-tab";
 import { ProductExpiryField } from "@/components/product-expiry-field";
+import { ProductionSheet } from "@/components/production-sheet";
 import { formatQuantity, unitLabel, unitShort } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import {
@@ -38,7 +39,7 @@ import {
   stockStatusOf,
   totalesDe,
 } from "@/modules/catalog/grilla-catalogo.logic";
-import { ArrowLeft, ArrowRight, Check, CircleSlash, DynamicIcon, Loader2, Plus, Search, Trash2, X } from "@/components/icons";
+import { ArrowLeft, ArrowRight, Check, CircleSlash, DynamicIcon, Loader2, Package, Plus, Search, Trash2, X } from "@/components/icons";
 import { SyncSwitch } from "@/components/sync-switch";
 import { SyncSelect } from "@/components/sync-select";
 import {
@@ -106,6 +107,9 @@ export type ProductRow = {
   // ya viene resuelto del servidor, con un solo "ahora" para toda la pantalla.
   expiresAtValue: string | null;
   expiryState: "sin-fecha" | "ok" | "pronto" | "hoy" | "vencido";
+  // Cuántos insumos lleva su receta. 0 = no se puede producir: no habría nada
+  // que descontar.
+  recetaCount: number;
   // Venta por bulto: cuántas unidades trae y cómo lo llama el rubro.
   packSize: number | null;
   packLabel: string | null;
@@ -381,6 +385,7 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   // para producir son dos tablas distintas: de la medialuna se mira el precio y
   // el margen, de la harina cuánto queda y cuánto sale el kilo.
   const [catalogTab, setCatalogTab] = useState<"vendibles" | "insumos">("vendibles");
+  const [produciendo, setProduciendo] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
   // El contenido del Dialog se monta recién cuando quedó abierto y estable:
   // los componentes EJ2 (RTE, Uploader) no sobreviven a inicializarse con el
@@ -557,6 +562,10 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const conPestanas = data.features.recipes && insumos.length > 0;
   const enInsumos = conPestanas && catalogTab === "insumos";
   const productosDeLaPestana = conPestanas ? (enInsumos ? insumos : vendibles) : data.products;
+
+  // Lo que se puede producir: solo lo que tiene receta. Sin receta no hay
+  // insumos que descontar, así que "producir" no significaría nada.
+  const producibles = vendibles.filter((producto) => producto.recetaCount > 0);
 
 
   const visibleProducts = useMemo(
@@ -1463,6 +1472,22 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               "Escanear", que es un CÓMO y no un QUÉ: el que entra quiere cargar
               un producto, no escanear. Ahora el botón dice lo que hace y el
               cómo se elige adentro (ver NewProductChooser). */}
+          {/* Producir vive acá y no en una pantalla aparte: la de antes era un
+              `select` de productos —el mismo antipatrón que sacamos de recetas—
+              y registraba de una, sin mostrar qué se iba a descontar.
+
+              Aparece solo si hay algo con receta: sin receta no hay insumos que
+              mover, y el botón prometería una acción que no hace nada. */}
+          {data.features.recipes && producibles.length > 0 ? (
+            <button
+              className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:border-primary/40 active:scale-95"
+              onClick={() => setProduciendo(true)}
+              type="button"
+            >
+              <Package className="size-4" />
+              Producción
+            </button>
+          ) : null}
           <button
             className="flex items-center gap-2 rounded-md bg-[#1d1d1f] px-4 py-2.5 text-sm font-black text-white transition active:scale-95"
             onClick={abrirAlta}
@@ -1576,6 +1601,13 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 ))}
               </div>
             ) : null}
+
+            <ProductionSheet
+              branchId={data.selectedBranchId}
+              onClose={() => setProduciendo(false)}
+              open={produciendo}
+              producibles={producibles.map((producto) => ({ id: producto.id, name: producto.name }))}
+            />
 
             {/* Radio y padding de la tarjeta viven en `.catalog-card`
                 (syncfusion-catalog.css), no en clases de Tailwind. */}

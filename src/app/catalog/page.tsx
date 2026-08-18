@@ -112,6 +112,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       // `new Date()` por su cuenta, es lógica pura (AGENTS.md).
       expiresAtValue: product.expiresAt ? product.expiresAt.toISOString().slice(0, 10) : null,
       expiryState: estadoDeVencimiento(product.expiresAt, ahora),
+      recetaCount: product.recetaCount,
       minStockRaw: product.minStock,
       packSize: product.packSize,
       packLabel: product.packLabel,

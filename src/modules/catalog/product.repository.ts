@@ -96,6 +96,10 @@ export async function findProductManagementData(businessId: string, selectedBran
       familyId: true,
       variantLabel: true,
       family: { select: { id: true, name: true } },
+      // Cuántos insumos lleva. Con el conteo alcanza para saber qué se puede
+      // producir; traer los renglones de los 300 productos para pintar una
+      // lista sería cargar 300 recetas para mostrar 300 nombres.
+      _count: { select: { receta: true } },
       // Existencia en la sucursal elegida: se muestra en la lista y en la
       // ficha, para no tener que ir a otra pantalla a preguntarla.
       // `expiresAt` viaja con la existencia porque es de la MISMA fila: el
@@ -167,6 +171,7 @@ export async function findProductManagementData(businessId: string, selectedBran
         // null = el producto no lleva control de stock.
         stockQuantity: product.trackStock ? product.stockLevels[0]?.quantity ?? 0 : null,
         expiresAt: product.stockLevels[0]?.expiresAt ?? null,
+        recetaCount: product._count.receta,
         configured: branchPrice !== null,
         suggestedPrice,
         branchPrice: branchPrice
