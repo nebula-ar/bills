@@ -75,6 +75,28 @@ jobs:
           ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
             "sudo /usr/local/sbin/deploy-bills '$GITHUB_SHA'"
 
+      - name: Retain recent VPS releases
+        if: always()
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          set -euo pipefail
+
+          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "sudo sh -c '
+            active=\"\$(readlink -f /opt/bills/current 2>/dev/null || true)\"
+            find /opt/bills/releases -mindepth 1 -maxdepth 1 -type d -printf \"%T@ %p\\n\" \\
+              | sort -nr \\
+              | tail -n +5 \\
+              | cut -d\" \" -f2- \\
+              | while IFS= read -r old_release; do
+                  [ -z \"\$old_release\" ] && continue
+                  [ \"\$old_release\" = \"\$active\" ] && continue
+                  rm -rf -- \"\$old_release\"
+                done
+          '"
+
       - name: Notify deploy result
         if: always()
         continue-on-error: true
