@@ -37,8 +37,6 @@ const FETCHERS: Record<string, StatFetcher> = {
       },
     }),
   "/opciones": (businessId) => prisma.modifier.count({ where: { businessId, deleted: false } }),
-  "/recetas": (businessId) =>
-    prisma.product.count({ where: { businessId, deleted: false, receta: { some: {} } } }),
   "/produccion": (businessId, branchId) =>
     prisma.production.count({ where: { businessId, branchId, createdAt: { gte: inicioDelDia() } } }),
   "/mermas": (businessId, branchId) =>

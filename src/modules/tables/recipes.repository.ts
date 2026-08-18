@@ -1,39 +1,24 @@
-import { ProductKind, Unit } from "@/generated/prisma/enums";
+import { ProductKind } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Insumos y recetas.
+ * Insumos, recetas y producción.
  *
  * Un insumo es un Product con `kind: INGREDIENT`: se le compra a un proveedor,
  * tiene stock y costo, pero nunca se vende. Reusar Product hace que el stock,
  * las compras y los proveedores ya funcionen para él sin escribir nada.
+ *
+ * El ALTA de un insumo, su vencimiento y el listado ya no viven acá: un insumo
+ * es un producto, así que se crea y se edita desde el catálogo como cualquier
+ * otro (ver src/app/catalog). Lo que queda es lo propio de las recetas y de la
+ * producción.
  */
-
-export function findInsumos(businessId: string, branchId: string) {
-  return prisma.product.findMany({
-    where: { businessId, kind: ProductKind.INGREDIENT, deleted: false },
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      unit: true,
-      cost: true,
-      minStock: true,
-      stockLevels: {
-        where: { branchId },
-        select: { quantity: true, expiresAt: true },
-        take: 1,
-      },
-    },
-  });
-}
 
 /**
  * Elaborables CON su receta completa.
  *
  * La usa Producción, que necesita los insumos de cada uno para decir qué se
- * puede hacer con lo que hay. Para un selector de nombres alcanza con
- * `findElaborablesLista`, que no arrastra los renglones.
+ * puede hacer con lo que hay.
  */
 export function findElaborables(businessId: string) {
   return prisma.product.findMany({
@@ -50,22 +35,6 @@ export function findElaborables(businessId: string) {
         },
       },
     },
-  });
-}
-
-/**
- * La LISTA de productos que se elaboran: solo lo que necesita el selector.
- *
- * Va aparte de la receta completa a propósito. Traer los renglones de todos
- * para pintar una lista es cargar mil recetas con sus insumos para mostrar mil
- * nombres; con `_count` alcanza para decir cuáles tienen receta y cuántos
- * insumos lleva cada una.
- */
-export function findElaborablesLista(businessId: string) {
-  return prisma.product.findMany({
-    where: { businessId, kind: { not: ProductKind.INGREDIENT }, deleted: false },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, _count: { select: { receta: true } } },
   });
 }
 
@@ -103,31 +72,6 @@ export function findRecetaDeProducto(businessId: string, productId: string, bran
         },
       },
     },
-  });
-}
-
-export function crearInsumo(input: {
-  businessId: string;
-  name: string;
-  unit: Unit;
-  cost: number | null;
-  minStock: number | null;
-  userId: string;
-}) {
-  return prisma.product.create({
-    data: {
-      businessId: input.businessId,
-      name: input.name,
-      kind: ProductKind.INGREDIENT,
-      unit: input.unit,
-      cost: input.cost,
-      minStock: input.minStock,
-      // Un insumo sin seguimiento de stock no sirve: todo el módulo existe
-      // para saber cuánto queda.
-      trackStock: true,
-      createdById: input.userId,
-    },
-    select: { id: true },
   });
 }
 
@@ -292,16 +236,3 @@ export function findTodoLoQueSePuedeTirar(businessId: string) {
   });
 }
 
-/** Carga o limpia el vencimiento de lo que hay en la sucursal. */
-export function ponerVencimiento(input: {
-  branchId: string;
-  productId: string;
-  expiresAt: Date | null;
-}) {
-  return prisma.stockLevel.upsert({
-    where: { branchId_productId: { branchId: input.branchId, productId: input.productId } },
-    create: { branchId: input.branchId, productId: input.productId, expiresAt: input.expiresAt },
-    update: { expiresAt: input.expiresAt },
-    select: { id: true },
-  });
-}

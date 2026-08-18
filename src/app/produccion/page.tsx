@@ -15,7 +15,7 @@ import { getBranchesForManagement } from "@/modules/branches/get-branches-for-ma
 import { costoDeReceta } from "@/modules/tables/recipes";
 import { findElaborables } from "@/modules/tables/recipes.repository";
 
-import { producirAction } from "../recetas/actions";
+import { producirAction } from "./actions";
 
 /**
  * Registrar una tanda.
