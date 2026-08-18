@@ -41,11 +41,9 @@ const TINT_PILLS: Record<string, string> = {
 // Configuración...) muestra la tarjeta sin pill, que es lo correcto: no todo
 // atajo es "una cantidad de algo".
 const STAT_LABELS: Record<string, (n: number) => string> = {
-  "/stock": (n) => `${n} ${n === 1 ? "producto" : "productos"}`,
   "/salon": (n) => `${n} ${n === 1 ? "mesa" : "mesas"}`,
   "/cocina": (n) => `${n} en preparación`,
   "/opciones": (n) => `${n} ${n === 1 ? "opción" : "opciones"}`,
-  "/mermas": (n) => `${n} ${n === 1 ? "registro" : "registros"}`,
 };
 
 // Rutas donde NO se muestra la nav admin: el login, la terminal del empleado

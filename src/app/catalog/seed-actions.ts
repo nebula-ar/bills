@@ -33,7 +33,6 @@ export async function seedPresetCatalogAction(
     // Los productos aparecen en el catálogo, en el mostrador y en stock.
     revalidatePath("/catalog");
     revalidatePath("/sales/new");
-    revalidatePath("/stock");
     revalidatePath("/");
 
     return { ok: true, created };

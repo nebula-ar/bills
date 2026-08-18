@@ -1,4 +1,5 @@
 import { SaleStatus } from "@/generated/prisma/enums";
+import { StockMovementType } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 
 import { analizarProducto, type AnalisisDeProducto } from "./product-analytics.logic";
@@ -62,8 +63,23 @@ export async function analizarProductoEnPeriodo(input: {
       },
       select: { quantity: true, unitCost: true, createdAt: true },
     }),
-    prisma.waste.findMany({
-      where: { productId, businessId, createdAt: { gte: desde, lt: hasta } },
+    // Las mermas salen de `StockMovement`, no de la tabla `Waste`.
+    //
+    // `Waste` la escribía solo la pantalla /mermas, que además pisaba el
+    // `StockLevel` a mano sin asentar movimiento: entonces este número contaba
+    // las mermas de esa pantalla e ignoraba TODAS las anotadas desde la ficha
+    // ("Se perdió o rompió"), que sí van por `applyStockMovement`. Leyendo el
+    // movimiento se cuentan las dos, que es lo que el dueño entiende por "lo
+    // que tiré".
+    //
+    // La cantidad viene negativa (salió); se normaliza abajo.
+    prisma.stockMovement.findMany({
+      where: {
+        productId,
+        type: StockMovementType.LOSS,
+        branch: { businessId, deleted: false },
+        occurredAt: { gte: desde, lt: hasta },
+      },
       select: { quantity: true },
     }),
   ]);
@@ -90,7 +106,9 @@ export async function analizarProductoEnPeriodo(input: {
       unitCost: renglon.unitCost,
       at: renglon.createdAt,
     })),
-    tirados: tirados,
+    // El movimiento guarda la cantidad en negativo porque salió; la lógica
+    // cuenta cuánto se tiró, en positivo.
+    tirados: tirados.map((movimiento) => ({ quantity: Math.abs(movimiento.quantity) })),
     costoActual: producto.cost,
   });
 }

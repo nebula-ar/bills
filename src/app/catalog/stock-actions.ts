@@ -4,12 +4,13 @@ import { AppModule } from "@/generated/prisma/client";
 import { requireModule } from "@/lib/business-context";
 import { logError } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { getStockErrorMessageFor } from "@/lib/stock-error-messages";
+import { getStockErrorMessageFor, STOCK_MOVEMENT_LABELS } from "@/lib/stock-error-messages";
 import { StockError } from "@/modules/stock/stock.errors";
-import { adjustStock, receiveStock, registerStockLoss } from "@/modules/stock/stock.use-cases";
+import { adjustStock, receiveStock, registerStockLoss, transferStock } from "@/modules/stock/stock.use-cases";
 import {
   findBranchForStock,
   findProductForStock,
+  findRecentStockMovements,
   findStockExpiry,
   setStockExpiry,
 } from "@/modules/stock/stock.repository";
@@ -37,6 +38,17 @@ export async function applyProductStockAction(input: {
   unitCost?: number | null;
 }): Promise<StockOpResult> {
   const { session } = await requireModule(AppModule.STOCK);
+
+  // Una merma sin motivo no se guarda. "Se tiraron 3 kg" sin decir por qué es un
+  // número que nadie puede accionar: no se sabe si comprar menos, cambiar al
+  // proveedor o mirar quién estaba en el turno. La regla la traía la pantalla
+  // /mermas, que se eliminó; sin esto se perdía en la mudanza.
+  //
+  // Va acá y no solo en el panel porque una server action es un endpoint: el
+  // botón deshabilitado es una comodidad, no una validación.
+  if (input.op === "loss" && !input.reason?.trim()) {
+    return { ok: false, error: "Poné por qué se perdió." };
+  }
 
   const common = {
     businessId: session.user.businessId,
@@ -76,6 +88,57 @@ export async function applyProductStockAction(input: {
     where: { branchId_productId: { branchId: input.branchId, productId: input.productId } },
     select: { quantity: true },
   });
+  return { ok: true, quantity: level?.quantity ?? 0 };
+}
+
+/**
+ * Mandar existencia a otra sucursal.
+ *
+ * Vivía en `/stock` como un formulario con un `select` de todos los productos.
+ * Es una operación de UN producto —lo único que le falta a la ficha es el
+ * destino—, así que se resuelve donde está el producto.
+ *
+ * Sale de una sucursal y entra en la otra en un solo acto: si la salida se
+ * asentara sin la entrada, la mercadería desaparecería del sistema. Eso lo
+ * garantiza `transferStock`, que además valida que las dos sucursales sean del
+ * negocio y que no sean la misma.
+ */
+export async function transferProductStockAction(input: {
+  productId: string;
+  fromBranchId: string;
+  toBranchId: string;
+  /** Cantidad en milésimas (ver src/lib/quantity.ts). */
+  quantity: number;
+}): Promise<StockOpResult> {
+  const { session } = await requireModule(AppModule.STOCK);
+
+  try {
+    await transferStock({
+      businessId: session.user.businessId,
+      fromBranchId: input.fromBranchId,
+      toBranchId: input.toBranchId,
+      productId: input.productId,
+      quantity: input.quantity,
+      userId: session.user.id,
+    });
+  } catch (error) {
+    if (error instanceof StockError) {
+      return { ok: false, error: getStockErrorMessageFor(error) };
+    }
+
+    await logError("stock.transfer", error, {
+      businessId: session.user.businessId,
+      userId: session.user.id,
+      context: { productId: input.productId, toBranchId: input.toBranchId },
+    });
+    return { ok: false, error: "No pudimos completar el traspaso. Intentá de nuevo." };
+  }
+
+  const level = await prisma.stockLevel.findUnique({
+    where: { branchId_productId: { branchId: input.fromBranchId, productId: input.productId } },
+    select: { quantity: true },
+  });
+
   return { ok: true, quantity: level?.quantity ?? 0 };
 }
 
@@ -164,4 +227,61 @@ export async function setProductExpiry(input: {
   }
 
   return { ok: true, expiresAt: crudo || null };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Movimientos de la sucursal
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type MovimientoDeSucursal = {
+  id: string;
+  productId: string;
+  productName: string;
+  unit: string;
+  quantity: number;
+  typeLabel: string;
+  reason: string | null;
+  whenTs: number;
+};
+
+export type MovimientosResult =
+  | { ok: true; movimientos: MovimientoDeSucursal[] }
+  | { ok: false; error: string };
+
+/**
+ * Qué se movió en esta sucursal, cruzando todos los productos.
+ *
+ * Es la única vista que contesta "qué pasó hoy acá": la ficha muestra los
+ * movimientos de UN producto, y revisar producto por producto no es un control,
+ * es una auditoría. Importa porque todo lo que baja el stock tiene que poder
+ * explicarse — por ahí se escapa un faltante sin que nadie se entere.
+ *
+ * La sucursal se revalida contra el negocio de la sesión: `findRecentStockMovements`
+ * filtra solo por `branchId`, así que sin este chequeo alcanzaría con mandar el
+ * id de la sucursal de otro negocio para leerle los movimientos.
+ */
+export async function getBranchStockMovements(branchId: string): Promise<MovimientosResult> {
+  const { session } = await requireModule(AppModule.STOCK);
+
+  const branch = await findBranchForStock(branchId, session.user.businessId);
+
+  if (!branch) {
+    return { ok: false, error: "No encontramos esa sucursal." };
+  }
+
+  const movimientos = await findRecentStockMovements(branchId);
+
+  return {
+    ok: true,
+    movimientos: movimientos.map((movimiento) => ({
+      id: movimiento.id,
+      productId: movimiento.product.id,
+      productName: movimiento.product.name,
+      unit: movimiento.product.unit,
+      quantity: movimiento.quantity,
+      typeLabel: STOCK_MOVEMENT_LABELS[movimiento.type],
+      reason: movimiento.reason,
+      whenTs: movimiento.occurredAt.getTime(),
+    })),
+  };
 }

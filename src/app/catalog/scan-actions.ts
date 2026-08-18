@@ -109,7 +109,6 @@ export async function createProductFromScan(formData: FormData): Promise<CreateS
 
     revalidatePath("/catalog");
     revalidatePath("/sales/new");
-    revalidatePath("/stock");
 
     return { ok: true, productId: product.id, name: product.name };
   } catch (error) {

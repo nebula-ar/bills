@@ -1,0 +1,17 @@
+-- La merma deja de tener tabla propia.
+--
+-- `Waste` la escribía únicamente la pantalla /mermas, que además descontaba el
+-- `StockLevel` a mano sin asentar un `StockMovement`. Eso rompía el invariante
+-- del proyecto —el movimiento es append-only y la existencia es un caché
+-- derivado, las dos en la misma transacción— y tenía una consecuencia cara: la
+-- ganancia lee las pérdidas de `StockMovement`, así que toda merma anotada ahí
+-- era invisible para el resultado.
+--
+-- Ahora la merma se anota desde la ficha del producto con `registerStockLoss`,
+-- que asienta un `StockMovement` de tipo LOSS con su costo y su motivo: una
+-- sola fuente de verdad para lo que salió.
+--
+-- Se dropea sin migrar datos porque la tabla está vacía (0 filas verificadas
+-- antes de escribir esto). Si en algún entorno tuviera filas, habría que
+-- convertirlas en movimientos LOSS antes de correr esto.
+DROP TABLE IF EXISTS "Waste";

@@ -122,3 +122,44 @@ export function findGruposDeProducto(businessId: string, productId: string) {
     },
   });
 }
+
+/**
+ * Prende o apaga UN grupo para UN producto.
+ *
+ * Distinta de `asignarProductos`, que hace `set` con la lista completa: desde la
+ * ficha de un producto no se conoce a los otros, así que un `set` con un solo id
+ * le sacaría el grupo a los demás productos que lo tenían.
+ *
+ * El `businessId` va en el where del grupo: sin eso alcanzaría con mandar el id
+ * de un grupo ajeno para engancharlo a un producto propio.
+ */
+export function togglearGrupoDeProducto(input: {
+  businessId: string;
+  groupId: string;
+  productId: string;
+  incluir: boolean;
+}) {
+  return prisma.modifierGroup.update({
+    where: { id: input.groupId, businessId: input.businessId },
+    data: {
+      products: input.incluir
+        ? { connect: { id: input.productId } }
+        : { disconnect: { id: input.productId } },
+    },
+    select: { id: true },
+  });
+}
+
+/** Todos los grupos del negocio, para elegir cuáles lleva un producto. */
+export function findGruposDelNegocio(businessId: string) {
+  return prisma.modifierGroup.findMany({
+    where: { businessId, deleted: false },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      required: true,
+      _count: { select: { modifiers: { where: { deleted: false } } } },
+    },
+  });
+}

@@ -145,6 +145,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       // Con Recetas prendido el catálogo además administra insumos: son
       // productos que se compran y se guardan, pero nunca se venden.
       recipes: business.has(AppModule.RECIPES),
+      // Con Salón prendido el producto puede llevar grupos de opciones
+      // ("Punto de cocción"), que se definen en /opciones.
+      modifiers: business.has(AppModule.TABLES),
     },
     selectedBranchName: selectedBranch.name,
     verticalLabel: preset.label,

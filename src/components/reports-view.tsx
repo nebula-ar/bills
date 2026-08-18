@@ -386,7 +386,7 @@ export function ReportsView({ data, userName = "admin" }: { data: ReportsData; u
               un mes de reposición fuerte se lee como un mes malo. */}
           <Link
             className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-950/5 transition active:scale-[0.98] duration-500 animate-in fade-in slide-in-from-bottom-2"
-            href="/stock"
+            href="/catalog"
             style={{ animationDelay: "140ms", animationFillMode: "backwards" }}
           >
             <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-slate-500">

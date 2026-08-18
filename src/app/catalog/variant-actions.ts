@@ -45,7 +45,6 @@ export async function createVariantsAction(formData: FormData): Promise<CreateVa
     });
 
     revalidatePath("/catalog");
-    revalidatePath("/stock");
     revalidatePath("/sales/new");
 
     return { ok: true, created: result.created };

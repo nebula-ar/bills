@@ -189,7 +189,6 @@ async function deleteDemoTenant() {
     `delete from "AiImageDailyUsage" where "businessId" = '${businessId}'`,
     `delete from "RecipeItem" where "productId" in (select id from "Product" where "businessId" = '${businessId}')`,
     `delete from "Production" where "businessId" = '${businessId}'`,
-    `delete from "Waste" where "businessId" = '${businessId}'`,
     `delete from "Product" where "businessId" = '${businessId}'`,
     `delete from "ProductFamily" where "businessId" = '${businessId}'`,
     `delete from "ProductCategory" where "businessId" = '${businessId}'`,

@@ -135,7 +135,6 @@ export async function submitSale(input: SubmitSaleInput): Promise<SubmitSaleResu
 
     revalidatePath("/");
     revalidatePath("/sales");
-    revalidatePath("/stock");
     // La existencia también se ve en /catalog ahora (ver ProductsManager).
     revalidatePath("/catalog");
 

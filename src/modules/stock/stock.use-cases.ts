@@ -9,7 +9,6 @@ import {
   findBranchForStock,
   findBranchStock,
   findProductForStock,
-  findRecentStockMovements,
 } from "./stock.repository";
 
 export type StockRow = {
@@ -35,6 +34,16 @@ export type StockRow = {
 
 // Inventario de una sucursal, listo para pintar: existencia, valorización y
 // semáforo de reposición.
+/**
+ * Existencias y valuación de una sucursal.
+ *
+ * Ya no la pinta ninguna pantalla: la lista de productos muestra la existencia
+ * por sucursal y el dashboard valúa a nivel negocio con `getStockValuation`. Se
+ * conserva porque es el único punto donde se puede probar, del lado del
+ * servidor, que el resumen de una sucursal AJENA no devuelve existencias — y esa
+ * prueba vive en e2e/tenancy/operaciones.test.ts. Borrarla sacaría cobertura de
+ * aislamiento en el módulo donde una fuga duele más.
+ */
 export async function getBranchStockOverview(businessId: string, branchId: string) {
   const products = await findBranchStock(businessId, branchId);
 
@@ -79,10 +88,6 @@ export async function getBranchStockOverview(businessId: string, branchId: strin
       out: rows.filter((row) => row.status === "out").length,
     },
   };
-}
-
-export function getStockMovements(branchId: string, limit?: number) {
-  return findRecentStockMovements(branchId, limit);
 }
 
 type StockOperationInput = {

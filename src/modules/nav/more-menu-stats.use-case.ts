@@ -1,6 +1,6 @@
 import "server-only";
 
-import { KdsStatus, ProductKind, StockMovementType } from "@/generated/prisma/enums";
+import { KdsStatus, StockMovementType } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 
 type StatFetcher = (businessId: string, branchId: string) => Promise<number>;
@@ -11,15 +11,6 @@ const DIA_MS = 24 * 60 * 60 * 1000;
 // vería si entrara a esa pantalla, no un número inventado para que la tarjeta
 // no quede vacía.
 const FETCHERS: Record<string, StatFetcher> = {
-  "/stock": (businessId, branchId) =>
-    prisma.product.count({
-      where: {
-        businessId,
-        deleted: false,
-        kind: { not: ProductKind.INGREDIENT },
-        branchPrices: { some: { branchId, active: true, deleted: false } },
-      },
-    }),
   "/salon": (businessId, branchId) => prisma.table.count({ where: { businessId, branchId, deleted: false } }),
   "/cocina": (businessId, branchId) =>
     prisma.orderItem.count({
@@ -31,15 +22,6 @@ const FETCHERS: Record<string, StatFetcher> = {
       },
     }),
   "/opciones": (businessId) => prisma.modifier.count({ where: { businessId, deleted: false } }),
-  "/mermas": (businessId, branchId) =>
-    prisma.stockMovement.count({
-      where: {
-        branchId,
-        branch: { businessId },
-        type: StockMovementType.LOSS,
-        occurredAt: { gte: new Date(Date.now() - 30 * DIA_MS) },
-      },
-    }),
 };
 
 /**

@@ -78,7 +78,6 @@ describe("lo que cada rol NO recibe", () => {
 
     expect(suyos).toContain("/dashboard");
     expect(suyos).toContain("/expenses");
-    expect(suyos).toContain("/stock");
 
     expect(suyos).not.toContain("/staff");
     expect(suyos).not.toContain("/branches");

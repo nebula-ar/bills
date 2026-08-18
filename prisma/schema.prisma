@@ -92,7 +92,6 @@ model Business {
   tables    Table[]
   orders    Order[]
   productions Production[]
-  wastes      Waste[]
 }
 
 // Rubro del negocio. Solo define los DEFAULTS del onboarding (qué módulos se
@@ -181,7 +180,6 @@ model Branch {
   tables  Table[]
   orders  Order[]
   productions Production[]
-  wastes      Waste[]
 }
 
 model Terminal {
@@ -263,7 +261,6 @@ model User {
   @@index([deletedAt])
   orders Order[]
   productions Production[]
-  wastes      Waste[]
 }
 
 // Roles por TAREA, no por jerarquía lineal. Un mozo y un cocinero comparten
@@ -579,7 +576,6 @@ model Product {
   receta      RecipeItem[] @relation("RecetaDelProducto")
   usadoEnRecetas RecipeItem[] @relation("InsumoEnRecetas")
   productions Production[]
-  wastes      Waste[]
 }
 
 enum ProductKind {
@@ -898,25 +894,6 @@ model Production {
 
 // Lo que se tiró y por qué. Sirve para producto terminado y para insumo: las
 // dos cosas son un Product, así que alcanza con una relación.
-model Waste {
-  id          String   @id @default(cuid())
-  businessId  String
-  branchId    String
-  productId   String
-  quantity    Int
-  reason      String
-  staffId     String?
-  createdAt   DateTime @default(now())
-  createdById String?
-
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  staff    User?    @relation(fields: [staffId], references: [id], onDelete: SetNull)
-
-  @@index([businessId, createdAt])
-  @@index([branchId])
-}
 
 model Sale {
   id            String     @id @default(cuid())

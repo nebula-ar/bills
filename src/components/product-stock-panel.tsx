@@ -1,6 +1,6 @@
 "use client";
 
-import { applyProductStockAction, type StockOp } from "@/app/catalog/stock-actions";
+import { applyProductStockAction, transferProductStockAction, type StockOp } from "@/app/catalog/stock-actions";
 import { Check, Loader2, Package, X } from "@/components/icons";
 import type { Unit } from "@/generated/prisma/enums";
 import { formatQuantity, parseQuantityInput, sanitizeQuantityInput, unitShort } from "@/lib/quantity";
@@ -24,8 +24,17 @@ import { toast } from "sonner";
  * había que adivinar cuál sumaba y cuál fijaba: escribir 9 en la primera deja
  * 9, en la segunda deja 20 y en la tercera deja 2.
  */
+/**
+ * Las operaciones del panel. `StockOp` son las tres que mueven la existencia de
+ * ESTA sucursal; el traspaso se suma acá y no al tipo del dominio porque no es
+ * una más: toca dos sucursales y va por otra acción. Mezclarlo en `StockOp`
+ * haría que `applyProductStockAction` tuviera que contemplar un caso que no
+ * sabe resolver.
+ */
+type OpDePanel = StockOp | "transfer";
+
 const OPS: {
-  op: StockOp;
+  op: OpDePanel;
   boton: string;
   pregunta: string;
   ayuda: string;
@@ -62,6 +71,19 @@ const OPS: {
     signo: "−",
     placeholder: "Lo que se perdió",
   },
+  {
+    // El traspaso vivía en /stock, como un formulario con un select de TODOS
+    // los productos. Es de un producto: lo único que le falta a la ficha es el
+    // destino. Solo se ofrece con más de una sucursal, porque si no no hay a
+    // dónde mandarlo.
+    op: "transfer",
+    boton: "Se lo mandé a otra sucursal",
+    pregunta: "¿Cuánto mandaste?",
+    ayuda: "Sale de acá y entra allá, en un solo acto.",
+    efecto: "se descuenta acá",
+    signo: "−",
+    placeholder: "Lo que mandaste",
+  },
 ];
 
 export function ProductStockPanel({
@@ -73,10 +95,13 @@ export function ProductStockPanel({
   minStock,
   onChanged,
   showSummary = true,
+  destinos = [],
 }: {
   productId: string;
   branchId: string;
   branchName: string;
+  /** Las OTRAS sucursales del negocio. Vacío = no se ofrece el traspaso. */
+  destinos?: { id: string; name: string }[];
   unit: Unit;
   // Existencia actual en milésimas. null = el producto no lleva control.
   quantity: number | null;
@@ -89,9 +114,10 @@ export function ProductStockPanel({
   // acaba de leer no agrega nada y hace parecer que son dos cosas distintas.
   showSummary?: boolean;
 }) {
-  const [op, setOp] = useState<StockOp | null>(null);
+  const [op, setOp] = useState<OpDePanel | null>(null);
   const [value, setValue] = useState("");
   const [reason, setReason] = useState("");
+  const [destino, setDestino] = useState("");
   const [displayQuantity, setDisplayQuantity] = useState(quantity);
   const [isPending, startTransition] = useTransition();
 
@@ -105,29 +131,45 @@ export function ProductStockPanel({
   // Contar cero es legítimo ("se acabó"); recibir o perder cero, no.
   const escrito = parseQuantityInput(value, unit);
   const cantidad = escrito ?? (op === "adjust" && value.trim() === "0" ? 0 : null);
-  const vistaPrevia = op && cantidad !== null ? resultadoDeOperacion(op, displayQuantity, cantidad) : null;
+  // Para la vista previa, un traspaso es una resta: desde ESTA sucursal el
+  // efecto es idéntico al de una pérdida. La diferencia —que lo que sale entra
+  // en otra— no cambia el número de acá, así que no hace falta ensanchar
+  // `OperacionDeStock`, que modela justamente el efecto sobre una sucursal.
+  const opDelCalculo = op === "transfer" ? "loss" : op;
+  const vistaPrevia =
+    opDelCalculo && cantidad !== null ? resultadoDeOperacion(opDelCalculo, displayQuantity, cantidad) : null;
 
   // El filtro del input evita casi todo lo inválido, pero quedan dos cosas que
   // solo se pueden decir con palabras: escribir cero donde no corresponde y
   // dejar el separador colgando ("1,"). Un botón apagado sin explicación deja
   // al usuario tocándolo sin entender.
+  // El motivo de una merma es obligatorio, como lo era en la pantalla que esto
+  // reemplaza: "se tiraron 3 kg" sin decir por qué es un número que nadie puede
+  // accionar. Los otros dos motivos sí son opcionales —un conteo de fin de mes
+  // se explica solo— y por eso la regla es de la merma, no del panel.
+  const faltaMotivo = op === "loss" && reason.trim() === "";
+
   const problema =
     value.trim() === "" || cantidad !== null
-      ? null
+      ? faltaMotivo && value.trim() !== ""
+        ? "Poné por qué se perdió."
+        : null
       : op === "adjust"
         ? "Escribí cuánto contaste."
         : "Tiene que ser un número mayor que cero.";
 
-  function abrir(next: StockOp) {
+  function abrir(next: OpDePanel) {
     setOp(next === op ? null : next);
     setValue("");
     setReason("");
+    setDestino(destinos.length === 1 ? destinos[0].id : "");
   }
 
   function cerrar() {
     setOp(null);
     setValue("");
     setReason("");
+    setDestino("");
   }
 
   function submit() {
@@ -138,8 +180,21 @@ export function ProductStockPanel({
       return;
     }
 
+    if (op === "transfer" && !destino) {
+      toast.error("Elegí a qué sucursal la mandaste.");
+      return;
+    }
+
     startTransition(async () => {
-      const result = await applyProductStockAction({ op, productId, branchId, quantity: cantidad, reason });
+      const result =
+        op === "transfer"
+          ? await transferProductStockAction({
+              productId,
+              fromBranchId: branchId,
+              toBranchId: destino,
+              quantity: cantidad,
+            })
+          : await applyProductStockAction({ op, productId, branchId, quantity: cantidad, reason });
 
       if (result.ok) {
         toast.success("Stock actualizado.");
@@ -188,7 +243,9 @@ export function ProductStockPanel({
           cuál sumaba y cuál reemplazaba. */}
       {!active ? (
         <div className={`grid gap-1.5 ${showSummary ? "border-t border-slate-200/70 p-2" : ""}`}>
-          {OPS.map((item) => (
+          {/* Sin otra sucursal no hay a dónde mandarlo: el botón prometería una
+              acción imposible. */}
+          {OPS.filter((item) => item.op !== "transfer" || destinos.length > 0).map((item) => (
             <button
               className="flex items-center gap-3 rounded-xl bg-white px-3 py-2.5 text-left ring-1 ring-slate-200 transition hover:ring-slate-300 active:scale-[0.99]"
               key={item.op}
@@ -301,19 +358,40 @@ export function ProductStockPanel({
             </p>
           ) : null}
 
-          {op !== "receive" ? (
+          {/* El destino, solo en el traspaso. Con una sola sucursal posible ya
+              viene elegida: preguntar algo con una sola respuesta es un paso
+              regalado. */}
+          {op === "transfer" ? (
+            <select
+              aria-label="Sucursal destino"
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-950 outline-none"
+              onChange={(event) => setDestino(event.target.value)}
+              value={destino}
+            >
+              <option value="">¿A qué sucursal?</option>
+              {destinos.map((sucursal) => (
+                <option key={sucursal.id} value={sucursal.id}>
+                  {sucursal.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
+
+          {/* El traspaso no lleva motivo: el motivo ES el traspaso, y queda
+              asentado con la sucursal destino en el movimiento. */}
+          {op !== "receive" && op !== "transfer" ? (
             <input
               aria-label="Motivo"
               className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-950 outline-none"
               onChange={(event) => setReason(event.target.value)}
-              placeholder={op === "loss" ? "Motivo (se venció, se rompió…)" : "Motivo (conteo de fin de mes…)"}
+              placeholder={op === "loss" ? "Por qué se perdió (se venció, se rompió…)" : "Motivo (conteo de fin de mes…)"}
               value={reason}
             />
           ) : null}
 
           <button
             className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-black text-white transition active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
-            disabled={isPending || cantidad === null}
+            disabled={isPending || cantidad === null || faltaMotivo}
             onClick={submit}
             type="button"
           >

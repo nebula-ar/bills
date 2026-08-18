@@ -29,7 +29,9 @@ import { abrirSelectorDeFoto, CatalogUploader } from "@/components/catalog-uploa
 import { ProductAnalyticsTab } from "@/components/product-analytics-tab";
 import { ProductRecipeTab } from "@/components/product-recipe-tab";
 import { ProductExpiryField } from "@/components/product-expiry-field";
+import { ProductOptionsField } from "@/components/product-options-field";
 import { ProductionSheet } from "@/components/production-sheet";
+import { BranchMovementsSheet } from "@/components/branch-movements-sheet";
 import { formatQuantity, unitLabel, unitShort } from "@/lib/quantity";
 import { productImageSrc } from "@/modules/catalog/product-image-src.logic";
 import {
@@ -39,7 +41,7 @@ import {
   stockStatusOf,
   totalesDe,
 } from "@/modules/catalog/grilla-catalogo.logic";
-import { ArrowLeft, ArrowRight, Check, CircleSlash, DynamicIcon, Loader2, Package, Plus, Search, Trash2, X } from "@/components/icons";
+import { ArrowLeft, ArrowRight, Check, CircleSlash, DynamicIcon, History, Loader2, Package, Plus, Search, Trash2, X } from "@/components/icons";
 import { SyncSwitch } from "@/components/sync-switch";
 import { SyncSelect } from "@/components/sync-select";
 import {
@@ -142,7 +144,7 @@ export type ProductsData = {
   catalogIcon: string;
   // Qué herramientas le sirven a este rubro (ver src/lib/vertical.ts) más el
   // módulo de stock, que decide si el producto muestra su existencia.
-  features: { variants: boolean; barcodes: boolean; packs: boolean; stock: boolean; recipes: boolean };
+  features: { variants: boolean; barcodes: boolean; packs: boolean; stock: boolean; recipes: boolean; modifiers: boolean };
   // Nombre de la sucursal elegida, para decir "en Sucursal Centro quedan 12".
   selectedBranchName: string;
   // Rubro y catálogo sugerido, para el onboarding del catálogo vacío.
@@ -386,6 +388,11 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   // el margen, de la harina cuánto queda y cuánto sale el kilo.
   const [catalogTab, setCatalogTab] = useState<"vendibles" | "insumos">("vendibles");
   const [produciendo, setProduciendo] = useState(false);
+  const [viendoMovimientos, setViendoMovimientos] = useState(false);
+  // Filtro rápido por estado de existencia. En /stock esto eran dos números que
+  // decían CUÁNTOS; acá dicen cuántos y además muestran cuáles, que es lo que
+  // uno quiere apenas los lee.
+  const [filtroStock, setFiltroStock] = useState<"out" | "low" | null>(null);
   const [newOpen, setNewOpen] = useState(false);
   // El contenido del Dialog se monta recién cuando quedó abierto y estable:
   // los componentes EJ2 (RTE, Uploader) no sobreviven a inicializarse con el
@@ -568,16 +575,27 @@ export function ProductsManager({ data }: { data: ProductsData }) {
   const producibles = vendibles.filter((producto) => producto.recetaCount > 0);
 
 
+  const sinStock = productosDeLaPestana.filter((producto) => stockStatusOf(producto) === "out");
+  const porReponer = productosDeLaPestana.filter((producto) => stockStatusOf(producto) === "low");
+
+  const porEstado = useMemo(
+    () =>
+      filtroStock === null
+        ? productosDeLaPestana
+        : productosDeLaPestana.filter((producto) => stockStatusOf(producto) === filtroStock),
+    [productosDeLaPestana, filtroStock],
+  );
+
   const visibleProducts = useMemo(
     () =>
       query
-        ? productosDeLaPestana.filter((product) =>
+        ? porEstado.filter((product) =>
             [product.name, product.familyName ?? "", product.sku ?? "", product.barcode ?? ""].some((field) =>
               normalize(field).includes(query),
             ),
           )
-        : productosDeLaPestana,
-    [query, productosDeLaPestana],
+        : porEstado,
+    [query, porEstado],
   );
 
   // El margen se calcula acá y viaja como campo de la fila, en vez de salir
@@ -1478,6 +1496,19 @@ export function ProductsManager({ data }: { data: ProductsData }) {
 
               Aparece solo si hay algo con receta: sin receta no hay insumos que
               mover, y el botón prometería una acción que no hace nada. */}
+          {/* Qué se movió hoy en la sucursal, cruzando todos los productos.
+              Vivía en /stock; la ficha solo muestra los de un producto, y
+              revisar de a uno no detecta un faltante. */}
+          {data.features.stock ? (
+            <button
+              className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:border-primary/40 active:scale-95"
+              onClick={() => setViendoMovimientos(true)}
+              type="button"
+            >
+              <History className="size-4" />
+              Movimientos
+            </button>
+          ) : null}
           {data.features.recipes && producibles.length > 0 ? (
             <button
               className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:border-primary/40 active:scale-95"
@@ -1602,12 +1633,46 @@ export function ProductsManager({ data }: { data: ProductsData }) {
               </div>
             ) : null}
 
+            <BranchMovementsSheet
+              branchId={data.selectedBranchId}
+              branchName={data.selectedBranchName}
+              onClose={() => setViendoMovimientos(false)}
+              open={viendoMovimientos}
+            />
+
             <ProductionSheet
               branchId={data.selectedBranchId}
               onClose={() => setProduciendo(false)}
               open={produciendo}
               producibles={producibles.map((producto) => ({ id: producto.id, name: producto.name }))}
             />
+
+            {/* Los dos avisos que traía /stock, convertidos en filtro. Un "3
+                por reponer" que no se puede tocar te obliga a buscar cuáles a
+                ojo; acá el número ES el atajo.
+
+                Aparecen solo cuando hay algo: un chip en cero no es un aviso,
+                y tocarlo mostraría una lista vacía. */}
+            {data.features.stock && (sinStock.length > 0 || porReponer.length > 0) ? (
+              <div className="flex flex-wrap gap-2">
+                {sinStock.length > 0 ? (
+                  <ChipDeEstado
+                    activo={filtroStock === "out"}
+                    onClick={() => setFiltroStock(filtroStock === "out" ? null : "out")}
+                    texto={`${sinStock.length} sin stock`}
+                    tono="malo"
+                  />
+                ) : null}
+                {porReponer.length > 0 ? (
+                  <ChipDeEstado
+                    activo={filtroStock === "low"}
+                    onClick={() => setFiltroStock(filtroStock === "low" ? null : "low")}
+                    texto={`${porReponer.length} por reponer`}
+                    tono="aviso"
+                  />
+                ) : null}
+              </div>
+            ) : null}
 
             {/* Radio y padding de la tarjeta viven en `.catalog-card`
                 (syncfusion-catalog.css), no en clases de Tailwind. */}
@@ -2520,6 +2585,14 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   </label>
                 </div>
 
+                {/* Qué opciones lleva. Los grupos se definen en /opciones —son
+                    un catálogo compartido, como las categorías— pero cuáles
+                    lleva ESTE producto es del producto. Un insumo no se vende,
+                    así que no se le ofrece nada. */}
+                {data.features.modifiers && !editandoInsumo ? (
+                  <ProductOptionsField key={editing.id} productId={editing.id} />
+                ) : null}
+
                 {data.branches.length > 1 ? (
                   <BranchSelect branches={data.branches} onChange={setEditBranchId} value={editBranchId} />
                 ) : null}
@@ -2560,6 +2633,10 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                 <ProductStockPanel
                   branchId={data.selectedBranchId}
                   branchName={data.selectedBranchName}
+                  // Las OTRAS sucursales, para poder mandarle existencia a una.
+                  // El traspaso vivía en /stock con un select de todos los
+                  // productos; acá el producto ya está elegido.
+                  destinos={data.branches.filter((sucursal) => sucursal.id !== data.selectedBranchId)}
                   minStock={editing.minStockRaw}
                   onChanged={() => setEditStockChanged(true)}
                   productId={editing.id}
@@ -2830,5 +2907,37 @@ export function ProductsManagerSkeleton() {
 
       <Skeleton className="fixed bottom-[96px] right-4 z-40 size-14 rounded-full md:bottom-8 md:right-8" />
     </main>
+  );
+}
+
+/** Un aviso de existencia que además filtra la lista. */
+function ChipDeEstado({
+  texto,
+  tono,
+  activo,
+  onClick,
+}: {
+  texto: string;
+  tono: "malo" | "aviso";
+  activo: boolean;
+  onClick: () => void;
+}) {
+  const colores = activo
+    ? tono === "malo"
+      ? "border-rose-500 bg-rose-500 text-white"
+      : "border-amber-500 bg-amber-500 text-white"
+    : tono === "malo"
+      ? "border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400"
+      : "border-amber-200 bg-[#FDF0D5] text-[#8A5A1E] hover:border-amber-400";
+
+  return (
+    <button
+      aria-pressed={activo}
+      className={`rounded-full border px-3.5 py-1.5 text-xs font-black transition active:scale-95 ${colores}`}
+      onClick={onClick}
+      type="button"
+    >
+      {texto}
+    </button>
   );
 }
