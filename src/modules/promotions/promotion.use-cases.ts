@@ -36,7 +36,7 @@ export async function updatePromotion(promotionId: string, input: PromotionWrite
   await requirePromotion(promotionId, input.businessId);
   validate(input);
 
-  const promotion = await updatePromotionRecord(promotionId, input);
+  const promotion = await updatePromotionRecord(promotionId, input.businessId, input);
 
   await logEvent("promotion.update", `Promoción actualizada: ${input.name}`, {
     businessId: input.businessId,
@@ -50,7 +50,7 @@ export async function updatePromotion(promotionId: string, input: PromotionWrite
 export async function togglePromotion(promotionId: string, businessId: string, active: boolean, userId?: string | null) {
   const promotion = await requirePromotion(promotionId, businessId);
 
-  await setPromotionActive(promotionId, active, userId);
+  await setPromotionActive(promotionId, businessId, active, userId);
 
   await logEvent("promotion.toggle", `Promoción ${active ? "activada" : "pausada"}: ${promotion.name}`, {
     businessId,
@@ -64,7 +64,7 @@ export async function deletePromotion(promotionId: string, businessId: string, u
 
   // Borrado lógico: los descuentos ya aplicados apuntan acá y no queremos que
   // una venta vieja pierda la explicación de por qué salió más barata.
-  await softDeletePromotion(promotionId, userId);
+  await softDeletePromotion(promotionId, businessId, userId);
 
   await logEvent("promotion.delete", `Promoción eliminada: ${promotion.name}`, {
     businessId,

@@ -56,16 +56,19 @@ export function createSupplierRecord(input: SupplierWriteInput) {
   });
 }
 
-export function updateSupplierRecord(supplierId: string, input: SupplierWriteInput) {
+export function updateSupplierRecord(supplierId: string, businessId: string, input: SupplierWriteInput) {
   return prisma.supplier.update({
-    where: { id: supplierId },
+    // El `businessId` en el where, y no solo en el caso de uso: Prisma acepta
+    // filtros no únicos junto al id en un update, así que una fila de otro
+    // negocio no matchea y tira P2025 en lugar de escribir.
+    where: { id: supplierId, businessId },
     data: toSupplierData(input),
   });
 }
 
-export function softDeleteSupplier(supplierId: string, userId?: string | null) {
+export function softDeleteSupplier(supplierId: string, businessId: string, userId?: string | null) {
   return prisma.supplier.update({
-    where: { id: supplierId },
+    where: { id: supplierId, businessId },
     data: { deleted: true, deletedAt: new Date(), deletedById: userId, active: false },
   });
 }
@@ -203,8 +206,8 @@ export function createPurchaseRecord(tx: Tx, input: CreatePurchaseInput) {
   });
 }
 
-export function markPurchaseStockApplied(tx: Tx, purchaseId: string) {
-  return tx.purchase.update({ where: { id: purchaseId }, data: { stockApplied: true } });
+export function markPurchaseStockApplied(tx: Tx, purchaseId: string, businessId: string) {
+  return tx.purchase.update({ where: { id: purchaseId, businessId }, data: { stockApplied: true } });
 }
 
 export function createPurchasePayment(input: {
@@ -227,8 +230,8 @@ export function createPurchasePayment(input: {
   });
 }
 
-export function setPurchaseStatus(purchaseId: string, status: PurchaseStatus) {
-  return prisma.purchase.update({ where: { id: purchaseId }, data: { status } });
+export function setPurchaseStatus(purchaseId: string, businessId: string, status: PurchaseStatus) {
+  return prisma.purchase.update({ where: { id: purchaseId, businessId }, data: { status } });
 }
 
 export function createPurchaseCreditRecord(input: {
@@ -284,9 +287,9 @@ export async function findLastPurchaseMovementAt(productId: string) {
   return movement?.occurredAt ?? null;
 }
 
-export function softDeletePurchase(purchaseId: string, userId?: string | null) {
+export function softDeletePurchase(purchaseId: string, businessId: string, userId?: string | null) {
   return prisma.purchase.update({
-    where: { id: purchaseId },
+    where: { id: purchaseId, businessId },
     data: { deleted: true, deletedAt: new Date(), deletedById: userId },
   });
 }

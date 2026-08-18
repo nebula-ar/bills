@@ -17,9 +17,13 @@ export async function findCustomerBalances(businessId: string) {
   return new Map(grouped.map((row) => [row.customerId, row._sum.amount ?? 0]));
 }
 
-export async function findCustomerBalance(customerId: string) {
+export async function findCustomerBalance(customerId: string, businessId: string) {
   const result = await prisma.customerAccountEntry.aggregate({
-    where: { customerId },
+    // El `customer: { businessId }` no es redundante con el chequeo que hace el
+    // caso de uso: es lo que hace que esta función sea segura POR SÍ MISMA. Sin
+    // él, la garantía dependía de que el llamador se acordara de validar antes,
+    // y eso no lo puede verificar el compilador.
+    where: { customerId, customer: { businessId } },
     _sum: { amount: true },
   });
 
@@ -76,9 +80,9 @@ export function findCustomerById(customerId: string, businessId: string) {
   });
 }
 
-export function findCustomerAccountEntries(customerId: string, limit = 100) {
+export function findCustomerAccountEntries(customerId: string, businessId: string, limit = 100) {
   return prisma.customerAccountEntry.findMany({
-    where: { customerId },
+    where: { customerId, customer: { businessId } },
     orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
     take: limit,
     select: {
@@ -93,9 +97,9 @@ export function findCustomerAccountEntries(customerId: string, limit = 100) {
   });
 }
 
-export function findCustomerSales(customerId: string, limit = 30) {
+export function findCustomerSales(customerId: string, businessId: string, limit = 30) {
   return prisma.sale.findMany({
-    where: { customerId, deleted: false, status: SaleStatus.COMPLETED },
+    where: { customerId, customer: { businessId }, deleted: false, status: SaleStatus.COMPLETED },
     orderBy: { soldAt: "desc" },
     take: limit,
     select: {
@@ -143,9 +147,12 @@ export function createCustomerRecord(input: CustomerWriteInput) {
   });
 }
 
-export function updateCustomerRecord(customerId: string, input: CustomerWriteInput) {
+export function updateCustomerRecord(customerId: string, businessId: string, input: CustomerWriteInput) {
   return prisma.customer.update({
-    where: { id: customerId },
+    // Prisma acepta filtros no únicos junto al id en el `where` de un update:
+    // si el cliente es de otro negocio no matchea y tira P2025 en vez de
+    // escribir. Fail-closed, y sin cambiar el tipo de retorno.
+    where: { id: customerId, businessId },
     data: {
       name: input.name,
       taxId: input.taxId,
@@ -162,9 +169,9 @@ export function updateCustomerRecord(customerId: string, input: CustomerWriteInp
   });
 }
 
-export function softDeleteCustomer(customerId: string, userId?: string | null) {
+export function softDeleteCustomer(customerId: string, businessId: string, userId?: string | null) {
   return prisma.customer.update({
-    where: { id: customerId },
+    where: { id: customerId, businessId },
     data: { deleted: true, deletedAt: new Date(), deletedById: userId, active: false },
   });
 }

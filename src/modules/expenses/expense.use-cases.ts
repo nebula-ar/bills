@@ -125,5 +125,5 @@ export async function deleteBusinessExpense(input: { businessId: string; expense
     throw new Error("EXPENSE_NOT_FOUND");
   }
 
-  return softDeleteExpense(expense.id);
+  return softDeleteExpense(expense.id, input.businessId);
 }

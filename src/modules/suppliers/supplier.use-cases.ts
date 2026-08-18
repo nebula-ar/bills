@@ -92,7 +92,7 @@ export async function updateSupplier(supplierId: string, input: SupplierInput) {
   await requireSupplier(supplierId, input.businessId);
 
   const data = validateSupplier(input);
-  const supplier = await updateSupplierRecord(supplierId, data);
+  const supplier = await updateSupplierRecord(supplierId, input.businessId, data);
 
   await logEvent("supplier.update", `Proveedor actualizado: ${data.name}`, {
     businessId: input.businessId,
@@ -106,7 +106,7 @@ export async function updateSupplier(supplierId: string, input: SupplierInput) {
 export async function deleteSupplier(supplierId: string, businessId: string, userId?: string | null) {
   const supplier = await requireSupplier(supplierId, businessId);
 
-  await softDeleteSupplier(supplierId, userId);
+  await softDeleteSupplier(supplierId, businessId, userId);
 
   await logEvent("supplier.delete", `Proveedor eliminado: ${supplier.name}`, {
     businessId,
@@ -298,7 +298,7 @@ export async function createPurchase(input: PurchaseInput) {
       }
 
       if (trackedIds.size > 0) {
-        await markPurchaseStockApplied(tx, created.id);
+        await markPurchaseStockApplied(tx, created.id, input.businessId);
       }
     }
 
@@ -362,7 +362,7 @@ export async function registerPurchasePayment(input: {
   });
 
   const paid = purchase.paid + input.amount;
-  await setPurchaseStatus(input.purchaseId, resolvePurchaseStatus(purchase.total, paid, false, purchase.credited));
+  await setPurchaseStatus(input.purchaseId, input.businessId, resolvePurchaseStatus(purchase.total, paid, false, purchase.credited));
 
   await logEvent("purchase.payment", `Pago de $${input.amount} a ${purchase.supplier.name}`, {
     businessId: input.businessId,
@@ -433,6 +433,7 @@ export async function registerSupplierPayment(input: {
 
     await setPurchaseStatus(
       purchase.id,
+      input.businessId,
       resolvePurchaseStatus(purchase.total, purchase.paid + amount, false, purchase.credited),
     );
   }
@@ -484,7 +485,7 @@ export async function registerPurchaseCredit(input: {
   });
 
   const credited = purchase.credited + input.amount;
-  await setPurchaseStatus(input.purchaseId, resolvePurchaseStatus(purchase.total, purchase.paid, false, credited));
+  await setPurchaseStatus(input.purchaseId, input.businessId, resolvePurchaseStatus(purchase.total, purchase.paid, false, credited));
 
   await logEvent("purchase.credit", `Nota de crédito de $${input.amount} de ${purchase.supplier.name}`, {
     businessId: input.businessId,

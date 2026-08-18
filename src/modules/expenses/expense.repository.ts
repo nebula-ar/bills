@@ -134,9 +134,9 @@ export async function findUsableSupplierId(supplierId: string, businessId: strin
   return supplier?.id ?? null;
 }
 
-export function softDeleteExpense(expenseId: string) {
+export function softDeleteExpense(expenseId: string, businessId: string) {
   return prisma.expense.update({
-    where: { id: expenseId },
+    where: { id: expenseId, businessId },
     data: { deleted: true, deletedAt: new Date() },
   });
 }

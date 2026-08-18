@@ -136,13 +136,16 @@ export function createPromotionRecord(input: PromotionWriteInput) {
 
 // El alcance se reemplaza entero en cada edición: es más simple de razonar que
 // un diff, y son pocas filas.
-export function updatePromotionRecord(promotionId: string, input: PromotionWriteInput) {
+export function updatePromotionRecord(promotionId: string, businessId: string, input: PromotionWriteInput) {
   return prisma.$transaction(async (tx) => {
-    await tx.promotionTarget.deleteMany({ where: { promotionId } });
-    await tx.promotionBranch.deleteMany({ where: { promotionId } });
+    // El alcance se borra por relación y no por `promotionId` pelado: si la
+    // promo es de otro negocio no hay filas que borrar, y el update de abajo
+    // tira antes de que la transacción confirme nada.
+    await tx.promotionTarget.deleteMany({ where: { promotionId, promotion: { businessId } } });
+    await tx.promotionBranch.deleteMany({ where: { promotionId, promotion: { businessId } } });
 
     return tx.promotion.update({
-      where: { id: promotionId },
+      where: { id: promotionId, businessId },
       data: {
         name: input.name,
         type: input.type,
@@ -174,16 +177,16 @@ export function updatePromotionRecord(promotionId: string, input: PromotionWrite
   });
 }
 
-export function softDeletePromotion(promotionId: string, userId?: string | null) {
+export function softDeletePromotion(promotionId: string, businessId: string, userId?: string | null) {
   return prisma.promotion.update({
-    where: { id: promotionId },
+    where: { id: promotionId, businessId },
     data: { deleted: true, deletedAt: new Date(), deletedById: userId, active: false },
   });
 }
 
-export function setPromotionActive(promotionId: string, active: boolean, userId?: string | null) {
+export function setPromotionActive(promotionId: string, businessId: string, active: boolean, userId?: string | null) {
   return prisma.promotion.update({
-    where: { id: promotionId },
+    where: { id: promotionId, businessId },
     data: { active, updatedById: userId },
   });
 }

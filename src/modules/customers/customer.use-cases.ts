@@ -74,9 +74,9 @@ export async function getCustomerDetail(customerId: string, businessId: string) 
   const customer = await requireCustomer(customerId, businessId);
 
   const [balance, entries, sales] = await Promise.all([
-    findCustomerBalance(customerId),
-    findCustomerAccountEntries(customerId),
-    findCustomerSales(customerId),
+    findCustomerBalance(customerId, businessId),
+    findCustomerAccountEntries(customerId, businessId),
+    findCustomerSales(customerId, businessId),
   ]);
 
   return { customer, balance, entries, sales };
@@ -113,7 +113,7 @@ export async function updateCustomer(customerId: string, input: CustomerInput) {
   await requireCustomer(customerId, input.businessId);
 
   const data = validate(input);
-  const customer = await updateCustomerRecord(customerId, data);
+  const customer = await updateCustomerRecord(customerId, input.businessId, data);
 
   await logEvent("customer.update", `Cliente actualizado: ${data.name}`, {
     businessId: input.businessId,
@@ -127,7 +127,7 @@ export async function updateCustomer(customerId: string, input: CustomerInput) {
 export async function deleteCustomer(customerId: string, businessId: string, userId?: string | null) {
   const customer = await requireCustomer(customerId, businessId);
 
-  await softDeleteCustomer(customerId, userId);
+  await softDeleteCustomer(customerId, businessId, userId);
 
   await logEvent("customer.delete", `Cliente eliminado: ${customer.name}`, {
     businessId,
@@ -153,7 +153,7 @@ export async function registerCustomerPayment(input: {
     throw new CustomerError(CustomerErrorCode.INVALID_AMOUNT);
   }
 
-  const balance = await findCustomerBalance(input.customerId);
+  const balance = await findCustomerBalance(input.customerId, input.businessId);
 
   if (balance <= 0) {
     throw new CustomerError(CustomerErrorCode.NOTHING_TO_PAY, { balance });
@@ -191,7 +191,7 @@ export async function assertCanChargeToAccount(input: {
   }
 
   if (customer.creditLimit !== null) {
-    const balance = await findCustomerBalance(input.customerId);
+    const balance = await findCustomerBalance(input.customerId, input.businessId);
 
     if (balance + input.amount > customer.creditLimit) {
       throw new CustomerError(CustomerErrorCode.CREDIT_LIMIT_EXCEEDED, {
