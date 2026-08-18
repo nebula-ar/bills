@@ -43,7 +43,6 @@ const TINT_PILLS: Record<string, string> = {
 const STAT_LABELS: Record<string, (n: number) => string> = {
   "/salon": (n) => `${n} ${n === 1 ? "mesa" : "mesas"}`,
   "/cocina": (n) => `${n} en preparación`,
-  "/opciones": (n) => `${n} ${n === 1 ? "opción" : "opciones"}`,
 };
 
 // Rutas donde NO se muestra la nav admin: el login, la terminal del empleado

@@ -146,7 +146,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       // productos que se compran y se guardan, pero nunca se venden.
       recipes: business.has(AppModule.RECIPES),
       // Con Salón prendido el producto puede llevar grupos de opciones
-      // ("Punto de cocción"), que se definen en /opciones.
+      // ("Punto de cocción"), que se crean y se eligen desde su ficha.
       modifiers: business.has(AppModule.TABLES),
     },
     selectedBranchName: selectedBranch.name,

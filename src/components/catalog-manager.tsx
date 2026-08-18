@@ -2585,10 +2585,9 @@ export function ProductsManager({ data }: { data: ProductsData }) {
                   </label>
                 </div>
 
-                {/* Qué opciones lleva. Los grupos se definen en /opciones —son
-                    un catálogo compartido, como las categorías— pero cuáles
-                    lleva ESTE producto es del producto. Un insumo no se vende,
-                    así que no se le ofrece nada. */}
+                {/* Qué opciones lleva, y de dónde salen: los grupos se crean y
+                    se borran desde acá desde que /opciones se eliminó. Un
+                    insumo no se vende, así que no se le ofrece nada. */}
                 {data.features.modifiers && !editandoInsumo ? (
                   <ProductOptionsField key={editing.id} productId={editing.id} />
                 ) : null}

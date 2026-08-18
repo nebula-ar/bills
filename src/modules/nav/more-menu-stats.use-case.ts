@@ -21,7 +21,6 @@ const FETCHERS: Record<string, StatFetcher> = {
         kdsStatus: { in: [KdsStatus.PENDING, KdsStatus.PREPARING, KdsStatus.READY] },
       },
     }),
-  "/opciones": (businessId) => prisma.modifier.count({ where: { businessId, deleted: false } }),
 };
 
 /**

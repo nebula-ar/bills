@@ -27,14 +27,6 @@ export function findGruposConModificadores(businessId: string) {
   });
 }
 
-export function findProductosParaAsignar(businessId: string) {
-  return prisma.product.findMany({
-    where: { businessId, deleted: false },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  });
-}
-
 export function crearGrupo(input: {
   businessId: string;
   name: string;
@@ -71,15 +63,6 @@ export function crearModificador(input: {
       priceDelta: input.priceDelta,
       createdById: input.userId,
     },
-    select: { id: true },
-  });
-}
-
-/** Reemplaza a qué productos se les ofrece el grupo. */
-export function asignarProductos(groupId: string, businessId: string, productIds: string[]) {
-  return prisma.modifierGroup.update({
-    where: { id: groupId, businessId },
-    data: { products: { set: productIds.map((id) => ({ id })) } },
     select: { id: true },
   });
 }
@@ -159,7 +142,13 @@ export function findGruposDelNegocio(businessId: string) {
       id: true,
       name: true,
       required: true,
-      _count: { select: { modifiers: { where: { deleted: false } } } },
+      // Las opciones, no solo cuántas: la ficha ya no puede mandar a otra
+      // pantalla a corregir un nombre o un monto.
+      modifiers: {
+        where: { deleted: false },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { id: true, name: true, priceDelta: true },
+      },
     },
   });
 }
