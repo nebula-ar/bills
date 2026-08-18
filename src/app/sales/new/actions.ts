@@ -92,6 +92,7 @@ export async function submitSale(input: SubmitSaleInput): Promise<SubmitSaleResu
     if (input.orderId && input.tableId) {
       await closeOrderAfterSale({
         orderId: input.orderId,
+        businessId: session.user.businessId,
         tableId: input.tableId,
         saleId: sale.id,
         total: sale.total,

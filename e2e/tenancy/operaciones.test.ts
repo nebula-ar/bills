@@ -12,7 +12,7 @@ import { deletePromotion, togglePromotion } from "@/modules/promotions/promotion
 import { getReturnableSale } from "@/modules/sales/return-sale.use-case";
 import { getBranchStockOverview } from "@/modules/stock/stock.use-cases";
 import { deletePurchase, deleteSupplier, getPurchaseDetail } from "@/modules/suppliers/supplier.use-cases";
-import { getOrderForCheckout } from "@/modules/tables/orders.use-cases";
+import { cancelar, getOrderForCheckout, quitarProducto } from "@/modules/tables/orders.use-cases";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import { borrarNegociosDePrueba, crearInquilinos, enTandas, type Inquilino } from "./inquilinos";
@@ -41,6 +41,8 @@ type Operacion = {
   staffId: string;
   saleId: string;
   orderId: string;
+  tableId: string;
+  orderItemId: string;
   supplierId: string;
   purchaseId: string;
   transferId: string;
@@ -135,7 +137,8 @@ beforeAll(async () => {
       select: { id: true },
     });
 
-    await prisma.orderItem.create({
+    const renglon = await prisma.orderItem.create({
+      select: { id: true },
       data: {
         orderId: order.id,
         productId: inquilino.productIds[0]!,
@@ -163,6 +166,8 @@ beforeAll(async () => {
       staffId: staff.id,
       saleId: sale.id,
       orderId: order.id,
+      tableId: mesa.id,
+      orderItemId: renglon.id,
       supplierId: supplier.id,
       purchaseId: purchase.id,
       transferId: transfer.id,
@@ -310,6 +315,68 @@ describe("Aislamiento: escrituras", () => {
 
     const despues = await censo();
     expect(despues.promoActivas).toBe(INQUILINOS);
+  });
+
+  test("comandas — con la mesa de otro negocio no se le borra el renglón", async () => {
+    // REGRESIÓN DE UN BUG REAL, no una hipótesis.
+    //
+    // quitarProductoAction pasaba por `requireModule(AppModule.TABLES)`, que
+    // verifica que hay sesión y que ESE negocio tiene el módulo prendido —pero
+    // no mira de quién es la mesa—. El `tableId` viaja en el body y bajaba sin
+    // filtrar hasta `findOpenOrder(tableId)`, que devolvía la comanda abierta
+    // de CUALQUIER negocio. Con eso, un usuario logueado de A borraba
+    // renglones de la comanda de B.
+    //
+    // Un guard de sesión prueba QUIÉN sos, no que el id sea tuyo. Son dos
+    // preguntas distintas y hacían falta las dos.
+    const antes = await prisma.orderItem.count({
+      where: { id: { in: ops.map((o) => o.orderItemId) } },
+    });
+    expect(antes).toBe(INQUILINOS);
+
+    const intentos = await enTandas(inquilinos, TANDA, async (inquilino, indice) => {
+      const ajeno = ops[vecino(indice)]!;
+      try {
+        return await quitarProducto({
+          businessId: inquilino.businessId,
+          tableId: ajeno.tableId,
+          itemId: ajeno.orderItemId,
+          staffId: ops[indice]!.staffId,
+        });
+      } catch {
+        return { ok: false as const, error: "tiró" };
+      }
+    });
+
+    // Ninguno pudo, y sobre todo: los seis renglones siguen ahí.
+    expect(intentos.filter((r) => r.ok)).toEqual([]);
+    const despues = await prisma.orderItem.count({
+      where: { id: { in: ops.map((o) => o.orderItemId) } },
+    });
+    expect(despues).toBe(INQUILINOS);
+  });
+
+  test("comandas — con la mesa de otro negocio no se le cancela la comanda", async () => {
+    const intentos = await enTandas(inquilinos, TANDA, async (inquilino, indice) => {
+      try {
+        return await cancelar({
+          businessId: inquilino.businessId,
+          tableId: ops[vecino(indice)]!.tableId,
+          capacidades: ["sales.void"] as never,
+          staffId: ops[indice]!.staffId,
+        });
+      } catch {
+        return { ok: false as const, error: "tiró" };
+      }
+    });
+
+    expect(intentos.filter((r) => r.ok)).toEqual([]);
+
+    // Y ninguna comanda ajena quedó cancelada.
+    const canceladas = await prisma.order.count({
+      where: { id: { in: ops.map((o) => o.orderId) }, status: "CANCELLED" },
+    });
+    expect(canceladas).toBe(0);
   });
 
   test("borrar lo PROPIO sí funciona", async () => {

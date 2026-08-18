@@ -60,6 +60,7 @@ export async function quitarProductoAction(input: { tableId: string; itemId: str
   const { session } = await requireModule(AppModule.TABLES);
 
   const resultado = await quitarProducto({
+    businessId: session.user.businessId,
     tableId: input.tableId,
     itemId: input.itemId,
     staffId: session.user.id,
@@ -77,6 +78,7 @@ export async function restarUnidadAction(input: { tableId: string; itemId: strin
   const { session } = await requireModule(AppModule.TABLES);
 
   const resultado = await restarUnidad({
+    businessId: session.user.businessId,
     tableId: input.tableId,
     itemId: input.itemId,
     staffId: session.user.id,
@@ -94,6 +96,7 @@ export async function cancelarComandaAction(input: { tableId: string }): Promise
   const { session } = await requireModule(AppModule.TABLES);
 
   const resultado = await cancelar({
+    businessId: session.user.businessId,
     tableId: input.tableId,
     capacidades: capabilitiesOf(session.user.role),
     staffId: session.user.id,
@@ -141,10 +144,10 @@ export async function agregarConOpcionesAction(formData: FormData) {
 export async function confirmarCarritoAction(input: { tableId: string }): Promise<Resultado> {
   const { session } = await requireModule(AppModule.TABLES);
 
-  const comanda = await findOpenOrder(input.tableId);
+  const comanda = await findOpenOrder(session.user.businessId, input.tableId);
   if (!comanda) return { ok: false, error: "Esta mesa no tiene una comanda abierta" };
 
-  await confirmarCarrito(comanda.id, session.user.id);
+  await confirmarCarrito(comanda.id, session.user.businessId, session.user.id);
 
   revalidatePath(`/salon/${input.tableId}`);
   revalidatePath("/cocina");
@@ -152,12 +155,12 @@ export async function confirmarCarritoAction(input: { tableId: string }): Promis
 }
 
 export async function descartarCarritoAction(input: { tableId: string }): Promise<Resultado> {
-  await requireModule(AppModule.TABLES);
+  const { session } = await requireModule(AppModule.TABLES);
 
-  const comanda = await findOpenOrder(input.tableId);
+  const comanda = await findOpenOrder(session.user.businessId, input.tableId);
   if (!comanda) return { ok: false, error: "Esta mesa no tiene una comanda abierta" };
 
-  await descartarCarrito(comanda.id);
+  await descartarCarrito(comanda.id, session.user.businessId);
 
   revalidatePath(`/salon/${input.tableId}`);
   return { ok: true };

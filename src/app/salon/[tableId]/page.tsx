@@ -33,7 +33,7 @@ export default async function ComandaPage({ params, searchParams }: ComandaPageP
 
   const [productos, comanda] = await Promise.all([
     findProductosVendibles(session.user.businessId, mesa.branchId),
-    findOpenOrder(tableId),
+    findOpenOrder(session.user.businessId, tableId),
   ]);
 
   const todos = comanda?.items ?? [];

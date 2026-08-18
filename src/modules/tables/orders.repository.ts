@@ -1,10 +1,38 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { KdsStatus, OrderStatus, ProductKind, TableStatus } from "@/generated/prisma/enums";
 import { lineTotal, QUANTITY_SCALE } from "@/lib/quantity";
 import { prisma } from "@/lib/prisma";
 
 /**
  * La comanda de una mesa: lo que se pidió y lo que se puede pedir.
+ *
+ * Todas las funciones piden `businessId` y lo bajan al `where`. No alcanza con
+ * que el caso de uso valide antes: a este módulo llega la carta pública
+ * (`/carta/<token>`), que NO tiene sesión, así que el id de comanda o de
+ * renglón puede venir de un teléfono cualquiera. Con el filtro en la firma, el
+ * compilador no deja escribir una pantalla nueva que se lo olvide.
  */
+
+type Tx = Prisma.TransactionClient;
+
+/**
+ * Primera sentencia de cada transacción: la comanda existe y es de este negocio.
+ *
+ * Va ANTES de tocar nada, y no al final. Sin el ancla, un `orderId` ajeno
+ * alcanzaba a insertar el renglón y recién moría en el `update` del total: la
+ * transacción revertía —así que no había daño— pero el motivo quedaba
+ * escondido en un rollback en vez de ser un "esto no es tuyo" explícito.
+ */
+async function anclarComanda(tx: Tx, orderId: string, businessId: string): Promise<void> {
+  const comanda = await tx.order.findFirst({
+    where: { id: orderId, businessId, deleted: false },
+    select: { id: true },
+  });
+
+  if (!comanda) {
+    throw new Error("ORDER_NOT_FOUND");
+  }
+}
 
 export function findTable(businessId: string, tableId: string) {
   return prisma.table.findFirst({
@@ -20,9 +48,9 @@ export function findTable(businessId: string, tableId: string) {
   });
 }
 
-export function findOpenOrder(tableId: string) {
+export function findOpenOrder(businessId: string, tableId: string) {
   return prisma.order.findFirst({
-    where: { tableId, status: OrderStatus.OPEN, deleted: false },
+    where: { tableId, businessId, status: OrderStatus.OPEN, deleted: false },
     select: {
       id: true,
       number: true,
@@ -137,7 +165,7 @@ export function abrirOReusarComanda(input: {
 
     // Sentar la mesa al abrir: si no, el tablero la muestra libre con consumo.
     await tx.table.update({
-      where: { id: input.tableId },
+      where: { id: input.tableId, businessId: input.businessId },
       data: { status: TableStatus.OCCUPIED, updatedById: input.staffId },
     });
 
@@ -174,6 +202,7 @@ export function findOrderForCheckout(businessId: string, orderId: string) {
  */
 export function cerrarComandaCobrada(input: {
   orderId: string;
+  businessId: string;
   tableId: string;
   saleId: string;
   total: number;
@@ -181,8 +210,10 @@ export function cerrarComandaCobrada(input: {
   staffId: string;
 }) {
   return prisma.$transaction(async (tx) => {
+    await anclarComanda(tx, input.orderId, input.businessId);
+
     await tx.order.update({
-      where: { id: input.orderId },
+      where: { id: input.orderId, businessId: input.businessId },
       data: {
         status: OrderStatus.PAID,
         saleId: input.saleId,
@@ -194,7 +225,7 @@ export function cerrarComandaCobrada(input: {
     });
 
     await tx.table.update({
-      where: { id: input.tableId },
+      where: { id: input.tableId, businessId: input.businessId },
       data: { status: TableStatus.FREE, updatedById: input.staffId },
     });
   });
@@ -215,6 +246,7 @@ export function findPrecioEnSucursal(productId: string, branchId: string) {
  */
 export function agregarRenglon(input: {
   orderId: string;
+  businessId: string;
   productId: string;
   description: string;
   unitPrice: number;
@@ -229,9 +261,12 @@ export function agregarRenglon(input: {
     // con cantidad 3, no tres filas iguales que hay que sumar a ojo. Con
     // opciones o nota distinta entra aparte, porque ahí "lo mismo" ya no es
     // obvio —una nota corta puede ser para ESE consumo, no para todos.
+    await anclarComanda(tx, input.orderId, input.businessId);
+
     const existente = await tx.orderItem.findFirst({
       where: {
         orderId: input.orderId,
+        order: { businessId: input.businessId },
         productId: input.productId,
         kdsStatus: KdsStatus.CART,
         note: input.note,
@@ -269,13 +304,17 @@ export function agregarRenglon(input: {
     // El total cuenta SOLO lo confirmado: un borrador todavía no se pidió, y
     // si sumara, el cajero podría cobrar un pedido que la cocina nunca vio.
     const renglones = await tx.orderItem.findMany({
-      where: { orderId: input.orderId, kdsStatus: { not: KdsStatus.CART } },
+      where: {
+        orderId: input.orderId,
+        order: { businessId: input.businessId },
+        kdsStatus: { not: KdsStatus.CART },
+      },
       select: { total: true },
     });
     const subtotal = renglones.reduce((suma, r) => suma + r.total, 0);
 
     await tx.order.update({
-      where: { id: input.orderId },
+      where: { id: input.orderId, businessId: input.businessId },
       data: { subtotal, total: subtotal, version: { increment: 1 }, updatedById: input.staffId },
     });
   });
@@ -288,10 +327,22 @@ export function agregarRenglon(input: {
  * ya vio, y bajarle unidades ahí sin dejar rastro sería la misma pérdida sin
  * justificar que ya se resuelve con permiso de anulación en otro lado.
  */
-export function restarUnidadRenglon(input: { orderId: string; itemId: string; staffId: string }) {
+export function restarUnidadRenglon(input: {
+  orderId: string;
+  businessId: string;
+  itemId: string;
+  staffId: string;
+}) {
   return prisma.$transaction(async (tx) => {
+    await anclarComanda(tx, input.orderId, input.businessId);
+
     const item = await tx.orderItem.findFirst({
-      where: { id: input.itemId, orderId: input.orderId, kdsStatus: KdsStatus.CART },
+      where: {
+        id: input.itemId,
+        orderId: input.orderId,
+        order: { businessId: input.businessId },
+        kdsStatus: KdsStatus.CART,
+      },
       select: { quantity: true, unitPrice: true },
     });
     if (!item) return;
@@ -299,6 +350,9 @@ export function restarUnidadRenglon(input: { orderId: string; itemId: string; st
     const nuevaCantidad = item.quantity - QUANTITY_SCALE;
 
     if (nuevaCantidad <= 0) {
+      // El renglón ya quedó atado a la comanda de este negocio por el
+      // `findFirst` de arriba: si no fuera suyo, no habría `item` y esto no
+      // llega a ejecutarse.
       await tx.orderItem.delete({ where: { id: input.itemId } });
     } else {
       await tx.orderItem.update({
@@ -308,40 +362,60 @@ export function restarUnidadRenglon(input: { orderId: string; itemId: string; st
     }
 
     await tx.order.update({
-      where: { id: input.orderId },
+      where: { id: input.orderId, businessId: input.businessId },
       data: { version: { increment: 1 }, updatedById: input.staffId },
     });
   });
 }
 
-export function quitarRenglon(input: { orderId: string; itemId: string; staffId: string }) {
+export function quitarRenglon(input: {
+  orderId: string;
+  businessId: string;
+  itemId: string;
+  staffId: string;
+}) {
   return prisma.$transaction(async (tx) => {
-    await tx.orderItem.deleteMany({ where: { id: input.itemId, orderId: input.orderId } });
+    await anclarComanda(tx, input.orderId, input.businessId);
+
+    await tx.orderItem.deleteMany({
+      where: { id: input.itemId, orderId: input.orderId, order: { businessId: input.businessId } },
+    });
 
     // Mismo criterio que al agregar: el total es lo confirmado.
     const renglones = await tx.orderItem.findMany({
-      where: { orderId: input.orderId, kdsStatus: { not: KdsStatus.CART } },
+      where: {
+        orderId: input.orderId,
+        order: { businessId: input.businessId },
+        kdsStatus: { not: KdsStatus.CART },
+      },
       select: { total: true },
     });
     const subtotal = renglones.reduce((suma, r) => suma + r.total, 0);
 
     await tx.order.update({
-      where: { id: input.orderId },
+      where: { id: input.orderId, businessId: input.businessId },
       data: { subtotal, total: subtotal, version: { increment: 1 }, updatedById: input.staffId },
     });
   });
 }
 
-export function contarRenglonesEnCocina(orderId: string) {
+export function contarRenglonesEnCocina(orderId: string, businessId: string) {
   return prisma.orderItem.count({
-    where: { orderId, kdsStatus: { notIn: [KdsStatus.CART] } },
+    where: { orderId, order: { businessId }, kdsStatus: { notIn: [KdsStatus.CART] } },
   });
 }
 
-export function cancelarComanda(input: { orderId: string; tableId: string; staffId: string }) {
+export function cancelarComanda(input: {
+  orderId: string;
+  businessId: string;
+  tableId: string;
+  staffId: string;
+}) {
   return prisma.$transaction(async (tx) => {
+    await anclarComanda(tx, input.orderId, input.businessId);
+
     await tx.order.update({
-      where: { id: input.orderId },
+      where: { id: input.orderId, businessId: input.businessId },
       data: {
         status: OrderStatus.CANCELLED,
         closedAt: new Date(),
@@ -350,7 +424,7 @@ export function cancelarComanda(input: { orderId: string; tableId: string; staff
       },
     });
     await tx.table.update({
-      where: { id: input.tableId },
+      where: { id: input.tableId, businessId: input.businessId },
       data: { status: TableStatus.FREE, updatedById: input.staffId },
     });
   });
@@ -359,6 +433,7 @@ export function cancelarComanda(input: { orderId: string; tableId: string; staff
 /** Igual que `agregarRenglon`, pero con las opciones elegidas y su copia. */
 export function agregarRenglonConOpciones(input: {
   orderId: string;
+  businessId: string;
   productId: string;
   description: string;
   unitPrice: number;
@@ -369,6 +444,8 @@ export function agregarRenglonConOpciones(input: {
   staffId: string;
 }) {
   return prisma.$transaction(async (tx) => {
+    await anclarComanda(tx, input.orderId, input.businessId);
+
     await tx.orderItem.create({
       data: {
         orderId: input.orderId,
@@ -386,40 +463,51 @@ export function agregarRenglonConOpciones(input: {
     });
 
     const renglones = await tx.orderItem.findMany({
-      where: { orderId: input.orderId, kdsStatus: { not: KdsStatus.CART } },
+      where: {
+        orderId: input.orderId,
+        order: { businessId: input.businessId },
+        kdsStatus: { not: KdsStatus.CART },
+      },
       select: { total: true },
     });
     const subtotal = renglones.reduce((suma, r) => suma + r.total, 0);
 
     await tx.order.update({
-      where: { id: input.orderId },
+      where: { id: input.orderId, businessId: input.businessId },
       data: { subtotal, total: subtotal, version: { increment: 1 }, updatedById: input.staffId },
     });
   });
 }
 
 /** Manda a cocina lo que el cliente cargó por el QR. */
-export function confirmarCarrito(orderId: string, staffId: string) {
+export function confirmarCarrito(orderId: string, businessId: string, staffId: string) {
   return prisma.$transaction(async (tx) => {
+    await anclarComanda(tx, orderId, businessId);
+
     await tx.orderItem.updateMany({
-      where: { orderId, kdsStatus: KdsStatus.CART },
+      where: { orderId, order: { businessId }, kdsStatus: KdsStatus.CART },
       data: { kdsStatus: KdsStatus.PENDING, sentToKitchenAt: new Date() },
     });
 
     const renglones = await tx.orderItem.findMany({
-      where: { orderId, kdsStatus: { not: KdsStatus.CART } },
+      where: { orderId, order: { businessId }, kdsStatus: { not: KdsStatus.CART } },
       select: { total: true },
     });
     const subtotal = renglones.reduce((suma, r) => suma + r.total, 0);
 
     await tx.order.update({
-      where: { id: orderId },
+      where: { id: orderId, businessId },
       data: { subtotal, total: subtotal, version: { increment: 1 }, updatedById: staffId },
     });
   });
 }
 
 /** Descarta lo que el cliente cargó y no se va a preparar. */
-export function descartarCarrito(orderId: string) {
-  return prisma.orderItem.deleteMany({ where: { orderId, kdsStatus: KdsStatus.CART } });
+export function descartarCarrito(orderId: string, businessId: string) {
+  // Sin `order: { businessId }` esto era un borrado por id pelado, y es de las
+  // pocas funciones del módulo que NO pasa por un update de la comanda: no
+  // había ninguna red debajo que lo atajara.
+  return prisma.orderItem.deleteMany({
+    where: { orderId, order: { businessId }, kdsStatus: KdsStatus.CART },
+  });
 }

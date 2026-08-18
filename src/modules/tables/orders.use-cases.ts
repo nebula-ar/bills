@@ -37,7 +37,7 @@ export async function agregarProducto(input: {
   note: string | null;
   staffId: string;
 }): Promise<Resultado> {
-  const comandaActual = await findOpenOrder(input.tableId);
+  const comandaActual = await findOpenOrder(input.businessId, input.tableId);
 
   // El tope se mide sobre lo que ESE renglón ya tiene, no por toque: un límite
   // por toque no limita nada, se llega igual sumando de a uno.
@@ -62,6 +62,7 @@ export async function agregarProducto(input: {
 
   await agregarRenglon({
     orderId: orden.id,
+    businessId: input.businessId,
     productId: input.productId,
     // Copia del nombre: si el producto cambia o se borra, la comanda vieja
     // tiene que seguir diciendo qué se pidió.
@@ -77,40 +78,53 @@ export async function agregarProducto(input: {
 }
 
 export async function quitarProducto(input: {
+  businessId: string;
   tableId: string;
   itemId: string;
   staffId: string;
 }): Promise<Resultado> {
-  const comanda = await findOpenOrder(input.tableId);
+  const comanda = await findOpenOrder(input.businessId, input.tableId);
   if (!comanda) return { ok: false, error: "Esta mesa no tiene una comanda abierta" };
 
-  await quitarRenglon({ orderId: comanda.id, itemId: input.itemId, staffId: input.staffId });
+  await quitarRenglon({
+    orderId: comanda.id,
+    businessId: input.businessId,
+    itemId: input.itemId,
+    staffId: input.staffId,
+  });
 
   return { ok: true };
 }
 
 export async function restarUnidad(input: {
+  businessId: string;
   tableId: string;
   itemId: string;
   staffId: string;
 }): Promise<Resultado> {
-  const comanda = await findOpenOrder(input.tableId);
+  const comanda = await findOpenOrder(input.businessId, input.tableId);
   if (!comanda) return { ok: false, error: "Esta mesa no tiene una comanda abierta" };
 
-  await restarUnidadRenglon({ orderId: comanda.id, itemId: input.itemId, staffId: input.staffId });
+  await restarUnidadRenglon({
+    orderId: comanda.id,
+    businessId: input.businessId,
+    itemId: input.itemId,
+    staffId: input.staffId,
+  });
 
   return { ok: true };
 }
 
 export async function cancelar(input: {
+  businessId: string;
   tableId: string;
   capacidades: readonly Capability[];
   staffId: string;
 }): Promise<Resultado> {
-  const comanda = await findOpenOrder(input.tableId);
+  const comanda = await findOpenOrder(input.businessId, input.tableId);
   if (!comanda) return { ok: false, error: "Esta mesa no tiene una comanda abierta" };
 
-  const enCocina = await contarRenglonesEnCocina(comanda.id);
+  const enCocina = await contarRenglonesEnCocina(comanda.id, input.businessId);
 
   // Tres escalones, no uno: una comanda vacía la cancela cualquier mozo, con
   // ítems en cocina hace falta permiso de anulación, y con pagos no se cancela
@@ -118,7 +132,12 @@ export async function cancelar(input: {
   const motivo = motivoParaNoCancelar({ itemsEnCocina: enCocina, pagos: 0 }, input.capacidades);
   if (motivo) return { ok: false, error: motivo };
 
-  await cancelarComanda({ orderId: comanda.id, tableId: input.tableId, staffId: input.staffId });
+  await cancelarComanda({
+    orderId: comanda.id,
+    businessId: input.businessId,
+    tableId: input.tableId,
+    staffId: input.staffId,
+  });
 
   return { ok: true };
 }
@@ -160,6 +179,7 @@ export async function getOrderForCheckout(businessId: string, orderId: string) {
  */
 export function closeOrderAfterSale(input: {
   orderId: string;
+  businessId: string;
   tableId: string;
   saleId: string;
   total: number;
@@ -213,6 +233,7 @@ export async function agregarProductoConOpciones(input: {
 
   await agregarRenglonConOpciones({
     orderId: orden.id,
+    businessId: input.businessId,
     productId: input.productId,
     description: precio.product.name,
     unitPrice,
