@@ -4,7 +4,7 @@ import { applyProductStockAction, transferProductStockAction, type StockOp } fro
 import { Check, Loader2, Package, X } from "@/components/icons";
 import type { Unit } from "@/generated/prisma/enums";
 import { formatQuantity, parseQuantityInput, sanitizeQuantityInput, unitShort } from "@/lib/quantity";
-import { resultadoDeOperacion } from "@/modules/stock/stock-operation.logic";
+import { admiteComa, problemaDeCantidad, resultadoDeOperacion } from "@/modules/stock/stock-operation.logic";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -149,14 +149,14 @@ export function ProductStockPanel({
   // se explica solo— y por eso la regla es de la merma, no del panel.
   const faltaMotivo = op === "loss" && reason.trim() === "";
 
+  // Un botón apagado sin explicación deja al usuario tocándolo sin entender, y
+  // el mensaje tiene que decir el problema REAL: una coma en docenas no es "un
+  // número menor que cero" —2,5 lo es— sino una fracción de algo que se cuenta
+  // entero. Con el mensaje viejo, el usuario corregía el signo, que estaba
+  // bien, y volvía a fallar.
+  const problemaDelNumero = problemaDeCantidad({ escrito: value, unit, esConteo: op === "adjust" });
   const problema =
-    value.trim() === "" || cantidad !== null
-      ? faltaMotivo && value.trim() !== ""
-        ? "Poné por qué se perdió."
-        : null
-      : op === "adjust"
-        ? "Escribí cuánto contaste."
-        : "Tiene que ser un número mayor que cero.";
+    problemaDelNumero ?? (faltaMotivo && value.trim() !== "" ? "Poné por qué se perdió." : null);
 
   function abrir(next: OpDePanel) {
     setOp(next === op ? null : next);
@@ -308,7 +308,9 @@ export function ProductStockPanel({
               aria-label={active.pregunta}
               autoFocus
               className="w-full min-w-0 bg-transparent py-3 text-lg font-black text-slate-950 outline-none"
-              inputMode="decimal"
+              // El teclado sigue a la unidad: ofrecer la coma donde el parser
+              // la rechaza es invitar a tipear algo que se pierde.
+              inputMode={admiteComa(unit) ? "decimal" : "numeric"}
               onChange={(event) => setValue(sanitizeQuantityInput(event.target.value, unit))}
               placeholder={active.placeholder}
               value={value}

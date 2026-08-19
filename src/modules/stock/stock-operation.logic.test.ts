@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { resultadoDeOperacion } from "./stock-operation.logic";
+import { Unit } from "@/generated/prisma/enums";
+
+import { admiteComa, problemaDeCantidad, resultadoDeOperacion } from "./stock-operation.logic";
 
 /**
  * La vista previa del movimiento de stock.
@@ -101,5 +103,71 @@ describe("cantidades fraccionarias", () => {
       cambio: 500,
       recortado: false,
     });
+  });
+});
+
+describe("problemaDeCantidad", () => {
+  it("una coma en una unidad que no se fracciona se explica por lo que ES", () => {
+    // El caso que justifica todo esto. El parser devuelve null para "2,5"
+    // docenas, y la pantalla decía "tiene que ser un número mayor que cero",
+    // que es MENTIRA: 2,5 es mayor que cero. El usuario corrige el signo, que
+    // está bien, y vuelve a fallar.
+    expect(problemaDeCantidad({ escrito: "2,5", unit: Unit.DOZEN })).toBe(
+      "2,5 no se puede: se cuenta de a uno.",
+    );
+    expect(problemaDeCantidad({ escrito: "1,25", unit: Unit.UNIT })).toBe(
+      "1,25 no se puede: se cuenta de a uno.",
+    );
+  });
+
+  it("la misma coma en kilos es válida y no molesta", () => {
+    expect(problemaDeCantidad({ escrito: "25,5", unit: Unit.KG })).toBeNull();
+    expect(problemaDeCantidad({ escrito: "0,5", unit: Unit.LITER })).toBeNull();
+  });
+
+  it("el campo vacío no es un problema: todavía no escribió nada", () => {
+    expect(problemaDeCantidad({ escrito: "", unit: Unit.KG })).toBeNull();
+    expect(problemaDeCantidad({ escrito: "   ", unit: Unit.KG })).toBeNull();
+  });
+
+  it("contar cero es legítimo; recibir o perder cero, no", () => {
+    // "Se acabó" es un conteo válido. Recibir cero no significa nada.
+    expect(problemaDeCantidad({ escrito: "0", unit: Unit.UNIT, esConteo: true })).toBeNull();
+    expect(problemaDeCantidad({ escrito: "0", unit: Unit.UNIT })).toBe(
+      "Tiene que ser un número mayor que cero.",
+    );
+  });
+
+  it("en un conteo el mensaje habla de contar", () => {
+    expect(problemaDeCantidad({ escrito: "abc", unit: Unit.KG, esConteo: true })).toBe(
+      "Escribí cuánto contaste.",
+    );
+  });
+
+  it("el separador colgando se acepta: '1,' es 1", () => {
+    // Documentado porque es contraintuitivo y lo probé al revés: `parseQuantityInput`
+    // normaliza "1," a "1." y `Number("1.")` da 1, así que no es un error. Sirve:
+    // el usuario que todavía está tipeando no ve un cartel rojo por la coma que
+    // acaba de poner.
+    expect(problemaDeCantidad({ escrito: "1,", unit: Unit.KG })).toBeNull();
+    expect(problemaDeCantidad({ escrito: "1,", unit: Unit.UNIT })).toBeNull();
+  });
+
+  it("lo que no es un número sí se rechaza", () => {
+    expect(problemaDeCantidad({ escrito: "abc", unit: Unit.KG })).toBe(
+      "Tiene que ser un número mayor que cero.",
+    );
+  });
+});
+
+describe("admiteComa", () => {
+  it("dice si el teclado tiene que ofrecer la coma", () => {
+    // De acá sale el `inputMode` del campo. Ofrecer la coma donde el parser la
+    // rechaza es invitar a tipear algo que se pierde.
+    expect(admiteComa(Unit.KG)).toBe(true);
+    expect(admiteComa(Unit.LITER)).toBe(true);
+    expect(admiteComa(Unit.UNIT)).toBe(false);
+    expect(admiteComa(Unit.DOZEN)).toBe(false);
+    expect(admiteComa(Unit.PACK)).toBe(false);
   });
 });
