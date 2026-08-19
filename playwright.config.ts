@@ -33,7 +33,10 @@ export default defineConfig({
   globalTeardown: "./e2e/support/global-teardown.ts",
 
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
+    // 3001 y no 3000: `npm run dev` levanta ahí desde que el script lleva
+    // `-p 3001`. Con el default viejo, `npx playwright test` se conectaba a un
+    // puerto donde no hay nada y el fallo se leía como "la app no carga".
+    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3001",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -62,9 +65,14 @@ export default defineConfig({
 
   webServer: {
     command: "npm run dev",
-    url: process.env.E2E_BASE_URL ?? "http://localhost:3000",
+    // El MISMO puerto que `use.baseURL`. Estaban desalineados: `reuseExistingServer`
+    // sondeaba el 3000, no encontraba nada, arrancaba `npm run dev` y ese moría
+    // contra el server que ya estaba escuchando en el 3001 ("Another next dev
+    // server is already running"). El reuso solo funciona si mira donde el
+    // server de verdad está.
+    url: process.env.E2E_BASE_URL ?? "http://localhost:3001",
     // Si ya tenés el server levantado, lo usa en vez de arrancar otro y pelearse
-    // por el puerto 3000.
+    // por el puerto.
     reuseExistingServer: true,
     timeout: 180_000,
   },
